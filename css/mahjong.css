@@ -1,0 +1,363 @@
+/* Mahjong Solitaire — Arcade Glass Theme */
+.app-mahjong {
+  --mj-tile-min: 24px;
+  --mj-tile-max: 84px;
+  background-color: #050a14;
+  background-image:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.2) 50%),
+    radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.8) 100%),
+    linear-gradient(0deg, rgba(62, 200, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(62, 200, 255, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 50% 30%, #1a2c4e 0%, #081020 90%);
+  background-size:
+    100% 4px,
+    100% 100%,
+    34px 34px,
+    34px 34px,
+    100% 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #e6f1ff;
+  font-family: 'Courier New', Courier, monospace;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+  box-shadow: inset 0 0 60px rgba(62, 200, 255, 0.1);
+}
+
+/* ── Header ── */
+.mj-header {
+  height: 46px;
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 10px;
+  background: rgba(0,0,0,0.38);
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+  z-index: 50;
+}
+.mj-title {
+  position: static;
+  justify-self: center;
+  width: 100%;
+  max-width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: clamp(14px, 3.8vw, 17px);
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow:
+    0 0 10px rgba(62, 200, 255, 0.65),
+    0 0 18px rgba(62, 200, 255, 0.3);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.mj-close {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.22);
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 17px;
+  flex-shrink: 0;
+  justify-self: end;
+  transition: all 0.2s;
+}
+.mj-close:hover {
+  background: rgba(255, 70, 70, 0.2);
+  border-color: rgba(255, 70, 70, 0.45);
+  color: #ff6b6b;
+}
+.mj-header-left {
+  display: flex;
+  gap: 7px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+.mj-hdr-btn {
+  min-width: 44px;
+  min-height: 32px;
+  background: rgba(62, 200, 255, 0.15);
+  border: 1px solid rgba(62, 200, 255, 0.32);
+  color: #3ec8ff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  padding: 0 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.2s;
+  touch-action: manipulation;
+}
+.mj-hdr-btn:hover {
+  background: rgba(62, 200, 255, 0.24);
+  border-color: #3ec8ff;
+  box-shadow: 0 0 14px rgba(62, 200, 255, 0.35);
+}
+.mj-hdr-btn:active {
+  transform: scale(0.97);
+}
+.mj-hdr-btn.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* ── Stats Bar ── */
+.mj-stats {
+  height: 30px;
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(10px, 3vw, 20px);
+  font-size: 12px;
+  color: rgba(200, 220, 255, 0.86);
+  background: rgba(0,0,0,0.28);
+  border-bottom: 1px solid rgba(255,255,255,0.09);
+  padding: 0 12px;
+}
+.mj-stats span { white-space: nowrap; }
+
+/* ── Board ── */
+.mj-board {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(6px, 1.4vw, 12px);
+  padding-bottom: max(14px, calc(8px + env(safe-area-inset-bottom, 0px)));
+}
+.mj-board-inner {
+  position: relative;
+  /* Sized by JS */
+  transform-origin: center center;
+  transition: transform 0.24s ease, width 0.24s ease, height 0.24s ease;
+}
+
+.app-mahjong.mj-portrait {
+  --mj-tile-min: 30px;
+  --mj-tile-max: 104px;
+}
+
+.app-mahjong.mj-portrait .mj-board-inner {
+  transform: rotate(90deg);
+}
+
+.app-mahjong.mj-portrait .mj-tile-body {
+  transform: rotate(-90deg);
+  transform-origin: center center;
+}
+
+/* ── Tiles ── */
+.mj-tile {
+  position: absolute;
+  width: clamp(var(--mj-tile-min), var(--mj-tile-w, 40px), var(--mj-tile-max));
+  height: clamp(var(--mj-tile-min), var(--mj-tile-h, 40px), var(--mj-tile-max));
+  box-sizing: border-box;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: left 0.22s ease, top 0.22s ease, width 0.22s ease, height 0.22s ease, filter 0.15s, box-shadow 0.15s, opacity 0.25s, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  contain: layout style;
+  will-change: transform;
+}
+
+.app-mahjong.mj-portrait .mj-tile::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+}
+
+/* Tile body — 3D layered look */
+.mj-tile-body {
+  width: 100%;
+  height: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  background: linear-gradient(160deg, #f0ead6 0%, #d6ceb2 100%);
+  border-top: 1px solid rgba(255,255,255,0.7);
+  border-left: 1px solid rgba(255,255,255,0.5);
+  border-right: 1px solid rgba(0,0,0,0.15);
+  border-bottom: 2px solid rgba(0,0,0,0.25);
+  box-shadow:
+    2px 3px 0 rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.6);
+  position: relative;
+}
+
+/* Gloss overlay */
+.mj-tile-body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.45) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.mj-tile-icon {
+  line-height: 1;
+  text-align: center;
+  pointer-events: none;
+}
+.mj-tile-label {
+  font-weight: 700;
+  color: #1a1a2e;
+  text-align: center;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* ── Tile states ── */
+.mj-tile.free { cursor: pointer; }
+.mj-tile.blocked {
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: saturate(0.55) brightness(0.58);
+  opacity: 0.68;
+}
+.mj-tile.blocked .mj-tile-body {
+  box-shadow:
+    2px 3px 0 rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.mj-tile.blocked .mj-tile-icon,
+.mj-tile.blocked .mj-tile-label {
+  opacity: 0.45;
+}
+
+.mj-tile.selected {
+  transform: translateY(-3px) scale(1.08);
+  z-index: 9999 !important;
+}
+.mj-tile.selected .mj-tile-body {
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,0.96),
+    0 0 0 6px rgba(68,255,255,0.45),
+    0 0 26px rgba(68,255,255,0.95),
+    4px 5px 0 rgba(0,0,0,0.42);
+}
+
+.mj-tile.hint .mj-tile-body {
+  box-shadow:
+    0 0 0 2px #ffd700,
+    0 0 14px rgba(255,215,0,0.5),
+    2px 3px 0 rgba(0,0,0,0.35);
+}
+
+.mj-tile.removing {
+  opacity: 0;
+  transform: scale(0.6);
+  pointer-events: none;
+}
+
+/* Suit colors */
+.mj-tile[data-suit="circles"] .mj-tile-icon  { color: #1565c0; }
+.mj-tile[data-suit="bamboo"] .mj-tile-icon   { color: #2e7d32; }
+.mj-tile[data-suit="chars"] .mj-tile-icon     { color: #c62828; }
+.mj-tile[data-suit="wind"] .mj-tile-icon      { color: #37474f; }
+.mj-tile[data-suit="dragon"] .mj-tile-icon    { color: #6a1b9a; }
+.mj-tile[data-suit="flower"] .mj-tile-icon    { color: #e65100; }
+.mj-tile[data-suit="season"] .mj-tile-icon    { color: #00695c; }
+
+/* ── Win / Stuck Overlay ── */
+.mj-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(5,10,20,0.88);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  gap: 14px;
+  padding: 20px;
+  animation: mjFadeIn 0.3s ease;
+}
+@keyframes mjFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.mj-overlay-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.mj-overlay-title.win { color: #ffd700; text-shadow: 0 0 20px rgba(255,215,0,0.6); }
+.mj-overlay-title.stuck { color: #ff6b6b; text-shadow: 0 0 20px rgba(255,107,107,0.4); }
+.mj-overlay-sub {
+  font-size: 14px;
+  color: rgba(255,255,255,0.7);
+  text-align: center;
+  max-width: 260px;
+}
+.mj-overlay-btn {
+  margin-top: 6px;
+  background: rgba(68,255,255,0.15);
+  border: 1px solid rgba(68,255,255,0.4);
+  color: #4ff;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 10px 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.mj-overlay-btn:active { background: rgba(68,255,255,0.3); }
+
+/* ── Landscape tweaks ── */
+@media (orientation: landscape) {
+  .mj-header { height: 40px; min-height: 40px; }
+  .mj-stats { height: 26px; min-height: 26px; font-size: 11px; }
+  .mj-hdr-btn { min-height: 30px; min-width: 42px; }
+}
+
+@media (orientation: portrait) {
+  .mj-header {
+    padding-top: max(2px, env(safe-area-inset-top, 0px));
+  }
+  .mj-header-left {
+    gap: 6px;
+  }
+  .mj-hdr-btn {
+    min-width: 40px;
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .mj-close {
+    width: 28px;
+    height: 28px;
+  }
+  .mj-board {
+    align-items: flex-start;
+    justify-content: center;
+  }
+  .mj-board-inner {
+    margin-top: 4px;
+  }
+}
+
+@media (max-width: 420px) {
+  .mj-title {
+    letter-spacing: 1px;
+  }
+}

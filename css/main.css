@@ -1,0 +1,6566 @@
+/* ================================================
+   YancoTab v2 — main.css (cleaned)
+   App-specific styles + window chrome + layout.
+   Shell, tokens, reset, icons → separate files.
+   ================================================ */
+
+body {
+  margin: 0;
+  font-family: "Inter", "SF Pro Display", "Segoe UI", sans-serif;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(12, 32, 64, 0.9), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(11, 77, 100, 0.8), transparent 60%),
+    radial-gradient(circle at 50% 80%, rgba(62, 32, 108, 0.8), transparent 55%),
+    linear-gradient(135deg, #050910 0%, #081321 40%, #04161f 100%);
+  overflow: hidden;
+  color: var(--text-primary);
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
+}
+
+body.is-mobile {
+  overflow: hidden;
+  --dock-btn-size: 48px;
+  --dock-pad-y: 12px;
+  --dock-pad-x: 16px;
+}
+
+body.is-mobile #app {
+  overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+}
+
+body.is-mobile.is-landscape {
+  overflow: hidden;
+}
+
+body.is-mobile.is-landscape #app {
+  overflow: hidden;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
+body.time-dawn {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(80, 120, 200, 0.45), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(120, 160, 220, 0.35), transparent 60%),
+    linear-gradient(135deg, #091326 0%, #0d1b2d 45%, #0a1422 100%);
+}
+
+body.time-morning {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(120, 180, 255, 0.35), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(160, 210, 255, 0.25), transparent 60%),
+    linear-gradient(135deg, #0a1426 0%, #0f1e30 45%, #0b1726 100%);
+}
+
+body.time-afternoon {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(90, 170, 210, 0.28), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(70, 130, 190, 0.2), transparent 60%),
+    linear-gradient(135deg, #07111c 0%, #0a1724 45%, #07131f 100%);
+}
+
+body.time-evening {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(140, 100, 200, 0.28), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(120, 90, 170, 0.2), transparent 60%),
+    linear-gradient(135deg, #0a0f1a 0%, #111521 45%, #0a101b 100%);
+}
+
+body.time-night {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(10, 18, 32, 0.95), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(9, 36, 46, 0.85), transparent 60%),
+    radial-gradient(circle at 50% 80%, rgba(30, 24, 64, 0.85), transparent 55%),
+    linear-gradient(135deg, #03060d 0%, #06101a 45%, #041015 100%);
+}
+
+body.theme-light {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.9), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(200, 225, 255, 0.7), transparent 60%),
+    linear-gradient(135deg, #f1f6ff 0%, #dbe7f7 60%, #cfdaf2 100%);
+  color: var(--text-primary);
+  color-scheme: light;
+  --text-primary: #0e141b;
+  --text-muted: rgba(14, 20, 27, 0.65);
+  --bg-color: rgba(255, 255, 255, 0.6);
+  --bg-blur: 20px;
+  --border-color: rgba(0, 0, 0, 0.1);
+  --dock-bg: rgba(255, 255, 255, 0.4);
+  --glass-surface-1: rgba(255, 255, 255, 0.62);
+  --glass-surface-2: rgba(236, 244, 255, 0.74);
+  --glass-surface-3: rgba(224, 236, 252, 0.92);
+  --border-light: rgba(17, 43, 82, 0.2);
+  --border-medium: rgba(17, 43, 82, 0.16);
+}
+
+.app {
+  position: relative;
+  height: 100vh;
+  height: calc(var(--vh, 1vh) * 100);
+  width: 100%;
+  max-width: 100vw;
+  overflow: hidden;
+}
+
+/* ── Window container ── */
+/* Window container - persists across shell rerenders */
+#app-windows {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+#app-windows .placeholder-window {
+  pointer-events: auto;
+}
+
+/* Shell container - sits above starfield canvas */
+#app-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  background-image: url('../assets/wallpaper.png');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-size: cover;
+  background-attachment: fixed;
+}
+
+/* Cosmic mode: wallpaper fades to reveal starfield canvas beneath */
+#app-shell.cosmic-wallpaper {
+  opacity: 0.55;
+}
+
+/* ── Placeholder window chrome ── */
+.placeholder-window {
+  position: absolute;
+  width: 360px;
+  min-height: 240px;
+  height: auto;
+  padding: 16px;
+  border-radius: 24px;
+  background: rgba(6, 14, 28, 0.72);
+  border: 1px solid rgba(122, 182, 255, 0.3);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45);
+  color: var(--surface-text);
+  backdrop-filter: blur(16px);
+}
+
+.placeholder-window h3 {
+  margin: 0 0 8px;
+  font-size: 16px;
+}
+
+.placeholder-window p {
+  margin: 0;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+@media (max-width: 720px) {
+  body:not(.is-mobile) .weather {
+    display: none;
+  }
+
+  body:not(.is-mobile) .dock {
+    bottom: 24px;
+  }
+
+  body:not(.is-mobile) .clock {
+    top: 24px;
+    right: 24px;
+  }
+}
+
+/* Window chrome */
+.placeholder-window {
+  padding: 0;
+  position: absolute;
+}
+
+.window-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  cursor: move;
+  user-select: none;
+  background: rgba(6, 14, 28, 0.6);
+  border-bottom: 1px solid rgba(122, 182, 255, 0.25);
+}
+
+.window-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.85;
+}
+
+.window-close {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.window-close:hover {
+  background: rgba(255, 80, 80, 0.25);
+  border-color: rgba(255, 80, 80, 0.6);
+  transform: scale(1.05);
+}
+
+.window-body {
+  padding: 16px;
+}
+
+.window-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.window-min,
+.window-max {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  line-height: 1;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.window-min:hover,
+.window-max:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.placeholder-window.is-minimized {
+  display: none;
+}
+
+.placeholder-window.is-maximized {
+  border-radius: 0;
+}
+
+/* ── Settings App ── */
+.settings-layout {
+  display: grid;
+  gap: 14px;
+}
+
+.settings-shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+  min-height: 0;
+}
+
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(8, 18, 34, 0.6);
+  border: 1px solid rgba(140, 210, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  min-height: 0;
+}
+
+.settings-search {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(5, 14, 26, 0.6);
+  color: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.settings-search::placeholder {
+  color: var(--surface-muted);
+}
+
+.settings-nav {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-nav-btn {
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  padding: 8px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  text-align: left;
+}
+
+.settings-nav-btn.is-active {
+  background: rgba(120, 200, 255, 0.2);
+  border-color: rgba(120, 200, 255, 0.45);
+}
+
+.settings-nav-btn.is-disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 6px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-section-header {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-section-title {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  opacity: 0.8;
+}
+
+.settings-section-subtitle {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.settings-card-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-card {
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(140, 210, 255, 0.2);
+  display: grid;
+  gap: 12px;
+}
+
+.settings-card-header {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-card-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.settings-card-desc {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.settings-card-body {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-item-label {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.settings-item-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.settings-item-subtitle {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.settings-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 920px) {
+  .settings-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .settings-sidebar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .settings-nav {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(120px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .settings-nav-btn {
+    text-align: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .settings-item {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .settings-item-actions {
+    justify-content: flex-start;
+  }
+}
+
+.settings-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.settings-about {
+  display: grid;
+  gap: 6px;
+  font-size: 11px;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+.settings-about-block {
+  display: grid;
+  gap: 6px;
+}
+
+.settings-about-block+.settings-about-block {
+  margin-top: 10px;
+}
+
+.settings-about-heading {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.65;
+}
+
+.settings-about-line {
+  word-break: break-word;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(140, 210, 255, 0.2);
+}
+
+.settings-label {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.settings-helper {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--surface-muted);
+}
+
+.settings-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-weather-city {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+.settings-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: rgba(6, 14, 28, 0.95);
+  border: 1px solid rgba(140, 210, 255, 0.2);
+  border-radius: 12px;
+  padding: 6px;
+  display: none;
+  z-index: 5;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+}
+
+.settings-suggestions.is-open {
+  display: grid;
+  gap: 4px;
+}
+
+.settings-suggestion {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid transparent;
+  color: inherit;
+  padding: 8px 10px;
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.settings-clock-actions {
+  position: relative;
+  flex-wrap: wrap;
+}
+
+
+.settings-suggestion:hover {
+  border-color: rgba(120, 190, 255, 0.4);
+  background: rgba(120, 190, 255, 0.12);
+}
+
+.settings-input {
+  width: 160px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(5, 14, 26, 0.6);
+  color: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.settings-range {
+  width: 160px;
+  accent-color: #6fe3ff;
+  padding: 0;
+  height: 28px;
+}
+
+.settings-select {
+  min-width: 120px;
+}
+
+.settings-input::placeholder {
+  color: var(--surface-muted);
+}
+
+.toggle-wrap {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  display: inline-block;
+}
+
+.theme-toggle {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-ui {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  transition: background 0.2s ease;
+}
+
+.toggle-ui::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 3px;
+  top: 2px;
+  border-radius: 999px;
+  background: #e6f7ff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle:checked+.toggle-ui {
+  background: rgba(120, 200, 255, 0.45);
+}
+
+.theme-toggle:checked+.toggle-ui::after {
+  transform: translateX(20px);
+}
+
+.settings-button {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.settings-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.viewer-layout {
+  display: grid;
+  place-items: center;
+  min-height: 240px;
+}
+
+.viewer-image {
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+}
+
+.editor-area {
+  width: 100%;
+  min-height: 240px;
+  resize: vertical;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(6, 14, 28, 0.6);
+  color: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+  outline: none;
+}
+
+.top-logo {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #cdefff 45%, #7ec7ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow:
+    0 -1px 1px rgba(255, 255, 255, 0.55),
+    0 8px 18px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.smart-search {
+  position: absolute;
+  bottom: 110px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 999px;
+}
+
+.smart-search-input {
+  width: min(420px, 60vw);
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.smart-search-input::placeholder {
+  color: var(--surface-muted);
+}
+
+.smart-search-button {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.smart-search-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.portal-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.portal-add {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.portal-add:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.speed-dial-btn.glass-bubble {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.creator-layout {
+  display: grid;
+  gap: 12px;
+}
+
+.dock-emoji {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.memory-game {
+  display: grid;
+  gap: 12px;
+}
+
+.memory-status {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.8;
+}
+
+.memory-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.memory-card {
+  position: relative;
+  height: 60px;
+  border-radius: 14px;
+  border: 1px solid rgba(140, 210, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.memory-card:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.memory-card .memory-face {
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.memory-card.is-flipped .memory-face,
+.memory-card.is-matched .memory-face {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.memory-card.is-matched {
+  border-color: rgba(120, 220, 255, 0.6);
+  box-shadow: 0 8px 20px rgba(62, 200, 255, 0.25);
+}
+
+.smart-search {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  min-width: min(680px, 90vw);
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.smart-search-input {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  outline: none;
+}
+
+.smart-search-input::placeholder {
+  color: var(--surface-muted);
+}
+
+.smart-search-button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(140, 210, 255, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+  white-space: nowrap;
+}
+
+.smart-search-button:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.top-logo {
+  position: fixed;
+  top: 82px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9000;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, #ffffff 0%, #cdefff 45%, #7ec7ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow:
+    0 -1px 1px rgba(255, 255, 255, 0.55),
+    0 12px 22px rgba(0, 0, 0, 0.55),
+    0 0 30px rgba(120, 220, 255, 0.25);
+  pointer-events: none;
+}
+
+.portal-actions {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.portal-add {
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.portal-add:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.speed-dial-btn.glass-bubble {
+  padding: 10px 12px;
+  border-radius: 16px;
+}
+
+.creator-layout {
+  display: grid;
+  gap: 12px;
+}
+
+/* Legacy .dock-icon removed — handled by shell.css */
+
+.games-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.game-tile {
+  border: 1px solid rgba(140, 210, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  padding: 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  place-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.game-tile:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.game-icon {
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+}
+
+.game-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+.portal-frame-wrap {
+  width: 100%;
+  min-height: 360px;
+}
+
+.portal-frame {
+  width: 100%;
+  height: 360px;
+  border: none;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.context-menu {
+  position: fixed;
+  z-index: 12000;
+  min-width: 160px;
+  padding: 8px;
+  border-radius: 12px;
+  background: rgba(10, 18, 32, 0.72);
+  border: 1px solid rgba(140, 210, 255, 0.25);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(16px);
+}
+
+.context-item {
+  width: 100%;
+  display: block;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.context-item:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+
+/* ── Portal/Speed-dial ── */
+.portal-layout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.portal-search {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(140, 210, 255, 0.35);
+  background: rgba(5, 14, 26, 0.6);
+  color: inherit;
+  font-size: 14px;
+  box-shadow:
+    0 0 18px rgba(62, 200, 255, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  outline: none;
+}
+
+.portal-search::placeholder {
+  color: var(--surface-muted);
+}
+
+.speed-dial {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.speed-dial-btn {
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  padding: 10px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.35);
+}
+
+.speed-dial-btn:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.45);
+}
+
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.file-folder-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 12px 12px 0;
+}
+
+.file-item {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(140, 210, 255, 0.25);
+  background: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  color: inherit;
+  text-align: left;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.file-item:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.file-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  font-size: 18px;
+}
+
+.file-name {
+  font-size: 12px;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* ── Snake App ── */
+.snake-wrap {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 12px;
+}
+
+.snake-panel {
+  width: min(100%, 480px);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  justify-content: center;
+}
+
+.snake-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.snake-levels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.snake-level-btn,
+.snake-action-btn {
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.snake-level-btn.is-active {
+  background: rgba(120, 200, 255, 0.25);
+  border-color: rgba(120, 200, 255, 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.snake-board {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.snake-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 6px;
+}
+
+.snake-dpad-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1px solid rgba(140, 210, 255, 0.3);
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.snake-dpad-btn:active {
+  transform: translateY(1px);
+  background: rgba(120, 200, 255, 0.25);
+}
+
+.snake-dpad-spacer {
+  width: 44px;
+  height: 44px;
+}
+
+.snake-canvas {
+  width: min(100%, 420px);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  border-radius: 20px;
+  border: 1px solid rgba(120, 200, 255, 0.25);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 0 24px rgba(62, 200, 255, 0.18);
+  background: transparent;
+  outline: none;
+  touch-action: none;
+}
+
+
+/* ── Browser App V2 ── */
+/* ---------- Browser App V2 (New-Tab Native) ---------- */
+/* ── Browser App v2.0 — Modern New Tab ── */
+.app-browser-v2 {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: #eaf1ff;
+  font-family: "Space Grotesk", "Avenir Next", "SF Pro Display", system-ui, sans-serif;
+  background: #000;
+}
+
+.app-browser-v2 .bb-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.app-browser-v2 .bb-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-browser-v2 .bb-theme-aurora::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(96, 144, 255, 0.3), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(90, 228, 214, 0.18), transparent 50%),
+    radial-gradient(ellipse 50% 40% at 50% 100%, rgba(94, 240, 176, 0.12), transparent 50%);
+}
+
+.app-browser-v2 .bb-theme-graphite::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(144, 156, 186, 0.2), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(102, 126, 174, 0.14), transparent 50%);
+}
+
+.app-browser-v2 .bb-theme-midnight::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(122, 84, 211, 0.22), transparent 55%),
+    radial-gradient(ellipse 60% 50% at 80% 20%, rgba(46, 98, 212, 0.18), transparent 50%);
+}
+
+/* ── Scroll container ── */
+.app-browser-v2 .bb-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) 20px max(30px, calc(env(safe-area-inset-bottom, 0px) + 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Hero — greeting + search ── */
+.app-browser-v2 .bb-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: clamp(24px, 6vh, 48px) 16px 20px;
+}
+
+.app-browser-v2 .bb-hero-time {
+  font-size: clamp(48px, 10vw, 72px);
+  font-weight: 200;
+  letter-spacing: -0.04em;
+  color: #fff;
+  line-height: 1;
+}
+
+.app-browser-v2 .bb-hero-greeting {
+  font-size: clamp(16px, 3.5vw, 22px);
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 0.02em;
+}
+
+.app-browser-v2 .bb-search-row {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 0 16px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.app-browser-v2 .bb-search-row:focus-within {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.app-browser-v2 .bb-search-icon {
+  font-size: 16px;
+  opacity: 0.4;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
+.app-browser-v2 .bb-input {
+  min-width: 0;
+  flex: 1;
+  min-height: 50px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  padding: 0;
+  font-size: 16px;
+  outline: none;
+}
+
+.app-browser-v2 .bb-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.app-browser-v2 .bb-engine-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+.app-browser-v2 .bb-engine-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  min-height: 32px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.55);
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.app-browser-v2 .bb-engine-btn.is-active {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+/* ── Quick-access tiles ── */
+.app-browser-v2 .bb-section {
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.app-browser-v2 .bb-tiles-section {
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-browser-v2 .bb-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 4px;
+}
+
+.app-browser-v2 .bb-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.app-browser-v2 .bb-section-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.app-browser-v2 .bb-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.app-browser-v2 .bb-tile {
+  position: relative;
+  border: none;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 14px 8px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.15s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.app-browser-v2 .bb-tile:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-browser-v2 .bb-tile:active {
+  transform: scale(0.95);
+}
+
+.app-browser-v2 .bb-tile-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.app-browser-v2 .bb-favicon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+}
+
+.app-browser-v2 .bb-tile-label {
+  width: 100%;
+  font-size: 11px;
+  font-weight: 500;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.app-browser-v2 .bb-tile-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+  display: grid;
+  place-items: center;
+}
+
+.app-browser-v2 .bb-tile:hover .bb-tile-remove {
+  opacity: 1;
+}
+
+/* ── Actions row ── */
+.app-browser-v2 .bb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  max-width: 600px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.app-browser-v2 .bb-action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  min-height: 36px;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.app-browser-v2 .bb-action-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+/* ── History ── */
+.app-browser-v2 .bb-history-list {
+  display: grid;
+  gap: 6px;
+}
+
+.app-browser-v2 .bb-history-row {
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  transition: background 0.15s;
+}
+
+.app-browser-v2 .bb-history-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-browser-v2 .bb-history-info {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.app-browser-v2 .bb-history-host {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-browser-v2 .bb-history-url {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-browser-v2 .bb-history-actions {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.app-browser-v2 .bb-mini-btn {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: 600;
+  min-height: 28px;
+  padding: 0 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.app-browser-v2 .bb-mini-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.app-browser-v2 .bb-empty {
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  min-height: 80px;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 500px) {
+  .app-browser-v2 .bb-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-width: 980px) {
+  .app-browser-v2 .bb-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  .app-browser-v2 .bb-hero {
+    padding: 12px 16px 16px;
+  }
+}
+
+
+/* ── Clock App V3 ── */
+/* ---------- Clock App V3 (Premium) ---------- */
+.app-clock-v3 {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  /* Premium Glass Blue Theme (Default/Night) */
+  background:
+    radial-gradient(circle at 50% 10%, rgba(140, 220, 255, 0.15), transparent 60%),
+    linear-gradient(135deg, rgba(16, 26, 40, 0.6) 0%, rgba(6, 12, 22, 0.7) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: #fff;
+  font-family: "SF Pro Display", "Inter", sans-serif;
+  position: relative;
+  transition: background 1s ease;
+}
+
+/* Dynamic Themes */
+.app-clock-v3[data-clock-theme="dawn"] {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 180, 120, 0.25), transparent 50%),
+    linear-gradient(135deg, rgba(20, 30, 60, 0.7) 0%, rgba(40, 30, 50, 0.8) 100%);
+}
+
+.app-clock-v3[data-clock-theme="morning"] {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(200, 240, 255, 0.3), transparent 60%),
+    linear-gradient(135deg, rgba(40, 80, 120, 0.6) 0%, rgba(20, 40, 70, 0.7) 100%);
+}
+
+.app-clock-v3[data-clock-theme="afternoon"] {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 230, 200, 0.2), transparent 55%),
+    linear-gradient(135deg, rgba(30, 70, 110, 0.6) 0%, rgba(20, 50, 90, 0.7) 100%);
+}
+
+.app-clock-v3[data-clock-theme="sunset"] {
+  background:
+    radial-gradient(circle at 50% 20%, rgba(255, 140, 100, 0.25), transparent 60%),
+    linear-gradient(135deg, rgba(45, 25, 60, 0.7) 0%, rgba(10, 10, 25, 0.8) 100%);
+}
+
+.app-clock-v3[data-clock-theme="evening"] {
+  background:
+    radial-gradient(circle at 50% 10%, rgba(120, 140, 200, 0.15), transparent 60%),
+    linear-gradient(135deg, rgba(20, 25, 40, 0.7) 0%, rgba(10, 12, 18, 0.8) 100%);
+}
+
+/* Header */
+/* Header */
+.clock-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Center content */
+  position: relative;
+  /* For absolute positioning of siblings if needed */
+  padding: calc(12px + env(safe-area-inset-top)) 20px 12px 20px;
+  min-height: 44px;
+}
+
+.clock-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.clock-close {
+  position: absolute;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  z-index: 10;
+}
+
+.clock-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Content Area */
+.clock-content {
+  flex: 1;
+  min-height: 0;
+  /* Crucial for scrolling within flex container */
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.clock-content.is-switching {
+  opacity: 0;
+  transform: scale(0.98);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* Tab Bar (Bottom) */
+/* Tab Bar (Bottom) */
+.clock-tab-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  /* Increased bottom padding for better touch access and portrait visibility */
+  padding: 12px 10px calc(24px + env(safe-area-inset-bottom)) 10px;
+  background: rgba(16, 26, 40, 0.95);
+  /* More opaque for contrast */
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  z-index: 1000;
+  /* High z-index to sit on top */
+  position: relative;
+  flex-shrink: 0;
+  /* Prevent collapsing */
+  margin-bottom: 0;
+}
+
+.clock-tab-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 8px 0;
+}
+
+.clock-tab-btn.is-active {
+  color: #ff9f0a;
+  /* Apple Clock Orange */
+}
+
+.clock-tab-icon {
+  font-size: 22px;
+}
+
+.clock-tab-label {
+  font-size: 10px;
+  font-weight: 500;
+}
+
+/* --- World Clock Views --- */
+
+/* Carousel */
+.clock-carousel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  gap: 20px;
+  min-height: 320px;
+}
+
+.clock-skin-nav {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 32px;
+  cursor: pointer;
+  padding: 10px;
+  transition: color 0.2s;
+}
+
+.clock-skin-nav:hover {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.clock-face-container {
+  width: 260px;
+  height: 260px;
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+/* Clock Faces */
+.clock-main-face {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.clock-main-time-wrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.clock-time-text {
+  font-size: 64px;
+  font-weight: 200;
+  letter-spacing: -2px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-ampm-text {
+  font-size: 24px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+}
+
+.clock-main-face-digital .clock-main-date {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+  font-weight: 400;
+}
+
+.clock-face-pill {
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Tools */
+.clock-tools {
+  display: flex;
+  justify-content: center;
+  padding: 0 0 20px 0;
+}
+
+.clock-tool-btn {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.6);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.clock-tool-btn.is-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-color: transparent;
+}
+
+/* List Section */
+.clock-list-section {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.clock-search-container {
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.clock-search-input {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 16px;
+  width: 100%;
+  outline: none;
+}
+
+.clock-search-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.search-icon {
+  opacity: 0.4;
+}
+
+/* Suggestions */
+.clock-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #1c1c1e;
+  z-index: 10;
+  max-height: 200px;
+  overflow-y: auto;
+  display: none;
+}
+
+.clock-suggestions.is-open {
+  display: block;
+}
+
+.clock-suggestion {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: #fff;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.clock-suggestion:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* World List */
+.clock-world-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px 16px 16px;
+}
+
+.clock-world-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.clock-world-city-name {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.clock-world-meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-top: 2px;
+}
+
+.clock-world-time {
+  font-size: 28px;
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-world-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.clock-world-remove,
+.clock-world-move,
+.clock-world-pin {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
+.clock-world-pin.is-active {
+  color: #ff9f0a;
+  background: rgba(255, 159, 10, 0.2);
+}
+
+/* --- Alarms --- */
+.clock-alarm-list {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.clock-alarm-summary h3 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.clock-alarm-summary p {
+  margin: 4px 0 20px 0;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+}
+
+.clock-alarm-row {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.clock-alarm-time {
+  font-size: 42px;
+  font-weight: 300;
+  flex: 1;
+}
+
+.clock-alarm-meta {
+  display: flex;
+  flex-direction: column;
+  margin-right: 16px;
+  text-align: right;
+}
+
+.clock-alarm-label {
+  font-size: 14px;
+  color: #fff;
+}
+
+.clock-alarm-days {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* Toggle Switch */
+.clock-toggle-switch {
+  width: 50px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 15px;
+  border: none;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+.clock-toggle-switch.is-on {
+  background: #30d158;
+}
+
+.toggle-knob {
+  width: 26px;
+  height: 26px;
+  background: #fff;
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.3s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.clock-toggle-switch.is-on .toggle-knob {
+  transform: translateX(20px);
+}
+
+/* Alarm Editor */
+.clock-alarm-editor {
+  background: #1c1c1e;
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.clock-editor-inputs {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.clock-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 10px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 16px;
+  width: 100%;
+}
+
+.clock-day-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.clock-day-chip {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: none;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+
+.clock-day-chip.is-active {
+  background: #ff9f0a;
+  color: #fff;
+  border-color: #ff9f0a;
+}
+
+.clock-editor-actions {
+  display: flex;
+  justify-content: space-between;
+}
+
+.clock-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clock-btn.primary {
+  background: #ff9f0a;
+  color: #fff;
+}
+
+.clock-btn.danger {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+
+.clock-btn.full-width {
+  width: 100%;
+}
+
+/* --- Stopwatch & Timer --- */
+.clock-display-large {
+  font-size: 72px;
+  font-weight: 200;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  padding: 40px 0;
+}
+
+.clock-controls-row {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin-bottom: 30px;
+}
+
+.clock-circle-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.clock-circle-btn.start {
+  background: rgba(48, 209, 88, 0.2);
+  color: #30d158;
+}
+
+.clock-circle-btn.stop {
+  background: rgba(255, 69, 58, 0.2);
+  color: #ff453a;
+}
+
+.clock-circle-btn.secondary {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.clock-laps-list {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 20px;
+}
+
+.clock-lap-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 16px;
+}
+
+.clock-lap-item .mono {
+  font-family: "SF Mono", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-timer-presets {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+}
+
+.clock-pill-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: #fff;
+  cursor: pointer;
+}
+
+/* --- Landscape Mode (Split View & Optimization) --- */
+@media (orientation: landscape) {
+  .clock-content.view-world {
+    flex-direction: row;
+  }
+
+  .clock-carousel {
+    width: 60%;
+    /* Give more space to clock */
+    min-height: auto;
+    padding: 10px;
+    /* Reduced Top/Bottom padding */
+    height: 100%;
+    /* Fill available height */
+  }
+
+  .clock-face-container {
+    /* Scale down face to fit without scroll */
+    width: 200px;
+    height: 200px;
+  }
+
+  .clock-main-face-digital .clock-main-time {
+    font-size: 52px;
+  }
+
+  .clock-main-face-digital .clock-main-date {
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  .clock-list-section {
+    width: 40%;
+    border-radius: 20px 0 0 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .clock-tools {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    z-index: 10;
+  }
+
+  /* Optimize Tab Bar for Landscape */
+  .clock-tab-bar {
+    /* "Lower but not like before" - Reduced top padding, kept safe-area bottom */
+    padding: 8px 30px calc(12px + env(safe-area-inset-bottom)) 30px;
+    gap: 20px;
+    justify-content: center;
+    display: flex;
+    /* Use flex to center tabs */
+  }
+
+  .clock-tab-btn {
+    padding: 4px 16px;
+    flex-direction: row;
+    /* Horizontal tabs in landscape */
+    gap: 8px;
+  }
+
+  .clock-tab-icon {
+    font-size: 18px;
+  }
+
+  .clock-tab-label {
+    font-size: 11px;
+  }
+
+  /* Stopwatch/Timer Tweaks */
+  .clock-display-large {
+    font-size: 56px;
+    padding: 10px 0;
+  }
+
+  .clock-controls-row {
+    margin-bottom: 10px;
+  }
+
+  .clock-circle-btn {
+    width: 60px;
+    height: 60px;
+    font-size: 14px;
+  }
+}
+
+/* Stacks removed */
+
+/* Mobile layout (separate UI) */
+body.is-mobile .desktop-logo,
+body.is-mobile .top-logo,
+body.is-mobile .layer-mid,
+body.is-mobile .layer-fore {
+  display: none !important;
+}
+
+body.is-mobile .background-logo {
+  display: none !important;
+}
+
+body.is-mobile .mobile-desktop {
+  position: relative;
+  width: 100%;
+  height: calc(var(--vh, 1vh) * 100);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.is-mobile .mobile-frame {
+  position: relative;
+  width: 100%;
+  height: calc(var(--vh, 1vh) * 100);
+  padding:
+    calc(env(safe-area-inset-top) + 12px) calc(env(safe-area-inset-right) + 18px) calc(env(safe-area-inset-bottom) + 14px) calc(env(safe-area-inset-left) + 18px);
+  box-sizing: border-box;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  z-index: 1;
+}
+
+body.is-phone .mobile-frame {
+  padding:
+    calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 20px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 20px);
+}
+
+@supports (padding: max(0px)) {
+  body.is-phone .mobile-frame {
+    padding:
+      calc(env(safe-area-inset-top) + 10px) max(env(safe-area-inset-right), 20px) calc(env(safe-area-inset-bottom) + 12px) max(env(safe-area-inset-left), 20px);
+  }
+}
+
+body.is-mobile .mobile-frame,
+body.is-mobile .mobile-shell,
+body.is-mobile .mobile-hero,
+body.is-mobile .mobile-search-bar,
+body.is-mobile .mobile-bottom,
+body.is-mobile .mobile-dock,
+body.is-mobile .mobile-tray {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+body.is-mobile .mobile-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  gap: 12px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: visible;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  flex: 1;
+  z-index: 1;
+}
+
+/* Base mobile icon grid - responsive layout */
+body.is-mobile .mobile-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 25vw), 1fr));
+  gap: clamp(8px, 2vw, 16px);
+  padding: 8px 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  touch-action: pan-y;
+}
+
+/* Responsive desktop icons for mobile - valid dimensions for touch targets */
+body.is-mobile .mobile-icon-grid .desktop-icon,
+body.is-mobile .mobile-icon-grid .desktop-shortcut {
+  position: relative;
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 4px;
+  touch-action: manipulation;
+  box-sizing: border-box;
+}
+
+body.is-mobile .mobile-icon-grid .desktop-icon .shortcut-icon,
+body.is-mobile .mobile-icon-grid .desktop-icon svg {
+  width: clamp(40px, 12vmin, 56px);
+  height: clamp(40px, 12vmin, 56px);
+  object-fit: contain;
+}
+
+body.is-mobile .mobile-icon-grid .desktop-icon .shortcut-label {
+  font-size: clamp(10px, 3vmin, 12px);
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Multi-page container */
+body.is-mobile .mobile-pages-container {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  overflow-x: hidden;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+body.is-mobile .mobile-page {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  scroll-snap-align: start;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100px, 25vw), 1fr));
+  gap: clamp(8px, 2vw, 16px);
+  padding: 8px 12px;
+  box-sizing: border-box;
+  align-content: start;
+}
+
+body.is-mobile.is-landscape .mobile-page {
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: clamp(12px, 3vw, 20px);
+  padding: 12px 16px;
+}
+
+body.is-mobile .mobile-page-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  min-height: 20px;
+}
+
+body.is-mobile .mobile-page-indicator .page-dots {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+body.is-mobile .mobile-page-indicator .page-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+
+body.is-mobile .mobile-page-indicator .page-dot.active {
+  background: rgba(255, 255, 255, 0.9);
+  transform: scale(1.2);
+}
+
+body.is-mobile .mobile-page-indicator .page-dot:active {
+  transform: scale(0.9);
+}
+
+@supports (padding: max(0px)) {
+  body.is-mobile .mobile-frame {
+    padding:
+      calc(env(safe-area-inset-top) + 12px) max(env(safe-area-inset-right), 18px) calc(env(safe-area-inset-bottom) + 14px) max(env(safe-area-inset-left), 18px);
+  }
+}
+
+@supports (padding: constant(safe-area-inset-top)) {
+  body.is-mobile .mobile-frame {
+    padding:
+      calc(constant(safe-area-inset-top) + 12px) calc(constant(safe-area-inset-right) + 18px) calc(constant(safe-area-inset-bottom) + 14px) calc(constant(safe-area-inset-left) + 18px);
+  }
+}
+
+@media (min-width: 900px) {
+  body.is-mobile:not(.is-phone) .mobile-shell {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  body.is-mobile:not(.is-phone) .mobile-search {
+    max-width: 320px;
+  }
+
+  body.is-mobile:not(.is-phone) .mobile-icon-grid {
+    flex: 1;
+  }
+
+  body.is-mobile:not(.is-phone) .mobile-bottom {
+    align-self: flex-end;
+    margin-top: 0;
+    width: auto;
+  }
+}
+
+
+
+body.is-mobile .mobile-shell>* {
+  max-width: 100%;
+  min-width: 0;
+}
+
+body.is-mobile .mobile-hero {
+  display: none;
+}
+
+body.is-mobile .mobile-hero.glass-bubble {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(140, 220, 255, 0.2), transparent 50%),
+    linear-gradient(135deg, rgba(10, 18, 32, 0.85), rgba(6, 10, 20, 0.92));
+  border: 1px solid rgba(120, 200, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+body.is-mobile .mobile-hero-brand {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+body.is-mobile .mobile-hero-status {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+body.is-mobile .mobile-hero-status .mobile-status-temp,
+body.is-mobile .mobile-hero-status .mobile-status-condition {
+  text-align: right;
+}
+
+body.is-mobile .mobile-brand-mark {
+  width: 50px;
+  height: 50px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(120, 200, 255, 0.25);
+}
+
+body.is-mobile .mobile-brand-mark svg {
+  width: 36px;
+  height: 36px;
+}
+
+body.is-mobile .mobile-brand-copy {
+  display: grid;
+  gap: 4px;
+}
+
+body.is-mobile .mobile-brand-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  background: linear-gradient(135deg, #c9fbff 0%, #69e3ff 45%, #2aa9ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+body.is-mobile .mobile-status-left,
+body.is-mobile .mobile-status-right {
+  display: grid;
+  gap: 4px;
+}
+
+body.is-mobile .mobile-status-time {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+
+/* ── Mobile Touch Overrides ── */
+/* --- GLOBAL MOBILE OVERRIDES (The Checkmate Fix) --- */
+body.is-mobile,
+body.is-mobile * {
+  -webkit-touch-callout: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+/* Allow text selection in specific inputs if needed */
+body.is-mobile input,
+body.is-mobile textarea,
+body.is-mobile [contenteditable="true"] {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+body.is-mobile .mobile-status-date,
+body.is-mobile .mobile-status-condition {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+body.is-mobile .mobile-status-temp {
+  font-size: 14px;
+  font-weight: 600;
+  text-align: right;
+}
+
+body.is-mobile .mobile-search {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  border-radius: 0;
+  min-width: 0;
+  width: 100%;
+  margin-top: 2px;
+}
+
+body.is-mobile .mobile-search-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border-radius: 18px;
+  background: var(--glass-surface-2);
+  border: 1px solid var(--border-light);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 24px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+body.is-mobile .mobile-search .search-input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 13px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 200, 255, 0.18);
+  background: rgba(6, 12, 22, 0.5);
+  color: inherit;
+}
+
+body.is-phone .mobile-search .search-input {
+  font-size: 16px;
+}
+
+body.is-mobile input,
+body.is-mobile textarea,
+body.is-mobile select,
+body.is-mobile [contenteditable="true"] {
+  font-size: 16px;
+}
+
+/* ── MobileShell Core ── */
+
+.mobile-shell {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── App Layer & Window ── */
+/* App Layer (Full Screen Overlay) */
+.m-app-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  /* Must be well above dock (z:400) */
+  background: black;
+  display: flex;
+  flex-direction: column;
+}
+
+.m-app-layer[hidden] {
+  display: none !important;
+}
+
+/* Base App Window */
+.app-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--glass-surface-1);
+  backdrop-filter: var(--blur-lg);
+  -webkit-backdrop-filter: var(--blur-lg);
+  color: var(--surface-text);
+}
+
+.app-close-btn {
+  position: absolute;
+  top: 40px;
+  /* Safe Area */
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  font-size: 24px;
+  color: var(--surface-text);
+  z-index: 1000;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+/* ── Snake App (device body) ── */
+/* --- Snake App: Handheld Controller (Rebuilt) --- */
+.app-snake {
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--surface-text);
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.snake-device-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  /* Deep Space / Atomic Purple Theme */
+  background: linear-gradient(135deg, #1a1025, #0a0510);
+  position: relative;
+  overflow: hidden;
+  /* Contain inner elements */
+  padding: 10px;
+}
+
+/* 
+   Background texture/shine 
+   (Optional: adds a plastic texture feel)
+*/
+.snake-device-body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.05), transparent 40%);
+  pointer-events: none;
+}
+
+/* --- Screen Section --- */
+.snake-screen-section {
+  flex: 5;
+  /* Takes up 50-60% of height */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  width: 100%;
+}
+
+.snake-bezel {
+  background: #000;
+  border-radius: 20px 20px 40px 40px;
+  padding: 20px 20px 30px 20px;
+  box-shadow:
+    0 5px 15px rgba(0, 0, 0, 0.5),
+    inset 0 0 10px rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 600px;
+  height: 100%;
+  border: 4px solid #222;
+}
+
+.snake-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #666;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.snake-score-display {
+  color: #4ef0d9;
+  font-weight: bold;
+  font-size: 16px;
+  text-shadow: 0 0 5px rgba(78, 240, 217, 0.5);
+}
+
+.snake-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(145deg, #ff453a, #d63030);
+  color: var(--surface-text);
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+}
+
+.snake-close:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 12px rgba(255, 69, 58, 0.5);
+}
+
+.snake-close:active {
+  transform: scale(0.95);
+}
+
+.snake-container {
+  flex: 1;
+  background: #051015;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+  border: 2px solid #1a2a3a;
+  position: relative;
+}
+
+.snake-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- Controls Section --- */
+.snake-controls-section {
+  flex: 4;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 80px;
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 30px 20px 60px 20px;
+}
+
+.snake-dpad {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  filter: drop-shadow(0 8px 15px rgba(0, 0, 0, 0.6));
+  margin: 0;
+  order: -1;
+}
+
+/* The Plus Shape Grid - now with circular buttons */
+.dpad-cross {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+}
+
+/* D-Pad Button Styling - Circular like A/B buttons */
+.dpad-btn {
+  background: linear-gradient(145deg, #3a3a3a, #1a1a1a);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.08s ease;
+  width: 65px;
+  height: 65px;
+  justify-self: center;
+  align-self: center;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.4),
+    0 6px 10px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.dpad-btn::before {
+  content: '';
+  width: 0;
+  height: 0;
+  border-style: solid;
+}
+
+.dpad-btn:active,
+.dpad-btn.active {
+  background: #0a0a0a;
+  transform: scale(0.95) translateY(3px);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    0 3px 6px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.15);
+}
+
+/* Arrow indicators for each direction - sized for 65px buttons */
+.dpad-up::before {
+  border-width: 0 10px 12px 10px;
+  border-color: transparent transparent rgba(255, 255, 255, 0.9) transparent;
+}
+
+.dpad-down::before {
+  border-width: 12px 10px 0 10px;
+  border-color: rgba(255, 255, 255, 0.9) transparent transparent transparent;
+}
+
+.dpad-left::before {
+  border-width: 10px 12px 10px 0;
+  border-color: transparent rgba(255, 255, 255, 0.9) transparent transparent;
+}
+
+.dpad-right::before {
+  border-width: 10px 0 10px 12px;
+  border-color: transparent transparent transparent rgba(255, 255, 255, 0.9);
+}
+
+/* Positioning in grid */
+.dpad-up {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.dpad-left {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.dpad-center {
+  grid-column: 2;
+  grid-row: 2;
+  background: radial-gradient(circle, #444 30%, #222 70%);
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  justify-self: center;
+  align-self: center;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.6);
+}
+
+.dpad-center::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+}
+
+.dpad-right {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.dpad-down {
+  grid-column: 2;
+  grid-row: 3;
+}
+
+
+.snake-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 140px;
+  margin-top: 20px;
+}
+
+.action-group {
+  display: flex;
+  gap: 25px;
+  transform: rotate(-12deg);
+  padding: 10px;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.action-labels {
+  display: flex;
+  gap: 25px;
+  justify-content: flex-end;
+  align-items: flex-start;
+  transform: rotate(-12deg);
+  margin-top: -5px;
+  padding-right: 5px;
+}
+
+.action-label {
+  font-size: 9px;
+  opacity: 0.7;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  font-weight: 500;
+  min-width: 55px;
+  text-align: center;
+}
+
+.label-b {
+  margin-top: 5px;
+}
+
+.label-a {
+  margin-top: -5px;
+}
+
+/* ACTION BUTTONS - Base styles for portrait */
+.action-btn {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: none;
+  font-size: 22px;
+  font-weight: bold;
+  color: rgba(0, 0, 0, 0.4);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: all 0.1s ease;
+  position: relative;
+  box-shadow:
+    0 5px 0 rgba(0, 0, 0, 0.4),
+    0 7px 12px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.action-btn::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  right: 12px;
+  height: 15px;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), transparent);
+  border-radius: 50%;
+}
+
+.action-btn:active {
+  transform: translateY(3px) scale(0.98);
+  box-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.4),
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(255, 255, 255, 0.15);
+}
+
+.btn-a {
+  background: linear-gradient(145deg, #ff453a, #d63030);
+  margin-top: -15px;
+}
+
+.btn-a:active {
+  background: linear-gradient(145deg, #d63030, #b02020);
+}
+
+.btn-b {
+  background: linear-gradient(145deg, #ffcc00, #d4a800);
+  margin-top: 15px;
+}
+
+.btn-b:active {
+  background: linear-gradient(145deg, #d4a800, #b08600);
+}
+
+/* LANDSCAPE MODE - SNAKE APP */
+@media (orientation: landscape) {
+  .snake-device-body {
+    flex-direction: row;
+    padding: 20px 30px;
+    gap: 30px;
+  }
+
+  .snake-screen-section {
+    flex: 2;
+    height: 100%;
+    padding: 10px;
+  }
+
+  .snake-bezel {
+    max-width: none;
+    height: 90%;
+    aspect-ratio: 4/3;
+  }
+
+  .snake-controls-section {
+    flex: 0.9;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 40px;
+    padding: 30px 15px;
+    max-width: 180px;
+  }
+
+  /* D-pad at TOP in landscape */
+  .snake-dpad {
+    width: 180px;
+    height: 180px;
+    order: -2;
+    margin: 0 0 20px 0;
+  }
+
+  .dpad-btn {
+    width: 52px;
+    height: 52px;
+  }
+
+  .dpad-center {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* A/B buttons at BOTTOM in landscape */
+  .snake-actions {
+    order: 1;
+    margin: auto 0 20px 0;
+    gap: 8px;
+    padding-bottom: 10px;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .action-group {
+    transform: rotate(-15deg);
+    gap: 18px;
+    margin-bottom: 5px;
+  }
+
+  .action-btn {
+    width: 55px;
+    height: 55px;
+    font-size: 18px;
+    border-radius: 50%;
+  }
+
+  .btn-a {
+    background: linear-gradient(145deg, #ff453a, #d63030);
+    margin-top: -12px;
+  }
+
+  .btn-b {
+    background: linear-gradient(145deg, #ffcc00, #d4a800);
+    margin-top: 12px;
+  }
+
+  .action-labels {
+    display: flex;
+    gap: 18px;
+    justify-content: flex-end;
+    align-items: flex-start;
+    transform: rotate(-15deg);
+    margin-top: -8px;
+    padding-right: 5px;
+  }
+
+  .action-label {
+    font-size: 8px;
+    opacity: 0.7;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .label-b {
+    margin-top: 3px;
+  }
+
+  .label-a {
+    margin-top: -3px;
+  }
+}
+
+/* Tablet/Desktop: Adaptive Layouts (>= 600px landscape) */
+@media (min-width: 600px) and (orientation: landscape) {
+
+
+
+  /* Browser: Wider Toolbar */
+  .browser-toolbar {
+    padding: 0 24px;
+    gap: 16px;
+  }
+
+  .browser-url {
+    font-size: 16px;
+  }
+}
+
+/* --- Fix: Ensure App Layer has dimensions when visible --- */
+.m-app-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  display: none;
+  /* Default hidden */
+}
+
+/* Force Block display when not hidden */
+.m-app-layer:where(:not([hidden])) {
+  display: block !important;
+}
+
+/* Snake Container Flex Fix */
+.app-snake {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+}
+
+.snake-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  /* Flexbox overflow fix */
+  background: #000;
+}
+
+.snake-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* --- Mobile Shell Core Z-Index & Layout Fixes --- */
+
+/* App Layer must be ABSOLUTELY top and cover everything */
+.m-app-layer {
+  position: fixed;
+  /* Changed from absolute to fixed for viewport reliability */
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 999;
+  /* High Z-Index */
+  background: #000;
+  /* Prevent bleed-through */
+  display: none;
+}
+
+.m-app-layer:where(:not([hidden])) {
+  display: flex !important;
+  /* Switch to Flex to support app layouts */
+  flex-direction: column;
+}
+
+/* App Window Container Force-Fill */
+.app-window {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  background: #000;
+}
+
+/* Smart Search Z-Index Management */
+.m-search-container {
+  transition: opacity 0.3s ease;
+  z-index: 50;
+}
+
+/* Snake Specific Fixes */
+.app-snake {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.snake-container {
+  flex: 1;
+  /* Grow to fill available space */
+  position: relative;
+  min-height: 0;
+  /* Critical flexbox reset */
+  width: 100%;
+  background: #0a1628;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.snake-canvas {
+  display: block;
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+}
+
+
+
+.app-clock[data-debug="clock-root"] .clock-alarm-days,
+.app-clock[data-debug="clock-root"] .clock-alarm-next {
+  font-size: 11px;
+  color: rgba(220, 235, 255, 0.7);
+}
+
+.app-clock[data-debug="clock-root"] .clock-day-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.app-clock[data-debug="clock-root"] .clock-day-chip {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.07);
+  color: rgba(230, 241, 255, 0.8);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.app-clock[data-debug="clock-root"] .clock-day-chip.is-active {
+  background: linear-gradient(135deg, rgba(126, 246, 229, 0.95), rgba(90, 198, 255, 0.95));
+  color: #0a1628;
+  border-color: transparent;
+}
+
+.app-clock[data-debug="clock-root"] .clock-alarm-row {
+  cursor: pointer;
+}
+
+.app-clock[data-debug="clock-root"] .clock-alarm-editor {
+  margin-top: -4px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(7, 18, 32, 0.45);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+
+/* ── Weather App V2 ── */
+/* Weather app v2 (mobile shell) */
+/* Weather app v2 (mobile shell) - Solid Layout Redesign */
+.app-weather {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, #0a1628 0%, #060e1a 100%);
+  color: #e8f0ff;
+  transition: background 0.8s ease;
+  width: 100%;
+  height: 100%;
+}
+
+.app-weather .weather-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  padding: 0;
+  /* Reset padding, handled by inner elements */
+  display: block;
+  /* Reset display */
+}
+
+.app-weather[data-debug="weather-root"]::before,
+.app-weather[data-debug="weather-root"]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.app-weather[data-debug="weather-root"]::before {
+  opacity: 0.95;
+  background:
+    radial-gradient(circle at 18% 16%, rgba(255, 233, 170, 0.5), rgba(255, 212, 128, 0.14) 28%, transparent 54%),
+    radial-gradient(circle at 78% 14%, rgba(128, 202, 255, 0.18), transparent 44%),
+    linear-gradient(180deg, rgba(55, 128, 185, 0.18) 0%, rgba(7, 27, 49, 0.08) 58%, rgba(5, 15, 28, 0.22) 100%);
+  transition: opacity 0.7s ease, background 0.8s ease;
+}
+
+.app-weather[data-debug="weather-root"]::after {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.app-weather[data-debug="weather-root"] .weather-shell {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 12px calc(env(safe-area-inset-bottom) + 14px);
+}
+
+.app-weather .weather-topbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: 0 16px;
+  z-index: 20;
+  background: rgba(6, 14, 26, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-weather .weather-controls-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.app-weather .weather-actions-group {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.app-weather .weather-head-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.app-weather .weather-heading {
+  font-family: "Avenir Next", "SF Pro Display", "Trebuchet MS", sans-serif;
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.app-weather .weather-head-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-weather .weather-close-bubble {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.app-weather .weather-close-bubble:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.app-weather .weather-search-wrap {
+  position: relative;
+  flex: 1;
+  max-width: 240px;
+}
+
+.app-weather .weather-btn-search {
+  grid-column: 1 / -1;
+}
+
+.app-weather .weather-btn-unit {
+  grid-column: 1 / 2;
+}
+
+.app-weather .weather-btn-refresh {
+  grid-column: 2 / 4;
+}
+
+.app-weather .weather-btn-locate {
+  grid-column: 4 / 5;
+}
+
+.app-weather .weather-search-input {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid rgba(162, 223, 255, 0.24);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f2fbff;
+  font-size: 14px;
+  padding: 11px 12px;
+}
+
+.app-weather .weather-search-input::placeholder {
+  color: rgba(214, 236, 252, 0.58);
+}
+
+.app-weather .weather-suggestions {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  display: none;
+  z-index: 10;
+  background: rgba(7, 19, 34, 0.97);
+  border: 1px solid rgba(156, 222, 255, 0.3);
+  border-radius: 12px;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  gap: 6px;
+}
+
+.app-weather .weather-suggestions.is-open {
+  display: grid;
+}
+
+.app-weather .weather-suggestion {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8f8ff;
+  text-align: left;
+  padding: 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-weather .weather-suggestion-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-weather .weather-suggestion-tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: 1px solid rgba(150, 214, 248, 0.4);
+  border-radius: 999px;
+  padding: 2px 7px;
+  background: rgba(126, 201, 243, 0.14);
+  color: rgba(214, 239, 255, 0.9);
+}
+
+.app-weather .weather-chip-btn {
+  min-height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(162, 223, 255, 0.28);
+  background: rgba(255, 255, 255, 0.08);
+  color: #e8f8ff;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.app-weather .weather-locate-btn {
+  width: 40px;
+  padding: 0;
+  font-size: 20px;
+}
+
+.app-weather .weather-content {
+  position: absolute;
+  top: 52px;
+  /* Below header */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding: 16px 16px calc(env(safe-area-inset-bottom) + 20px) 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  align-content: start;
+  gap: 12px;
+  z-index: 10;
+}
+
+.app-weather .weather-column {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+}
+
+.app-weather .weather-hero-card {
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.app-weather .weather-city {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.85;
+}
+
+.app-weather .weather-temp {
+  font-size: 64px;
+  line-height: 1;
+  font-weight: 200;
+  letter-spacing: -2px;
+  color: #fff;
+}
+
+.app-weather .weather-condition {
+  font-size: 14px;
+  opacity: 0.92;
+}
+
+.app-weather .weather-range,
+.app-weather .weather-meta {
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.app-weather .weather-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 20px;
+}
+
+.app-weather .weather-status {
+  font-size: 10px;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  padding: 3px 8px;
+  border: 1px solid rgba(164, 227, 252, 0.42);
+  color: rgba(219, 245, 255, 0.94);
+  background: rgba(145, 210, 245, 0.14);
+  max-width: 56%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-weather .weather-status[data-type="warn"] {
+  border-color: rgba(255, 188, 130, 0.46);
+  background: rgba(255, 166, 97, 0.14);
+  color: rgba(255, 219, 180, 0.95);
+}
+
+.app-weather .weather-status[data-type="ok"] {
+  border-color: rgba(138, 233, 190, 0.44);
+  background: rgba(114, 216, 168, 0.13);
+  color: rgba(204, 255, 230, 0.96);
+}
+
+.app-weather .weather-status.is-hidden {
+  display: none;
+}
+
+.app-weather .weather-hero-icon svg {
+  width: 66px;
+  height: 66px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+.app-weather .weather-card {
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  transition: background 0.45s ease, border-color 0.45s ease, transform 0.35s ease;
+}
+
+.app-weather .weather-card-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  opacity: 0.72;
+}
+
+.app-weather .weather-hourly {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(88px, 1fr);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scroll-snap-type: x mandatory;
+}
+
+.app-weather .weather-hour-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  padding: 12px 8px;
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+  scroll-snap-align: start;
+  transition: background 0.15s;
+}
+
+.app-weather .weather-hour-time {
+  font-size: 11px;
+  opacity: 0.72;
+}
+
+.app-weather .weather-hour-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.app-weather .weather-hour-temp {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-weather .weather-hour-precip {
+  font-size: 10px;
+  opacity: 0.68;
+}
+
+.app-weather .weather-empty-state {
+  border-radius: 10px;
+  border: 1px dashed rgba(176, 225, 255, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 11px;
+  font-size: 12px;
+  color: rgba(213, 236, 250, 0.7);
+  line-height: 1.35;
+}
+
+.app-weather .weather-daily {
+  display: grid;
+  gap: 7px;
+}
+
+.app-weather .weather-day-row {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.8fr) 28px 44px minmax(92px, 1fr);
+  gap: 8px;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.app-weather .weather-day-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.app-weather .weather-day-temp {
+  text-align: right;
+  font-weight: 600;
+}
+
+.app-weather .weather-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.app-weather .weather-detail-tile {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+}
+
+.app-weather .weather-detail-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  opacity: 0.5;
+}
+
+.app-weather .weather-detail-value {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.app-weather .weather-location-list,
+.app-weather .weather-alerts {
+  display: grid;
+  gap: 8px;
+}
+
+.app-weather .weather-location-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  align-items: center;
+}
+
+.app-weather .weather-location-btn {
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #e7f8ff;
+  padding: 9px 10px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+}
+
+.app-weather .weather-location-btn.is-active {
+  border-color: rgba(136, 230, 255, 0.66);
+  background: rgba(124, 223, 250, 0.2);
+}
+
+.app-weather .weather-location-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-weather .weather-location-badge {
+  border-radius: 999px;
+  background: rgba(124, 223, 250, 0.25);
+  padding: 2px 6px;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.app-weather .weather-location-remove {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffb3b3;
+}
+
+.app-weather .weather-location-empty,
+.app-weather .weather-alert-empty {
+  font-size: 12px;
+  opacity: 0.68;
+}
+
+.app-weather .weather-air-main {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.app-weather .weather-air-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.app-weather .weather-air-tile {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 7px 8px;
+  display: grid;
+  gap: 4px;
+}
+
+.app-weather .weather-air-label {
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.app-weather .weather-air-value {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.app-weather .weather-alert-item {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 168, 168, 0.24);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 9px;
+  display: grid;
+  gap: 4px;
+}
+
+.app-weather .weather-alert-title {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.app-weather .weather-alert-meta {
+  font-size: 10px;
+  opacity: 0.72;
+}
+
+.app-weather .weather-alert-desc {
+  font-size: 11px;
+  opacity: 0.78;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.app-weather .weather-footer {
+  display: none;
+}
+
+.app-weather .weather-content.is-loading {
+  opacity: 0.85;
+}
+
+.app-weather.is-weather-shift::before {
+  filter: saturate(1.12) brightness(1.03);
+}
+
+.app-weather.is-weather-shift .weather-hero-icon svg {
+  transform: scale(1.06);
+  opacity: 0.92;
+}
+
+.app-weather[data-weather-mood="clear"] .weather-hero-card {
+  background:
+    radial-gradient(circle at 85% 16%, rgba(255, 224, 125, 0.35), transparent 46%),
+    linear-gradient(160deg, rgba(99, 193, 252, 0.26), rgba(11, 33, 58, 0.44));
+}
+
+.app-weather[data-weather-mood="rain"] .weather-hero-card,
+.app-weather[data-weather-mood="storm"] .weather-hero-card {
+  background:
+    radial-gradient(circle at 85% 16%, rgba(176, 205, 255, 0.28), transparent 48%),
+    linear-gradient(165deg, rgba(61, 105, 156, 0.34), rgba(8, 20, 38, 0.54));
+}
+
+.app-weather[data-weather-mood="snow"] .weather-hero-card {
+  background:
+    radial-gradient(circle at 82% 14%, rgba(231, 246, 255, 0.3), transparent 46%),
+    linear-gradient(160deg, rgba(130, 180, 220, 0.3), rgba(15, 29, 48, 0.46));
+}
+
+.app-weather[data-weather-phase="dawn"] {
+  background: linear-gradient(180deg, #3a4d7f 0%, #213b65 44%, #0d243f 100%);
+}
+
+.app-weather[data-weather-phase="dawn"]::before {
+  background:
+    radial-gradient(circle at 20% 22%, rgba(255, 199, 127, 0.62), rgba(255, 168, 107, 0.2) 30%, transparent 56%),
+    radial-gradient(circle at 78% 14%, rgba(141, 205, 255, 0.22), transparent 42%),
+    linear-gradient(180deg, rgba(240, 158, 122, 0.16) 0%, rgba(64, 110, 168, 0.14) 58%, rgba(9, 24, 44, 0.32) 100%);
+}
+
+.app-weather[data-weather-phase="day"] {
+  background: linear-gradient(180deg, #4a86bf 0%, #2a5f95 42%, #133b64 100%);
+}
+
+.app-weather[data-weather-phase="day"]::before {
+  background:
+    radial-gradient(circle at 18% 15%, rgba(255, 235, 164, 0.75), rgba(255, 208, 114, 0.26) 24%, transparent 50%),
+    radial-gradient(circle at 80% 12%, rgba(189, 234, 255, 0.26), transparent 46%),
+    linear-gradient(180deg, rgba(130, 207, 255, 0.2) 0%, rgba(24, 88, 143, 0.12) 52%, rgba(9, 35, 63, 0.26) 100%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="sunset"] {
+  background: linear-gradient(180deg, #5f4a74 0%, #473c6b 42%, #1a274a 100%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="sunset"]::before {
+  background:
+    radial-gradient(circle at 78% 28%, rgba(255, 178, 109, 0.68), rgba(255, 127, 90, 0.24) 30%, transparent 54%),
+    radial-gradient(circle at 22% 18%, rgba(255, 147, 160, 0.24), transparent 50%),
+    linear-gradient(180deg, rgba(255, 151, 110, 0.18) 0%, rgba(105, 92, 164, 0.18) 56%, rgba(10, 24, 47, 0.34) 100%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"] {
+  background: linear-gradient(180deg, #08152a 0%, #0a1a35 38%, #030b17 100%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"]::before {
+  background:
+    radial-gradient(circle at 82% 16%, rgba(228, 240, 255, 0.22), rgba(160, 194, 248, 0.08) 14%, transparent 38%),
+    radial-gradient(circle at 74% 14%, rgba(122, 165, 232, 0.24) 1px, transparent 2px),
+    radial-gradient(circle at 58% 22%, rgba(141, 175, 240, 0.18) 1px, transparent 2px),
+    radial-gradient(circle at 24% 18%, rgba(116, 152, 226, 0.16) 1px, transparent 2px),
+    linear-gradient(180deg, rgba(12, 30, 58, 0.12) 0%, rgba(5, 12, 25, 0.34) 56%, rgba(1, 5, 11, 0.58) 100%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="clear"]::after {
+  opacity: 0.18;
+  background:
+    radial-gradient(circle at 68% 22%, rgba(255, 255, 255, 0.32), transparent 48%),
+    radial-gradient(circle at 36% 68%, rgba(145, 214, 255, 0.18), transparent 52%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="cloud"]::after {
+  opacity: 0.34;
+  background:
+    radial-gradient(circle at 20% 26%, rgba(246, 252, 255, 0.24), transparent 46%),
+    radial-gradient(circle at 58% 30%, rgba(236, 248, 255, 0.2), transparent 42%),
+    radial-gradient(circle at 88% 34%, rgba(224, 241, 255, 0.16), transparent 36%);
+  animation: weather-app-cloud-drift 18s linear infinite;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="fog"]::after {
+  opacity: 0.3;
+  background:
+    linear-gradient(180deg, rgba(230, 242, 255, 0.22), transparent 44%),
+    linear-gradient(0deg, rgba(210, 230, 246, 0.18), transparent 60%);
+  filter: blur(8px);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="rain"]::after {
+  opacity: 0.34;
+  background-image:
+    linear-gradient(120deg, rgba(150, 212, 255, 0.26) 0%, rgba(150, 212, 255, 0) 40%),
+    repeating-linear-gradient(120deg, rgba(185, 229, 255, 0.55) 0px, rgba(185, 229, 255, 0.55) 2px, rgba(185, 229, 255, 0) 8px, rgba(185, 229, 255, 0) 14px);
+  background-size: 180% 180%, 100% 100%;
+  animation: weather-app-rain-fall 2s linear infinite;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="snow"]::after {
+  opacity: 0.42;
+  background-image:
+    radial-gradient(circle, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 58%),
+    radial-gradient(circle, rgba(232, 248, 255, 0.84) 0%, rgba(232, 248, 255, 0) 58%),
+    radial-gradient(circle, rgba(214, 240, 255, 0.78) 0%, rgba(214, 240, 255, 0) 58%);
+  background-size: 20px 20px, 15px 15px, 12px 12px;
+  background-position: 0 -12px, 16px -26px, 32px -8px;
+  animation: weather-app-snow-fall 6s linear infinite;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-mood="storm"]::after {
+  opacity: 0.44;
+  background-image:
+    linear-gradient(120deg, rgba(196, 221, 255, 0.34) 0%, rgba(196, 221, 255, 0) 42%),
+    repeating-linear-gradient(120deg, rgba(212, 233, 255, 0.66) 0px, rgba(212, 233, 255, 0.66) 2px, rgba(212, 233, 255, 0) 6px, rgba(212, 233, 255, 0) 11px);
+  background-size: 180% 180%, 100% 100%;
+  animation: weather-app-rain-fall 1.25s linear infinite, weather-app-storm-flicker 4.5s steps(1) infinite;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"][data-weather-mood="clear"]::after {
+  opacity: 0.1;
+  background:
+    radial-gradient(circle at 74% 16%, rgba(206, 226, 255, 0.24), transparent 42%),
+    radial-gradient(circle at 30% 70%, rgba(96, 148, 222, 0.12), transparent 52%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"][data-weather-mood="cloud"]::after {
+  opacity: 0.18;
+  background:
+    radial-gradient(circle at 20% 26%, rgba(186, 212, 245, 0.2), transparent 46%),
+    radial-gradient(circle at 58% 30%, rgba(162, 198, 236, 0.15), transparent 42%),
+    radial-gradient(circle at 88% 34%, rgba(150, 186, 226, 0.12), transparent 36%);
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"][data-weather-mood="rain"]::after {
+  opacity: 0.26;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"][data-weather-mood="snow"]::after {
+  opacity: 0.3;
+}
+
+.app-weather[data-debug="weather-root"][data-weather-phase="night"][data-weather-mood="storm"]::after {
+  opacity: 0.32;
+}
+
+@keyframes weather-app-rain-fall {
+  0% {
+    background-position: 0 0, 0 0;
+  }
+
+  100% {
+    background-position: 0 100%, 0 100%;
+  }
+}
+
+@keyframes weather-app-snow-fall {
+  0% {
+    background-position: 0 -12px, 16px -26px, 32px -8px;
+  }
+
+  100% {
+    background-position: 0 110px, 16px 124px, 32px 96px;
+  }
+}
+
+@keyframes weather-app-cloud-drift {
+  0% {
+    transform: translateX(-2%);
+  }
+
+  100% {
+    transform: translateX(2%);
+  }
+}
+
+@keyframes weather-app-storm-flicker {
+
+  0%,
+  92%,
+  100% {
+    filter: brightness(1);
+  }
+
+  93% {
+    filter: brightness(1.16);
+  }
+
+  95% {
+    filter: brightness(0.95);
+  }
+
+  97% {
+    filter: brightness(1.2);
+  }
+}
+
+@media (max-width: 960px) {
+  .app-weather[data-debug="weather-root"] .weather-head-right {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) 52px;
+  }
+}
+
+@media (min-width: 760px) and (orientation: landscape) {
+  .app-weather[data-debug="weather-root"] .weather-content {
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr);
+    align-items: start;
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-head-right {
+    grid-template-columns: minmax(320px, 1fr) 96px 120px 52px;
+  }
+}
+
+@media (min-width: 760px) and (orientation: portrait) {
+  .app-weather[data-debug="weather-root"] .weather-shell {
+    padding-inline: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .app-weather[data-debug="weather-root"] .weather-content {
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-head-right {
+    grid-template-columns: minmax(260px, 1fr) 92px 108px 52px;
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-btn-search,
+  .app-weather[data-debug="weather-root"] .weather-btn-unit,
+  .app-weather[data-debug="weather-root"] .weather-btn-refresh,
+  .app-weather[data-debug="weather-root"] .weather-btn-locate {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 620px) {
+  .app-weather[data-debug="weather-root"] .weather-shell {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-temp {
+    font-size: 46px;
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .app-weather[data-debug="weather-root"] .weather-status {
+    max-width: 52%;
+    font-size: 9px;
+  }
+}
+
+@media (orientation: landscape) and (max-width: 899px) and (min-width: 700px) {
+  .app-weather[data-debug="weather-root"] .weather-content {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  }
+}
+
+
+/* ── Calculator App ── */
+/* Calculator App - Stable Mobile Layout */
+body.is-mobile .m-app-layer>.app-window.app-calculator {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: hidden !important;
+}
+
+/* ── Calculator App v2.0 — Modern iOS-style ── */
+.app-calculator {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  --calc-bottom-obstruction: 0px;
+  --calc-gap: clamp(10px, 1.6vh, 14px);
+  --calc-pad-top: max(8px, calc(env(safe-area-inset-top, 0px) + 4px));
+  --calc-pad-right: max(14px, calc(env(safe-area-inset-right, 0px) + 10px));
+  --calc-pad-bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px + var(--calc-bottom-obstruction, 0px)));
+  --calc-pad-left: max(14px, calc(env(safe-area-inset-left, 0px) + 10px));
+  --calc-num: #333338;
+  --calc-num-hover: #444449;
+  --calc-op: #ff9f0a;
+  --calc-op-hover: #ffb340;
+  --calc-fn: #616166;
+  --calc-fn-hover: #737378;
+  --calc-eq: #30d158;
+  --calc-eq-hover: #4be06e;
+}
+
+.app-calculator .calc-shell {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: grid;
+  grid-template-rows: minmax(60px, 1fr) minmax(0, 2.5fr);
+  gap: var(--calc-gap);
+  padding: var(--calc-pad-top) var(--calc-pad-right) var(--calc-pad-bottom) var(--calc-pad-left);
+  background: #000;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: padding 220ms ease, gap 220ms ease;
+}
+
+/* ── Display ── */
+.calc-display {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 8px clamp(16px, 3vw, 24px);
+  overflow: hidden;
+  user-select: text;
+  min-height: 0;
+}
+
+.calc-expression {
+  font-size: clamp(16px, 4vw, 22px);
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1.3;
+  white-space: nowrap;
+  min-height: 1.3em;
+  text-align: right;
+  width: 100%;
+}
+
+.calc-display-text {
+  font-size: clamp(52px, 13vw, 80px);
+  font-weight: 300;
+  color: #fff;
+  line-height: 1;
+  white-space: nowrap;
+  text-align: right;
+  width: 100%;
+  transition: font-size 120ms ease;
+  letter-spacing: -0.02em;
+}
+
+/* ── Keypad ── */
+.calc-keypad {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
+  gap: var(--calc-gap);
+  align-content: stretch;
+  transition: gap 220ms ease, grid-template-columns 220ms ease;
+}
+
+.calc-row {
+  display: contents;
+}
+
+/* ── Buttons — base (number keys) ── */
+.calc-btn {
+  appearance: none;
+  border: none;
+  outline: none;
+  background: var(--calc-num);
+  color: #fff;
+  font-size: clamp(22px, 5.5vw, 34px);
+  font-weight: 400;
+  border-radius: 999px;
+  cursor: pointer;
+  user-select: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.calc-btn:hover {
+  background: var(--calc-num-hover);
+}
+
+.calc-btn:active {
+  background: var(--calc-num-hover);
+  transform: scale(0.93);
+}
+
+/* ── Operator buttons (orange) ── */
+.calc-btn-op {
+  background: var(--calc-op);
+  color: #fff;
+  font-size: clamp(26px, 6.5vw, 40px);
+  font-weight: 300;
+}
+
+.calc-btn-op:hover {
+  background: var(--calc-op-hover);
+}
+
+.calc-btn-op:active {
+  background: var(--calc-op-hover);
+  transform: scale(0.93);
+}
+
+/* Equals button — green accent */
+.calc-btn-op[data-value="="] {
+  background: var(--calc-eq);
+}
+.calc-btn-op[data-value="="]:hover {
+  background: var(--calc-eq-hover);
+}
+.calc-btn-op[data-value="="]:active {
+  background: var(--calc-eq-hover);
+  transform: scale(0.93);
+}
+
+/* ── Function buttons (AC, +/-, %) — gray ── */
+.calc-btn-special {
+  background: var(--calc-fn);
+  color: #fff;
+  font-weight: 400;
+  font-size: clamp(18px, 4.8vw, 28px);
+}
+
+.calc-btn-special:hover {
+  background: var(--calc-fn-hover);
+}
+
+.calc-btn-special:active {
+  background: var(--calc-fn-hover);
+  transform: scale(0.93);
+}
+
+/* ── Scientific buttons ── */
+.calc-btn-sci {
+  display: none;
+  background: #1c1c1e;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 12px;
+  color: #aaa;
+}
+
+.calc-btn-sci:hover {
+  background: #2c2c2e;
+}
+
+.calc-btn-sci:active {
+  background: #2c2c2e;
+  transform: scale(0.93);
+}
+
+/* ── Wide button (0) ── */
+.calc-btn-wide {
+  grid-column: span 2;
+  border-radius: 999px;
+  justify-content: flex-start;
+  padding-left: clamp(24px, 7vw, 36px);
+}
+
+/* ── Landscape — scientific mode ── */
+@media (orientation: landscape) {
+  .app-calculator {
+    --calc-gap: 6px;
+    --calc-pad-top: max(6px, calc(env(safe-area-inset-top, 0px) + 4px));
+    --calc-pad-right: max(8px, calc(env(safe-area-inset-right, 0px) + 4px));
+    --calc-pad-bottom: max(8px, calc(env(safe-area-inset-bottom, 0px) + 6px + var(--calc-bottom-obstruction, 0px)));
+    --calc-pad-left: max(8px, calc(env(safe-area-inset-left, 0px) + 4px));
+  }
+
+  .app-calculator .calc-shell {
+    grid-template-rows: minmax(50px, 0.5fr) minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .calc-display {
+    padding: 4px 10px;
+  }
+
+  .calc-display-text {
+    font-size: clamp(28px, 4.5vw, 42px);
+  }
+
+  .calc-expression {
+    font-size: clamp(12px, 2vw, 16px);
+  }
+
+  .calc-keypad {
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    grid-template-rows: repeat(5, minmax(0, 1fr));
+  }
+
+  .calc-btn {
+    border-radius: 12px;
+    font-size: clamp(13px, 2vw, 17px);
+  }
+
+  .calc-btn-op {
+    font-size: clamp(15px, 2.3vw, 20px);
+  }
+
+  .calc-btn-sci {
+    display: grid;
+  }
+
+  .calc-btn-wide {
+    border-radius: 12px;
+    justify-content: center;
+    padding-left: 0;
+  }
+}
+
+/* ── Compact portrait ── */
+@media (max-height: 760px) and (orientation: portrait) {
+  .app-calculator {
+    --calc-gap: 8px;
+    --calc-pad-top: max(8px, calc(env(safe-area-inset-top, 0px) + 4px));
+    --calc-pad-bottom: max(10px, calc(env(safe-area-inset-bottom, 0px) + 8px + var(--calc-bottom-obstruction, 0px)));
+  }
+
+  .calc-display-text {
+    font-size: clamp(42px, 11vw, 60px);
+  }
+
+  .calc-btn {
+    font-size: clamp(18px, 5vw, 30px);
+  }
+}
+
+
+/* ── Notes App ── */
+/* Notes App v2.0 — Modern Warm Dark */
+.app-notes {
+  display: flex !important;
+  flex-direction: column !important;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  color: #f5f0ea;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.6);
+}
+
+.app-notes .notes-header {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: calc(env(safe-area-inset-top, 0px) + 10px) 14px 10px;
+  min-height: calc(44px + env(safe-area-inset-top, 0px));
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-notes .notes-header .win-title {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: rgba(240, 246, 255, 0.88);
+}
+
+.app-notes .notes-win-controls {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-notes .n-win-btn {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.96;
+}
+
+.app-notes .n-min {
+  background: #f9c74f;
+}
+
+.app-notes .n-max {
+  background: #50c878;
+}
+
+.app-notes .n-close {
+  background: #ef6351;
+}
+
+.app-notes .n-close-mobile {
+  display: none;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-notes .notes-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(270px, 320px) minmax(0, 1fr);
+  gap: 0;
+  overflow: hidden;
+}
+
+.app-notes .notes-sidebar {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: rgba(18, 18, 18, 0.98);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.app-notes .notes-sb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 14px 10px;
+}
+
+.app-notes .notes-sb-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.app-notes .notes-add-btn {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: #ff9f0a;
+  color: #000;
+  font-size: 22px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.1s, background 0.15s;
+}
+
+.app-notes .notes-add-btn:active {
+  transform: scale(0.92);
+}
+
+.app-notes .notes-search-container {
+  padding: 0 14px 12px;
+}
+
+.app-notes .notes-search {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0ebe5;
+  font-size: 14px;
+  padding: 10px 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.app-notes .notes-search:focus {
+  border-color: rgba(255, 159, 10, 0.4);
+}
+
+.app-notes .notes-search::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.app-notes .notes-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.app-notes .notes-empty-state {
+  margin-top: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 20px;
+  display: grid;
+  gap: 8px;
+}
+
+.app-notes .notes-empty-state h4 {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.app-notes .notes-empty-state p {
+  margin: 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.app-notes .notes-empty-btn {
+  margin-top: 4px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  color: #000;
+  background: #ff9f0a;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.app-notes .notes-empty-btn:active {
+  transform: scale(0.96);
+}
+
+.app-notes .notes-card {
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8e2da;
+  text-align: left;
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.app-notes .notes-card:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.app-notes .notes-card:active {
+  transform: scale(0.98);
+}
+
+.app-notes .notes-card.active {
+  border-color: rgba(255, 159, 10, 0.5);
+  background: rgba(255, 159, 10, 0.15);
+  color: #fff;
+}
+
+.app-notes .notes-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.app-notes .notes-card-title {
+  font-size: 14px;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-notes .notes-card-pin {
+  font-size: 10px;
+  font-weight: 600;
+  color: #ff9f0a;
+  letter-spacing: 0.04em;
+}
+
+.app-notes .notes-card.active .notes-card-pin {
+  color: #ffb840;
+}
+
+.app-notes .notes-card-snippet {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 1.45;
+}
+
+.app-notes .notes-card.active .notes-card-snippet {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.app-notes .notes-card-meta {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.app-notes .notes-card.active .notes-card-meta {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.app-notes .notes-editor-container {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: #0d0d0d;
+  overflow: hidden;
+}
+
+.app-notes .notes-editor-empty {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+}
+
+.app-notes .notes-editor-empty h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.app-notes .notes-editor-empty p {
+  margin: 0;
+  max-width: 360px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.app-notes .notes-nav-bar {
+  flex: 0 0 auto;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(18, 18, 18, 0.95);
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.app-notes .n-nav-btn {
+  border: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 0 12px;
+  min-height: 36px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+
+.app-notes .n-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.app-notes .n-nav-btn:active {
+  transform: scale(0.95);
+}
+
+.app-notes .n-nav-btn.back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.app-notes .n-nav-btn-primary {
+  background: rgba(255, 159, 10, 0.18);
+  color: #ff9f0a;
+}
+
+.app-notes .n-nav-btn.pin.is-on {
+  background: rgba(255, 159, 10, 0.2);
+  color: #ffb840;
+}
+
+.app-notes .n-nav-btn.danger {
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+}
+
+.app-notes .n-icon-btn {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  min-height: 36px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: background 0.15s, color 0.15s;
+}
+
+.app-notes .n-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.app-notes .notes-paper {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 20px 20px 12px;
+  background: #0d0d0d;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.app-notes .notes-title-input {
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  padding: 0 0 12px;
+  background: transparent;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  outline: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.app-notes .notes-title-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.app-notes .notes-body-input {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  padding: 16px 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 16px;
+  line-height: 1.7;
+  resize: none;
+  outline: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-notes .notes-status {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(13, 13, 13, 0.98);
+  padding: 8px 20px max(8px, calc(env(safe-area-inset-bottom, 0px) + 6px));
+}
+
+@media (max-width: 920px) {
+  .app-notes .n-win-btn {
+    display: none;
+  }
+
+  .app-notes .n-close-mobile {
+    display: inline-flex;
+  }
+
+  .app-notes .notes-header {
+    justify-content: flex-end;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 8px);
+    padding-bottom: 8px;
+  }
+
+  .app-notes .notes-body {
+    position: relative;
+    display: block;
+  }
+
+  .app-notes .notes-sidebar,
+  .app-notes .notes-editor-container {
+    position: absolute;
+    inset: 0;
+    border-right: 0;
+    transition: transform 220ms ease, opacity 180ms ease;
+  }
+
+  .app-notes .notes-sidebar {
+    z-index: 2;
+  }
+
+  .app-notes .notes-editor-container {
+    z-index: 3;
+    transform: translateX(100%);
+  }
+
+  .app-notes[data-view="list"] .notes-sidebar {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app-notes[data-view="list"] .notes-editor-container {
+    transform: translateX(100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .app-notes[data-view="editor"] .notes-sidebar {
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .app-notes[data-view="editor"] .notes-editor-container {
+    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .app-notes .n-nav-btn.back {
+    min-height: 38px;
+  }
+
+  .app-notes .notes-paper {
+    padding: 8px 10px 8px;
+    min-height: 0;
+  }
+
+  .app-notes .notes-title-input {
+    font-size: 20px;
+  }
+
+  .app-notes .notes-body-input {
+    font-size: 16px;
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 920px) and (orientation: landscape) {
+  .app-notes .notes-search-container,
+  .app-notes .notes-sb-header,
+  .app-notes .notes-list {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+}
+
+
+/* ── Files App ── */
+/* Files App v1.0 (authoritative, mobile-first) */
+.app-files-v5 {
+  color: #eef4ff;
+  background:
+    radial-gradient(130% 120% at -5% -10%, rgba(68, 121, 214, 0.28), transparent 46%),
+    radial-gradient(120% 130% at 120% 5%, rgba(72, 158, 227, 0.16), transparent 52%),
+    linear-gradient(165deg, #0f1726 0%, #0a1322 100%);
+  border: 1px solid rgba(133, 175, 241, 0.22);
+}
+
+.app-files-v5 * {
+  box-sizing: border-box;
+}
+
+.app-files-v5 .yf-header {
+  min-height: calc(46px + env(safe-area-inset-top, 0px));
+  padding: calc(env(safe-area-inset-top, 0px) + 8px) 12px 8px;
+  border-bottom: 1px solid rgba(129, 171, 240, 0.2);
+  background: rgba(11, 19, 33, 0.9);
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-files-v5 .yf-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  color: rgba(241, 247, 255, 0.9);
+}
+
+.app-files-v5 .yf-storage-badge {
+  border: 1px solid rgba(135, 181, 246, 0.3);
+  border-radius: 999px;
+  padding: 0 10px;
+  min-height: 34px;
+  background: rgba(97, 155, 255, 0.12);
+  color: #d9e8ff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 160ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.app-files-v5 .yf-storage-badge:active {
+  transform: scale(0.98);
+  background: rgba(120, 176, 255, 0.18);
+  border-color: rgba(160, 203, 255, 0.42);
+}
+
+.app-files-v5 .yf-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 93, 93, 0.2);
+  color: #ffd3d3;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.app-files-v5 .yf-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.app-files-v5 .yf-sidebar {
+  display: none;
+  border-right: 1px solid rgba(129, 171, 240, 0.14);
+  background: rgba(8, 14, 24, 0.76);
+  padding: 10px 8px;
+  overflow-y: auto;
+}
+
+.app-files-v5 .yf-sidebar-item {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #d6e4fb;
+  min-height: 42px;
+  padding: 0 10px;
+  margin: 2px 0;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-files-v5 .yf-sidebar-item.is-active {
+  background: rgba(88, 149, 255, 0.2);
+  color: #eef5ff;
+}
+
+.app-files-v5 .yf-main {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.app-files-v5 .yf-toolbar {
+  flex: 0 0 auto;
+  border-bottom: 1px solid rgba(129, 171, 240, 0.16);
+  background: rgba(9, 15, 27, 0.86);
+  padding: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.app-files-v5 .yf-toolbar-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.app-files-v5 .yf-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.app-files-v5 .yf-actions {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.app-files-v5 .yf-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.app-files-v5 .yf-btn {
+  border: 1px solid rgba(135, 181, 246, 0.22);
+  border-radius: 10px;
+  min-height: 40px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #eaf2ff;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  transition: transform 120ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.app-files-v5 .yf-btn:disabled {
+  opacity: 0.45;
+}
+
+.app-files-v5 .yf-btn.is-active {
+  border-color: rgba(255, 202, 117, 0.44);
+  background: rgba(255, 192, 96, 0.16);
+  color: #ffe3b6;
+}
+
+.app-files-v5 .yf-btn:active {
+  transform: scale(0.97);
+}
+
+.app-files-v5 .yf-path-row {
+  min-width: 0;
+}
+
+.app-files-v5 .yf-path-input {
+  width: 100%;
+  border: 1px solid rgba(135, 181, 246, 0.18);
+  border-radius: 12px;
+  min-height: 40px;
+  background: rgba(7, 13, 24, 0.65);
+  color: #e8f1ff;
+  font-size: 14px;
+  padding: 0 12px;
+  outline: none;
+}
+
+.app-files-v5 .yf-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 10px;
+  align-content: start;
+}
+
+.app-files-v5.is-dragging .yf-grid {
+  touch-action: none;
+}
+
+.app-files-v5 .yf-card {
+  border: 1px solid rgba(135, 181, 246, 0.18);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  position: relative;
+  isolation: isolate;
+  animation: yf-tile-in 260ms cubic-bezier(0.25, 0.9, 0.25, 1) both;
+  animation-delay: calc(var(--yf-index, 0) * 18ms);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 200ms ease;
+}
+
+.app-files-v5 .yf-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(160% 90% at 50% -30%, rgba(255, 255, 255, 0.18), transparent 48%);
+  opacity: 0.44;
+  z-index: 0;
+}
+
+.app-files-v5 .yf-card.is-cut-source {
+  opacity: 0.5;
+  filter: saturate(0.7);
+}
+
+.app-files-v5 .yf-card.is-dragging-source {
+  opacity: 0.34;
+  filter: saturate(0.55);
+}
+
+.app-files-v5 .yf-card.is-drop-target {
+  border-color: rgba(124, 196, 255, 0.72);
+  box-shadow: 0 0 0 2px rgba(124, 196, 255, 0.22) inset;
+}
+
+.app-files-v5 .yf-card.is-drop-before::before,
+.app-files-v5 .yf-card.is-drop-after::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(136, 206, 255, 0.95);
+  box-shadow: 0 0 0 2px rgba(102, 186, 255, 0.22);
+  z-index: 3;
+}
+
+.app-files-v5 .yf-card.is-drop-before::before {
+  top: 4px;
+}
+
+.app-files-v5 .yf-card.is-drop-after::before {
+  bottom: 4px;
+}
+
+.app-files-v5 .yf-card.is-drop-into {
+  transform: scale(1.03);
+  border-color: rgba(149, 214, 255, 0.78);
+  box-shadow: 0 0 0 2px rgba(129, 197, 255, 0.26) inset, 0 10px 24px rgba(27, 109, 201, 0.24);
+}
+
+.app-files-v5 .yf-card-main {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 10px 8px 12px;
+  min-height: 116px;
+  width: 100%;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition: transform 140ms ease;
+  position: relative;
+  z-index: 1;
+}
+
+.app-files-v5 .yf-card-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: rgba(111, 168, 255, 0.14);
+  border: 1px solid rgba(140, 190, 251, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 6px 18px rgba(0, 0, 0, 0.18);
+  font-size: 28px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 160ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.app-files-v5 .yf-card-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(170deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 42%);
+  pointer-events: none;
+}
+
+.app-files-v5 .yf-card-name {
+  width: 100%;
+  font-size: 13px;
+  font-weight: 620;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-files-v5 .yf-card-sub {
+  width: 100%;
+  font-size: 10px;
+  color: rgba(204, 220, 246, 0.7);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .app-files-v5 .yf-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(161, 201, 255, 0.36);
+    box-shadow: 0 10px 28px rgba(5, 14, 30, 0.36);
+  }
+}
+
+.app-files-v5 .yf-card-main:active {
+  transform: scale(0.97);
+}
+
+.app-files-v5 .yf-card.is-pressed {
+  border-color: rgba(164, 204, 255, 0.42);
+  box-shadow: 0 0 0 2px rgba(132, 187, 255, 0.2) inset;
+}
+
+.app-files-v5 .yf-card.is-pressed .yf-card-icon {
+  transform: scale(1.06);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 10px 22px rgba(40, 125, 222, 0.26);
+}
+
+.app-files-v5 .yf-card.is-context-armed {
+  border-color: rgba(179, 214, 255, 0.48);
+  box-shadow: 0 0 0 2px rgba(132, 187, 255, 0.24) inset;
+  animation: yf-jiggle 150ms ease-in-out infinite;
+}
+
+.app-files-v5 .yf-empty {
+  grid-column: 1 / -1;
+  border: 1px dashed rgba(138, 184, 250, 0.3);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  min-height: 170px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  color: rgba(213, 227, 249, 0.82);
+}
+
+.app-files-v5 .yf-empty-hint {
+  margin: 0;
+  font-size: 12px;
+  color: rgba(203, 221, 246, 0.62);
+}
+
+.app-files-v5 .yf-status {
+  flex: 0 0 auto;
+  min-height: 30px;
+  border-top: 1px solid rgba(129, 171, 240, 0.14);
+  background: rgba(7, 13, 24, 0.76);
+  color: rgba(206, 221, 246, 0.72);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 6px 10px max(6px, calc(env(safe-area-inset-bottom, 0px) + 6px));
+}
+
+.app-files-v5 .yf-menu {
+  position: fixed;
+  min-width: 210px;
+  max-width: min(300px, calc(100vw - 16px));
+  border: 1px solid rgba(143, 191, 255, 0.24);
+  border-radius: 14px;
+  background: rgba(10, 18, 32, 0.96);
+  box-shadow: 0 22px 46px rgba(0, 0, 0, 0.45);
+  padding: 6px;
+  opacity: 0;
+  transform: scale(0.96);
+  transition: opacity 140ms ease, transform 140ms ease;
+  z-index: 400;
+}
+
+.app-files-v5 .yf-menu.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.app-files-v5 .yf-menu-item {
+  width: 100%;
+  border: 0;
+  border-radius: 10px;
+  min-height: 38px;
+  text-align: left;
+  padding: 0 12px;
+  background: transparent;
+  color: #e8f1ff;
+  font-size: 13px;
+}
+
+.app-files-v5 .yf-menu-item.is-danger {
+  color: #ffc6cc;
+}
+
+.app-files-v5 .yf-menu-item:active {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.app-files-v5 .yf-menu-sep {
+  height: 1px;
+  margin: 4px 6px;
+  background: rgba(140, 185, 251, 0.2);
+}
+
+.app-files-v5 .yf-sidebar-item.is-drop-target {
+  background: rgba(116, 186, 255, 0.26);
+  color: #f2f8ff;
+}
+
+.app-files-v5 .yf-grid.is-drop-target {
+  outline: none;
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 2px rgba(133, 201, 255, 0.24);
+  background: rgba(76, 145, 226, 0.08);
+}
+
+.app-files-v5.is-dragging .yf-card-main {
+  cursor: grabbing;
+}
+
+.app-files-v5 .yf-drag-ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 99999;
+  pointer-events: none;
+  margin: 0;
+  transform: translate3d(0, 0, 0);
+  opacity: 0.95;
+  will-change: transform;
+  filter: drop-shadow(0 16px 30px rgba(8, 16, 30, 0.46));
+  animation: none;
+  transition: none;
+}
+
+.app-files-v5 .yf-drag-ghost .yf-card-main {
+  pointer-events: none !important;
+  touch-action: none !important;
+  transform: none !important;
+}
+
+.app-files-v5 .yf-drag-ghost .yf-card-icon {
+  transform: scale(1.06);
+  border-color: rgba(155, 208, 255, 0.46);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24), 0 10px 24px rgba(52, 139, 239, 0.28);
+}
+
+@keyframes yf-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes yf-jiggle {
+  0%, 100% {
+    transform: rotate(-0.8deg);
+  }
+  50% {
+    transform: rotate(0.8deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-files-v5 .yf-card,
+  .app-files-v5 .yf-card-main,
+  .app-files-v5 .yf-card-icon,
+  .app-files-v5 .yf-btn,
+  .app-files-v5 .yf-storage-badge {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .app-files-v5 .yf-toolbar-row {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .app-files-v5 .yf-toolbar-row > .yf-group:first-child {
+    flex: 0 0 auto;
+  }
+
+  .app-files-v5 .yf-actions {
+    order: 2;
+    width: 100%;
+    padding-top: 2px;
+  }
+
+  .app-files-v5 .yf-actions .yf-btn {
+    min-height: 38px;
+    font-size: 12px;
+    padding: 0 9px;
+  }
+}
+
+@media (min-width: 960px) {
+  .app-files-v5 .yf-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .app-files-v5 .yf-sidebar {
+    display: block;
+  }
+
+  .app-files-v5 .yf-grid {
+    padding: 14px;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  }
+}
+
+@media (orientation: landscape) and (max-width: 959px) {
+  .app-files-v5 .yf-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px 10px;
+  }
+}
+
+
+/* ── Calendar App ── */
+/* Smart Icon Base */
+/* =========================================
+   iOS-style Folder Icon Preview (Mobile)
+   ========================================= */
+
+.y-folder-icon {
+  border-radius: 22%;
+  overflow: hidden;
+}
+
+.y-folder-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.y-folder-preview {
+  width: 80%;
+  height: 80%;
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8%;
+  padding: 10%;
+  border-radius: 18%;
+  background: rgba(255, 255, 255, 0.10);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.y-folder-preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 18%;
+  background: linear-gradient(135deg,
+      rgba(255, 255, 255, 0.28),
+      rgba(255, 255, 255, 0.06) 40%,
+      rgba(0, 0, 0, 0.10) 100%);
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.55;
+}
+
+body.is-mobile .m-app-item:active .y-folder-preview {
+  filter: saturate(1.05) brightness(1.05);
+}
+
+.folder-mini {
+  border-radius: 28%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.folder-mini {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+}
+
+.folder-mini-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.folder-mini-emoji {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Press feedback similar to iOS */
+body.is-mobile .m-app-item:active .y-folder-icon {
+  transform: scale(0.94);
+}
+
+/* Calendar Smart Icon Specifics */
+.app-icon-calendar {
+  background: #fff;
+  border-radius: 22%;
+  /* Match iOS/Mac style */
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* =========================================
+   INLINED CALENDAR APP STYLES
+   ========================================= */
+/* Calendar App */
+.app-calendar {
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg);
+  color: var(--text-primary);
+  height: 100%;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.05);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.calendar-title {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.calendar-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cal-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cal-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.today-btn {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.calendar-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* Month View */
+.view-month {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.cal-days-header {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.cal-days-header span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.cal-month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  flex: 1;
+}
+
+.cal-day {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 80px;
+}
+
+.cal-day:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.cal-day.empty {
+  background: transparent;
+  pointer-events: none;
+}
+
+.cal-day.is-today {
+  background: rgba(62, 200, 255, 0.15);
+  border-color: var(--glow-blue);
+  box-shadow: 0 0 15px rgba(62, 200, 255, 0.2);
+}
+
+.cal-day.is-selected {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.day-num {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.day-dot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--glow-teal);
+  border-radius: 50%;
+  margin-top: 6px;
+  box-shadow: 0 0 5px var(--glow-teal);
+}
+
+/* Details Panel */
+.calendar-details {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 1px solid var(--glass-border);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.details-header {
+  text-align: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.details-day-name {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.details-date-num {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 8px 0;
+  background: linear-gradient(135deg, #fff 0%, #a5f3fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.details-month {
+  font-size: 16px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.details-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.no-events {
+  text-align: center;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 20px;
+}
+
+.event-item {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  grid-template-columns: 60px 1fr auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.event-time {
+  font-size: 12px;
+  color: var(--glow-blue);
+  font-weight: 600;
+}
+
+.event-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.event-delete {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  opacity: 0.6;
+}
+
+.event-delete:hover {
+  opacity: 1;
+  color: #ff6b6b;
+}
+
+.add-event-btn {
+  background: linear-gradient(135deg, var(--glow-blue) 0%, #2aa9ff 100%);
+  border: none;
+  color: #000;
+  font-weight: 600;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.add-event-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(62, 200, 255, 0.4);
+}
+
+
+/* ── Folder Icon Previews ── */
+.folder-bubbly {
+  cursor: pointer;
+}
+
+.folder-glass3d .folder-bubbly-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+/* The main glass container for the mini-icon grid */
+.folder-preview-grid {
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  border-radius: 18px;
+  position: relative;
+  z-index: 1;
+  /* Frosted glass effect matching iOS folder look */
+  background:
+    radial-gradient(120% 120% at var(--fx, 50%) var(--fy, 35%),
+      rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, rgba(200, 210, 225, 0.35) 0%, rgba(140, 150, 170, 0.25) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(28px) saturate(1.6);
+  -webkit-backdrop-filter: blur(28px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.30),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06);
+}
+
+/* 2×2 grid layout (iOS-style) */
+.folder-preview-2x2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 6px;
+  padding: 10px;
+}
+
+/* 3×3 fallback (for many items) */
+.folder-preview-3x3 {
+  display: grid;
+
+  /* Refined 2x2 folder previews */
+  .folder-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 4px;
+    width: 82%;
+    height: 82%;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    transition: box-shadow 0.2s;
+    z-index: 1;
+  }
+}
+
+.folder-preview-cell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.folder-preview-img {
+  width: 85%;
+  height: 85%;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.folder-preview-emoji {
+  font-size: 14px;
+}
+
+/* --- Folder Overlay (v1.0 Premium) --- */
+.folder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  opacity: 0;
+  transition: opacity 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  visibility: hidden;
+}
+
+.folder-overlay.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.folder-overlay-container {
+  width: 90%;
+  max-width: 320px;
+  min-height: 320px;
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(40px);
+  -webkit-backdrop-filter: blur(40px);
+  border-radius: 36px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.5),
+    0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    inset 0 0 20px rgba(255, 255, 255, 0.05);
+  transform: scale(0.85);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.folder-overlay.is-visible .folder-overlay-container {
+  transform: scale(1);
+}
+
+.folder-overlay-header {
+  width: 100%;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.folder-title-input {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 26px;
+  font-weight: 600;
+  text-align: center;
+  width: 100%;
+  outline: none;
+  padding: 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.folder-title-input:focus {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.folder-overlay-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  width: 100%;
+  justify-items: center;
+}
+
+.folder-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  transition: transform 0.2s;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: pointer;
+}
+
+/* Ensure wrapper captures all events */
+.folder-item-wrapper * {
+  pointer-events: none !important;
+}
+
+/* Search Bar Clearance - Managed by JS Layout Engine now */
+body.is-mobile .mobile-shell {
+  /* padding-top removed to let JS handle positioning */
+}
+
+@media (orientation: landscape) {
+  body.is-mobile .mobile-shell {
+    /* padding-top removed */
+  }
+}
+
+.folder-item-wrapper:active {
+  transform: scale(0.92);
+}
+
+.folder-item-label {
+  font-size: 11px;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+  text-align: center;
+}
+
+/* Glass depth layers */
+.folder-depth {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 0;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20), 0 4px 8px rgba(0, 0, 0, 0.10);
+}
+
+body.is-mobile .m-grid-container {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.folder-specular {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 2;
+  background: radial-gradient(80% 60% at var(--fx, 50%) var(--fy, 35%),
+      rgba(255, 255, 255, 0.35), transparent 55%);
+  mix-blend-mode: overlay;
+  opacity: 0.9;
+}
+
+.folder-sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 3;
+  background:
+    linear-gradient(155deg, rgba(255, 255, 255, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 25% 15%, rgba(255, 255, 255, 0.15), transparent 35%);
+}
+
+/* Rim light edge highlight */
+.folder-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  pointer-events: none;
+  z-index: 4;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.08);
+}
+
+.folder-glass3d:active {
+  transform: scale(0.96);
+}
+
+/* Hover state for 3D lift */
+.folder-glass3d:hover .folder-preview-grid {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08);
+}
+
+
+
+/* =========================
+
+/* ── Folder Creation Visuals ── */
+/* --- Folder Creation Visuals --- */
+.app-icon.is-folder-target .app-icon-inner {
+  transform: scale(1.08);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.app-icon.is-folder-dwell-triggered .app-icon-inner {
+  animation: folder-pulse-active 0.8s infinite ease-in-out;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.4);
+}
+
+@keyframes folder-pulse-active {
+  0% {
+    transform: scale(1.08);
+  }
+
+  50% {
+    transform: scale(1.18);
+  }
+
+  100% {
+    transform: scale(1.12);
+  }
+}
+}
+
+/* ── App Layer Transitions ── */
+/* --- App Layer Transitions (Session 3A) --- */
+.m-app-layer {
+  display: none;
+  opacity: 0;
+  transform: scale(0.95);
+  transition: opacity var(--duration-normal) var(--ease-out-expo),
+    transform var(--duration-normal) var(--ease-out-expo);
+  transform-origin: center center;
+}
+
+.m-app-layer.active {
+  display: block !important;
+  opacity: 1;
+  transform: scale(1);
+}
+/* --- Layout Stabilization v1.0.0 --- */
+:root {
+  --yancotab-status-bar-height: 44px;
+  --yancotab-search-top: 54px;
+  --yancotab-search-height: 50px;
+  --yancotab-search-width: min(92vw, 620px);
+}
+
+body.is-mobile .status-bar {
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: var(--yancotab-status-bar-height) !important;
+  z-index: 1250 !important;
+  padding-left: max(24px, env(safe-area-inset-left, 0px) + 16px) !important;
+  padding-right: max(24px, env(safe-area-inset-right, 0px) + 16px) !important;
+  transition: opacity 220ms ease, transform 220ms ease, padding 220ms ease !important;
+}
+
+body.is-mobile #smart-search-bar.m-search-container,
+body.is-mobile .m-search-container {
+  position: absolute !important;
+  top: var(--yancotab-search-top) !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: min(var(--yancotab-search-width), calc(100% - 32px)) !important;
+  max-width: calc(100% - 32px) !important;
+  height: var(--yancotab-search-height) !important;
+  z-index: 1150 !important;
+  transition: top 220ms ease, width 220ms ease, max-width 220ms ease, height 220ms ease, opacity 220ms ease !important;
+}
+
+body.is-mobile .m-search-input {
+  height: var(--yancotab-search-height) !important;
+  border-radius: calc(var(--yancotab-search-height) / 2) !important;
+  transition: height 220ms ease, border-radius 220ms ease, padding 220ms ease, font-size 220ms ease !important;
+}
+
+body.is-mobile .m-grid-container {
+  top: var(--m-grid-top, 0px) !important;
+  left: var(--m-grid-left, 0px) !important;
+  width: var(--m-grid-width, 100%) !important;
+  height: var(--m-grid-height, 0px) !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transition: top 220ms ease, left 220ms ease, width 220ms ease, height 220ms ease !important;
+}
+
+body.is-mobile .m-app-layer {
+  z-index: 2000 !important;
+}
+
+body.is-mobile .mobile-dock.m-dock,
+body.is-mobile .m-dock.mobile-dock,
+body.is-mobile .m-dock {
+  transition:
+    left 220ms ease,
+    right 220ms ease,
+    bottom 220ms ease,
+    padding 220ms ease,
+    gap 220ms ease,
+    border-radius 220ms ease,
+    opacity 220ms ease,
+    transform 220ms ease !important;
+}
+
+body.in-app .status-bar {
+  opacity: 0 !important;
+  transform: translateY(-10px) !important;
+  pointer-events: none !important;
+}
+
+body.in-app #smart-search-bar.m-search-container,
+body.in-app .m-search-container,
+body.in-app .m-search-input {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.is-mobile.is-orientation-transition .app-icon,
+body.is-mobile.is-orientation-transition .m-grid-pages {
+  transition-duration: 220ms !important;
+}
+
+@media (orientation: landscape) {
+  body.is-mobile #smart-search-bar.m-search-container,
+  body.is-mobile .m-search-container {
+    max-width: calc(100% - 280px) !important;
+  }
+
+  body.is-mobile .m-search-input {
+    font-size: 15px !important;
+    padding: 0 14px !important;
+  }
+}
+
+/* ── Mobile Grid & Dock Positioning ── */
+/* Status Bar Background */
+.m-status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  background: rgba(10, 20, 35, 0.7);
+  backdrop-filter: blur(20px);
+  z-index: 40;
+}
+
+/* Mobile Pages & Grid (v8 - Absolute Full Screen) */
+body.is-mobile .m-grid-container {
+  position: absolute;
+  /* Top/Left/Width/Height controlled by JS LayoutEngine */
+  z-index: 0;
+  /* Behind Dock and Search */
+  overflow: hidden;
+  touch-action: none;
+}
+
+body.is-mobile .m-grid-pages {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  display: flex;
+  /* Horizontal pages */
+  will-change: transform;
+}
+
+/* Items are absolutely positioned inside m-grid-pages */
+body.is-mobile .app-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.is-mobile .m-app-item.is-dragging-source {
+  opacity: 0;
+  /* Hidden but takes up space */
+}
+
+/* Jiggle Animation */
+@keyframes jiggle {
+  0% {
+    transform: rotate(-1deg);
+  }
+
+  50% {
+    transform: rotate(1deg);
+  }
+
+  100% {
+    transform: rotate(-1deg);
+  }
+}
+
+body.is-mobile .m-app-item.is-jovial {
+  animation: jiggle 0.3s infinite ease-in-out;
+  z-index: 10;
+}
+
+body.is-mobile .m-app-item.is-jovial::before {
+  content: "✖";
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 20px;
+  height: 20px;
+  background: rgba(200, 200, 200, 0.8);
+  color: #333;
+  border-radius: 50%;
+  font-size: 12px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+body.is-mobile .m-app-icon {
+  width: 58px;
+
+/* 2. Dock */
+.m-dock {
+  margin: 0 16px 16px;
+  height: 84px;
+  background: rgba(20, 30, 48, 0.5);
+  backdrop-filter: blur(25px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: space-evenly;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  flex-shrink: 0;
+  z-index: 100;
+}
+
+.m-dock-item {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.m-dock-item:active {
+  transform: scale(0.9);
+}
+
+.m-dock-item .m-icon {
+  font-size: 26px;
+}

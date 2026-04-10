@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="description" content="YancoTab — Your personal desktop in every new tab. Apps, games, notes, weather — all running locally." />
+  <meta name="theme-color" content="#060b14" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="icon" href="./favicon.ico" />
+  <title>YancoTab v2.1.0</title>
+
+  <!-- v2.0 Design System -->
+  <link rel="stylesheet" href="./css/tokens.css?v=v2.1.0" />
+  <link rel="stylesheet" href="./css/reset.css?v=v2.1.0" />
+  <link rel="stylesheet" href="./css/shell.css?v=v2.1.0" />
+  <link rel="stylesheet" href="./css/main.css?v=v2.1.0" />
+  <link rel="stylesheet" href="./os/ui/bubbly.css?v=v2.1.0" />
+  <link rel="stylesheet" href="./css/memory.css?v=v2.1.0" />
+</head>
+
+<body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+
+  <div id="boot" class="boot-screen" aria-live="polite">
+    <div class="boot-glow">
+      <img class="boot-logo" src="./assets/icons/icon-128.png" alt="YancoTab" style="width:80px;height:80px;" />
+      <div class="boot-text">YancoTab</div>
+      <div class="boot-subtext">v2.1</div>
+    </div>
+  </div>
+
+  <div id="app" class="app" hidden>
+    <div id="app-shell"></div>
+  </div>
+  <div id="app-windows"></div>
+
+  <!-- Boot scripts externalized for MV3 CSP compliance -->
+  <script src="./os/boot-init.js"></script>
+  <script type="module" src="./os/boot-loader.js"></script>
+</body>
+
+</html>

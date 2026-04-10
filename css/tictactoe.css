@@ -1,0 +1,451 @@
+/* Tic-Tac-Toe v2 — Arcade Glass Theme */
+.app-tictactoe {
+    /* Deep space base */
+    background-color: #050a14;
+
+    /* Arcade machine layering */
+    background-image:
+        /* Scanlines */
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+        /* Screen vignette (CRT curve effect) */
+        radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.8) 100%),
+        /* Retro Grid Floor (bottom) */
+        linear-gradient(0deg, rgba(62, 200, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(62, 200, 255, 0.1) 1px, transparent 1px),
+        /* Cabinet glossy reflection */
+        linear-gradient(160deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
+        /* Main cabinet gradient */
+        radial-gradient(circle at 50% 30%, #1a2c4e 0%, #081020 90%);
+
+    background-size:
+        100% 4px,
+        /* Scanlines */
+        100% 100%,
+        /* Vignette */
+        40px 40px,
+        /* Grid lines */
+        40px 40px,
+        /* Grid lines */
+        100% 100%,
+        /* Reflection */
+        100% 100%;
+    /* Base */
+
+    background-position:
+        0 0,
+        0 0,
+        center bottom,
+        /* Grid aligned to bottom */
+        center bottom,
+        0 0,
+        0 0;
+
+    background-repeat:
+        repeat,
+        no-repeat,
+        repeat,
+        repeat,
+        no-repeat,
+        no-repeat;
+
+    /* Screen glow bleed */
+    box-shadow: inset 0 0 60px rgba(62, 200, 255, 0.1);
+
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #e6f1ff;
+    font-family: 'Courier New', Courier, monospace;
+}
+
+/* Header */
+.ttt-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding-top: max(8px, env(safe-area-inset-top, 0px));
+    position: relative;
+    z-index: 10;
+    margin-bottom: 4px;
+}
+
+.ttt-title {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow:
+        0 0 10px rgba(62, 200, 255, 0.6),
+        0 0 20px rgba(62, 200, 255, 0.3);
+    text-transform: uppercase;
+}
+
+.ttt-close {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-top: max(0px, calc(env(safe-area-inset-top, 0px) / 2));
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ttt-close:hover {
+    background: rgba(255, 70, 70, 0.2);
+    border-color: rgba(255, 70, 70, 0.4);
+    color: #ff6b6b;
+}
+
+/* Content area */
+.ttt-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px;
+    padding-top: 4px;
+    padding-bottom: max(20px, calc(16px + env(safe-area-inset-bottom, 0px)));
+    gap: clamp(14px, 2.8vw, 22px);
+    overflow: hidden;
+}
+
+/* Landscape: horizontal layout */
+@media (orientation: landscape) {
+    .ttt-content {
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        gap: clamp(16px, 3.5vw, 36px);
+        padding: 8px clamp(14px, 4vw, 34px);
+        padding-bottom: max(20px, calc(16px + env(safe-area-inset-bottom, 0px)));
+    }
+
+    .ttt-sidebar {
+        min-width: clamp(170px, 24vw, 240px);
+    }
+
+    .ttt-difficulty {
+        flex-direction: column;
+    }
+}
+
+/* Sidebar wrapper */
+.ttt-sidebar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    width: min(100%, 420px);
+    background: rgba(6, 14, 28, 0.56);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    padding: 10px;
+}
+
+/* Difficulty bar */
+.ttt-difficulty {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.diff-btn {
+    padding: 10px 14px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-family: inherit;
+    letter-spacing: 1px;
+    touch-action: manipulation;
+}
+
+.diff-btn:hover {
+    color: rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.diff-btn.active {
+    background: rgba(62, 200, 255, 0.16);
+    border-color: rgba(62, 200, 255, 0.42);
+    color: #3ec8ff;
+    box-shadow: 0 0 12px rgba(62, 200, 255, 0.28);
+}
+
+/* Status message */
+.ttt-status {
+    font-size: 16px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.8);
+    text-align: center;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 10px 14px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    min-width: 140px;
+    transition: color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.app-tictactoe.is-ai-thinking .ttt-status {
+    box-shadow: 0 0 18px rgba(255, 107, 157, 0.25);
+}
+
+.ttt-board-wrap {
+    position: relative;
+    width: min(86vw, 56vh, 340px);
+    aspect-ratio: 1;
+    flex-shrink: 0;
+}
+
+/* Board */
+.ttt-board {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.28), rgba(16, 29, 50, 0.32));
+    padding: 8px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 18px 36px rgba(0, 0, 0, 0.32);
+}
+
+/* Landscape board size */
+@media (orientation: landscape) {
+    .ttt-board-wrap {
+        --safe-height: calc(100vh - 110px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+        width: min(calc(100vw - 290px), 72vh);
+        max-width: 420px;
+        max-height: calc(100vh - 110px);
+        height: min(var(--safe-height), 78vh);
+    }
+}
+
+.ttt-cell {
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(32px, 8vw, 64px);
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 0.16s ease, background 0.18s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.ttt-cell:hover:not(.filled) {
+    background: rgba(255, 255, 255, 0.11);
+    border-color: rgba(62, 200, 255, 0.4);
+    box-shadow: 0 0 14px rgba(62, 200, 255, 0.18);
+    transform: translateY(-1px);
+}
+
+.ttt-cell:active:not(.filled) {
+    transform: translateY(0) scale(0.97);
+}
+
+.ttt-cell.filled {
+    cursor: default;
+    background: rgba(0, 0, 0, 0.26);
+}
+
+.ttt-mark {
+    line-height: 1;
+    font-size: clamp(34px, 8vw, 66px);
+    transform: scale(0.82);
+    opacity: 0;
+    animation: tttMarkIn 0.22s ease-out forwards;
+}
+
+.ttt-mark-x {
+    color: #3ec8ff;
+    text-shadow: 0 0 16px rgba(62, 200, 255, 0.62);
+}
+
+.ttt-mark-o {
+    color: #ff6b9d;
+    text-shadow: 0 0 16px rgba(255, 107, 157, 0.62);
+}
+
+.ttt-cell.win {
+    background: rgba(78, 240, 217, 0.16);
+    border-color: rgba(78, 240, 217, 0.55);
+    box-shadow: inset 0 0 20px rgba(78, 240, 217, 0.22), 0 0 20px rgba(78, 240, 217, 0.14);
+    animation: winPulse 0.75s ease-out;
+}
+
+.ttt-win-line {
+    position: absolute;
+    inset: 8px;
+    pointer-events: none;
+    opacity: 0;
+}
+
+.ttt-win-line::before {
+    content: '';
+    position: absolute;
+    top: var(--line-top, 50%);
+    left: var(--line-left, 50%);
+    width: var(--line-width, 78%);
+    height: 5px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(78, 240, 217, 0.3), rgba(78, 240, 217, 0.95), rgba(78, 240, 217, 0.3));
+    box-shadow: 0 0 16px rgba(78, 240, 217, 0.58);
+    transform-origin: center;
+    transform: translate(-50%, -50%) rotate(var(--line-angle, 0deg)) scaleX(0);
+}
+
+.ttt-win-line.is-visible {
+    opacity: 1;
+}
+
+.ttt-win-line.is-visible::before {
+    animation: tttLineDraw 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.ttt-win-line.line-row-0 {
+    --line-top: 16.66%;
+    --line-left: 50%;
+    --line-angle: 0deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-row-1 {
+    --line-top: 50%;
+    --line-left: 50%;
+    --line-angle: 0deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-row-2 {
+    --line-top: 83.34%;
+    --line-left: 50%;
+    --line-angle: 0deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-col-0 {
+    --line-top: 50%;
+    --line-left: 16.66%;
+    --line-angle: 90deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-col-1 {
+    --line-top: 50%;
+    --line-left: 50%;
+    --line-angle: 90deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-col-2 {
+    --line-top: 50%;
+    --line-left: 83.34%;
+    --line-angle: 90deg;
+    --line-width: 82%;
+}
+
+.ttt-win-line.line-diag-main {
+    --line-top: 50%;
+    --line-left: 50%;
+    --line-angle: 45deg;
+    --line-width: 113%;
+}
+
+.ttt-win-line.line-diag-anti {
+    --line-top: 50%;
+    --line-left: 50%;
+    --line-angle: -45deg;
+    --line-width: 113%;
+}
+
+/* Controls */
+.ttt-controls {
+    width: 100%;
+}
+
+.ttt-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(62, 200, 255, 0.15);
+    border: 1px solid rgba(62, 200, 255, 0.3);
+    border-radius: 10px;
+    color: #3ec8ff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    font-family: inherit;
+    letter-spacing: 1px;
+    touch-action: manipulation;
+}
+
+.ttt-btn:hover {
+    background: rgba(62, 200, 255, 0.25);
+    border-color: #3ec8ff;
+    box-shadow: 0 0 15px rgba(62, 200, 255, 0.3);
+}
+
+.ttt-btn:active {
+    transform: scale(0.98);
+}
+
+@keyframes tttMarkIn {
+    from {
+        opacity: 0;
+        transform: scale(0.7);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes tttLineDraw {
+    to {
+        transform: translate(-50%, -50%) rotate(var(--line-angle, 0deg)) scaleX(1);
+    }
+}
+
+@keyframes winPulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.97);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}

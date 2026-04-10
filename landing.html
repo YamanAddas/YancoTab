@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>YancoTab — Your Personal Desktop in Every New Tab</title>
+    <meta name="description" content="YancoTab — a full desktop experience in your browser. Apps, games, notes, weather — all running locally with no accounts and no tracking."/>
+    <meta name="theme-color" content="#060b14"/>
+    <link rel="icon" href="./favicon.ico"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060b14;
+            --bg-card: rgba(8, 18, 32, 0.85);
+            --accent: #00e5c1;
+            --accent-dim: rgba(0, 229, 193, 0.15);
+            --text: #c8d6e5;
+            --text-dim: #5a6a7e;
+            --border: rgba(255, 255, 255, 0.06);
+            --radius: 16px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ── Hero ── */
+        .hero {
+            text-align: center;
+            padding: 80px 24px 60px;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(0,229,193,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+
+        .hero-logo {
+            width: 80px;
+            height: 80px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 0 40px rgba(0,229,193,0.15);
+        }
+
+        .hero h1 {
+            font-size: clamp(32px, 6vw, 56px);
+            font-weight: 700;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, var(--accent), #33ffdd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero-sub {
+            font-size: clamp(16px, 2.5vw, 20px);
+            color: var(--text-dim);
+            max-width: 540px;
+            margin: 0 auto 32px;
+        }
+
+        .hero-ctas {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: transform 0.15s, box-shadow 0.15s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            text-decoration: none;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 4px 20px rgba(0,229,193,0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        /* ── Features ── */
+        .features {
+            padding: 60px 0;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 40px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 28px;
+            transition: border-color 0.2s, transform 0.2s;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent-dim);
+            transform: translateY(-2px);
+        }
+
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            color: var(--text-dim);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        /* ── App Grid ── */
+        .apps-section {
+            padding: 60px 0;
+        }
+
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+            gap: 16px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .app-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 16px 8px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            transition: border-color 0.15s;
+        }
+
+        .app-item:hover {
+            border-color: rgba(255,255,255,0.1);
+        }
+
+        .app-icon {
+            font-size: 28px;
+        }
+
+        .app-name {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-align: center;
+        }
+
+        /* ── Selling Points ── */
+        .selling-points {
+            padding: 60px 0;
+            text-align: center;
+        }
+
+        .points-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 32px;
+            margin-top: 32px;
+        }
+
+        .point {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .point-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--accent-dim);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .point h4 {
+            font-size: 16px;
+        }
+
+        .point p {
+            color: var(--text-dim);
+            font-size: 13px;
+            max-width: 220px;
+        }
+
+        /* ── Footer ── */
+        .footer {
+            padding: 40px 24px;
+            text-align: center;
+            border-top: 1px solid var(--border);
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 24px;
+            justify-content: center;
+            margin-bottom: 16px;
+        }
+
+        @media (max-width: 480px) {
+            .hero { padding: 48px 16px 40px; }
+            .features-grid { grid-template-columns: 1fr; }
+            .app-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+            .app-item { padding: 12px 4px; }
+            .points-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Hero -->
+    <section class="hero">
+        <img class="hero-logo" src="./assets/icons/icon-128.png" alt="YancoTab" style="width:80px;height:80px;border-radius:20px;" />
+        <h1>Your desktop,<br>in every <span>new tab</span>.</h1>
+        <p class="hero-sub">
+            A full OS experience running in your browser. Apps, games, notes, weather — all local, all free, no account needed.
+        </p>
+        <div class="hero-ctas">
+            <a href="./index.html" class="btn btn-primary">Try It Now</a>
+            <a href="#install" class="btn btn-secondary">Get Extension</a>
+        </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features">
+        <div class="container">
+            <h2 class="section-title">Not another startpage.</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🖥</div>
+                    <h3>Full Desktop Experience</h3>
+                    <p>App grid, dock, folders, drag-and-drop — a real desktop in your browser, not just a bookmark page.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎮</div>
+                    <h3>Real Games</h3>
+                    <p>Solitaire, Minesweeper, Mahjong, Snake, and card games with AI opponents. Play between meetings.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Privacy First</h3>
+                    <p>Everything runs locally. No accounts, no tracking, no servers. Your data stays in your browser.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📴</div>
+                    <h3>Works Offline</h3>
+                    <p>Once loaded, YancoTab works without internet. Even the weather app caches your last forecast.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Cross-Device Sync</h3>
+                    <p>As a Chrome extension, your settings and data sync across devices automatically via Chrome.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Beautiful Design</h3>
+                    <p>Cosmic glass theme with starfield backgrounds, animated icons, and smooth transitions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Apps -->
+    <section class="apps-section">
+        <div class="container">
+            <h2 class="section-title">18 apps. Zero cost.</h2>
+            <div class="app-grid">
+                <div class="app-item"><span class="app-icon">🌐</span><span class="app-name">Browser</span></div>
+                <div class="app-item"><span class="app-icon">📝</span><span class="app-name">Notes</span></div>
+                <div class="app-item"><span class="app-icon">✅</span><span class="app-name">Todo</span></div>
+                <div class="app-item"><span class="app-icon">🍅</span><span class="app-name">Pomodoro</span></div>
+                <div class="app-item"><span class="app-icon">🔢</span><span class="app-name">Calculator</span></div>
+                <div class="app-item"><span class="app-icon">⛅</span><span class="app-name">Weather</span></div>
+                <div class="app-item"><span class="app-icon">🕒</span><span class="app-name">Clock</span></div>
+                <div class="app-item"><span class="app-icon">📁</span><span class="app-name">Files</span></div>
+                <div class="app-item"><span class="app-icon">⚙️</span><span class="app-name">Settings</span></div>
+                <div class="app-item"><span class="app-icon">🃏</span><span class="app-name">Solitaire</span></div>
+                <div class="app-item"><span class="app-icon">🕷</span><span class="app-name">Spider</span></div>
+                <div class="app-item"><span class="app-icon">💣</span><span class="app-name">Minesweeper</span></div>
+                <div class="app-item"><span class="app-icon">🀄</span><span class="app-name">Mahjong</span></div>
+                <div class="app-item"><span class="app-icon">🐍</span><span class="app-name">Snake</span></div>
+                <div class="app-item"><span class="app-icon">🧠</span><span class="app-name">Memory</span></div>
+                <div class="app-item"><span class="app-icon">❌</span><span class="app-name">Tic-Tac-Toe</span></div>
+                <div class="app-item"><span class="app-icon">♠️</span><span class="app-name">Tarneeb</span></div>
+                <div class="app-item"><span class="app-icon">♦️</span><span class="app-name">Trix</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Selling Points -->
+    <section class="selling-points" id="install">
+        <div class="container">
+            <h2 class="section-title">Free forever.</h2>
+            <div class="points-grid">
+                <div class="point">
+                    <div class="point-icon">💰</div>
+                    <h4>No Cost</h4>
+                    <p>All features free. No premium tier, no paywalls, no ads.</p>
+                </div>
+                <div class="point">
+                    <div class="point-icon">👤</div>
+                    <h4>No Account</h4>
+                    <p>No signup, no login. Open a new tab and you're in.</p>
+                </div>
+                <div class="point">
+                    <div class="point-icon">🛡</div>
+                    <h4>No Tracking</h4>
+                    <p>Zero analytics. Your data never leaves your browser.</p>
+                </div>
+                <div class="point">
+                    <div class="point-icon">⚡</div>
+                    <h4>No Server</h4>
+                    <p>Runs entirely client-side. Nothing to go down.</p>
+                </div>
+            </div>
+            <div style="margin-top: 48px;">
+                <a href="./index.html" class="btn btn-primary" style="margin-right: 12px;">Try the Web App</a>
+                <a href="https://ko-fi.com/yamanaddas" class="btn btn-secondary" target="_blank" rel="noopener noreferrer">Support on Ko-fi</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="https://github.com/YamanAddas/YancoTab" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://ko-fi.com/yamanaddas" target="_blank" rel="noopener noreferrer">Ko-fi</a>
+        </div>
+        <p>&copy; 2026 Yaman Addas. All rights reserved.</p>
+    </footer>
+
+</body>
+</html>

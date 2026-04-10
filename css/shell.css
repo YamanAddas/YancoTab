@@ -1,0 +1,826 @@
+/* ============================================================
+   YancoTab v2.0 — Shell CSS
+   Boot screen, status bar, dock, app grid, windows, overlays
+   Cosmic Glass theme derived from YancoHub design language
+   ============================================================ */
+
+/* ── Starfield Canvas ── */
+#starfield {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-wallpaper);
+  pointer-events: none;
+}
+
+/* ── Boot Screen (overrides main.css legacy) ── */
+.boot-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+
+/* Override old main.css .boot-screen grid layout */
+div.boot-screen {
+  display: flex;
+  background: var(--bg);
+}
+
+.boot-glow {
+  text-align: center;
+  padding: 32px 48px;
+  border-radius: 16px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  animation: bootFadeIn 1.2s var(--ease-out) both;
+}
+
+/* Override old main.css .boot-glow */
+div.boot-screen .boot-glow {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.boot-logo {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 20px;
+  display: block;
+  animation: bootPulse 2s ease-in-out infinite;
+}
+
+.boot-text {
+  font-size: var(--font-xl);
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: -0.02em;
+  text-transform: none;
+  text-shadow: none;
+}
+
+div.boot-screen .boot-text {
+  font-size: var(--font-xl);
+  text-transform: none;
+  text-shadow: none;
+}
+
+.boot-subtext {
+  font-size: var(--font-sm);
+  color: var(--text-dim);
+  margin-top: var(--space-xs);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.boot-status {
+  position: absolute;
+  bottom: 20px;
+  width: 100%;
+  text-align: center;
+  color: var(--text-dim);
+  font-size: var(--font-xs);
+}
+
+@keyframes bootFadeIn {
+  from { opacity: 0; transform: scale(0.9) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+@keyframes bootPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 193, 0.3); }
+  50%      { box-shadow: 0 0 40px rgba(0, 229, 193, 0.5), 0 0 80px rgba(0, 229, 193, 0.15); }
+}
+
+/* ── App Shell ── */
+#app-shell {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-grid);
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+}
+
+.app {
+  position: fixed;
+  inset: 0;
+}
+
+/* ── Status Bar ── */
+.status-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(44px + var(--safe-top));
+  padding: var(--safe-top) var(--space-xl) 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: var(--z-statusbar);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-bright);
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(6, 11, 20, 0.6) 0%, transparent 100%);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+.sb-time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── App Grid ── */
+.m-grid-container {
+  position: absolute;
+  inset: 0;
+  top: calc(44px + var(--safe-top));
+  bottom: calc(80px + var(--safe-bottom));
+  overflow: hidden;
+}
+
+.m-grid-pages {
+  display: flex;
+  height: 100%;
+  will-change: transform;
+}
+
+.m-grid-page {
+  flex: 0 0 100%;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-auto-rows: min-content;
+  gap: var(--hex-gap);
+  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  align-content: start;
+  justify-items: center;
+}
+
+/* ── Page Dots ── */
+.m-grid-dots {
+  position: absolute;
+  bottom: calc(84px + var(--safe-bottom));
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  z-index: var(--z-grid);
+  pointer-events: none;
+}
+
+.m-grid-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--text-dim);
+  transition: all var(--transition-fast);
+}
+
+.m-grid-dot.active {
+  background: var(--accent);
+  width: 18px;
+  box-shadow: 0 0 8px rgba(0, 229, 193, 0.4);
+}
+
+/* ── Hex App Icon ── */
+.m-app-item,
+.app-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--transition-fast);
+}
+
+.m-app-item:active,
+.app-icon:active {
+  transform: scale(0.9);
+}
+
+.hex-icon {
+  width: var(--hex-size);
+  height: var(--hex-size);
+  clip-path: var(--hex-clip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: var(--bg-card);
+  border: none;
+  position: relative;
+  transition: all var(--transition-normal);
+  overflow: hidden;
+  cursor: pointer;
+}
+
+/* Hex glow border effect via pseudo-element */
+.hex-icon::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.15), rgba(0, 229, 193, 0.05));
+  z-index: -1;
+}
+
+.hex-icon:hover::before,
+.hex-icon:active::before {
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.3), rgba(0, 229, 193, 0.1));
+}
+
+.hex-icon:active {
+  transform: scale(0.92);
+}
+
+/* Inner content — fills the hex, clips to hex shape */
+.hex-icon-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hex-icon img {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+
+/* ── Hex App-Specific Backgrounds ── */
+.app-icon-settings .hex-icon-content { background: linear-gradient(145deg, #1a2a4a, #0d1b36); }
+.app-icon-browser .hex-icon-content { background: linear-gradient(145deg, #0a1e3d, #061430); }
+.app-icon-weather .hex-icon-content { background: linear-gradient(to top, #0a3d6b, #1a6fa0); }
+.app-icon-notes .hex-icon-content { background: linear-gradient(145deg, #3d2e1a, #261c0f); }
+.app-icon-files .hex-icon-content,
+.app-icon-folder .hex-icon-content { background: linear-gradient(145deg, #0d2240, #061830); }
+.app-icon-calculator .hex-icon-content { background: linear-gradient(145deg, #1a1a2e, #0a0a14); }
+.app-icon-photos .hex-icon-content { background: linear-gradient(145deg, #1a2040, #0d1428); }
+.app-icon-maps .hex-icon-content { background: linear-gradient(145deg, #0d3328, #081e18); }
+.app-icon-clock .hex-icon-content { background: radial-gradient(circle, #111e36, #0a1020); }
+.app-icon-calendar .hex-icon-content,
+.app-icon-date .hex-icon-content { background: linear-gradient(145deg, #0c1628, #081321); }
+
+/* Game hex backgrounds */
+.app-icon-snake .hex-icon-content { --game-accent: rgba(40,255,170,0.35); }
+.app-icon-memory .hex-icon-content { --game-accent: rgba(120,190,255,0.35); }
+.app-icon-tictactoe .hex-icon-content { --game-accent: rgba(255,120,210,0.35); }
+.app-icon-minesweeper .hex-icon-content { --game-accent: rgba(255,200,110,0.35); }
+.app-icon-solitaire .hex-icon-content { --game-accent: rgba(255,90,120,0.35); }
+.app-icon-spider-solitaire .hex-icon-content { --game-accent: rgba(255,70,90,0.35); }
+.app-icon-mahjong .hex-icon-content { --game-accent: rgba(120,255,200,0.35); }
+.app-icon-tarneeb .hex-icon-content { --game-accent: rgba(100,120,255,0.35); }
+.app-icon-trix .hex-icon-content { --game-accent: rgba(180,80,255,0.35); }
+
+.hex-icon-label {
+  font-size: var(--font-xs);
+  color: var(--text);
+  text-align: center;
+  max-width: calc(var(--hex-size) + 8px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Dock ── */
+.mobile-dock,
+.m-dock {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(80px + var(--safe-bottom));
+  padding: var(--space-sm) var(--space-lg) var(--safe-bottom);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-lg);
+  z-index: var(--z-dock);
+  background: var(--bg-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border-top: 1px solid var(--border-accent);
+}
+
+/* Dock icon containers */
+.m-dock-item {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.m-dock-item:active {
+  transform: scale(0.88);
+}
+
+/* Hex icons inside dock fill the container */
+.m-dock-item .hex-icon,
+.m-dock-item .app-icon-inner {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.dock-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  position: relative;
+}
+
+.dock-icon:not(.m-dock-item) {
+  width: 52px;
+  height: 52px;
+  clip-path: var(--hex-clip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: var(--bg-card);
+  transition: transform var(--transition-spring);
+  position: relative;
+}
+
+.dock-icon:not(.m-dock-item)::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.12), rgba(0, 229, 193, 0.03));
+  z-index: -1;
+}
+
+.dock-item:active .dock-icon:not(.m-dock-item) {
+  transform: scale(0.88);
+}
+
+/* Active dot under dock icon */
+.dock-active-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(0, 229, 193, 0.5);
+}
+
+/* ── Home Bar ── */
+.home-bar {
+  position: absolute;
+  bottom: calc(var(--safe-bottom) + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 134px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.3);
+  z-index: calc(var(--z-dock) + 1);
+  cursor: pointer;
+}
+
+/* ── App Windows ── */
+#app-windows {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-window);
+  pointer-events: none;
+}
+
+#app-windows > * {
+  pointer-events: auto;
+}
+
+/* ── Glass Chrome (unified app wrapper) ── */
+.glass-chrome {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: var(--z-window);
+  display: flex;
+  flex-direction: column;
+  animation: appSlideIn 0.35s var(--ease-spring) both;
+}
+
+.is-mobile .glass-chrome {
+  bottom: calc(80px + var(--safe-bottom, 0px));
+}
+
+.glass-chrome-header {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 6px;
+  min-height: calc(40px + env(safe-area-inset-top, 0px));
+  background: rgba(6, 11, 20, 0.85);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  backdrop-filter: blur(24px) saturate(1.4);
+  border-bottom: 1px solid rgba(0, 229, 193, 0.12);
+  z-index: 10;
+}
+
+.glass-chrome-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.glass-chrome-close {
+  width: 30px;
+  height: 30px;
+  border: 1px solid rgba(0, 229, 193, 0.2);
+  border-radius: 50%;
+  background: rgba(0, 229, 193, 0.08);
+  color: var(--accent);
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.glass-chrome-close:hover,
+.glass-chrome-close:active {
+  background: rgba(255, 80, 80, 0.2);
+  border-color: rgba(255, 80, 80, 0.5);
+  color: #ff8080;
+  transform: scale(1.08);
+}
+
+/* App window fills remaining space below glass chrome header */
+.glass-chrome .app-window {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+}
+
+/* Hide app-internal headers when wrapped in glass chrome */
+.glass-chrome .clock-header,
+.glass-chrome .calc-header,
+.glass-chrome .ys-header,
+.glass-chrome .bb-header,
+.glass-chrome .snake-header,
+.glass-chrome .ttt-header,
+.glass-chrome .ms-header,
+.glass-chrome .sol-header,
+.glass-chrome .mj-header,
+.glass-chrome .yf-header,
+.glass-chrome .notes-header,
+.glass-chrome .memory-header {
+  display: none !important;
+}
+
+/* Standalone app-window fallback (when no glass-chrome wrapper) */
+.app-window:not(.glass-chrome .app-window) {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-window);
+  background: var(--bg);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  overflow: hidden;
+}
+
+@keyframes appSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* ── Rich Animated App Icons ── */
+.phosphor-wrap {
+  width: 88%;
+  height: 88%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.phosphor-wrap svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Gear spin animation */
+.gear-spin {
+  animation: gearSpin 12s linear infinite;
+  transform-origin: 34px 28.5px;
+}
+@keyframes gearSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Globe ring orbit */
+.globe-ring {
+  animation: ringOrbit 6s ease-in-out infinite;
+  transform-origin: 32px 32px;
+}
+@keyframes ringOrbit {
+  0%, 100% { transform: rotate(-20deg); opacity: 0.5; }
+  50% { transform: rotate(-25deg); opacity: 0.8; }
+}
+
+/* Sun pulse */
+.sun-pulse {
+  animation: sunPulse 3s ease-in-out infinite;
+}
+@keyframes sunPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Sun rays spin */
+.sun-spin {
+  animation: sunRaysSpin 20s linear infinite;
+}
+@keyframes sunRaysSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Cloud float */
+.cloud-float {
+  animation: cloudFloat 4s ease-in-out infinite;
+}
+@keyframes cloudFloat {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
+/* Map pin bounce */
+.pin-bounce {
+  animation: pinBounce 2s ease-in-out infinite;
+}
+@keyframes pinBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+/* ── Smart Search (v2 glass pill) ── */
+.m-search-container {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(92vw, 620px);
+  max-width: calc(100% - 32px);
+  height: 48px;
+  z-index: var(--z-search, 1150);
+  pointer-events: none;
+}
+
+.m-search-input {
+  width: 100%;
+  height: 100%;
+  pointer-events: auto;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(0, 229, 193, 0.12);
+  background: rgba(6, 11, 20, 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  backdrop-filter: blur(20px) saturate(1.3);
+  padding: 0 20px;
+  color: var(--text-bright);
+  font-size: 15px;
+  font-family: var(--font-sans);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  outline: none;
+}
+
+.m-search-input::placeholder {
+  color: rgba(200, 220, 240, 0.4);
+  font-weight: 400;
+}
+
+.m-search-input:focus {
+  background: rgba(6, 11, 20, 0.8);
+  border-color: rgba(0, 229, 193, 0.3);
+  box-shadow: 0 0 0 3px rgba(0, 229, 193, 0.06), 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 229, 193, 0.05);
+}
+
+/* Hide search when in-app */
+body.in-app .m-search-container {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.search-input::placeholder {
+  color: var(--text-dim);
+}
+
+/* ── Context Menu ── */
+.context-menu,
+.ctx-menu {
+  position: fixed;
+  z-index: var(--z-context);
+  min-width: 180px;
+  padding: var(--space-sm);
+  background: var(--bg-panel);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glow-md);
+  animation: ctxMenuIn 0.15s var(--ease-out) both;
+}
+
+@keyframes ctxMenuIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-sm);
+  color: var(--text-bright);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.ctx-item:hover,
+.ctx-item:active {
+  background: var(--accent-bg);
+}
+
+.ctx-item.danger {
+  color: var(--danger);
+}
+
+.ctx-separator {
+  height: 1px;
+  margin: var(--space-xs) 0;
+  background: var(--border);
+}
+
+/* ── Hex Folder Icon ── */
+.folder-hex {
+  cursor: pointer;
+}
+
+.folder-glass3d .folder-hex-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.folder-hex .folder-preview-grid {
+  background:
+    radial-gradient(120% 120% at var(--fx, 50%) var(--fy, 35%),
+      rgba(0, 229, 193, 0.12), rgba(0, 229, 193, 0.03) 50%, rgba(0, 0, 0, 0.1) 100%),
+    linear-gradient(180deg, rgba(8, 18, 32, 0.9) 0%, rgba(6, 11, 20, 0.95) 100%);
+  border: none;
+  border-radius: 0;
+}
+
+/* ── Folder Overlay ── */
+.folder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(6, 11, 20, 0.85);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: searchFadeIn 0.2s var(--ease-out) both;
+}
+
+.folder-panel {
+  width: min(340px, 90vw);
+  max-height: 70vh;
+  background: var(--bg-card);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glow-lg);
+  overflow: hidden;
+}
+
+.folder-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.folder-title {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.folder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  overflow-y: auto;
+  max-height: calc(70vh - 60px);
+}
+
+/* ── Notification Toast ── */
+.toast {
+  position: fixed;
+  top: calc(var(--safe-top) + 50px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-toast);
+  padding: 12px 24px;
+  background: var(--bg-card);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  box-shadow: var(--glow-sm);
+  color: var(--text-bright);
+  font-size: var(--font-sm);
+  animation: toastIn 0.3s var(--ease-spring) both;
+}
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.95); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+
+/* ── Edit Mode (Jiggle) ── */
+.is-editing .m-app-item,
+.is-editing .app-icon {
+  animation: jiggle 0.3s ease-in-out infinite alternate;
+}
+
+@keyframes jiggle {
+  0%   { transform: rotate(-1deg); }
+  100% { transform: rotate(1deg); }
+}
+
+/* ── Landscape Adjustments ── */
+@media (orientation: landscape) {
+  .m-grid-page {
+    grid-template-columns: repeat(6, 1fr);
+    padding: var(--space-sm) var(--space-xl);
+  }
+
+  .mobile-dock,
+  .m-dock {
+    height: calc(64px + var(--safe-bottom));
+  }
+
+  .m-grid-container {
+    bottom: calc(64px + var(--safe-bottom));
+  }
+
+  .is-mobile .glass-chrome {
+    bottom: calc(64px + var(--safe-bottom, 0px));
+  }
+}
+
+/* ── Small Phones ── */
+@media (max-width: 375px) {
+  :root {
+    --hex-size: 56px;
+    --hex-gap: 10px;
+  }
+
+  .m-grid-page {
+    padding: var(--space-sm) var(--space-sm);
+  }
+}

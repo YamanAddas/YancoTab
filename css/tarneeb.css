@@ -1,0 +1,602 @@
+/* Tarneeb Syrian 41
+   Built on top of Trix chrome with stricter layout discipline for phone/tablet/desktop. */
+
+.tarneeb-remake {
+  --tar-card-w: clamp(46px, 12vw, 68px);
+  --tar-card-h: calc(var(--tar-card-w) * 1.42);
+  --tar-hand-gap: 8px;
+  --tar-hand-step: calc(var(--tar-card-w) + var(--tar-hand-gap));
+  --tar-hand-rail-h: clamp(118px, 24vh, 188px);
+  --tar-table-card-w: clamp(46px, 7vw, 64px);
+  --tar-table-card-h: calc(var(--tar-table-card-w) * 1.42);
+
+  --card-w: var(--tar-card-w);
+  --card-h: var(--tar-card-h);
+  --trix-hand-h: var(--tar-hand-rail-h);
+
+  padding-top: max(10px, env(safe-area-inset-top, 0px));
+  padding-right: max(10px, env(safe-area-inset-right, 0px));
+  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(10px, env(safe-area-inset-left, 0px));
+}
+
+/* Smooth transitions for orientation and density shifts */
+.tarneeb-remake .trix-screen,
+.tarneeb-remake .trix-hud,
+.tarneeb-remake .trix-scorestrip,
+.tarneeb-remake .trix-contract-bar,
+.tarneeb-remake .trix-table,
+.tarneeb-remake .trix-hand,
+.tarneeb-remake .trix-slot {
+  transition: padding 180ms ease, gap 180ms ease, max-height 180ms ease, height 180ms ease;
+}
+
+/* Tarneeb does not use Trix note row */
+.tarneeb-remake .trix-screen {
+  grid-template-areas:
+    "hud"
+    "score"
+    "picker"
+    "table"
+    "hand";
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+}
+
+.tarneeb-remake .trix-area-picker.is-empty {
+  display: none;
+}
+
+.tarneeb-remake .trix-area-hud,
+.tarneeb-remake .trix-area-score,
+.tarneeb-remake .trix-area-picker,
+.tarneeb-remake .trix-area-table,
+.tarneeb-remake .trix-area-hand {
+  min-width: 0;
+  min-height: 0;
+}
+
+.tarneeb-remake .trix-area-table {
+  --card-w: var(--tar-table-card-w);
+  --card-h: var(--tar-table-card-h);
+}
+
+.tarneeb-remake .trix-area-hand {
+  --card-w: var(--tar-card-w);
+  --card-h: var(--tar-card-h);
+}
+
+/* Setup */
+.tarneeb-remake .tar-setup-sub {
+  opacity: 0.84;
+  font-weight: 700;
+  text-align: center;
+}
+
+.tarneeb-remake .tar-setup-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  opacity: 0.82;
+  font-size: 12px;
+  text-align: center;
+}
+
+.tarneeb-remake .tar-setup-btn {
+  min-width: 112px;
+  justify-content: center;
+}
+
+/* HUD */
+.tarneeb-remake .tar-hud {
+  gap: 7px;
+  padding: 7px;
+}
+
+.tarneeb-remake .tar-chip {
+  font-size: 11.5px;
+  line-height: 1.2;
+  padding: 5px 8px;
+}
+
+.tarneeb-remake .tar-chip.is-team {
+  background: rgba(120, 140, 255, 0.16);
+  border-color: rgba(120, 140, 255, 0.34);
+}
+
+.tarneeb-remake .tar-chip.tar-chip-wide {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: normal;
+}
+
+.tarneeb-remake .tar-chip.tar-chip-status {
+  background: rgba(110, 210, 255, 0.14);
+  border-color: rgba(110, 210, 255, 0.3);
+}
+
+.tarneeb-remake .tar-actions {
+  gap: 8px;
+}
+
+.tarneeb-remake .tar-action-btn {
+  padding: 7px 10px;
+  border-radius: 12px;
+  font-size: 11.5px;
+}
+
+/* Compact score strip */
+.tarneeb-remake .tar-scorestrip {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 5px 7px;
+}
+
+.tarneeb-remake .tar-score-mainrow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.tarneeb-remake .tar-teamchip {
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 900;
+  padding: 5px 7px;
+  white-space: nowrap;
+}
+
+.tarneeb-remake .tar-score-subrow {
+  display: flex;
+  gap: 7px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  padding-bottom: 2px;
+}
+
+.tarneeb-remake .tar-score-chip {
+  flex: 0 0 auto;
+  font-size: 11px;
+  line-height: 1.2;
+}
+
+.tarneeb-remake .tar-score-chip-info {
+  opacity: 0.84;
+}
+
+/* Bidding block */
+.tarneeb-remake .tar-bidding {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.tarneeb-remake .tar-bidding-title {
+  font-weight: 900;
+}
+
+.tarneeb-remake .tar-bid-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.tarneeb-remake .tar-bid-cell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border-radius: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  padding: 6px 8px;
+}
+
+.tarneeb-remake .tar-bid-cell.is-turn {
+  background: rgba(110, 210, 255, 0.16);
+  border-color: rgba(110, 210, 255, 0.3);
+}
+
+.tarneeb-remake .tar-bid-name {
+  font-weight: 800;
+}
+
+.tarneeb-remake .tar-bid-value {
+  font-weight: 900;
+}
+
+.tarneeb-remake .tar-bid-total {
+  font-size: 12px;
+  opacity: 0.84;
+}
+
+.tarneeb-remake .tar-bid-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(42px, 1fr));
+  gap: 6px;
+}
+
+.tarneeb-remake .tar-bid-btn {
+  min-height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.24);
+  color: rgba(255, 255, 255, 0.94);
+  font-weight: 850;
+  font-size: 12px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tarneeb-remake .tar-bid-btn:active {
+  transform: scale(0.98);
+}
+
+.tarneeb-remake .tar-bid-wait {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Table + trick slots */
+.tarneeb-remake .tar-table {
+  height: 100%;
+  padding: clamp(6px, 1.2vw, 10px);
+}
+
+.tarneeb-remake .tar-trick-grid {
+  width: min(620px, 100%);
+  height: min(100%, clamp(250px, 48vh, 380px));
+  gap: 8px;
+}
+
+.tarneeb-remake .trix-slot {
+  height: clamp(96px, 13vh, 118px);
+  padding: 7px;
+}
+
+.tarneeb-remake .trix-seat-banner {
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+/* Trix landscape clears south slot; Tarneeb needs a visible 4-seat trick compass */
+.tarneeb-remake .trix-slot-south {
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: none;
+}
+
+/* Hand priority and fit */
+.tarneeb-remake .tar-hand {
+  max-height: var(--trix-hand-h);
+  padding: 8px 9px;
+}
+
+.tarneeb-remake .tar-hand-title {
+  margin-bottom: 6px;
+}
+
+.tarneeb-remake .tar-hand-row {
+  gap: 0;
+  overflow-x: hidden;
+}
+
+.tarneeb-remake .tar-hand-row .tar-hand-card + .tar-hand-card {
+  margin-left: calc(var(--tar-hand-step) - var(--tar-card-w));
+}
+
+.tarneeb-remake .tar-hand-row.is-overflow {
+  gap: var(--tar-hand-gap);
+  overflow-x: auto;
+}
+
+.tarneeb-remake .tar-hand-row.is-overflow .tar-hand-card + .tar-hand-card {
+  margin-left: 0;
+}
+
+.tarneeb-remake .tar-hand-card.is-disabled {
+  opacity: 0.45;
+}
+
+/* Round + end panels */
+.tarneeb-remake .tar-round-summary,
+.tarneeb-remake .tar-game-end {
+  width: min(720px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(10, 14, 28, 0.7);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: 14px;
+}
+
+.tarneeb-remake .tar-round-title,
+.tarneeb-remake .tar-game-end-title {
+  font-weight: 950;
+  font-size: 20px;
+}
+
+.tarneeb-remake .tar-round-sub,
+.tarneeb-remake .tar-game-end-line {
+  margin-top: 6px;
+  opacity: 0.88;
+}
+
+.tarneeb-remake .tar-round-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.tarneeb-remake .tar-round-row {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 0.8fr 0.6fr;
+  gap: 8px;
+  align-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.07);
+  padding: 8px 10px;
+  font-weight: 700;
+}
+
+.tarneeb-remake .tar-round-row.is-pos {
+  background: rgba(110, 225, 135, 0.12);
+  border-color: rgba(110, 225, 135, 0.28);
+}
+
+.tarneeb-remake .tar-round-row.is-neg {
+  background: rgba(255, 110, 120, 0.12);
+  border-color: rgba(255, 110, 120, 0.28);
+}
+
+.tarneeb-remake .tar-round-team {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.tarneeb-remake .tar-next-round {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(120, 190, 255, 0.36);
+  background: rgba(120, 190, 255, 0.2);
+  color: #fff;
+  font-weight: 900;
+}
+
+/* Modal content details */
+.tarneeb-remake .tar-log-empty {
+  opacity: 0.84;
+  font-size: 13px;
+}
+
+.tarneeb-remake .tar-log-row {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  padding: 10px;
+  margin-bottom: 9px;
+}
+
+.tarneeb-remake .tar-log-title {
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.tarneeb-remake .tar-log-line {
+  font-size: 12px;
+  opacity: 0.86;
+  margin-top: 3px;
+}
+
+.tarneeb-remake .tar-rules-list {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0.92;
+}
+
+/* Landscape: table stays dominant, utility+hand stays in right rail */
+@media (orientation: landscape) {
+  .tarneeb-remake {
+    --tar-table-card-w: clamp(34px, 5.2vw, 52px);
+    --tar-table-card-h: calc(var(--tar-table-card-w) * 1.42);
+  }
+
+  .tarneeb-remake .trix-screen {
+    grid-template-areas:
+      "table hud"
+      "table score"
+      "table picker"
+      "table hand";
+    grid-template-columns: minmax(0, 1fr) minmax(238px, 36vw);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+
+  .tarneeb-remake .trix-area-hand {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .tarneeb-remake .tar-hand {
+    max-height: none;
+    height: 100%;
+    padding: 6px 7px;
+  }
+
+  .tarneeb-remake .tar-hand-title {
+    font-size: 11.5px;
+    margin-bottom: 5px;
+  }
+
+  .tarneeb-remake .tar-hand-row {
+    padding-bottom: 2px;
+  }
+
+  .tarneeb-remake .tar-chip {
+    font-size: 10.8px;
+    padding: 4px 7px;
+  }
+
+  .tarneeb-remake .tar-action-btn {
+    font-size: 10.8px;
+    padding: 5px 8px;
+  }
+
+  .tarneeb-remake .tar-scorestrip {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+
+  .tarneeb-remake .tar-teamchip,
+  .tarneeb-remake .tar-score-chip {
+    font-size: 10.5px;
+  }
+
+  .tarneeb-remake .tar-score-chip-info {
+    display: none;
+  }
+
+  .tarneeb-remake .tar-bidding {
+    gap: 6px;
+  }
+
+  .tarneeb-remake .tar-bid-cell {
+    padding: 5px 7px;
+    font-size: 11.5px;
+  }
+
+  .tarneeb-remake .trix-slot {
+    height: clamp(78px, 20vh, 96px);
+    padding: 5px;
+    gap: 6px;
+  }
+
+  .tarneeb-remake .trix-seat-banner {
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+
+  .tarneeb-remake .tar-trick-grid {
+    height: min(100%, clamp(214px, 58vh, 300px));
+    gap: 6px;
+  }
+}
+
+/* Very short landscape phones: keep split layout but aggressively compact rails */
+@media (orientation: landscape) and (max-height: 560px) {
+  .tarneeb-remake {
+    --tar-table-card-w: clamp(30px, 4.9vw, 44px);
+    --tar-table-card-h: calc(var(--tar-table-card-w) * 1.42);
+  }
+
+  .tarneeb-remake .trix-screen {
+    grid-template-columns: minmax(0, 1fr) minmax(216px, 38vw);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+  }
+
+  .tarneeb-remake .tar-table {
+    padding: 4px;
+  }
+
+  .tarneeb-remake .tar-score-subrow {
+    display: none;
+  }
+
+  .tarneeb-remake .tar-chip {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+
+  .tarneeb-remake .tar-action-btn {
+    font-size: 10px;
+    padding: 4px 6px;
+  }
+
+  .tarneeb-remake .tar-bidding-title {
+    font-size: 12px;
+  }
+
+  .tarneeb-remake .tar-bid-cell {
+    font-size: 10.5px;
+    padding: 4px 6px;
+  }
+
+  .tarneeb-remake .tar-bid-btn {
+    min-height: 28px;
+    font-size: 10.5px;
+  }
+
+  .tarneeb-remake .tar-teamchip {
+    font-size: 10px;
+    padding: 3px 5px;
+  }
+
+  .tarneeb-remake .trix-slot {
+    height: clamp(72px, 19vh, 88px);
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .tarneeb-remake .trix-seat-banner {
+    font-size: 10px;
+    padding: 3px 5px;
+  }
+
+  .tarneeb-remake .tar-trick-grid {
+    height: min(100%, clamp(190px, 56vh, 268px));
+    gap: 5px;
+  }
+
+  .tarneeb-remake .tar-hand {
+    padding: 5px 6px;
+  }
+
+  .tarneeb-remake.is-tight .tar-chip.tar-chip-status {
+    display: none;
+  }
+}
+
+@media (max-width: 460px) {
+  .tarneeb-remake .tar-bid-actions {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 420px) {
+  .tarneeb-remake .tar-chip {
+    font-size: 10.8px;
+    padding: 4px 7px;
+  }
+
+  .tarneeb-remake .tar-action-btn {
+    font-size: 10.8px;
+    padding: 6px 8px;
+  }
+
+  .tarneeb-remake .tar-round-row {
+    grid-template-columns: 1fr 0.75fr 0.75fr 0.55fr;
+    font-size: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tarneeb-remake .trix-screen,
+  .tarneeb-remake .trix-hud,
+  .tarneeb-remake .trix-scorestrip,
+  .tarneeb-remake .trix-contract-bar,
+  .tarneeb-remake .trix-table,
+  .tarneeb-remake .trix-hand,
+  .tarneeb-remake .trix-slot {
+    transition: none;
+  }
+}
