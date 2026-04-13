@@ -6067,8 +6067,9 @@ body.is-mobile .m-app-item:active .y-folder-icon {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 6px;
-  padding: 10px;
+  gap: 4px;
+  padding: 8px;
+  place-items: center;
 }
 
 /* 3×3 fallback (for many items) */
@@ -6099,6 +6100,7 @@ body.is-mobile .m-app-item:active .y-folder-icon {
   justify-content: center;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
+  overflow: hidden;
 }
 
 .folder-preview-img {
@@ -6106,10 +6108,20 @@ body.is-mobile .m-app-item:active .y-folder-icon {
   height: 85%;
   object-fit: contain;
   border-radius: 2px;
+  display: block;
+  margin: auto;
 }
 
 .folder-preview-emoji {
   font-size: 14px;
+  line-height: 1;
+  text-align: center;
+}
+
+.folder-preview-placeholder {
+  width: 14px;
+  height: 14px;
+  opacity: 0.35;
 }
 
 /* --- Folder Overlay (v1.0 Premium) --- */

@@ -150,6 +150,13 @@ div.boot-screen .boot-text {
   font-weight: 700;
 }
 
+.sb-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* ── App Grid ── */
 .m-grid-container {
   position: relative;
@@ -203,6 +210,23 @@ div.boot-screen .boot-text {
   box-shadow: 0 0 8px rgba(0, 229, 193, 0.4);
 }
 
+/* ── Icon Entrance Animation ── */
+@keyframes iconEntrance {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.m-grid-pages > .app-icon {
+  animation: iconEntrance 0.45s var(--ease-spring) both;
+  animation-delay: calc(var(--icon-i, 0) * 40ms);
+}
+
 /* ── Hex App Icon ── */
 .m-app-item,
 .app-icon {
@@ -217,7 +241,7 @@ div.boot-screen .boot-text {
 
 .m-app-item:active,
 .app-icon:active {
-  transform: scale(0.9);
+  transform: scale(0.95);
 }
 
 .hex-icon {
@@ -253,7 +277,7 @@ div.boot-screen .boot-text {
 }
 
 .hex-icon:active {
-  transform: scale(0.92);
+  transform: scale(0.95);
 }
 
 /* Inner content — fills the hex, clips to hex shape */
@@ -632,7 +656,9 @@ div.boot-screen .boot-text {
   font-size: 15px;
   font-family: var(--font-sans);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), var(--inner-glow);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
+  transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
+              background 0.3s var(--ease-out), backdrop-filter 0.3s var(--ease-out),
+              -webkit-backdrop-filter 0.3s var(--ease-out);
   outline: none;
 }
 
@@ -642,8 +668,10 @@ div.boot-screen .boot-text {
 }
 
 .m-search-input:focus {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.18);
+  -webkit-backdrop-filter: blur(25px);
+  backdrop-filter: blur(25px);
   box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.3), var(--inner-glow);
 }
 

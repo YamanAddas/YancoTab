@@ -43,6 +43,9 @@ export class AppGrid {
     // Layout reference (single source of truth for current metrics)
     this.currentLayout = null;
 
+    // Counter for staggered icon entrance animation
+    this._iconCounter = 0;
+
     // Bindings
     this.render = this.render.bind(this);
     this.handleResize = this.handleResize.bind(this);
@@ -207,6 +210,7 @@ export class AppGrid {
   // ─── Layout ─────────────────────────────────────────────────
 
   setApps(apps) {
+    this._iconCounter = 0;
     this.updateLayoutMetrics();
     this.state.initialize(apps, this.currentLayout);
 
@@ -402,6 +406,9 @@ export class AppGrid {
         touchAction: 'none',
       },
     });
+
+    // Stagger entrance animation via CSS custom property
+    div.style.setProperty('--icon-i', String(this._iconCounter++));
 
     // Icon rendering
     let iconNode;

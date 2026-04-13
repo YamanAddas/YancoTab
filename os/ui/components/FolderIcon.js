@@ -80,9 +80,18 @@ export class FolderIcon {
     return root;
   }
 
+  _makePlaceholderSvg() {
+    const wrap = el('div', { class: 'folder-preview-placeholder' });
+    wrap.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><line x1="9" y1="12" x2="15" y2="12"/></svg>';
+    return wrap;
+  }
+
   _renderPreviewCell(child) {
     const cell = el('div', { class: 'folder-preview-cell' });
-    if (!child) return cell;
+    if (!child) {
+      cell.appendChild(this._makePlaceholderSvg());
+      return cell;
+    }
 
     const iconVal = child.icon;
     const title = child.title || '';
@@ -106,7 +115,12 @@ export class FolderIcon {
       });
       img.onerror = () => {
         img.remove();
-        cell.appendChild(el('div', { class: 'folder-preview-emoji' }, title.charAt(0) || '?'));
+        const fallback = title.charAt(0);
+        if (fallback) {
+          cell.appendChild(el('div', { class: 'folder-preview-emoji' }, fallback));
+        } else {
+          cell.appendChild(this._makePlaceholderSvg());
+        }
       };
       cell.appendChild(img);
       return cell;

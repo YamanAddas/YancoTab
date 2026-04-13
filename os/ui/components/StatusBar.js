@@ -31,14 +31,18 @@ export class StatusBar {
         });
 
         // Left: Time
+        const leftGroup = el('div', { class: 'sb-group' });
         this.elements.time = el('div', { class: 'sb-time' }, this.getTime());
+        leftGroup.appendChild(this.elements.time);
 
         // Right: Battery (Only functionality we keep besides time, but if API fails it just hides)
+        const rightGroup = el('div', { class: 'sb-group' });
         this.elements.battery = el('div', {
             style: 'display: flex; align-items: center; gap: 4px; font-size: 12px;'
         });
+        rightGroup.appendChild(this.elements.battery);
 
-        this.root.append(this.elements.time, this.elements.battery);
+        this.root.append(leftGroup, rightGroup);
 
         this.startUpdates();
 
