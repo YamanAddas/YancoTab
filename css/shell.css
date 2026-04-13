@@ -211,19 +211,23 @@ div.boot-screen .boot-text {
 }
 
 /* ── Icon Entrance Animation ── */
-@keyframes iconEntrance {
-  from {
-    opacity: 0;
-    transform: translateY(16px) scale(0.92);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
+/* Opacity on the outer container (does NOT conflict with translate3d positioning) */
+@keyframes iconFadeIn {
+  from { opacity: 0; }
 }
 
 .m-grid-pages > .app-icon {
-  animation: iconEntrance 0.45s var(--ease-spring) both;
+  animation: iconFadeIn 0.4s var(--ease-out) backwards;
+  animation-delay: calc(var(--icon-i, 0) * 40ms);
+}
+
+/* Scale on the inner icon only (outer .app-icon uses transform for grid positioning) */
+@keyframes iconScaleIn {
+  from { transform: scale(0.85) translateY(8px); }
+}
+
+.m-grid-pages > .app-icon > .app-icon-inner {
+  animation: iconScaleIn 0.45s var(--ease-spring) backwards;
   animation-delay: calc(var(--icon-i, 0) * 40ms);
 }
 

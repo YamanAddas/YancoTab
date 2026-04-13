@@ -9,7 +9,7 @@ export class MobileLayoutEngine {
     constructor(config = {}) {
         this.config = {
             gap: 12,
-            statusBarHeight: 44,
+            statusBarHeight: 52,
             searchTopGap: 10,
             searchHeight: 50,
             searchBottomGap: 16,
@@ -24,6 +24,7 @@ export class MobileLayoutEngine {
             minGridHeight: 200,
             phoneTopInsetFloor: 0,
             landscapeSideInsetFloor: 0,
+            maxGridWidth: 1100,
             ...config,
         };
     }
@@ -65,19 +66,27 @@ export class MobileLayoutEngine {
         const bottomReserved = dockHeight + c.gridBottomGap + c.dotsHeight + insets.bottom;
         const availableHeight = height - topReserved - bottomReserved;
 
-        const leftMargin = Math.max(c.sideMargin, insets.left);
+        let leftMargin = Math.max(c.sideMargin, insets.left);
         const rightMargin = Math.max(c.sideMargin, insets.right);
-        const gridWidth = Math.max(220, width - leftMargin - rightMargin);
+        let gridWidth = Math.max(220, width - leftMargin - rightMargin);
+
+        // Cap grid width on wide viewports (desktop) and center it
+        if (gridWidth > c.maxGridWidth) {
+            const excess = gridWidth - c.maxGridWidth;
+            gridWidth = c.maxGridWidth;
+            leftMargin += Math.floor(excess / 2);
+        }
+
         const gridHeight = Math.max(c.minGridHeight, availableHeight);
 
         let cols;
         let rows;
         if (isLandscape) {
-            cols = gridWidth >= 1180 ? 8 : gridWidth >= 920 ? 7 : 6;
-            rows = availableHeight >= 520 ? 3 : 2;
+            cols = gridWidth >= 1000 ? 8 : gridWidth >= 800 ? 7 : 6;
+            rows = availableHeight >= 520 ? 4 : availableHeight >= 380 ? 3 : 2;
         } else {
-            cols = 4;
-            rows = height >= 700 ? 5 : 4;
+            cols = width >= 768 ? 6 : 4;
+            rows = height >= 900 ? 6 : height >= 700 ? 5 : 4;
         }
 
         const cellWidth = (gridWidth - (cols - 1) * c.gap) / cols;
