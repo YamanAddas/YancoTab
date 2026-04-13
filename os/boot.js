@@ -2,6 +2,7 @@ import { kernel } from './kernel.js';
 import { VERSION, BUILD, ASSET_VERSION } from './version.js';
 import { MobileShell } from './ui/mobileShell.js';
 import { initTheme } from './theme/theme.js';
+import { initColorTheme } from './theme/themes.js';
 import { initStarfield } from './ui/starfield.js';
 
 // Global error handlers to catch any boot-time errors
@@ -80,6 +81,7 @@ async function runBootSmokeCheck(shell) {
 
 async function boot() {
   initTheme();
+  initColorTheme();
   initStarfield();
   // SINGLETON GUARD: Prevent multiple boots
   if (window.__YANCOTAB_BOOTED__) {

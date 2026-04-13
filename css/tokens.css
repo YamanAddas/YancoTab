@@ -12,13 +12,18 @@
   --bg-surface:  #0c1628;
   --bg-elevated: #111e36;
 
-  /* ── Accent (Teal) ── */
+  /* ── Accent (Teal) — overridden per color theme ── */
   --accent:        #00e5c1;
+  --accent-rgb:    0, 229, 193;
+  --accent-contrast: #0a0f1a; /* dark text on bright accent */
   --accent-dim:    rgba(0, 229, 193, 0.25);
   --accent-glow:   rgba(0, 229, 193, 0.35);
   --accent-bright: #33ffdd;
   --accent-bg:     rgba(0, 229, 193, 0.08);
   --accent-subtle: rgba(0, 229, 193, 0.04);
+
+  /* ── UI Text (for labels, dots, nav, placeholders) ── */
+  --ui-text-rgb: 200, 220, 240;
 
   /* ── Text Hierarchy ── */
   --text-bright: #c8d6e5;
@@ -35,7 +40,7 @@
 
   /* ── Border ── */
   --border:       rgba(255, 255, 255, 0.06);
-  --border-accent: rgba(0, 229, 193, 0.08);
+  --border-accent: rgba(0, 229, 193, 0.15);
   --border-light: rgba(255, 255, 255, 0.1);
 
   /* ── Radius ── */
@@ -47,9 +52,9 @@
   --radius-pill: 999px;
 
   /* ── Shadows & Glows ── */
-  --glow-sm:   0 0 15px rgba(0, 229, 193, 0.15), 0 0 30px rgba(0, 229, 193, 0.05);
-  --glow-md:   0 0 30px rgba(0, 229, 193, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4);
-  --glow-lg:   0 0 60px rgba(0, 229, 193, 0.08), 0 20px 60px rgba(0, 0, 0, 0.5);
+  --glow-sm:   0 0 15px rgba(0, 229, 193, 0.2), 0 0 30px rgba(0, 229, 193, 0.08);
+  --glow-md:   0 0 30px rgba(0, 229, 193, 0.18), 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glow-lg:   0 0 60px rgba(0, 229, 193, 0.15), 0 20px 60px rgba(0, 0, 0, 0.5);
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
@@ -103,7 +108,17 @@
   --glass-blur-dock: blur(32px) saturate(1.6);
 
   /* ── Inner Glow (premium 0.5px white stroke) ── */
-  --inner-glow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
+  --inner-glow: inset 0 0.5px 0 rgba(255, 255, 255, 0.25);
+
+  /* ── YancoVerse Luminous Design Language ── */
+  --yv-edge-glow:
+    radial-gradient(ellipse at 50% 0%, rgba(var(--accent-rgb), 0.12), transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(var(--accent-rgb), 0.08), transparent 50%),
+    radial-gradient(ellipse at 0% 50%, rgba(var(--accent-rgb), 0.05), transparent 40%),
+    radial-gradient(ellipse at 100% 50%, rgba(var(--accent-rgb), 0.05), transparent 40%);
+  --yv-glass: linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 30%, transparent 50%);
+  --yv-platform: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.18), transparent 70%);
+  --yv-platform-hover: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.32), transparent 70%);
 
   /* ── Hex Icon ── */
   --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
@@ -153,11 +168,15 @@ body.theme-light {
 
   /* ── Accent (Blue for light mode contrast) ── */
   --accent:        #007AFF;
+  --accent-rgb:    0, 122, 255;
   --accent-dim:    rgba(0, 122, 255, 0.15);
   --accent-glow:   rgba(0, 122, 255, 0.25);
   --accent-bright: #0A84FF;
   --accent-bg:     rgba(0, 122, 255, 0.06);
   --accent-subtle: rgba(0, 122, 255, 0.03);
+
+  /* ── UI Text (dark text for light backgrounds) ── */
+  --ui-text-rgb: 60, 60, 67;
 
   /* ── Text Hierarchy ── */
   --text-bright: #1d1d1f;
@@ -174,7 +193,7 @@ body.theme-light {
 
   /* ── Borders ── */
   --border:       rgba(0, 0, 0, 0.08);
-  --border-accent: rgba(0, 122, 255, 0.12);
+  --border-accent: rgba(0, 122, 255, 0.15);
   --border-light: rgba(0, 0, 0, 0.05);
 
   /* ── Shadows (lighter, less dramatic) ── */
@@ -191,6 +210,17 @@ body.theme-light {
   --glass-surface-1: rgba(255, 255, 255, 0.6);
   --glass-surface-2: rgba(240, 240, 242, 0.8);
   --glass-surface-3: rgba(245, 245, 247, 0.9);
+
+  /* ── YancoVerse (light) ── */
+  --yv-edge-glow:
+    radial-gradient(ellipse at 50% 0%, rgba(var(--accent-rgb), 0.06), transparent 50%),
+    radial-gradient(ellipse at 50% 100%, rgba(var(--accent-rgb), 0.04), transparent 50%),
+    radial-gradient(ellipse at 0% 50%, rgba(var(--accent-rgb), 0.03), transparent 40%),
+    radial-gradient(ellipse at 100% 50%, rgba(var(--accent-rgb), 0.03), transparent 40%);
+  --yv-glass: linear-gradient(165deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0.1) 30%, transparent 50%);
+  --yv-platform: radial-gradient(ellipse, rgba(0, 0, 0, 0.06), transparent 70%);
+  --yv-platform-hover: radial-gradient(ellipse, rgba(0, 0, 0, 0.1), transparent 70%);
+  --inner-glow: inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
 
   /* ── Legacy aliases ── */
   --glow-blue: #007AFF;
@@ -218,17 +248,17 @@ body.theme-light *:focus-visible {
 /* ── Scrollbar Styling ── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(0, 229, 193, 0.15) transparent;
+  scrollbar-color: rgba(var(--accent-rgb), 0.15) transparent;
 }
 
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(0, 229, 193, 0.15); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 193, 0.3); }
+::-webkit-scrollbar-thumb { background: rgba(var(--accent-rgb), 0.15); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(var(--accent-rgb), 0.3); }
 
 /* ── Focus Accessibility ── */
 *:focus-visible {
-  outline: 2px solid rgba(0, 229, 193, 0.5);
+  outline: 2px solid rgba(var(--accent-rgb), 0.5);
   outline-offset: 2px;
 }
 

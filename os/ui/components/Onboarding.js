@@ -21,12 +21,8 @@ export class Onboarding {
 
     show() {
         this.overlay = el('div', { class: 'onboarding-overlay' });
-        Object.assign(this.overlay.style, {
-            position: 'fixed', inset: '0', zIndex: '950',
-            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: '0', transition: 'opacity 300ms ease-out',
-        });
+        this.overlay.style.opacity = '0';
+        this.overlay.style.transition = 'opacity 300ms ease-out';
 
         document.body.appendChild(this.overlay);
         requestAnimationFrame(() => { this.overlay.style.opacity = '1'; });
@@ -35,12 +31,6 @@ export class Onboarding {
 
     _render() {
         const modal = el('div', { class: 'onboarding-modal' });
-        Object.assign(modal.style, {
-            background: 'var(--bg-panel)', borderRadius: '20px',
-            padding: '40px 32px', maxWidth: '400px', width: '90%',
-            textAlign: 'center', border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-lg)',
-        });
 
         if (this._step === 1) this._renderWelcome(modal);
         else if (this._step === 2) this._renderPersonalize(modal);
@@ -64,8 +54,7 @@ export class Onboarding {
     _renderPersonalize(modal) {
         const nameInput = el('input', {
             type: 'text', placeholder: 'Your name (optional)',
-            value: this._name,
-            style: 'width:100%;padding:12px 16px;border-radius:12px;border:1px solid var(--border);background:var(--bg-surface);color:var(--text-bright);font-size:16px;box-sizing:border-box;outline:none;margin-bottom:24px;',
+            value: this._name, class: 'ob-input',
         });
         nameInput.addEventListener('input', (e) => { this._name = e.target.value; });
 
@@ -130,39 +119,28 @@ export class Onboarding {
     }
 
     _primaryBtn(text, onclick) {
-        const btn = el('button', {
-            type: 'button',
-            style: 'display:block;width:100%;padding:14px;background:var(--accent);color:#000;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:12px;',
-        }, text);
+        const btn = el('button', { type: 'button', class: 'ob-primary-btn' }, text);
         btn.addEventListener('click', onclick);
         return btn;
     }
 
     _skipLink() {
-        const link = el('button', {
-            type: 'button',
-            style: 'background:none;border:none;color:var(--text-dim);font-size:14px;cursor:pointer;padding:8px;',
-        }, 'Skip');
+        const link = el('button', { type: 'button', class: 'ob-skip' }, 'Skip');
         link.addEventListener('click', () => this._finish());
         return link;
     }
 
     _radioGroup(name, options, current, onChange) {
-        const group = el('div', { style: 'display:flex;gap:8px;' });
+        const group = el('div', { class: 'ob-radio-group' });
         for (const opt of options) {
             const btn = el('button', {
                 type: 'button',
-                style: `flex:1;padding:10px;border-radius:10px;border:1.5px solid ${opt.value === current ? 'var(--accent)' : 'var(--border)'};background:${opt.value === current ? 'var(--accent-bg)' : 'transparent'};color:var(--text-bright);font-size:14px;cursor:pointer;transition:all 0.15s;`,
+                class: `ob-radio-btn${opt.value === current ? ' selected' : ''}`,
             }, opt.label);
             btn.addEventListener('click', () => {
                 onChange(opt.value);
-                // Re-render the group visually
-                group.querySelectorAll('button').forEach(b => {
-                    b.style.borderColor = 'var(--border)';
-                    b.style.background = 'transparent';
-                });
-                btn.style.borderColor = 'var(--accent)';
-                btn.style.background = 'var(--accent-bg)';
+                group.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
             });
             group.appendChild(btn);
         }

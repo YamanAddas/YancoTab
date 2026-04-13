@@ -54,27 +54,10 @@ export class ToastManager {
         const color = TYPE_COLORS[type] || TYPE_COLORS.info;
 
         const toast = el('div', { class: 'toast-pill' });
-        Object.assign(toast.style, {
-            background: 'var(--bg-panel)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            border: '1px solid var(--border)',
-            borderLeft: `3px solid ${color}`,
-            borderRadius: '12px',
-            padding: '10px 18px',
-            fontSize: '14px',
-            color: 'var(--text-bright)',
-            boxShadow: 'var(--shadow-md)',
-            pointerEvents: 'auto',
-            opacity: '0',
-            transform: 'translateY(20px)',
-            transition: 'opacity 200ms ease-out, transform 200ms ease-out',
-            cursor: 'pointer',
-            maxWidth: '90vw',
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-        });
+        toast.style.setProperty('--toast-color', color);
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(20px)';
+        toast.style.transition = 'opacity 200ms ease-out, transform 200ms ease-out';
         toast.textContent = message;
         toast.addEventListener('click', () => this._dismiss(toast));
 

@@ -2,6 +2,7 @@ import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import { VERSION, BUILD } from '../version.js';
 import { getThemeMode, applyThemeMode } from '../theme/theme.js';
+import { THEMES, applyColorTheme, applyWallpaper, getSavedTheme } from '../theme/themes.js';
 
 const WALLPAPER_KEY = 'yancotab_wallpaper';
 const GRID_STORAGE_KEY = 'yancotab_mobile_grid_v8';
@@ -92,8 +93,11 @@ export class SettingsApp extends App {
       }
 
       .ys-wallpaper.selected {
-        border-color: var(--glow-teal);
-        box-shadow: 0 0 0 2px rgba(255,255,255,0.06), 0 10px 24px rgba(0,0,0,0.35);
+        border-color: var(--accent);
+        box-shadow:
+          0 0 0 2px rgba(var(--accent-rgb), 0.4),
+          0 0 15px rgba(var(--accent-rgb), 0.15),
+          0 10px 24px rgba(0,0,0,0.35);
       }
 
       .ys-wallpaper::after {
@@ -116,7 +120,7 @@ export class SettingsApp extends App {
       .ys-wallpaper.selected::after {
         opacity: 1;
         transform: scale(1);
-        background: var(--glow-teal);
+        background: var(--accent);
         border-color: rgba(255,255,255,0.25);
       }
 
@@ -127,7 +131,7 @@ export class SettingsApp extends App {
         right: 10px;
         font-size: 12px;
         font-weight: 900;
-        color: var(--surface-text);
+        color: var(--accent-contrast);
         opacity: 1;
         z-index: 2;
         pointer-events: none;
@@ -222,8 +226,9 @@ export class SettingsApp extends App {
       }
 
       .ys-nav-item.active {
-        background: var(--glow-teal);
-        color: var(--surface-text);
+        background: var(--accent);
+        color: var(--accent-contrast);
+        box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3);
       }
 
       .ys-nav-icon {
@@ -248,9 +253,12 @@ export class SettingsApp extends App {
 
       .ys-card {
         background: var(--glass-surface-2);
-        border: 1px solid rgba(255,255,255,0.08);
+        border: none;
         border-radius: 12px;
         overflow: hidden;
+        box-shadow:
+          inset 0 0 0 1px rgba(var(--accent-rgb), 0.2),
+          inset 0 0 0 2.5px rgba(var(--accent-rgb), 0.05);
       }
 
       .ys-row,
@@ -305,7 +313,8 @@ export class SettingsApp extends App {
       }
 
       .ys-toggle.on {
-        background: #0a84ff;
+        background: var(--accent);
+        box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.3), inset 0 0 0 1px rgba(var(--accent-rgb), 0.5);
       }
 
       .ys-toggle-knob {
@@ -338,7 +347,7 @@ export class SettingsApp extends App {
       }
 
       .ys-check {
-        color: var(--glow-teal);
+        color: var(--accent);
         font-weight: 700;
         font-size: 18px;
       }
@@ -356,7 +365,7 @@ export class SettingsApp extends App {
       .ys-btn {
         border: 0;
         background: var(--glass-surface-2);
-        color: var(--glow-teal);
+        color: var(--accent);
         border-radius: 10px;
         padding: 9px 14px;
         min-width: 88px;
@@ -365,10 +374,18 @@ export class SettingsApp extends App {
         width: auto;
         white-space: nowrap;
         text-align: center;
+        box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.15);
+        transition: box-shadow 0.15s, transform 0.15s;
+      }
+
+      .ys-btn:hover {
+        box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.35), 0 0 10px rgba(var(--accent-rgb), 0.08);
+        transform: translateY(-1px);
       }
 
       .ys-btn:active {
         opacity: 0.8;
+        transform: translateY(0);
       }
 
       .ys-wallpaper-grid {
@@ -614,50 +631,63 @@ export class SettingsApp extends App {
       }),
     ]));
 
-    const wallpapers = [
-      { css: 'url("assets/wallpaper.webp")', name: 'Default' },
-      { css: 'url("assets/wallpapers/deep-blue.webp")', name: 'Deep Blue' },
-      { css: 'url("assets/wallpapers/black.webp")', name: 'Black' },
-      { css: 'url("assets/wallpapers/dark.webp")', name: 'Dark' },
-      { css: 'url("assets/wallpapers/violet.webp")', name: 'Violet' },
-      { css: 'url("assets/wallpapers/pink.webp")', name: 'Pink' },
-      { css: 'url("assets/wallpapers/sky.webp")', name: 'Sky' },
-      { css: 'url("assets/wallpapers/mint.webp")', name: 'Mint' },
-      { css: 'cosmic', name: 'Cosmic', special: true },
-      { css: 'starfield', name: 'Starfield', special: true },
+    // ── Theme grid (wallpaper + accent colors) ──
+    const themeEntries = Object.entries(THEMES);
+    const specialModes = [
+      { id: 'cosmic', name: 'Cosmic' },
+      { id: 'starfield', name: 'Starfield' },
     ];
-
-    const currentWallpaper = this.kernel.storage.load(WALLPAPER_KEY) || wallpapers[0].css;
+    const currentTheme = getSavedTheme();
 
     const grid = el('div', { class: 'ys-wallpaper-grid' });
-    wallpapers.forEach((wp) => {
-      let bgStyle = `background:${wp.css}; background-size:cover; background-position:center;`;
-      if (wp.css === 'cosmic') bgStyle = 'background:linear-gradient(135deg, #060b14 0%, #0a1628 50%, #060b14 100%); opacity:0.7;';
-      if (wp.css === 'starfield') bgStyle = 'background:radial-gradient(circle at 50% 50%, #0d1b2e 0%, #060b14 100%);';
+
+    // Image themes
+    themeEntries.forEach(([id, theme]) => {
+      const bgStyle = `background:${theme.wallpaper}; background-size:cover; background-position:center;`;
       const option = el('button', {
         type: 'button',
-        class: 'ys-wallpaper' + (wp.css === currentWallpaper ? ' selected' : ''),
+        class: 'ys-wallpaper' + (id === currentTheme ? ' selected' : ''),
         style: bgStyle,
-      }, [el('div', { class: 'ys-wallpaper-label' }, wp.name)]);
+      }, [el('div', { class: 'ys-wallpaper-label' }, theme.name)]);
+
+      option.onclick = () => {
+        applyColorTheme(id);
+        applyWallpaper(id);
+        this.kernel.storage.save(WALLPAPER_KEY, theme.wallpaper);
+        grid.querySelectorAll('.ys-wallpaper.selected').forEach((el) => el.classList.remove('selected'));
+        option.classList.add('selected');
+      };
+
+      grid.appendChild(option);
+    });
+
+    // Special modes (cosmic, starfield)
+    specialModes.forEach((mode) => {
+      let bgStyle = mode.id === 'cosmic'
+        ? 'background:linear-gradient(135deg, #060b14 0%, #0a1628 50%, #060b14 100%); opacity:0.7;'
+        : 'background:radial-gradient(circle at 50% 50%, #0d1b2e 0%, #060b14 100%);';
+
+      const option = el('button', {
+        type: 'button',
+        class: 'ys-wallpaper' + (mode.id === currentTheme ? ' selected' : ''),
+        style: bgStyle,
+      }, [el('div', { class: 'ys-wallpaper-label' }, mode.name)]);
 
       option.onclick = () => {
         const shell = document.getElementById('app-shell') || document.body;
         shell.classList.remove('cosmic-wallpaper');
 
-        if (wp.css === 'cosmic') {
-          // Cosmic: keep current wallpaper but fade it to show starfield
+        if (mode.id === 'cosmic') {
           shell.classList.add('cosmic-wallpaper');
-        } else if (wp.css === 'starfield') {
-          // Starfield: remove wallpaper entirely, show pure starfield
+        } else {
           shell.style.background = 'transparent';
           shell.style.backgroundSize = '';
           shell.style.backgroundPosition = '';
-        } else {
-          shell.style.background = wp.css;
-          shell.style.backgroundSize = 'cover';
-          shell.style.backgroundPosition = 'center';
         }
-        this.kernel.storage.save(WALLPAPER_KEY, wp.css);
+
+        // Reset accent to emerald for special modes
+        applyColorTheme('emerald');
+        this.kernel.storage.save(WALLPAPER_KEY, mode.id);
 
         grid.querySelectorAll('.ys-wallpaper.selected').forEach((el) => el.classList.remove('selected'));
         option.classList.add('selected');
@@ -666,7 +696,7 @@ export class SettingsApp extends App {
       grid.appendChild(option);
     });
 
-    container.appendChild(this._group('Wallpaper', [grid]));
+    container.appendChild(this._group('Theme', [grid]));
   }
 
   _renderHomeScreen(container) {

@@ -53,7 +53,11 @@ export class SmartIcon {
             this.renderStatic(contentWrapper);
         }
 
+        // YancoVerse: inner ring + body + platform
+        const ring = el('div', { class: 'hex-ring' });
+        this.root.appendChild(ring);
         this.root.appendChild(contentWrapper);
+        this.root.appendChild(el('div', { class: 'hex-platform' }));
 
         // 4. Add Badges (if any)
         if (this.metadata.badge) {

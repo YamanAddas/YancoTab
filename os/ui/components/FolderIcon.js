@@ -76,7 +76,11 @@ export class FolderIcon {
     content.appendChild(el('div', { class: 'folder-sheen' }));
     content.appendChild(el('div', { class: 'folder-rim' }));
 
+    // YancoVerse: inner ring + body + platform
+    const ring = el('div', { class: 'hex-ring' });
+    root.appendChild(ring);
     root.appendChild(content);
+    root.appendChild(el('div', { class: 'hex-platform' }));
     return root;
   }
 

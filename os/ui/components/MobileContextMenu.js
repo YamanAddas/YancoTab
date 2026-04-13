@@ -85,33 +85,17 @@ export class MobileContextMenu {
     if (this.active) this.hide();
     this.active = true;
 
-    this.overlay = el('div', {
-      class: 'mobile-context-overlay',
-      style: {
-        position: 'fixed', top: 0, left: 0,
-        width: '100%', height: '100%', zIndex: 10000,
-        background: 'rgba(0,0,0,0.35)',
-        backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        opacity: 0, transition: 'opacity 0.2s',
-      },
-    });
+    this.overlay = el('div', { class: 'mobile-context-overlay' });
+    this.overlay.style.opacity = '0';
+    this.overlay.style.transition = 'opacity 0.2s';
 
     this.overlay.addEventListener('pointerdown', (e) => {
       if (e.target === this.overlay) { e.stopPropagation(); this.hide(); }
     });
 
-    const menu = el('div', {
-      class: 'mobile-context-menu',
-      style: {
-        background: 'rgba(28,28,30,0.92)',
-        backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)',
-        borderRadius: '14px', width: '260px', padding: '6px',
-        boxShadow: '0 25px 50px rgba(0,0,0,0.55), 0 0 0 0.5px rgba(255,255,255,0.1)',
-        transform: 'scale(0.92)',
-        transition: 'transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-      },
-    });
+    const menu = el('div', { class: 'mobile-context-menu' });
+    menu.style.transform = 'scale(0.92)';
+    menu.style.transition = 'transform 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
 
     const actions = this._buildMenu(item, menu);
 
@@ -120,24 +104,15 @@ export class MobileContextMenu {
 
       // Separator before destructive actions
       if (act.destructive && i > 0 && !actions[i - 1].destructive) {
-        menu.appendChild(el('div', { style: { height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 8px' } }));
+        menu.appendChild(el('div', { class: 'ctx-separator' }));
       }
 
       const btn = el('div', {
-        class: 'context-item',
-        style: {
-          padding: '11px 14px', color: act.destructive ? '#ff453a' : '#fff',
-          fontSize: '15px', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          cursor: 'pointer', borderRadius: '8px', transition: 'background 0.1s',
-        },
+        class: `context-item${act.destructive ? ' destructive' : ''}`,
       }, [
         el('span', {}, act.label),
         el('span', { style: { fontSize: '16px', opacity: 0.7 } }, act.icon),
       ]);
-
-      btn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); btn.style.background = 'rgba(255,255,255,0.12)'; });
-      btn.addEventListener('pointerup', () => { btn.style.background = ''; });
-      btn.addEventListener('pointerleave', () => { btn.style.background = ''; });
       btn.addEventListener('click', (e) => { e.stopPropagation(); this.hide(); act.action(); });
       menu.appendChild(btn);
     }
@@ -165,30 +140,17 @@ export class MobileContextMenu {
   }
 
   _addIconHeader(menu, icon, title) {
-    const header = el('div', {
-      style: {
-        display: 'flex', alignItems: 'center',
-        padding: '10px 12px 8px', marginBottom: '2px',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-      },
-    });
+    const header = el('div', { class: 'ctx-header' });
     if (icon) {
-      const iconEl = el('div', {
-        style: {
-          width: '36px', height: '36px', marginRight: '10px',
-          borderRadius: '10px', backgroundSize: 'cover',
-          backgroundImage: typeof icon === 'string' && icon.includes('/') ? `url(${icon})` : 'none',
-          backgroundColor: 'rgba(255,255,255,0.08)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '18px', flexShrink: 0,
-        },
-      });
-      if (typeof icon !== 'string' || !icon.includes('/')) iconEl.textContent = icon || '📦';
+      const iconEl = el('div', { class: 'ctx-header-icon' });
+      if (typeof icon === 'string' && icon.includes('/')) {
+        iconEl.style.backgroundImage = `url(${icon})`;
+      } else {
+        iconEl.textContent = icon || '📦';
+      }
       header.appendChild(iconEl);
     }
-    header.appendChild(el('div', {
-      style: { color: '#fff', fontWeight: '600', fontSize: '15px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-    }, title || 'Item'));
+    header.appendChild(el('div', { class: 'ctx-header-title' }, title || 'Item'));
     menu.appendChild(header);
   }
 
@@ -328,14 +290,12 @@ export class MobileContextMenu {
   }
 
   _toast(msg) {
-    const t = el('div', {
-      style: {
-        position: 'fixed', bottom: '140px', left: '50%', transform: 'translateX(-50%)',
-        background: 'rgba(0,0,0,0.8)', color: '#fff', padding: '8px 20px',
-        borderRadius: '20px', fontSize: '14px', zIndex: 99999,
-        backdropFilter: 'blur(10px)', pointerEvents: 'none',
-      },
-    }, msg);
+    const t = el('div', { class: 'toast-pill' });
+    t.textContent = msg;
+    Object.assign(t.style, {
+      position: 'fixed', bottom: '140px', left: '50%', transform: 'translateX(-50%)',
+      zIndex: '99999', pointerEvents: 'none',
+    });
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 2000);
   }

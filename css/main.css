@@ -135,7 +135,7 @@ body.theme-light {
   width: 100%;
   height: 100%;
   z-index: 1;
-  background-image: url('../assets/wallpaper.webp');
+  background-image: url('../assets/wallpapers/emerald.webp');
   background-repeat: no-repeat;
   background-position: center center;
   background-size: cover;
@@ -295,8 +295,10 @@ body.theme-light {
   padding: 14px;
   border-radius: 18px;
   background: rgba(8, 18, 34, 0.6);
-  border: 1px solid rgba(140, 210, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  border: none;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.25),
+    inset 0 0 0 3px rgba(var(--accent-rgb), 0.06);
   min-height: 0;
 }
 
@@ -384,7 +386,10 @@ body.theme-light {
   padding: 14px 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(140, 210, 255, 0.2);
+  border: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.25),
+    inset 0 0 0 2.5px rgba(var(--accent-rgb), 0.06);
   display: grid;
   gap: 12px;
 }
@@ -819,9 +824,10 @@ body.theme-light {
   position: relative;
   height: 60px;
   border-radius: 14px;
-  border: 1px solid rgba(140, 210, 255, 0.25);
+  border: none;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.2);
   cursor: pointer;
   display: grid;
   place-items: center;
@@ -847,8 +853,10 @@ body.theme-light {
 }
 
 .memory-card.is-matched {
-  border-color: rgba(120, 220, 255, 0.6);
-  box-shadow: 0 8px 20px rgba(62, 200, 255, 0.25);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.6),
+    inset 0 0 0 3px rgba(var(--accent-rgb), 0.15),
+    0 8px 20px rgba(var(--accent-rgb), 0.25);
 }
 
 .smart-search {
@@ -958,12 +966,15 @@ body.theme-light {
 }
 
 .game-tile {
-  border: 1px solid rgba(140, 210, 255, 0.25);
+  border: none;
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
   padding: 14px;
   border-radius: 16px;
   cursor: pointer;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.25),
+    inset 0 0 0 2.5px rgba(var(--accent-rgb), 0.06);
   display: grid;
   gap: 8px;
   place-items: center;
@@ -974,8 +985,12 @@ body.theme-light {
 }
 
 .game-tile:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px) scale(1.02);
   background: rgba(255, 255, 255, 0.16);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.4),
+    inset 0 0 0 3px rgba(var(--accent-rgb), 0.1),
+    0 0 15px rgba(var(--accent-rgb), 0.08);
 }
 
 .game-icon {
@@ -1106,8 +1121,11 @@ body.theme-light {
   gap: 8px;
   padding: 12px;
   border-radius: 16px;
-  border: 1px solid rgba(140, 210, 255, 0.25);
+  border: none;
   background: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.25),
+    inset 0 0 0 2.5px rgba(var(--accent-rgb), 0.06);
   cursor: pointer;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -1119,6 +1137,10 @@ body.theme-light {
 .file-item:hover {
   transform: translateY(-2px);
   background: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.4),
+    inset 0 0 0 3px rgba(var(--accent-rgb), 0.1),
+    0 0 12px rgba(var(--accent-rgb), 0.06);
 }
 
 .file-icon {
@@ -1444,6 +1466,7 @@ body.theme-light {
   border: none;
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.06);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.15);
   padding: 14px 8px 10px;
   display: flex;
   flex-direction: column;
@@ -1457,6 +1480,7 @@ body.theme-light {
 
 .app-browser-v2 .bb-tile:hover {
   background: rgba(255, 255, 255, 0.12);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.3), 0 0 12px rgba(var(--accent-rgb), 0.06);
 }
 
 .app-browser-v2 .bb-tile:active {

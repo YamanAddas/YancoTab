@@ -239,9 +239,8 @@ export class AppGrid {
 
     const g = this.currentLayout.gridArea;
 
-    // Grid is in flow (not absolute) — just set dimensions
+    // Grid is in flow — set width, height is flex-grown
     this.root.style.width = `${g.width}px`;
-    this.root.style.height = `${g.height}px`;
 
     this.interaction.layout = this.currentLayout;
   }
@@ -308,10 +307,6 @@ export class AppGrid {
     const layout = this.currentLayout;
     if (!layout) return;
 
-    // Sync pages container size
-    this.pagesContainer.style.width = `${pageCount * layout.gridArea.width}px`;
-    this.pagesContainer.style.height = `${layout.gridArea.height}px`;
-
     // Update dots
     this.renderDots(pageCount, this.interaction.currentPage);
 
@@ -322,6 +317,10 @@ export class AppGrid {
     });
 
     const activeIds = new Set();
+    let maxBottomY = 0;
+    let minX = Infinity;
+    let maxRightX = -Infinity;
+    const curPage = this.interaction.currentPage;
 
     for (const item of items) {
       activeIds.add(item.id);
@@ -331,8 +330,6 @@ export class AppGrid {
         node = this._createItemNode(item);
         this.pagesContainer.appendChild(node);
       } else if (item.type === 'folder') {
-        // Folders need icon refresh when children change (e.g., after seeding).
-        // Check if the rendered child count differs from current state.
         const renderedChildCount = parseInt(node.dataset.childCount || '0', 10);
         const currentChildCount = Array.isArray(item.children) ? item.children.length : 0;
         if (renderedChildCount !== currentChildCount) {
@@ -348,7 +345,6 @@ export class AppGrid {
       );
 
       if (pos) {
-        // Skip transition for just-dropped items (instant snap)
         if (this._justDroppedId === item.id) {
           node.style.transition = 'none';
         } else {
@@ -360,6 +356,14 @@ export class AppGrid {
         node.style.width = `${layout.metrics.cellWidth}px`;
         node.style.height = `${layout.metrics.cellHeight}px`;
 
+        if (item.page === curPage) {
+          maxBottomY = Math.max(maxBottomY, pos.y + layout.metrics.cellHeight);
+          // Track horizontal bounds of current page items
+          const localX = pos.x - curPage * layout.gridArea.width;
+          minX = Math.min(minX, localX);
+          maxRightX = Math.max(maxRightX, localX + layout.metrics.cellWidth);
+        }
+
         const icon = node.querySelector('.app-icon-inner');
         if (icon) {
           icon.style.transition = 'width 0.3s ease-out, height 0.3s ease-out';
@@ -367,7 +371,6 @@ export class AppGrid {
           icon.style.height = `${layout.metrics.iconSize}px`;
         }
 
-        // Always update label (for renames)
         const label = node.querySelector('.app-label');
         if (label && label.textContent !== item.title) {
           label.textContent = item.title;
@@ -379,6 +382,21 @@ export class AppGrid {
     existingNodes.forEach((node, id) => {
       if (!activeIds.has(id)) node.remove();
     });
+
+    // Set grid height to actual content — margin-top: auto in CSS centers it
+    if (maxBottomY > 0) {
+      // Size container to actual content width for horizontal centering via margin:auto
+      const actualWidth = maxRightX > minX ? maxRightX - minX : layout.gridArea.contentWidth;
+      const contentShift = minX;
+
+      this.root.style.height = `${maxBottomY}px`;
+      this.root.style.width = `${actualWidth}px`;
+
+      // Shift pages container left to compensate for the centering offset
+      this.pagesContainer.style.width = `${pageCount * layout.gridArea.width}px`;
+      this.pagesContainer.style.height = `${maxBottomY}px`;
+      this.pagesContainer.style.marginLeft = `${-contentShift}px`;
+    }
   }
 
   // ─── DOM Creation ───────────────────────────────────────────
@@ -420,7 +438,7 @@ export class AppGrid {
     const label = el('div', {
       class: 'app-label',
       style: {
-        fontSize: '10px', fontWeight: '500', color: 'rgba(200,220,240,0.5)',
+        fontSize: '10px', fontWeight: '500',
         textAlign: 'center',
         textShadow: '0 1px 6px rgba(0,0,0,0.9)',
         letterSpacing: '0.3px',
@@ -454,6 +472,10 @@ export class AppGrid {
       touchAction: 'none', cursor: 'pointer',
     });
 
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00e5c1';
+    const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '0, 229, 193';
+    const uiTextRgb = getComputedStyle(document.documentElement).getPropertyValue('--ui-text-rgb').trim() || '200, 220, 240';
+
     for (let i = 0; i < count; i++) {
       const isActive = i === activeIndex;
       const dot = el('div', {
@@ -462,9 +484,9 @@ export class AppGrid {
           width: isActive ? '18px' : '6px',
           height: '6px',
           borderRadius: isActive ? '3px' : '50%',
-          backgroundColor: isActive ? '#00e5c1' : 'rgba(200,220,240,0.2)',
+          backgroundColor: isActive ? accent : `rgba(${uiTextRgb}, 0.2)`,
           transition: 'all 0.3s',
-          boxShadow: isActive ? '0 0 8px rgba(0,229,193,0.4)' : 'none',
+          boxShadow: isActive ? `0 0 8px rgba(${accentRgb}, 0.4)` : 'none',
           pointerEvents: 'none',
         },
       });
@@ -477,13 +499,17 @@ export class AppGrid {
       this.renderDots(index + 1, index);
     }
 
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00e5c1';
+    const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '0, 229, 193';
+    const uiTextRgb = getComputedStyle(document.documentElement).getPropertyValue('--ui-text-rgb').trim() || '200, 220, 240';
+
     const dots = this.dotsContainer.querySelectorAll('.dot');
     dots.forEach((d, i) => {
       const isActive = i === index;
       d.style.width = isActive ? '18px' : '6px';
       d.style.borderRadius = isActive ? '3px' : '50%';
-      d.style.backgroundColor = isActive ? '#00e5c1' : 'rgba(200,220,240,0.2)';
-      d.style.boxShadow = isActive ? '0 0 8px rgba(0,229,193,0.4)' : 'none';
+      d.style.backgroundColor = isActive ? accent : `rgba(${uiTextRgb}, 0.2)`;
+      d.style.boxShadow = isActive ? `0 0 8px rgba(${accentRgb}, 0.4)` : 'none';
     });
     this.interaction.currentPage = index;
   }
