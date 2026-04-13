@@ -97,9 +97,13 @@
   --space-xxl: 32px;
 
   /* ── Glass ── */
-  --glass-blur:   blur(20px);
+  --glass-blur:    blur(20px);
   --glass-blur-sm: blur(12px);
   --glass-blur-lg: blur(32px);
+  --glass-blur-dock: blur(32px) saturate(1.6);
+
+  /* ── Inner Glow (premium 0.5px white stroke) ── */
+  --inner-glow: inset 0 0.5px 0 rgba(255, 255, 255, 0.2);
 
   /* ── Hex Icon ── */
   --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);

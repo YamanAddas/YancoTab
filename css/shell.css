@@ -147,6 +147,7 @@ div.boot-screen .boot-text {
 
 .sb-time {
   font-variant-numeric: tabular-nums;
+  font-weight: 700;
 }
 
 /* ── App Grid ── */
@@ -233,6 +234,7 @@ div.boot-screen .boot-text {
   transition: all var(--transition-normal);
   overflow: hidden;
   cursor: pointer;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 193, 0.15)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 /* Hex glow border effect via pseudo-element */
@@ -241,13 +243,13 @@ div.boot-screen .boot-text {
   position: absolute;
   inset: -2px;
   clip-path: var(--hex-clip);
-  background: linear-gradient(135deg, rgba(0, 229, 193, 0.15), rgba(0, 229, 193, 0.05));
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.18), rgba(255, 255, 255, 0.06));
   z-index: -1;
 }
 
 .hex-icon:hover::before,
 .hex-icon:active::before {
-  background: linear-gradient(135deg, rgba(0, 229, 193, 0.3), rgba(0, 229, 193, 0.1));
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.35), rgba(255, 255, 255, 0.12));
 }
 
 .hex-icon:active {
@@ -321,10 +323,11 @@ div.boot-screen .boot-text {
   justify-content: center;
   gap: var(--space-lg);
   z-index: var(--z-dock);
-  background: var(--bg-panel);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border-top: 1px solid var(--border-accent);
+  background: rgba(6, 11, 20, 0.45);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  backdrop-filter: blur(32px) saturate(1.6);
+  border-top: none;
+  box-shadow: var(--inner-glow), 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
 /* Dock icon containers */
@@ -443,9 +446,10 @@ div.boot-screen .boot-text {
   padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 6px;
   min-height: calc(40px + env(safe-area-inset-top, 0px));
   background: rgba(6, 11, 20, 0.85);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  backdrop-filter: blur(24px) saturate(1.4);
-  border-bottom: 1px solid rgba(0, 229, 193, 0.12);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  backdrop-filter: blur(32px) saturate(1.6);
+  border-bottom: none;
+  box-shadow: var(--inner-glow), 0 4px 16px rgba(0, 0, 0, 0.15);
   z-index: 10;
 }
 
@@ -602,9 +606,9 @@ div.boot-screen .boot-text {
 /* ── Smart Search (v2 glass pill) ── */
 .m-search-container {
   position: relative;
-  width: min(92vw, 620px);
+  width: min(88vw, 480px);
   max-width: calc(100% - 32px);
-  height: 40px;
+  height: 44px;
   z-index: var(--z-search, 1150);
   pointer-events: none;
 }
@@ -615,14 +619,14 @@ div.boot-screen .boot-text {
   pointer-events: auto;
   border-radius: var(--radius-pill);
   border: 1px solid rgba(0, 229, 193, 0.12);
-  background: rgba(6, 11, 20, 0.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
-  backdrop-filter: blur(20px) saturate(1.3);
+  background: rgba(6, 11, 20, 0.5);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  backdrop-filter: blur(32px) saturate(1.6);
   padding: 0 20px;
   color: var(--text-bright);
   font-size: 15px;
   font-family: var(--font-sans);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), var(--inner-glow);
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
   outline: none;
 }
@@ -633,9 +637,9 @@ div.boot-screen .boot-text {
 }
 
 .m-search-input:focus {
-  background: rgba(6, 11, 20, 0.8);
+  background: rgba(6, 11, 20, 0.7);
   border-color: rgba(0, 229, 193, 0.3);
-  box-shadow: 0 0 0 3px rgba(0, 229, 193, 0.06), 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 229, 193, 0.05);
+  box-shadow: 0 0 0 3px rgba(0, 229, 193, 0.06), 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 229, 193, 0.05), var(--inner-glow);
 }
 
 /* Hide search when in-app */
@@ -711,10 +715,11 @@ body.in-app .m-search-container {
 .folder-hex .folder-preview-grid {
   background:
     radial-gradient(120% 120% at var(--fx, 50%) var(--fy, 35%),
-      rgba(0, 229, 193, 0.12), rgba(0, 229, 193, 0.03) 50%, rgba(0, 0, 0, 0.1) 100%),
-    linear-gradient(180deg, rgba(8, 18, 32, 0.9) 0%, rgba(6, 11, 20, 0.95) 100%);
+      rgba(0, 229, 193, 0.08), rgba(0, 229, 193, 0.02) 50%, rgba(0, 0, 0, 0.1) 100%),
+    linear-gradient(180deg, rgba(8, 18, 32, 0.92) 0%, rgba(6, 11, 20, 0.96) 100%);
   border: none;
   border-radius: 0;
+  opacity: 0.85;
 }
 
 /* ── Folder Overlay ── */

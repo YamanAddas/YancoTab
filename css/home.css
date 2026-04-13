@@ -22,7 +22,7 @@ body.in-app .home-top {
 /* ── Greeting ── */
 .greeting-bar {
   text-align: center;
-  padding: 2px 0;
+  padding: 12px 0 6px;
   animation: greetFadeIn 0.6s var(--ease-out) both;
 }
 
@@ -30,15 +30,16 @@ body.in-app .home-top {
   font-size: clamp(18px, 3vw, 24px);
   font-weight: 600;
   color: var(--text-bright);
-  line-height: 1.2;
+  line-height: 1.4;
   letter-spacing: -0.02em;
 }
 
 .greeting-sub {
   font-size: 13px;
+  font-weight: 500;
   color: var(--text);
-  margin-top: 4px;
-  letter-spacing: 0.01em;
+  margin-top: 8px;
+  letter-spacing: 0.02em;
 }
 
 @keyframes greetFadeIn {
@@ -73,7 +74,7 @@ body.in-app .home-top {
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
   border: 1px solid var(--border-accent);
-  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  box-shadow: var(--shadow-sm), var(--inner-glow);
   transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
   cursor: pointer;
   user-select: none;
@@ -86,7 +87,7 @@ body.in-app .home-top {
 
 .widget-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: var(--shadow-md), var(--inner-glow);
   border-color: rgba(0, 229, 193, 0.18);
 }
 
@@ -101,7 +102,7 @@ body.in-app .home-top {
 /* Widget typography */
 .widget-value {
   font-size: 28px;
-  font-weight: 300;
+  font-weight: 200;
   color: var(--text-bright);
   line-height: 1;
   font-variant-numeric: tabular-nums;
