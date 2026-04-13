@@ -27,6 +27,7 @@ import { MobileContextMenu } from './components/MobileContextMenu.js';
 import { Greeting } from './components/Greeting.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
+import { WindowChrome } from './components/WindowChrome.js';
 import { defaultFolders } from '../config/defaultApps.js';
 
 export class MobileShell {
@@ -44,6 +45,7 @@ export class MobileShell {
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
     this.alarmUi = null;
+    this._windowChrome = null;
     this.handleResize = this.handleResize.bind(this);
     this._orientationTransitionTimer = null;
   }
@@ -231,27 +233,24 @@ export class MobileShell {
 
     // App lifecycle
     kernel.on('process:started', ({ pid, appId, app }) => {
+      // Destroy previous window chrome if any
+      if (this._windowChrome) {
+        this._windowChrome.destroy();
+        this._windowChrome = null;
+      }
       this.dom.appLayer.innerHTML = '';
 
-      // Glass chrome wrapper with unified header
       const appName = app.metadata?.name || 'App';
-      const chrome = el('div', { class: 'glass-chrome' });
-      const header = el('div', { class: 'glass-chrome-header' }, [
-        el('div', { class: 'glass-chrome-title' }, appName),
-        el('button', {
-          class: 'glass-chrome-close',
-          type: 'button',
-          'aria-label': 'Close',
-          onclick: () => app.close(),
-        }, '✕'),
-      ]);
-      chrome.appendChild(header);
+      let appContent = app.root;
 
       try {
-        chrome.appendChild(app.root);
+        // Touch app.root to verify it's mountable
+        if (!appContent || !(appContent instanceof HTMLElement)) {
+          throw new Error('App root is not a valid DOM element');
+        }
       } catch (e) {
         console.error(`[Shell] ${appName} crashed on mount:`, e);
-        const crashUi = el('div', {
+        appContent = el('div', {
           class: 'app-crash',
           style: 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:24px;text-align:center;color:var(--text-bright);'
         }, [
@@ -263,10 +262,11 @@ export class MobileShell {
             onclick: () => { app.close(); kernel.emit('app:open', appId || app.metadata?.id); },
           }, 'Restart'),
         ]);
-        chrome.appendChild(crashUi);
       }
 
-      this.dom.appLayer.appendChild(chrome);
+      // Floating window chrome (iPadOS Stage Manager style)
+      this._windowChrome = new WindowChrome(appName, appContent, () => app.close());
+      this.dom.appLayer.append(this._windowChrome.scrim, this._windowChrome.chrome);
 
       this.state.activePid = pid;
       this.setMode('app');
@@ -274,6 +274,10 @@ export class MobileShell {
 
     kernel.on('process:stopped', ({ pid } = {}) => {
       if (pid && this.state.activePid && pid !== this.state.activePid) return;
+      if (this._windowChrome) {
+        this._windowChrome.destroy();
+        this._windowChrome = null;
+      }
       this.dom.appLayer.innerHTML = '';
       this.state.activePid = null;
       this.setMode('home');
@@ -634,6 +638,8 @@ export class MobileShell {
       // Force grid recalculation
       this.components.grid.handleResize?.();
     }
+
+    this._windowChrome?.onViewportResize();
 
     this.dom.spacer.style.height = isKeyboard
       ? `${window.innerHeight - newHeight}px`

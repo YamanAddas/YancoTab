@@ -4,7 +4,7 @@ import { el } from '../utils/dom.js';
 const THEMES = ['aurora', 'graphite', 'midnight'];
 const ENGINE_LABEL = {
     google: 'Google',
-    duck: 'DuckDuckGo',
+    duck: 'DDG',
     bing: 'Bing',
 };
 
@@ -171,26 +171,26 @@ export class BrowserApp extends App {
         return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     }
 
+    /* ── Render ── */
+
     render() {
         this.root.innerHTML = '';
-
         const shell = el('div', { class: `bb-shell bb-theme-${this.prefs.startTheme}` });
-
         const scroll = el('div', { class: 'bb-scroll' });
         scroll.append(
-            this._buildHero(),
-            this._buildBookmarksSection(),
-            this._buildActions(),
-            this._buildHistorySection(),
+            this._buildCommandBar(),
+            this._buildGreeting(),
+            this._buildCardsSection(),
+            this._buildRecentStrip(),
+            this._buildToolbar(),
         );
-
         shell.append(scroll);
         this.root.appendChild(shell);
     }
 
-    _buildHero() {
+    _buildCommandBar() {
         this.queryInput = el('input', {
-            class: 'bb-input',
+            class: 'bb-cmd-input',
             type: 'text',
             spellcheck: 'false',
             autocapitalize: 'off',
@@ -204,10 +204,10 @@ export class BrowserApp extends App {
             },
         });
 
-        const engineRow = el('div', { class: 'bb-engine-row' });
+        const engines = el('div', { class: 'bb-cmd-engines' });
         ['google', 'duck', 'bing'].forEach((engineId) => {
-            const button = el('button', {
-                class: `bb-engine-btn ${this.prefs.searchEngine === engineId ? 'is-active' : ''}`,
+            const btn = el('button', {
+                class: `bb-cmd-engine ${this.prefs.searchEngine === engineId ? 'is-active' : ''}`,
                 type: 'button',
                 onclick: () => {
                     this.prefs.searchEngine = engineId;
@@ -215,95 +215,115 @@ export class BrowserApp extends App {
                     this.render();
                 },
             }, ENGINE_LABEL[engineId]);
-            engineRow.appendChild(button);
+            engines.appendChild(btn);
         });
 
-        return el('section', { class: 'bb-hero' }, [
-            el('div', { class: 'bb-hero-time' }, this._getTimeStr()),
-            el('div', { class: 'bb-hero-greeting' }, this._getGreeting()),
-            el('div', { class: 'bb-search-row' }, [
-                el('div', { class: 'bb-search-icon' }, '\uD83D\uDD0D'),
-                this.queryInput,
-            ]),
-            engineRow,
+        return el('div', { class: 'bb-command' }, [
+            el('div', { class: 'bb-cmd-icon' }, '\uD83D\uDD0D'),
+            this.queryInput,
+            engines,
         ]);
     }
 
-    _buildActions() {
-        return el('div', { class: 'bb-actions' }, [
-            this._actionButton('\u2795 Bookmark', () => this.addBookmarkPrompt(this.queryInput?.value || this.state.currentUrl)),
-            this._actionButton('\uD83C\uDFA8 Theme', () => this.cycleTheme()),
-            this._actionButton('\uD83D\uDDD1 History', () => this.clearHistory()),
+    _buildGreeting() {
+        return el('div', { class: 'bb-greeting' }, [
+            el('div', { class: 'bb-time' }, this._getTimeStr()),
+            el('div', { class: 'bb-greet-text' }, this._getGreeting()),
         ]);
     }
 
-    _buildBookmarksSection() {
-        const grid = el('div', { class: 'bb-grid' });
+    _buildCardsSection() {
+        const track = el('div', { class: 'bb-cards-track' });
 
         this.state.bookmarks.forEach((bookmark, index) => {
-            const tile = el('button', {
-                class: 'bb-tile',
+            const card = el('button', {
+                class: 'bb-card',
                 type: 'button',
                 onclick: () => this.navigate(bookmark.url),
                 title: bookmark.url,
             }, [
-                el('div', { class: 'bb-tile-icon' }, [
+                el('div', { class: 'bb-card-icon' }, [
                     el('img', {
-                        class: 'bb-favicon',
+                        class: 'bb-card-favicon',
                         src: this._faviconForUrl(bookmark.url),
                         alt: '',
                         loading: 'lazy',
                     }),
                 ]),
-                el('div', { class: 'bb-tile-label' }, bookmark.label),
+                el('div', { class: 'bb-card-label' }, bookmark.label),
+                el('div', { class: 'bb-card-domain' }, this._hostFromUrl(bookmark.url) || bookmark.url),
                 el('button', {
-                    class: 'bb-tile-remove',
+                    class: 'bb-card-remove',
                     type: 'button',
                     title: 'Remove',
                     onclick: (e) => { e.stopPropagation(); this.removeBookmark(index); },
                 }, '\u00D7'),
             ]);
-            grid.appendChild(tile);
+            track.appendChild(card);
         });
 
-        return el('section', { class: 'bb-section bb-tiles-section' }, [
+        track.appendChild(el('button', {
+            class: 'bb-card bb-card-add',
+            type: 'button',
+            onclick: () => this.addBookmarkPrompt(this.queryInput?.value || this.state.currentUrl),
+        }, [
+            el('div', { class: 'bb-card-add-icon' }, '+'),
+            el('div', { class: 'bb-card-label' }, 'Add Site'),
+        ]));
+
+        return el('section', { class: 'bb-cards-section' }, [
             this._sectionHeader('Quick Access', `${this.state.bookmarks.length}`),
-            grid,
+            track,
         ]);
     }
 
-    _buildHistorySection() {
-        const list = el('div', { class: 'bb-history-list' });
+    _buildRecentStrip() {
         const recent = this.state.history.slice().reverse().slice(0, Math.max(10, this.prefs.historyLimit));
 
         if (!recent.length) {
-            list.appendChild(el('div', { class: 'bb-empty' }, 'No recent websites yet.'));
-        } else {
-            recent.forEach((url) => {
-                list.appendChild(el('div', { class: 'bb-history-row' }, [
-                    el('div', { class: 'bb-history-info' }, [
-                        el('div', { class: 'bb-history-host' }, this._hostFromUrl(url) || 'Website'),
-                        el('div', { class: 'bb-history-url', title: url }, url),
-                    ]),
-                    el('div', { class: 'bb-history-actions' }, [
-                        el('button', {
-                            class: 'bb-mini-btn',
-                            type: 'button',
-                            onclick: () => this.navigate(url),
-                        }, 'Open'),
-                        el('button', {
-                            class: 'bb-mini-btn',
-                            type: 'button',
-                            onclick: () => this.addBookmarkPrompt(url),
-                        }, 'Save'),
-                    ]),
-                ]));
-            });
+            return el('section', { class: 'bb-recent-section' }, [
+                this._sectionHeader('Recent', ''),
+                el('div', { class: 'bb-empty' }, 'No recent sites yet'),
+            ]);
         }
 
-        return el('section', { class: 'bb-section' }, [
-            this._sectionHeader('Recent', `Limit ${this.prefs.historyLimit}`),
-            list,
+        const track = el('div', { class: 'bb-recent-track' });
+        recent.forEach((url) => {
+            const host = this._hostFromUrl(url) || 'Site';
+            track.appendChild(el('button', {
+                class: 'bb-recent-chip',
+                type: 'button',
+                title: url,
+                onclick: () => this.navigate(url),
+            }, [
+                el('img', {
+                    class: 'bb-chip-favicon',
+                    src: this._faviconForUrl(url),
+                    alt: '',
+                    loading: 'lazy',
+                }),
+                el('span', { class: 'bb-chip-host' }, host),
+            ]));
+        });
+
+        return el('section', { class: 'bb-recent-section' }, [
+            this._sectionHeader('Recent', `${recent.length}`),
+            track,
+        ]);
+    }
+
+    _buildToolbar() {
+        return el('div', { class: 'bb-toolbar' }, [
+            el('button', {
+                class: 'bb-tool-btn',
+                type: 'button',
+                onclick: () => this.cycleTheme(),
+            }, '\uD83C\uDFA8 Theme'),
+            el('button', {
+                class: 'bb-tool-btn',
+                type: 'button',
+                onclick: () => this.clearHistory(),
+            }, '\uD83D\uDDD1 Clear History'),
         ]);
     }
 
@@ -312,14 +332,6 @@ export class BrowserApp extends App {
             el('div', { class: 'bb-section-title' }, title),
             el('div', { class: 'bb-section-meta' }, meta),
         ]);
-    }
-
-    _actionButton(label, handler) {
-        return el('button', {
-            class: 'bb-action-btn',
-            type: 'button',
-            onclick: handler,
-        }, label);
     }
 
     cycleTheme() {

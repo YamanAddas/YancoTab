@@ -1,0 +1,355 @@
+/* ============================================================
+   YancoTab — Window Chrome (iPadOS Stage Manager Style)
+   Floating, draggable, resizable app windows
+   ============================================================ */
+
+/* ── Scrim (background overlay) ── */
+@keyframes scrimFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.window-chrome__scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: calc(var(--z-window) - 1);
+  animation: scrimFadeIn 0.3s var(--ease-out) both;
+  pointer-events: auto;
+}
+
+body.theme-light .window-chrome__scrim {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── Window Container ── */
+@keyframes windowOpen {
+  from {
+    opacity: 0;
+    transform: scale(0.88) translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes windowClose {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.92) translateY(20px);
+  }
+}
+
+.window-chrome {
+  position: fixed;
+  left: 12.5%;
+  top: 8%;
+  width: 75%;
+  height: 84%;
+  min-width: 320px;
+  min-height: 240px;
+  z-index: var(--z-window);
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  pointer-events: auto;
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(var(--accent-rgb), 0.12),
+    var(--inner-glow);
+  animation: windowOpen 0.35s var(--ease-spring) both;
+}
+
+.window-chrome--closing {
+  animation: windowClose 0.25s var(--ease-out) both;
+  pointer-events: none;
+}
+
+.window-chrome--fullscreen {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0;
+  transition: left 0.35s var(--ease-spring),
+              top 0.35s var(--ease-spring),
+              width 0.35s var(--ease-spring),
+              height 0.35s var(--ease-spring),
+              border-radius 0.35s var(--ease-spring);
+}
+
+.window-chrome--dragging,
+.window-chrome--resizing {
+  transition: none !important;
+  will-change: left, top, width, height;
+}
+
+.window-chrome--dragging * {
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+.window-chrome--dragging .window-chrome__titlebar,
+.window-chrome--dragging .window-chrome__traffic {
+  pointer-events: auto !important;
+}
+
+body.theme-light .window-chrome {
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.18),
+    0 6px 16px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(var(--accent-rgb), 0.1),
+    var(--inner-glow);
+}
+
+/* ── Title Bar ── */
+.window-chrome__titlebar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  position: relative;
+  height: 38px;
+  padding: 0 14px;
+  background: rgba(6, 11, 20, 0.92);
+  -webkit-backdrop-filter: blur(32px) saturate(1.6);
+  backdrop-filter: blur(32px) saturate(1.6);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.window-chrome--dragging .window-chrome__titlebar {
+  cursor: grabbing;
+}
+
+.window-chrome--fullscreen .window-chrome__titlebar {
+  cursor: default;
+}
+
+body.theme-light .window-chrome__titlebar {
+  background: rgba(245, 245, 247, 0.85);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── Title Text ── */
+.window-chrome__title {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── Traffic Light Buttons ── */
+.window-chrome__traffic {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.window-chrome__traffic button {
+  width: 13px;
+  height: 13px;
+  border: 0.5px solid rgba(0, 0, 0, 0.15);
+  border-radius: 50%;
+  padding: 0;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: filter 0.15s, transform 0.15s;
+}
+
+.window-chrome__traffic button:active {
+  transform: scale(0.85);
+}
+
+.window-chrome__btn-close {
+  background: #ff5f57;
+}
+
+.window-chrome__btn-fullscreen {
+  background: #27c93f;
+}
+
+/* Button icons — hidden by default, visible on window hover */
+.window-chrome__btn-icon {
+  width: 8px;
+  height: 8px;
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+
+.window-chrome:hover .window-chrome__btn-icon {
+  opacity: 1;
+}
+
+/* Hover glow on buttons */
+.window-chrome__btn-close:hover {
+  filter: brightness(1.15);
+}
+
+.window-chrome__btn-fullscreen:hover {
+  filter: brightness(1.15);
+}
+
+/* ── Content Area ── */
+.window-chrome__content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  z-index: 1;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+}
+
+/* ── Resize Handles ── */
+.window-chrome__resize-handle {
+  position: absolute;
+  z-index: 3;
+}
+
+/* Edge handles */
+.window-chrome__resize-handle--n {
+  top: -3px;
+  left: 12px;
+  right: 12px;
+  height: 6px;
+  cursor: n-resize;
+}
+
+.window-chrome__resize-handle--s {
+  bottom: -3px;
+  left: 12px;
+  right: 12px;
+  height: 6px;
+  cursor: s-resize;
+}
+
+.window-chrome__resize-handle--w {
+  left: -3px;
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+  cursor: w-resize;
+}
+
+.window-chrome__resize-handle--e {
+  right: -3px;
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+  cursor: e-resize;
+}
+
+/* Corner handles */
+.window-chrome__resize-handle--nw {
+  top: -3px;
+  left: -3px;
+  width: 14px;
+  height: 14px;
+  cursor: nw-resize;
+}
+
+.window-chrome__resize-handle--ne {
+  top: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  cursor: ne-resize;
+}
+
+.window-chrome__resize-handle--sw {
+  bottom: -3px;
+  left: -3px;
+  width: 14px;
+  height: 14px;
+  cursor: sw-resize;
+}
+
+.window-chrome__resize-handle--se {
+  bottom: -3px;
+  right: -3px;
+  width: 14px;
+  height: 14px;
+  cursor: se-resize;
+}
+
+/* Hide resize handles in fullscreen */
+.window-chrome--fullscreen .window-chrome__resize-handle {
+  display: none;
+}
+
+/* ── Hide app-internal headers when wrapped in window chrome ── */
+.window-chrome .clock-header,
+.window-chrome .calc-header,
+.window-chrome .ys-header,
+.window-chrome .bb-header,
+.window-chrome .snake-header,
+.window-chrome .ttt-header,
+.window-chrome .ms-header,
+.window-chrome .sol-header,
+.window-chrome .mj-header,
+.window-chrome .yf-header,
+.window-chrome .notes-header,
+.window-chrome .memory-header,
+.window-chrome .weather-topbar,
+.window-chrome .todo-main-header {
+  display: none !important;
+}
+
+/* ── Mobile fallback (< 768px) ── */
+@media (max-width: 767px) {
+  .window-chrome {
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .window-chrome__resize-handle {
+    display: none !important;
+  }
+
+  .window-chrome__btn-fullscreen {
+    display: none;
+  }
+
+  .window-chrome__scrim {
+    display: none;
+  }
+
+  .window-chrome__titlebar {
+    cursor: default;
+  }
+}
+
+/* ── Landscape + mobile glass chrome bottom offset ── */
+.is-mobile .window-chrome:not(.window-chrome--fullscreen) {
+  max-height: calc(100% - 80px - var(--safe-bottom, 0px) - 16px);
+}
+
+/* ── Light Mode — Title Bar & Scrim ── */
+body.theme-light .window-chrome__traffic button {
+  border-color: rgba(0, 0, 0, 0.2);
+}

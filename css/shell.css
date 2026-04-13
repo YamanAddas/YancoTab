@@ -559,100 +559,8 @@ body.in-app .main-content {
   pointer-events: auto;
 }
 
-/* ── Glass Chrome (unified app wrapper) ── */
-.glass-chrome {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-window);
-  display: flex;
-  flex-direction: column;
-  animation: appSlideIn 0.35s var(--ease-spring) both;
-}
-
-.is-mobile .glass-chrome {
-  bottom: calc(80px + var(--safe-bottom, 0px));
-}
-
-.glass-chrome-header {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 6px;
-  min-height: calc(40px + env(safe-area-inset-top, 0px));
-  background: rgba(6, 11, 20, 0.85);
-  -webkit-backdrop-filter: blur(32px) saturate(1.6);
-  backdrop-filter: blur(32px) saturate(1.6);
-  border-bottom: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(var(--accent-rgb), 0.15),
-    inset 0 0.5px 0 rgba(255, 255, 255, 0.08),
-    0 4px 16px rgba(0, 0, 0, 0.15);
-  z-index: 10;
-}
-
-.glass-chrome-title {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-
-.glass-chrome-close {
-  width: 30px;
-  height: 30px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(var(--accent-rgb), 0.08);
-  color: var(--accent);
-  font-size: 14px;
-  display: grid;
-  place-items: center;
-  cursor: pointer;
-  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), 0.25);
-  transition: all var(--transition-fast);
-}
-
-.glass-chrome-close:hover,
-.glass-chrome-close:active {
-  background: rgba(255, 80, 80, 0.2);
-  box-shadow: inset 0 0 0 1.5px rgba(255, 80, 80, 0.5), 0 0 12px rgba(255, 80, 80, 0.2);
-  color: #ff8080;
-  transform: scale(1.08);
-}
-
-.glass-chrome .app-window {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  z-index: 1;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--text-bright);
-  font-family: var(--font-sans);
-}
-
-/* Hide app-internal headers when wrapped in glass chrome */
-.glass-chrome .clock-header,
-.glass-chrome .calc-header,
-.glass-chrome .ys-header,
-.glass-chrome .bb-header,
-.glass-chrome .snake-header,
-.glass-chrome .ttt-header,
-.glass-chrome .ms-header,
-.glass-chrome .sol-header,
-.glass-chrome .mj-header,
-.glass-chrome .yf-header,
-.glass-chrome .notes-header,
-.glass-chrome .memory-header {
-  display: none !important;
-}
-
-.app-window:not(.glass-chrome .app-window) {
+/* ── Standalone app-window fallback (not inside window chrome) ── */
+.app-window:not(.window-chrome__content .app-window) {
   position: fixed;
   inset: 0;
   z-index: var(--z-window);
@@ -660,17 +568,6 @@ body.in-app .main-content {
   color: var(--text-bright);
   font-family: var(--font-sans);
   overflow: hidden;
-}
-
-@keyframes appSlideIn {
-  from {
-    opacity: 0;
-    transform: scale(0.92) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
 }
 
 /* ── Rich Animated App Icons ── */
@@ -1244,11 +1141,6 @@ body.in-app .m-search-container {
 }
 
 /* ── Landscape Adjustments ── */
-@media (orientation: landscape) {
-  .is-mobile .glass-chrome {
-    bottom: calc(80px + var(--safe-bottom, 0px));
-  }
-}
 
 /* ============================================================
    Light Mode Overrides — Shell Components
