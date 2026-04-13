@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>YancoTab — Hybrid Concept D</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap');
+
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+
+  :root {
+    --teal: #00e5c1;
+    --bg-deep: #040a14;
+    --bg-mid: #0a1c34;
+    --text-bright: #e0ecf5;
+    --text-dim: rgba(200,220,240,0.5);
+    --text-muted: rgba(200,220,240,0.35);
+    --glass-bg: rgba(4,10,20,0.6);
+    --glass-border: rgba(0,229,193,0.12);
+    --glass-glow: rgba(0,229,193,0.06);
+    --hex-bg: linear-gradient(160deg, rgba(10,28,52,0.9), rgba(4,12,24,0.95));
+    --hex-border-color: rgba(0,229,193,0.35);
+    --ease-spring: cubic-bezier(0.34,1.56,0.64,1);
+    --ease-out: cubic-bezier(0.16,1,0.3,1);
+  }
+
+  html,body {
+    width:100%;height:100%;overflow:hidden;
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-bright);
+  }
+
+  /* === BACKGROUND === */
+  .shell {
+    width:100%;height:100%;
+    display:flex;flex-direction:column;
+    background:
+      radial-gradient(ellipse 900px 600px at 50% 55%, rgba(0,229,193,0.06) 0%, transparent 70%),
+      radial-gradient(ellipse 500px 400px at 50% 80%, rgba(0,100,180,0.04) 0%, transparent 60%),
+      linear-gradient(180deg, #040810 0%, #061020 30%, #0a1830 60%, #040a14 100%);
+    position:relative;
+    overflow:hidden;
+  }
+
+  /* Subtle star dots */
+  .shell::before {
+    content:'';position:absolute;inset:0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 70% 35%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 25% 60%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 60% 70%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1.5px 1.5px at 35% 80%, rgba(0,229,193,0.15), transparent),
+      radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 92% 75%, rgba(255,255,255,0.15), transparent),
+      radial-gradient(1px 1px at 10% 90%, rgba(255,255,255,0.2), transparent);
+    pointer-events:none;z-index:0;
+  }
+
+  /* === TIME (top-right) === */
+  .time-display {
+    position:absolute;
+    top:18px;right:24px;
+    font-size:13px;font-weight:400;
+    color:var(--text-dim);
+    letter-spacing:0.3px;
+    z-index:10;
+  }
+
+  /* === MAIN CONTENT (centered vertically) === */
+  .main-content {
+    flex:1;
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:0;
+    padding:20px 20px 0;
+    z-index:1;
+    overflow-y:auto;
+    overflow-x:hidden;
+  }
+
+  /* === GREETING === */
+  .greeting {
+    text-align:center;
+    padding:0 0 12px;
+    animation: fadeDown 0.6s var(--ease-out) backwards;
+  }
+  .greeting h1 {
+    font-size:28px;font-weight:600;
+    color:var(--text-bright);
+    letter-spacing:-0.02em;
+    line-height:1.3;
+  }
+  .greeting p {
+    font-size:13px;font-weight:300;
+    color:var(--text-dim);
+    margin-top:6px;
+    letter-spacing:0.2px;
+  }
+
+  /* === SEARCH BAR === */
+  .search-wrap {
+    display:flex;justify-content:center;
+    padding:4px 0 28px;
+    animation: fadeDown 0.6s var(--ease-out) 0.1s backwards;
+  }
+  .search-bar {
+    width:480px;max-width:90vw;
+    height:46px;
+    border-radius:999px;
+    border:1px solid var(--glass-border);
+    background:rgba(0,229,193,0.04);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    display:flex;align-items:center;
+    padding:0 22px;gap:10px;
+    color:var(--text-muted);font-size:14px;
+    cursor:text;
+    transition:all 0.3s var(--ease-out);
+    box-shadow:
+      0 0 30px var(--glass-glow),
+      inset 0 0.5px 0 rgba(255,255,255,0.1),
+      inset 0 0 20px rgba(0,229,193,0.03);
+  }
+  .search-bar:hover {
+    border-color:rgba(0,229,193,0.2);
+    background:rgba(0,229,193,0.06);
+    box-shadow:
+      0 0 40px rgba(0,229,193,0.1),
+      inset 0 0.5px 0 rgba(255,255,255,0.12),
+      inset 0 0 20px rgba(0,229,193,0.05);
+  }
+  .search-bar:focus-within {
+    border-color:rgba(0,229,193,0.3);
+    background:rgba(0,229,193,0.08);
+    backdrop-filter:blur(32px);
+    box-shadow:
+      0 0 50px rgba(0,229,193,0.15),
+      inset 0 0.5px 0 rgba(255,255,255,0.15),
+      inset 0 0 24px rgba(0,229,193,0.06);
+  }
+  .search-icon {
+    width:16px;height:16px;
+    border:1.5px solid rgba(0,229,193,0.4);
+    border-radius:50%;
+    position:relative;flex-shrink:0;
+  }
+  .search-icon::after {
+    content:'';position:absolute;
+    bottom:-4px;right:-4px;
+    width:6px;height:1.5px;
+    background:rgba(0,229,193,0.4);
+    transform:rotate(45deg);
+  }
+  .search-input {
+    flex:1;background:none;border:none;outline:none;
+    color:var(--text-bright);font-size:14px;font-family:inherit;
+  }
+  .search-input::placeholder {
+    color:var(--text-muted);
+  }
+
+  /* === HONEYCOMB GRID === */
+  .grid-area {
+    display:flex;align-items:center;justify-content:center;
+    padding:0 0 12px;
+    animation: fadeUp 0.7s var(--ease-out) 0.2s backwards;
+  }
+  .honeycomb {
+    display:flex;flex-direction:column;
+    align-items:center;
+    gap:4px;
+  }
+  .hex-row {
+    display:flex;gap:10px;
+    justify-content:center;
+  }
+  .hex-row.offset {
+    margin-left:46px;
+  }
+
+  .hex-item {
+    display:flex;flex-direction:column;
+    align-items:center;gap:7px;
+    cursor:pointer;
+    width:82px;
+    transition:transform 0.25s var(--ease-spring);
+  }
+  .hex-item:hover {
+    transform:translateY(-5px) scale(1.04);
+  }
+  .hex-item:active {
+    transform:scale(0.95);
+  }
+
+  .hex {
+    width:62px;height:62px;
+    clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    background:var(--hex-bg);
+    display:flex;align-items:center;justify-content:center;
+    font-size:24px;
+    position:relative;
+    transition:all 0.3s;
+    filter:drop-shadow(0 0 8px rgba(0,229,193,0.1)) drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+  }
+
+  /* Glow border */
+  .hex::before {
+    content:'';position:absolute;inset:-2.5px;
+    clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    background:linear-gradient(135deg, rgba(0,229,193,0.5), rgba(0,229,193,0.1) 50%, rgba(0,229,193,0.3));
+    z-index:-1;opacity:0.35;
+    transition:opacity 0.3s;
+  }
+
+  /* Inner specular */
+  .hex::after {
+    content:'';position:absolute;inset:0;
+    clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);
+    background:linear-gradient(to bottom, rgba(255,255,255,0.06), transparent 40%);
+    pointer-events:none;
+  }
+
+  .hex-item:hover .hex::before { opacity:0.7; }
+  .hex-item:hover .hex {
+    filter:drop-shadow(0 0 18px rgba(0,229,193,0.3)) drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  }
+
+  /* Hex icon images */
+  .hex img {
+    width:32px;height:32px;
+    border-radius:6px;
+    object-fit:contain;
+    filter:brightness(1.1);
+  }
+
+  .hex-label {
+    font-size:10px;font-weight:500;
+    color:var(--text-dim);
+    text-align:center;
+    text-shadow:0 1px 6px rgba(0,0,0,0.9);
+    letter-spacing:0.3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    max-width:80px;
+  }
+
+  /* Folder hex */
+  .hex.folder-hex {
+    background:radial-gradient(circle, rgba(8,18,32,0.85) 30%, transparent 70%);
+  }
+  .folder-grid {
+    display:grid;grid-template-columns:1fr 1fr;
+    gap:3px;padding:2px;
+  }
+  .folder-grid img {
+    width:16px;height:16px;border-radius:3px;
+    object-fit:contain;
+  }
+  .folder-dot {
+    width:16px;height:16px;border-radius:3px;
+    background:rgba(200,220,240,0.1);
+  }
+
+  /* Page dots */
+  .page-dots {
+    display:flex;gap:8px;
+    justify-content:center;
+    padding:8px 0 4px;
+  }
+  .page-dot {
+    width:6px;height:6px;border-radius:50%;
+    background:rgba(200,220,240,0.2);
+    transition:all 0.3s;
+    cursor:pointer;
+  }
+  .page-dot.active {
+    background:var(--teal);
+    box-shadow:0 0 8px rgba(0,229,193,0.4);
+    width:18px;border-radius:3px;
+  }
+
+  /* === BOTTOM NAV BAR === */
+  .nav-bar {
+    display:flex;align-items:center;justify-content:center;
+    gap:6px;
+    padding:10px 16px;
+    margin:0 auto 16px;
+    width:fit-content;
+    min-width:320px;
+    max-width:520px;
+    background:var(--glass-bg);
+    backdrop-filter:blur(24px);
+    -webkit-backdrop-filter:blur(24px);
+    border:0.5px solid var(--glass-border);
+    border-radius:20px;
+    box-shadow:
+      0 -4px 30px rgba(0,0,0,0.3),
+      0 0 40px var(--glass-glow),
+      inset 0 0.5px 0 rgba(255,255,255,0.06);
+    z-index:10;
+    animation: fadeUp 0.5s var(--ease-out) 0.3s backwards;
+  }
+
+  .nav-item {
+    display:flex;flex-direction:column;
+    align-items:center;justify-content:center;
+    gap:3px;
+    padding:8px 16px;
+    border-radius:14px;
+    cursor:pointer;
+    transition:all 0.2s var(--ease-out);
+    color:var(--text-muted);
+    position:relative;
+    user-select:none;
+    -webkit-user-select:none;
+  }
+  .nav-item:hover {
+    background:rgba(0,229,193,0.08);
+    color:rgba(0,229,193,0.8);
+  }
+  .nav-item.active {
+    background:rgba(0,229,193,0.1);
+    color:rgba(0,229,193,0.9);
+    box-shadow:0 0 15px rgba(0,229,193,0.08);
+  }
+  .nav-item.active::after {
+    content:'';position:absolute;
+    bottom:2px;
+    width:16px;height:2.5px;
+    border-radius:2px;
+    background:var(--teal);
+    box-shadow:0 0 6px rgba(0,229,193,0.5);
+  }
+  .nav-icon {
+    font-size:20px;line-height:1;
+  }
+  .nav-label {
+    font-size:9px;font-weight:500;
+    letter-spacing:0.5px;
+    text-transform:uppercase;
+  }
+
+  /* === SCROLL INDICATOR === */
+  .scroll-hint {
+    position:absolute;
+    bottom:90px;right:20px;
+    display:flex;flex-direction:column;
+    align-items:center;gap:4px;
+    opacity:0.3;
+    animation:breathe 2s ease-in-out infinite;
+    pointer-events:none;
+    z-index:5;
+  }
+  .scroll-hint span {
+    font-size:9px;color:var(--text-dim);
+    text-transform:uppercase;
+    letter-spacing:1px;
+  }
+
+  /* === ANIMATIONS === */
+  @keyframes fadeDown {
+    from { opacity:0; transform:translateY(-12px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  @keyframes fadeUp {
+    from { opacity:0; transform:translateY(12px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+  @keyframes breathe {
+    0%,100% { opacity:0.2; }
+    50% { opacity:0.5; }
+  }
+
+  /* Staggered hex entrance */
+  .hex-item {
+    animation:hexEntrance 0.5s var(--ease-spring) backwards;
+  }
+  .hex-row:nth-child(1) .hex-item:nth-child(1) { animation-delay:0.15s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(2) { animation-delay:0.18s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(3) { animation-delay:0.21s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(4) { animation-delay:0.24s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(5) { animation-delay:0.27s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(6) { animation-delay:0.30s; }
+  .hex-row:nth-child(1) .hex-item:nth-child(7) { animation-delay:0.33s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(1) { animation-delay:0.22s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(2) { animation-delay:0.25s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(3) { animation-delay:0.28s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(4) { animation-delay:0.31s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(5) { animation-delay:0.34s; }
+  .hex-row:nth-child(2) .hex-item:nth-child(6) { animation-delay:0.37s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(1) { animation-delay:0.29s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(2) { animation-delay:0.32s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(3) { animation-delay:0.35s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(4) { animation-delay:0.38s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(5) { animation-delay:0.41s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(6) { animation-delay:0.44s; }
+  .hex-row:nth-child(3) .hex-item:nth-child(7) { animation-delay:0.47s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(1) { animation-delay:0.36s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(2) { animation-delay:0.39s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(3) { animation-delay:0.42s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(4) { animation-delay:0.45s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(5) { animation-delay:0.48s; }
+  .hex-row:nth-child(4) .hex-item:nth-child(6) { animation-delay:0.51s; }
+
+  @keyframes hexEntrance {
+    from { opacity:0; transform:scale(0.85) translateY(10px); }
+    to { opacity:1; transform:scale(1) translateY(0); }
+  }
+
+  /* === RESPONSIVE === */
+  @media (max-width:700px) {
+    .greeting h1 { font-size:22px; }
+    .search-bar { height:42px;font-size:13px; }
+    .hex { width:52px;height:52px; }
+    .hex img { width:26px;height:26px; }
+    .hex-item { width:68px; }
+    .hex-row { gap:6px; }
+    .hex-row.offset { margin-left:37px; }
+    .honeycomb { gap:2px; }
+    .nav-item { padding:8px 12px; }
+    .nav-bar { min-width:280px; }
+  }
+
+  @media (min-width:1400px) {
+    .hex { width:68px;height:68px; }
+    .hex img { width:36px;height:36px; }
+    .hex-item { width:90px; }
+    .hex-row { gap:14px; }
+    .hex-row.offset { margin-left:52px; }
+    .honeycomb { gap:6px; }
+    .greeting h1 { font-size:32px; }
+  }
+
+  /* Touch-friendly: larger hit areas on touch devices */
+  @media (pointer:coarse) {
+    .hex-item { min-height:80px; }
+    .nav-item { padding:10px 18px; }
+    .search-bar { height:50px; }
+  }
+
+  /* Keyboard focus styles */
+  .hex-item:focus-visible .hex {
+    outline:2px solid var(--teal);
+    outline-offset:4px;
+    border-radius:4px;
+  }
+  .nav-item:focus-visible {
+    outline:2px solid var(--teal);
+    outline-offset:2px;
+  }
+  .search-bar:focus-within {
+    outline:none;
+  }
+
+  /* Smooth scrolling for grid pages */
+  .grid-scroller {
+    overflow-x:auto;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .grid-scroller::-webkit-scrollbar { display:none; }
+  .grid-page {
+    scroll-snap-align:center;
+    flex-shrink:0;
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- Time (top-right, no battery) -->
+  <div class="time-display" id="clock">2:45 PM</div>
+
+  <!-- Main content area -->
+  <div class="main-content">
+
+    <!-- Greeting (from Concept A) -->
+    <div class="greeting">
+      <h1 id="greeting-text">Good afternoon</h1>
+      <p id="greeting-sub">Sunday, April 13 &middot; Clear skies</p>
+    </div>
+
+    <!-- Search bar (from Concept A) -->
+    <div class="search-wrap">
+      <div class="search-bar" tabindex="0">
+        <div class="search-icon"></div>
+        <input class="search-input" type="text" placeholder="Search, > commands, ! quick notes..." />
+      </div>
+    </div>
+
+    <!-- Honeycomb Grid (from Concept C) -->
+    <div class="grid-area">
+      <div class="honeycomb">
+        <!-- Row 1: 7 icons -->
+        <div class="hex-row">
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F310;</span></div>
+            <div class="hex-label">Browser</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4DD;</span></div>
+            <div class="hex-label">Notes</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x2705;</span></div>
+            <div class="hex-label">Todo</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4C1;</span></div>
+            <div class="hex-label">Files</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x2601;</span></div>
+            <div class="hex-label">Weather</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F552;</span></div>
+            <div class="hex-label">Clock</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F5A9;</span></div>
+            <div class="hex-label">Calculator</div>
+          </div>
+        </div>
+
+        <!-- Row 2: 6 icons (offset) -->
+        <div class="hex-row offset">
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F3B5;</span></div>
+            <div class="hex-label">Music</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F3AC;</span></div>
+            <div class="hex-label">Videos</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex folder-hex">
+              <div class="folder-grid">
+                <img src="https://www.google.com/s2/favicons?domain=chat.openai.com&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=claude.ai&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=gemini.google.com&sz=32" alt="">
+                <div class="folder-dot"></div>
+              </div>
+            </div>
+            <div class="hex-label">AI Tools</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex folder-hex">
+              <div class="folder-grid">
+                <img src="https://www.google.com/s2/favicons?domain=twitter.com&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=instagram.com&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=reddit.com&sz=32" alt="">
+                <div class="folder-dot"></div>
+              </div>
+            </div>
+            <div class="hex-label">Social</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F3AE;</span></div>
+            <div class="hex-label">Games</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4F0;</span></div>
+            <div class="hex-label">News</div>
+          </div>
+        </div>
+
+        <!-- Row 3: 7 icons -->
+        <div class="hex-row">
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4DA;</span></div>
+            <div class="hex-label">Library</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4F7;</span></div>
+            <div class="hex-label">Photos</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4E7;</span></div>
+            <div class="hex-label">Mail</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4C5;</span></div>
+            <div class="hex-label">Calendar</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F512;</span></div>
+            <div class="hex-label">Passwords</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex folder-hex">
+              <div class="folder-grid">
+                <img src="https://www.google.com/s2/favicons?domain=netflix.com&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=youtube.com&sz=32" alt="">
+                <img src="https://www.google.com/s2/favicons?domain=twitch.tv&sz=32" alt="">
+                <div class="folder-dot"></div>
+              </div>
+            </div>
+            <div class="hex-label">TV</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F9E0;</span></div>
+            <div class="hex-label">Memory</div>
+          </div>
+        </div>
+
+        <!-- Row 4: 6 icons (offset) -->
+        <div class="hex-row offset">
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4AC;</span></div>
+            <div class="hex-label">Chat</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F30D;</span></div>
+            <div class="hex-label">Translate</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4CA;</span></div>
+            <div class="hex-label">Analytics</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F3A8;</span></div>
+            <div class="hex-label">Canvas</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x1F4BB;</span></div>
+            <div class="hex-label">Terminal</div>
+          </div>
+          <div class="hex-item" tabindex="0">
+            <div class="hex"><span style="font-size:28px">&#x2795;</span></div>
+            <div class="hex-label">Add App</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page dots -->
+    <div class="page-dots">
+      <div class="page-dot active"></div>
+      <div class="page-dot"></div>
+      <div class="page-dot"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom Nav Bar (from Concept B) -->
+  <nav class="nav-bar">
+    <div class="nav-item active" tabindex="0">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8H96a8,8,0,0,0,8-8V160h48v56a8,8,0,0,0,8,8h56a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68Z"/></svg>
+      </span>
+      <span class="nav-label">Home</span>
+    </div>
+    <div class="nav-item" tabindex="0">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M216,72H131.31L104,44.69A15.86,15.86,0,0,0,92.69,40H40A16,16,0,0,0,24,56V200.62A15.4,15.4,0,0,0,39.38,216H216.89A15.13,15.13,0,0,0,232,200.89V88A16,16,0,0,0,216,72Z"/></svg>
+      </span>
+      <span class="nav-label">Files</span>
+    </div>
+    <div class="nav-item" tabindex="0">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M176,112H152a8,8,0,0,1,0-16h24a8,8,0,0,1,0,16Zm-72-16H80a8,8,0,0,0,0,16h24a8,8,0,0,0,0-16ZM232,56V200a24,24,0,0,1-24,24H48a24,24,0,0,1-24-24V56A24,24,0,0,1,48,32H208A24,24,0,0,1,232,56Zm-16,0a8,8,0,0,0-8-8H48a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H208a8,8,0,0,0,8-8Zm-32,80a40,40,0,1,1-40-40A40,40,0,0,1,184,136Zm-16,0a24,24,0,1,0-24,24A24,24,0,0,0,168,136Zm-48,0a40,40,0,1,1-40-40A40,40,0,0,1,120,136Zm-16,0a24,24,0,1,0-24,24A24,24,0,0,0,104,136Z"/></svg>
+      </span>
+      <span class="nav-label">Games</span>
+    </div>
+    <div class="nav-item" tabindex="0">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M200,48H136V16a8,8,0,0,0-16,0V48H56A32,32,0,0,0,24,80V192a32,32,0,0,0,32,32H200a32,32,0,0,0,32-32V80A32,32,0,0,0,200,48Zm-8,96H148a8,8,0,0,1,0-16h44a8,8,0,0,1,0,16Zm0-32H148a8,8,0,0,1,0-16h44a8,8,0,0,1,0,16ZM96,184a40,40,0,1,1,40-40A40,40,0,0,1,96,184Zm0-64a24,24,0,1,0,24,24A24,24,0,0,0,96,120Z"/></svg>
+      </span>
+      <span class="nav-label">AI</span>
+    </div>
+    <div class="nav-item" tabindex="0">
+      <span class="nav-icon">
+        <svg width="20" height="20" viewBox="0 0 256 256" fill="currentColor"><path d="M128,80a48,48,0,1,0,48,48A48.05,48.05,0,0,0,128,80Zm0,80a32,32,0,1,1,32-32A32,32,0,0,1,128,160Zm109.94-52.79a8,8,0,0,0-3.89-5.4l-29.83-17-.12-33.62a8,8,0,0,0-2.83-6.08,111.91,111.91,0,0,0-36.72-20.67,8,8,0,0,0-6.46.59L128,42.89,97.88,25a8,8,0,0,0-6.47-.6A112.1,112.1,0,0,0,54.73,45.13a8,8,0,0,0-2.83,6.07l-.15,33.65-29.83,17a8,8,0,0,0-3.89,5.4,106.47,106.47,0,0,0,0,41.56,8,8,0,0,0,3.89,5.4l29.83,17,.12,33.63a8,8,0,0,0,2.83,6.08,111.91,111.91,0,0,0,36.72,20.67,8,8,0,0,0,6.46-.59L128,213.11,158.12,231a7.91,7.91,0,0,0,3.9,1,8.09,8.09,0,0,0,2.57-.42,112.1,112.1,0,0,0,36.68-20.73,8,8,0,0,0,2.83-6.07l.15-33.65,29.83-17a8,8,0,0,0,3.89-5.4A106.47,106.47,0,0,0,237.94,107.21Z"/></svg>
+      </span>
+      <span class="nav-label">Settings</span>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+  // Live clock
+  function updateClock() {
+    const now = new Date();
+    const h = now.getHours();
+    const m = now.getMinutes().toString().padStart(2,'0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    document.getElementById('clock').textContent = `${h12}:${m} ${ampm}`;
+
+    // Update greeting
+    let greeting;
+    if (h < 5) greeting = 'Good night';
+    else if (h < 12) greeting = 'Good morning';
+    else if (h < 17) greeting = 'Good afternoon';
+    else if (h < 21) greeting = 'Good evening';
+    else greeting = 'Good night';
+    document.getElementById('greeting-text').textContent = greeting;
+
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('greeting-sub').textContent =
+      `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Nav bar active state
+  document.querySelectorAll('.nav-item').forEach(item => {
+    item.addEventListener('click', () => {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+
+  // Hex item click feedback
+  document.querySelectorAll('.hex-item').forEach(item => {
+    item.addEventListener('click', () => {
+      item.style.transform = 'scale(0.92)';
+      setTimeout(() => { item.style.transform = ''; }, 150);
+    });
+  });
+
+  // Keyboard navigation for hex grid
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && document.activeElement.classList.contains('hex-item')) {
+      document.activeElement.click();
+    }
+  });
+
+  // Page dot click
+  document.querySelectorAll('.page-dot').forEach((dot, i) => {
+    dot.addEventListener('click', () => {
+      document.querySelectorAll('.page-dot').forEach(d => d.classList.remove('active'));
+      dot.classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>

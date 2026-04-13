@@ -19,7 +19,7 @@ import { kernel } from '../kernel.js';
 import { el } from '../utils/dom.js';
 import { VERSION } from '../version.js';
 import { AppGrid } from './components/AppGrid.js';
-import { Dock } from './components/Dock.js';
+import { NavBar } from './components/NavBar.js';
 import { SmartSearch } from './components/SmartSearch.js';
 import { StatusBar } from './components/StatusBar.js';
 import { HomeBar } from './components/HomeBar.js';
@@ -34,16 +34,13 @@ export class MobileShell {
     this.root = root;
     this.components = {
       grid: new AppGrid(),
-      dock: new Dock(),
+      navBar: new NavBar(),
       search: new SmartSearch(),
       statusBar: new StatusBar(kernel),
       homeBar: new HomeBar(() => this.goHome()),
-      contextMenu: new MobileContextMenu(this), // Desktop Context Menu
+      contextMenu: new MobileContextMenu(this),
       greeting: new Greeting(),
     };
-
-    // Dock dispatches context-menu events to grid.root for unified handling
-    this.components.dock.setEventTarget(this.components.grid.root);
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
     this.alarmUi = null;
@@ -97,12 +94,6 @@ export class MobileShell {
     // Seed default folders on first run (idempotent)
     this.seedDefaultFolders();
 
-    // Set dock items (must happen after grid state is populated)
-    this.components.dock.setItems(this._createAllItems(apps));
-
-    // v0.7.7.1 Migration: unhide any items that were hidden by old dock-as-move semantics.
-    // Under the new pin semantics, dock items should always be visible on the grid too.
-    this._migrateDockHiddenItems();
     this._applyHomeLayoutDefaults(apps);
 
     // System setup
@@ -128,6 +119,7 @@ export class MobileShell {
 
     this.dom = {
       wrapper: el('div', { class: 'mobile-shell' }),
+      mainContent: el('div', { class: 'main-content' }),
       homeTop: el('div', { class: 'home-top' }),
       statusBarLayer: this.components.statusBar.render(),
       appLayer: el('div', { class: 'm-app-layer', hidden: true }),
@@ -141,11 +133,17 @@ export class MobileShell {
       this.components.search.render(),
     );
 
-    this.dom.wrapper.append(
-      this.dom.statusBarLayer,
+    // Main content: greeting + search + grid + dots (vertically centered by CSS)
+    this.dom.mainContent.append(
       this.dom.homeTop,
       this.components.grid.root,
-      this.components.dock.render(),
+      this.components.grid.dotsContainer,
+    );
+
+    this.dom.wrapper.append(
+      this.dom.statusBarLayer,
+      this.dom.mainContent,
+      this.components.navBar.render(),
       this.dom.appLayer,
       this.dom.homeBarLayer,
       this.dom.alarmOverlay,
@@ -170,8 +168,7 @@ export class MobileShell {
       this.components.grid.root.style.opacity = '0';
       this.components.grid.root.style.pointerEvents = 'none';
 
-      // NEW: Use class instead of inline transform for smooth animation
-      this.components.dock.root.classList.add('is-hidden');
+      this.components.navBar.root.classList.add('is-hidden');
 
       this.components.search.root.style.opacity = '0';
       this.components.search.root.style.pointerEvents = 'none';
@@ -198,8 +195,8 @@ export class MobileShell {
       this.components.grid.root.style.opacity = '1';
       this.components.grid.root.style.pointerEvents = 'auto';
 
-      // NEW: Remove class to show dock
-      this.components.dock.root.classList.remove('is-hidden');
+      this.components.navBar.root.classList.remove('is-hidden');
+      this.components.navBar.setActive('home');
 
       this.components.search.root.style.opacity = '1';
       this.components.search.root.style.pointerEvents = 'auto';
@@ -282,28 +279,7 @@ export class MobileShell {
       this.setMode('home');
     });
 
-    // Grid → Dock drop: PIN the item to dock (keep it on desktop too)
-    this.components.grid.root.addEventListener('item:drop-on-dock', (e) => {
-      const { id } = e.detail || {};
-      if (!id) return;
-      this.components.dock.addItem(id);
-      // v0.7.7.1: Do NOT hide item from grid — dock is a shortcut/pin, not a move.
-      // The item stays visible on the desktop grid.
-    });
-
-    // Dock → Grid drop: UNPIN from dock (item already exists on grid)
-    window.addEventListener('dock:item-drop-to-grid', (e) => {
-      try {
-        const { id } = e.detail || {};
-        if (!id) return;
-        // v0.7.7.1: Just remove from dock. The item is already on the grid.
-        this.components.dock.removeItem(id);
-      } catch (err) {
-        console.error('[Shell] Dock → Grid drop failed', err);
-      }
-    });
-
-    // Item open (from dock tap)
+    // Item open (from grid tap or nav)
     window.addEventListener('item:open', (e) => {
       const item = e.detail;
       if (!item) return;
@@ -326,7 +302,36 @@ export class MobileShell {
       }
     });
 
-    // Dock remove (undock back to grid)
+    // NavBar actions
+    window.addEventListener('nav:action', (e) => {
+      const id = e.detail?.id;
+      if (!id) return;
+
+      // If in-app, go home first
+      if (this.state.activePid) {
+        const proc = kernel.processManager.processes.get(this.state.activePid);
+        if (proc?.instance?.close) proc.instance.close();
+      }
+
+      switch (id) {
+        case 'home':
+          // Already going home from above
+          break;
+        case 'files':
+          kernel.emit('app:open', 'files');
+          break;
+        case 'games':
+          this.components.grid.openApp('folder-games');
+          break;
+        case 'ai':
+          this.components.grid.openApp('folder-ai');
+          break;
+        case 'settings':
+          kernel.emit('app:open', 'settings');
+          break;
+      }
+    });
+
     // Ensure minimum pages (used by edge-drag page creation for smooth flipping)
     window.addEventListener('page:ensure', (e) => {
       try {
@@ -341,28 +346,7 @@ export class MobileShell {
       }
     });
 
-    window.addEventListener('dock:remove-item', (e) => {
-      try {
-        const id = e?.detail?.id;
-        if (!id) return;
-
-        const st = this.components.grid.state.items.get(id);
-
-        // Hidden alias = dock-only shortcut → delete entirely
-        if (st?.type === 'alias' && st.hidden) {
-          try { this.components.grid.state.removeApp?.(id); } catch { }
-          this.components.dock.removeItem(id);
-          return;
-        }
-
-        // v0.7.7.1: Just remove from dock. The item remains on the grid.
-        this.components.dock.removeItem(id);
-      } catch (err) {
-        console.error('[Shell] dock:remove-item failed', err);
-      }
-    });
-
-    // Shortcut creation (separate from drag/drop)
+    // Shortcut creation
     window.addEventListener('shortcut:create', (e) => {
       try {
         const { origin, id: sourceId } = e?.detail || {};
@@ -379,27 +363,16 @@ export class MobileShell {
             : stateItem?.type === 'shortcut' ? 'shortcut' : 'app';
 
         const aliasId = `alias-${sourceId}-${Date.now()}`;
-        const toDock = origin === 'desktop';
 
-        // Create alias in grid state
         this.components.grid.state.addAlias({
           id: aliasId,
           title, icon,
           targetId: sourceId,
           targetType,
-          hidden: toDock, // dock-only aliases are hidden from grid
+          hidden: false,
         });
 
-        if (toDock) {
-          // Extend dock's item catalog and add the alias
-          const dockItems = this.components.dock.allItems || [];
-          dockItems.push({ id: aliasId, name: title, icon, type: 'alias', targetId: sourceId, targetType });
-          this.components.dock.allItems = dockItems;
-          this.components.dock.addItem(aliasId);
-        } else {
-          // Desktop shortcut: ensure visible
-          try { this.components.grid.state.showItem?.(aliasId); } catch { }
-        }
+        try { this.components.grid.state.showItem?.(aliasId); } catch { }
       } catch (err) {
         console.error('[MobileShell] shortcut:create failed', err);
       }
@@ -518,27 +491,6 @@ export class MobileShell {
 
   // ─── Helpers ────────────────────────────────────────────────
 
-  /**
-   * v0.7.7.1 Migration: Under the old dock-as-move semantics, items dragged to
-   * the dock were hidden from the grid via `hideItem()`. Under the new pin semantics,
-   * dock items should be visible on both dock and grid. This unhides any such items.
-   */
-  _migrateDockHiddenItems() {
-    try {
-      const grid = this.components.grid;
-      const dock = this.components.dock;
-      for (const dockItem of dock.items) {
-        const gridItem = grid.state.items.get(dockItem.id);
-        if (gridItem && gridItem.hidden && gridItem.type !== 'alias') {
-          console.log(`[Shell] Migration: unhiding dock item "${dockItem.id}" on grid`);
-          grid.state.showItem(dockItem.id);
-        }
-      }
-    } catch (e) {
-      console.warn('[Shell] Dock migration error:', e);
-    }
-  }
-
   _createAllItems(apps) {
     const all = [
       ...apps.map(app => ({ id: app.id, name: app.name, icon: app.icon, type: 'app', url: app.url, scheme: app.scheme })),
@@ -559,7 +511,7 @@ export class MobileShell {
 
   _applyHomeLayoutDefaults(apps) {
     try {
-      const key = 'yancotab_home_layout_v100';
+      const key = 'yancotab_home_layout_v101';
       if (localStorage.getItem(key)) return;
 
       const mode = localStorage.getItem('yancotab_home_layout_mode') || 'type-name';
@@ -681,11 +633,6 @@ export class MobileShell {
 
       // Force grid recalculation
       this.components.grid.handleResize?.();
-
-      // Re-render dock for proper sizing
-      if (this.components.dock._render) {
-        this.components.dock._render();
-      }
     }
 
     this.dom.spacer.style.height = isKeyboard

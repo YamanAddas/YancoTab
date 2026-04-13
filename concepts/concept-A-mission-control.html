@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept A — Mission Control</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #020608;
+    color: #c8d6e5;
+    height: 100vh;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Deep Space Background ── */
+  .bg-space {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,229,193,0.06) 0%, transparent 60%),
+      radial-gradient(ellipse 120% 80% at 50% 110%, rgba(0,80,120,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 40% at 20% 30%, rgba(0,229,193,0.03) 0%, transparent 50%),
+      #020608;
+  }
+
+  /* Starfield dots */
+  .stars {
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.6), transparent),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 15% 85%, rgba(0,229,193,0.5), transparent),
+      radial-gradient(1px 1px at 85% 15%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 45% 75%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 65% 90%, rgba(0,229,193,0.4), transparent),
+      radial-gradient(1px 1px at 25% 45%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.2), transparent);
+  }
+
+  /* ── Central Orb (YancoVerse-style portal) ── */
+  .central-orb {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 50% 40%, rgba(0,229,193,0.2) 0%, transparent 50%),
+      radial-gradient(circle, rgba(0,229,193,0.08) 0%, transparent 70%);
+    box-shadow:
+      0 0 80px rgba(0,229,193,0.12),
+      0 0 200px rgba(0,229,193,0.06),
+      inset 0 0 60px rgba(0,229,193,0.05);
+    animation: orbPulse 4s ease-in-out infinite;
+  }
+
+  .central-orb::before {
+    content: '';
+    position: absolute;
+    inset: 20px;
+    border-radius: 50%;
+    border: 1px solid rgba(0,229,193,0.15);
+    animation: orbSpin 20s linear infinite;
+  }
+
+  .central-orb::after {
+    content: 'Y';
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 72px;
+    font-weight: 200;
+    color: rgba(0,229,193,0.25);
+    letter-spacing: -4px;
+  }
+
+  @keyframes orbPulse {
+    0%, 100% { box-shadow: 0 0 80px rgba(0,229,193,0.12), 0 0 200px rgba(0,229,193,0.06); }
+    50% { box-shadow: 0 0 120px rgba(0,229,193,0.18), 0 0 300px rgba(0,229,193,0.08); }
+  }
+
+  @keyframes orbSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── Main Layout ── */
+  .shell {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 0;
+    height: 56px;
+    font-size: 13px;
+    font-weight: 600;
+    color: rgba(200,220,240,0.7);
+  }
+
+  .status-bar .time { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .status-bar .battery { font-size: 12px; opacity: 0.6; }
+
+  /* ── Greeting ── */
+  .greeting {
+    text-align: center;
+    padding: 16px 0 8px;
+  }
+
+  .greeting h1 {
+    font-size: 26px;
+    font-weight: 600;
+    color: #e0ecf5;
+    letter-spacing: -0.02em;
+  }
+
+  .greeting p {
+    font-size: 13px;
+    font-weight: 300;
+    color: rgba(200,220,240,0.5);
+    margin-top: 6px;
+  }
+
+  /* ── Search Bar (Holographic Glass) ── */
+  .search-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 12px 0;
+  }
+
+  .search-bar {
+    width: 480px;
+    height: 46px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,229,193,0.15);
+    background: rgba(0,229,193,0.04);
+    backdrop-filter: blur(24px);
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    gap: 10px;
+    color: rgba(200,220,240,0.4);
+    font-size: 14px;
+    box-shadow:
+      0 0 30px rgba(0,229,193,0.06),
+      inset 0 0.5px 0 rgba(255,255,255,0.1),
+      inset 0 0 20px rgba(0,229,193,0.03);
+  }
+
+  .search-bar .search-icon {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid rgba(0,229,193,0.4);
+    border-radius: 50%;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .search-bar .search-icon::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    width: 6px;
+    height: 1.5px;
+    background: rgba(0,229,193,0.4);
+    transform: rotate(45deg);
+  }
+
+  /* ── Icon Grid ── */
+  .grid-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 110px);
+    gap: 8px 12px;
+    justify-content: center;
+  }
+
+  /* ── Hex Icon ── */
+  .hex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .hex-item:hover { transform: translateY(-4px); }
+  .hex-item:hover .hex {
+    box-shadow:
+      0 0 20px rgba(0,229,193,0.3),
+      0 0 60px rgba(0,229,193,0.1),
+      inset 0 0.5px 0 rgba(255,255,255,0.2);
+  }
+  .hex-item:hover .hex::before { opacity: 0.5; }
+
+  .hex {
+    width: 64px;
+    height: 64px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(145deg, rgba(8,24,48,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    position: relative;
+    transition: box-shadow 0.3s;
+    box-shadow:
+      0 0 12px rgba(0,229,193,0.1),
+      0 0 40px rgba(0,229,193,0.04);
+  }
+
+  /* Glow border */
+  .hex::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.4), rgba(0,229,193,0.08));
+    z-index: -1;
+    opacity: 0.35;
+    transition: opacity 0.3s;
+  }
+
+  .hex-label {
+    font-size: 11px;
+    color: rgba(200,220,240,0.6);
+    text-align: center;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+  }
+
+  /* Folder hex - special glass effect */
+  .hex.folder-hex {
+    background: linear-gradient(145deg, rgba(0,229,193,0.08), rgba(4,12,24,0.9));
+  }
+
+  .hex.folder-hex .mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    width: 36px;
+    height: 36px;
+  }
+
+  .hex.folder-hex .mini-cell {
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  /* ── Dock ── */
+  .dock {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 24px;
+  }
+
+  .dock-bar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 28px;
+    border-radius: 30px;
+    background: rgba(4,12,24,0.5);
+    backdrop-filter: blur(32px);
+    border: 0.5px solid rgba(0,229,193,0.15);
+    box-shadow:
+      0 0 40px rgba(0,229,193,0.06),
+      inset 0 0.5px 0 rgba(255,255,255,0.12);
+  }
+
+  .dock-icon {
+    width: 48px;
+    height: 48px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(145deg, rgba(8,24,48,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .dock-icon:hover { transform: scale(1.15); }
+
+  .dock-icon::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.3), rgba(0,229,193,0.06));
+    z-index: -1;
+  }
+
+  /* ── Concept Label ── */
+  .concept-tag {
+    position: fixed;
+    bottom: 12px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(0,229,193,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-space"></div>
+<div class="stars"></div>
+<div class="central-orb"></div>
+
+<div class="shell">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span class="time">2:03 PM</span>
+    <span class="battery">100% &#x1F50B;</span>
+  </div>
+
+  <!-- Greeting -->
+  <div class="greeting">
+    <h1>Good afternoon</h1>
+    <p>Monday, April 13 &middot; 0&deg;C Current Location</p>
+  </div>
+
+  <!-- Search -->
+  <div class="search-wrap">
+    <div class="search-bar">
+      <div class="search-icon"></div>
+      Search, &gt; commands, ! quick notes...
+    </div>
+  </div>
+
+  <!-- Icon Grid -->
+  <div class="grid-area">
+    <div class="icon-grid">
+      <div class="hex-item">
+        <div class="hex">&#x1F310;</div>
+        <div class="hex-label">Browser</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x1F5A9;</div>
+        <div class="hex-label">Calculator</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x1F551;</div>
+        <div class="hex-label">Clock</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x1F4C1;</div>
+        <div class="hex-label">Files</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x1F4CD;</div>
+        <div class="hex-label">Maps</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x1F4DD;</div>
+        <div class="hex-label">Notes</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x2699;&#xFE0F;</div>
+        <div class="hex-label">Settings</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x2705;</div>
+        <div class="hex-label">Todo</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex">&#x26C5;</div>
+        <div class="hex-label">Weather</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex folder-hex">
+          <div class="mini-grid">
+            <div class="mini-cell">&#x1F916;</div>
+            <div class="mini-cell">&#x2728;</div>
+            <div class="mini-cell">&#x1F4AC;</div>
+            <div class="mini-cell">&#x1F9E0;</div>
+          </div>
+        </div>
+        <div class="hex-label">AI</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex folder-hex">
+          <div class="mini-grid">
+            <div class="mini-cell">&#x1F3AE;</div>
+            <div class="mini-cell">&#x1F0CF;</div>
+            <div class="mini-cell">&#x1F40D;</div>
+            <div class="mini-cell">&#x1F9E9;</div>
+          </div>
+        </div>
+        <div class="hex-label">Games</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex folder-hex">
+          <div class="mini-grid">
+            <div class="mini-cell">&#x1F426;</div>
+            <div class="mini-cell">&#x1F4F7;</div>
+            <div class="mini-cell">&#x1F3AC;</div>
+            <div class="mini-cell">&#x1F464;</div>
+          </div>
+        </div>
+        <div class="hex-label">Social</div>
+      </div>
+      <div class="hex-item">
+        <div class="hex folder-hex">
+          <div class="mini-grid">
+            <div class="mini-cell">&#x1F4FA;</div>
+            <div class="mini-cell">&#x1F3AC;</div>
+            <div class="mini-cell">&#x1F39E;</div>
+            <div class="mini-cell">&#x25B6;</div>
+          </div>
+        </div>
+        <div class="hex-label">TV</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dock -->
+  <div class="dock">
+    <div class="dock-bar">
+      <div class="dock-icon">&#x1F310;</div>
+      <div class="dock-icon">&#x1F4C1;</div>
+      <div class="dock-icon">&#x2699;&#xFE0F;</div>
+      <div class="dock-icon">&#x1F4DD;</div>
+    </div>
+  </div>
+</div>
+
+<div class="concept-tag">Concept A &mdash; Mission Control</div>
+</body>
+</html>

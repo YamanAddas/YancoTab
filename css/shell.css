@@ -1,7 +1,7 @@
 /* ============================================================
-   YancoTab v2.0 — Shell CSS
-   Boot screen, status bar, dock, app grid, windows, overlays
-   Cosmic Glass theme derived from YancoHub design language
+   YancoTab v3.0 — Shell CSS
+   Cosmic Glass Honeycomb theme
+   Boot screen, status bar, honeycomb grid, nav bar, windows
    ============================================================ */
 
 /* ── Starfield Canvas ── */
@@ -12,7 +12,7 @@
   pointer-events: none;
 }
 
-/* ── Boot Screen (overrides main.css legacy) ── */
+/* ── Boot Screen ── */
 .boot-screen {
   position: fixed;
   inset: 0;
@@ -23,7 +23,6 @@
   background: var(--bg);
 }
 
-/* Override old main.css .boot-screen grid layout */
 div.boot-screen {
   display: flex;
   background: var(--bg);
@@ -41,7 +40,6 @@ div.boot-screen {
   animation: bootFadeIn 1.2s var(--ease-out) both;
 }
 
-/* Override old main.css .boot-glow */
 div.boot-screen .boot-glow {
   background: transparent;
   border: none;
@@ -128,40 +126,48 @@ div.boot-screen .boot-text {
   z-index: var(--z-window);
 }
 
-/* ── Status Bar ── */
+/* ── Status Bar (time top-right) ── */
 .status-bar {
-  position: relative;
-  flex: 0 0 auto;
-  height: calc(52px + var(--safe-top));
-  padding: calc(var(--safe-top) + 20px) 20px 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: auto;
+  padding: calc(var(--safe-top, 0px) + 18px) 24px 0 0;
   z-index: var(--z-statusbar);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-bright);
   pointer-events: none;
-  background: transparent;
 }
 
 .sb-time {
+  font-size: 13px;
+  font-weight: 400;
+  color: rgba(200, 220, 240, 0.5);
+  letter-spacing: 0.3px;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
 }
 
-.sb-group {
+/* ── Main Content (vertically centered) ── */
+.main-content {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  justify-content: center;
+  gap: 0;
+  padding: 20px 20px 0;
+  z-index: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+body.in-app .main-content {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* ── App Grid ── */
 .m-grid-container {
   position: relative;
-  flex: 1;
-  min-height: 0;
+  flex: 0 0 auto;
   overflow: hidden;
 }
 
@@ -185,13 +191,10 @@ div.boot-screen .boot-text {
 
 /* ── Page Dots ── */
 .m-grid-dots {
-  position: absolute;
-  bottom: 8px;
-  left: 0;
-  right: 0;
   display: flex;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
+  padding: 8px 0 4px;
   z-index: var(--z-grid);
   pointer-events: none;
 }
@@ -200,7 +203,7 @@ div.boot-screen .boot-text {
   width: 6px;
   height: 6px;
   border-radius: var(--radius-pill);
-  background: var(--text-dim);
+  background: rgba(200, 220, 240, 0.2);
   transition: all var(--transition-fast);
 }
 
@@ -208,10 +211,10 @@ div.boot-screen .boot-text {
   background: var(--accent);
   width: 18px;
   box-shadow: 0 0 8px rgba(0, 229, 193, 0.4);
+  border-radius: 3px;
 }
 
 /* ── Icon Entrance Animation ── */
-/* Opacity on the outer container (does NOT conflict with translate3d positioning) */
 @keyframes iconFadeIn {
   from { opacity: 0; }
 }
@@ -221,7 +224,6 @@ div.boot-screen .boot-text {
   animation-delay: calc(var(--icon-i, 0) * 40ms);
 }
 
-/* Scale on the inner icon only (outer .app-icon uses transform for grid positioning) */
 @keyframes iconScaleIn {
   from { transform: scale(0.85) translateY(8px); }
 }
@@ -237,10 +239,15 @@ div.boot-screen .boot-text {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  transition: transform var(--transition-fast);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.m-app-item:hover,
+.app-icon:hover {
+  transform: translateY(-5px) scale(1.04);
 }
 
 .m-app-item:active,
@@ -255,36 +262,49 @@ div.boot-screen .boot-text {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
-  background: var(--bg-card);
+  font-size: 24px;
+  background: linear-gradient(160deg, rgba(10, 28, 52, 0.9), rgba(4, 12, 24, 0.95));
   border: none;
   position: relative;
-  transition: all var(--transition-normal);
+  transition: all 0.3s;
   overflow: hidden;
   cursor: pointer;
-  filter: drop-shadow(0 0 6px rgba(0, 229, 193, 0.15)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 0 8px rgba(0, 229, 193, 0.1)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
 }
 
-/* Hex glow border effect via pseudo-element */
+/* Teal glow border via pseudo-element */
 .hex-icon::before {
   content: '';
   position: absolute;
-  inset: -2px;
+  inset: -2.5px;
   clip-path: var(--hex-clip);
-  background: linear-gradient(135deg, rgba(0, 229, 193, 0.18), rgba(255, 255, 255, 0.06));
+  background: linear-gradient(135deg, rgba(0, 229, 193, 0.5), rgba(0, 229, 193, 0.1) 50%, rgba(0, 229, 193, 0.3));
   z-index: -1;
+  opacity: 0.35;
+  transition: opacity 0.3s;
+}
+
+/* Inner specular highlight */
+.hex-icon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), transparent 40%);
+  pointer-events: none;
 }
 
 .hex-icon:hover::before,
 .hex-icon:active::before {
-  background: linear-gradient(135deg, rgba(0, 229, 193, 0.35), rgba(255, 255, 255, 0.12));
+  opacity: 0.7;
 }
 
-.hex-icon:active {
-  transform: scale(0.95);
+.app-icon:hover .hex-icon,
+.m-app-item:hover .hex-icon {
+  filter: drop-shadow(0 0 18px rgba(0, 229, 193, 0.3)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
 }
 
-/* Inner content — fills the hex, clips to hex shape */
+/* Inner content fills the hex */
 .hex-icon-content {
   width: 100%;
   height: 100%;
@@ -317,115 +337,122 @@ div.boot-screen .boot-text {
 .app-icon-date .hex-icon-content { background: linear-gradient(145deg, #0c1628, #081321); }
 
 /* Game hex backgrounds */
-.app-icon-snake .hex-icon-content { --game-accent: rgba(40,255,170,0.35); }
-.app-icon-memory .hex-icon-content { --game-accent: rgba(120,190,255,0.35); }
-.app-icon-tictactoe .hex-icon-content { --game-accent: rgba(255,120,210,0.35); }
-.app-icon-minesweeper .hex-icon-content { --game-accent: rgba(255,200,110,0.35); }
-.app-icon-solitaire .hex-icon-content { --game-accent: rgba(255,90,120,0.35); }
-.app-icon-spider-solitaire .hex-icon-content { --game-accent: rgba(255,70,90,0.35); }
-.app-icon-mahjong .hex-icon-content { --game-accent: rgba(120,255,200,0.35); }
-.app-icon-tarneeb .hex-icon-content { --game-accent: rgba(100,120,255,0.35); }
-.app-icon-trix .hex-icon-content { --game-accent: rgba(180,80,255,0.35); }
+.app-icon-snake .hex-icon-content { --game-accent: rgba(40, 255, 170, 0.35); }
+.app-icon-memory .hex-icon-content { --game-accent: rgba(120, 190, 255, 0.35); }
+.app-icon-tictactoe .hex-icon-content { --game-accent: rgba(255, 120, 210, 0.35); }
+.app-icon-minesweeper .hex-icon-content { --game-accent: rgba(255, 200, 110, 0.35); }
+.app-icon-solitaire .hex-icon-content { --game-accent: rgba(255, 90, 120, 0.35); }
+.app-icon-spider-solitaire .hex-icon-content { --game-accent: rgba(255, 70, 90, 0.35); }
+.app-icon-mahjong .hex-icon-content { --game-accent: rgba(120, 255, 200, 0.35); }
+.app-icon-tarneeb .hex-icon-content { --game-accent: rgba(100, 120, 255, 0.35); }
+.app-icon-trix .hex-icon-content { --game-accent: rgba(180, 80, 255, 0.35); }
 
 .hex-icon-label {
-  font-size: var(--font-xs);
-  color: var(--text);
+  font-size: 10px;
+  font-weight: 500;
+  color: rgba(200, 220, 240, 0.5);
   text-align: center;
-  max-width: calc(var(--hex-size) + 8px);
+  max-width: calc(var(--hex-size) + 16px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9);
+  letter-spacing: 0.3px;
 }
 
-/* ── Dock ── */
-.mobile-dock,
-.m-dock {
-  position: relative;
-  flex: 0 0 auto;
-  height: 64px;
-  padding: var(--space-xs) var(--space-xl);
-  margin: auto 16px calc(var(--safe-bottom) + 8px);
+/* ── Nav Bar (replaces Dock) ── */
+.nav-bar {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-lg);
+  gap: 6px;
+  padding: 10px 16px;
+  margin: 0 auto calc(var(--safe-bottom, 0px) + 16px);
+  width: fit-content;
+  min-width: 320px;
+  max-width: 520px;
+  background: rgba(4, 10, 20, 0.6);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border: 0.5px solid rgba(0, 229, 193, 0.12);
+  border-radius: 20px;
+  box-shadow:
+    0 -4px 30px rgba(0, 0, 0, 0.3),
+    0 0 40px rgba(0, 229, 193, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.06);
   z-index: var(--z-dock);
-  background: rgba(6, 11, 20, 0.45);
-  -webkit-backdrop-filter: blur(32px) saturate(1.6);
-  backdrop-filter: blur(32px) saturate(1.6);
-  border: 0.5px solid rgba(255, 255, 255, 0.1);
-  border-radius: 30px;
-  box-shadow: var(--inner-glow), 0 -4px 20px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+  transition: transform 0.3s var(--ease-out), opacity 0.3s var(--ease-out);
 }
 
-/* Dock icon containers */
-.m-dock-item {
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.2s var(--ease-out);
+.nav-bar.is-hidden {
+  transform: translateY(100px);
+  opacity: 0;
+  pointer-events: none;
 }
 
-.m-dock-item:hover {
-  transform: scale(1.1);
-}
-
-.m-dock-item:active {
-  transform: scale(0.88);
-}
-
-/* Hex icons inside dock fill the container */
-.m-dock-item .hex-icon,
-.m-dock-item .app-icon-inner {
-  width: 100% !important;
-  height: 100% !important;
-}
-
-.dock-item {
+.nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-out);
+  color: rgba(200, 220, 240, 0.35);
   position: relative;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.dock-icon:not(.m-dock-item) {
-  width: 52px;
-  height: 52px;
-  clip-path: var(--hex-clip);
+.nav-item:hover {
+  background: rgba(0, 229, 193, 0.08);
+  color: rgba(0, 229, 193, 0.8);
+}
+
+.nav-item.active {
+  background: rgba(0, 229, 193, 0.1);
+  color: rgba(0, 229, 193, 0.9);
+  box-shadow: 0 0 15px rgba(0, 229, 193, 0.08);
+}
+
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 16px;
+  height: 2.5px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(0, 229, 193, 0.5);
+}
+
+.nav-item:active {
+  transform: scale(0.95);
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  background: var(--bg-card);
-  transition: transform var(--transition-spring);
-  position: relative;
 }
 
-.dock-icon:not(.m-dock-item)::before {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  clip-path: var(--hex-clip);
-  background: linear-gradient(135deg, rgba(0, 229, 193, 0.12), rgba(0, 229, 193, 0.03));
-  z-index: -1;
+.nav-icon svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
 }
 
-.dock-item:active .dock-icon:not(.m-dock-item) {
-  transform: scale(0.88);
-}
-
-/* Active dot under dock icon */
-.dock-active-dot {
-  width: 4px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  box-shadow: 0 0 6px rgba(0, 229, 193, 0.5);
+.nav-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
 }
 
 /* ── Home Bar ── */
@@ -516,7 +543,6 @@ div.boot-screen .boot-text {
   transform: scale(1.08);
 }
 
-/* App window fills remaining space below glass chrome header */
 .glass-chrome .app-window {
   position: relative;
   flex: 1;
@@ -544,7 +570,6 @@ div.boot-screen .boot-text {
   display: none !important;
 }
 
-/* Standalone app-window fallback (when no glass-chrome wrapper) */
 .app-window:not(.glass-chrome .app-window) {
   position: fixed;
   inset: 0;
@@ -580,7 +605,6 @@ div.boot-screen .boot-text {
   height: 100%;
 }
 
-/* Gear spin animation */
 .gear-spin {
   animation: gearSpin 12s linear infinite;
   transform-origin: 34px 28.5px;
@@ -590,7 +614,6 @@ div.boot-screen .boot-text {
   to { transform: rotate(360deg); }
 }
 
-/* Globe ring orbit */
 .globe-ring {
   animation: ringOrbit 6s ease-in-out infinite;
   transform-origin: 32px 32px;
@@ -600,7 +623,6 @@ div.boot-screen .boot-text {
   50% { transform: rotate(-25deg); opacity: 0.8; }
 }
 
-/* Sun pulse */
 .sun-pulse {
   animation: sunPulse 3s ease-in-out infinite;
 }
@@ -609,7 +631,6 @@ div.boot-screen .boot-text {
   50% { opacity: 1; }
 }
 
-/* Sun rays spin */
 .sun-spin {
   animation: sunRaysSpin 20s linear infinite;
 }
@@ -618,7 +639,6 @@ div.boot-screen .boot-text {
   to { transform: rotate(360deg); }
 }
 
-/* Cloud float */
 .cloud-float {
   animation: cloudFloat 4s ease-in-out infinite;
 }
@@ -627,7 +647,6 @@ div.boot-screen .boot-text {
   50% { transform: translateX(2px); }
 }
 
-/* Map pin bounce */
 .pin-bounce {
   animation: pinBounce 2s ease-in-out infinite;
 }
@@ -636,57 +655,65 @@ div.boot-screen .boot-text {
   50% { transform: translateY(-2px); }
 }
 
-/* ── Smart Search (v2 glass pill) ── */
+/* ── Smart Search (v3 teal glass pill) ── */
 .m-search-container {
   position: relative;
-  width: min(88vw, 480px);
-  max-width: calc(100% - 32px);
-  height: 44px;
+  width: 480px;
+  max-width: 90vw;
+  height: 46px;
   z-index: var(--z-search, 1150);
-  pointer-events: none;
 }
 
 .m-search-input {
   width: 100%;
   height: 100%;
-  pointer-events: auto;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(15px);
-  backdrop-filter: blur(15px);
-  padding: 0 20px;
+  border: 1px solid rgba(0, 229, 193, 0.15);
+  background: rgba(0, 229, 193, 0.04);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  padding: 0 22px;
   color: var(--text-bright);
-  font-size: 15px;
+  font-size: 14px;
   font-family: var(--font-sans);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), var(--inner-glow);
+  outline: none;
+  box-shadow:
+    0 0 30px rgba(0, 229, 193, 0.06),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.1),
+    inset 0 0 20px rgba(0, 229, 193, 0.03);
   transition: border-color 0.3s var(--ease-out), box-shadow 0.3s var(--ease-out),
               background 0.3s var(--ease-out), backdrop-filter 0.3s var(--ease-out),
               -webkit-backdrop-filter 0.3s var(--ease-out);
-  outline: none;
 }
 
 .m-search-input::placeholder {
-  color: rgba(200, 220, 240, 0.4);
+  color: rgba(200, 220, 240, 0.35);
   font-weight: 400;
 }
 
-.m-search-input:focus {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.18);
-  -webkit-backdrop-filter: blur(25px);
-  backdrop-filter: blur(25px);
-  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.3), var(--inner-glow);
+.m-search-input:hover {
+  border-color: rgba(0, 229, 193, 0.2);
+  background: rgba(0, 229, 193, 0.06);
+  box-shadow:
+    0 0 40px rgba(0, 229, 193, 0.1),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 20px rgba(0, 229, 193, 0.05);
 }
 
-/* Hide search when in-app */
+.m-search-input:focus {
+  border-color: rgba(0, 229, 193, 0.3);
+  background: rgba(0, 229, 193, 0.08);
+  -webkit-backdrop-filter: blur(32px);
+  backdrop-filter: blur(32px);
+  box-shadow:
+    0 0 50px rgba(0, 229, 193, 0.15),
+    inset 0 0.5px 0 rgba(255, 255, 255, 0.15),
+    inset 0 0 24px rgba(0, 229, 193, 0.06);
+}
+
 body.in-app .m-search-container {
   opacity: 0 !important;
   pointer-events: none !important;
-}
-
-.search-input::placeholder {
-  color: var(--text-dim);
 }
 
 /* ── Context Menu ── */
@@ -842,32 +869,61 @@ body.in-app .m-search-container {
   100% { transform: rotate(1deg); }
 }
 
-/* ── Landscape Adjustments ── */
-@media (orientation: landscape) {
-  .m-grid-page {
-    grid-template-columns: repeat(6, 80px);
-    gap: 4px 8px;
+/* ── Keyboard Focus ── */
+.app-icon:focus-visible .hex-icon {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.nav-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Responsive: Small Phones ── */
+@media (max-width: 700px) {
+  :root {
+    --hex-size: 52px;
   }
 
-  .mobile-dock,
-  .m-dock {
-    height: 64px;
+  .nav-item {
+    padding: 8px 12px;
   }
 
-  .is-mobile .glass-chrome {
-    bottom: calc(80px + var(--safe-bottom, 0px));
+  .nav-bar {
+    min-width: 280px;
+  }
+
+  .m-search-container {
+    height: 42px;
+  }
+
+  .m-search-input {
+    font-size: 13px;
   }
 }
 
-/* ── Small Phones ── */
-@media (max-width: 375px) {
+/* ── Responsive: Large Screens ── */
+@media (min-width: 1400px) {
   :root {
-    --hex-size: 56px;
+    --hex-size: 68px;
+  }
+}
+
+/* ── Touch Devices ── */
+@media (pointer: coarse) {
+  .nav-item {
+    padding: 10px 18px;
   }
 
-  .m-grid-page {
-    grid-template-columns: repeat(4, 68px);
-    gap: 2px 4px;
-    padding: var(--space-xs) var(--space-sm);
+  .m-search-container {
+    height: 50px;
+  }
+}
+
+/* ── Landscape Adjustments ── */
+@media (orientation: landscape) {
+  .is-mobile .glass-chrome {
+    bottom: calc(80px + var(--safe-bottom, 0px));
   }
 }

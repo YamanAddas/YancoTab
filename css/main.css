@@ -2554,27 +2554,7 @@ body.is-mobile .mobile-page-indicator .page-dot:active {
   }
 }
 
-@media (min-width: 900px) {
-  body.is-mobile:not(.is-phone) .mobile-shell {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  body.is-mobile:not(.is-phone) .mobile-search {
-    max-width: 320px;
-  }
-
-  body.is-mobile:not(.is-phone) .mobile-icon-grid {
-    flex: 1;
-  }
-
-  body.is-mobile:not(.is-phone) .mobile-bottom {
-    align-self: flex-end;
-    margin-top: 0;
-    width: auto;
-  }
-}
+/* (v3: removed — shell is always flex-column, no side-by-side layout) */
 
 
 
@@ -6256,13 +6236,7 @@ body.is-mobile .mobile-shell {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.20), 0 4px 8px rgba(0, 0, 0, 0.10);
 }
 
-body.is-mobile .m-grid-container {
-  position: absolute !important;
-  top: 0 !important;
-  left: 0 !important;
-  margin: 0 !important;
-  padding: 0 !important;
-}
+/* (v3: removed — grid is in-flow, not absolute) */
 
 .folder-specular {
   position: absolute;
@@ -6364,45 +6338,11 @@ body.is-mobile .m-grid-container {
   --yancotab-search-width: min(92vw, 620px);
 }
 
-body.is-mobile .status-bar {
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  height: var(--yancotab-status-bar-height) !important;
-  z-index: 1250 !important;
-  padding-left: max(24px, env(safe-area-inset-left, 0px) + 16px) !important;
-  padding-right: max(24px, env(safe-area-inset-right, 0px) + 16px) !important;
-  transition: opacity 220ms ease, transform 220ms ease, padding 220ms ease !important;
-}
+/* (v3: removed — status bar styled in shell.css, top-right only) */
 
-body.is-mobile #smart-search-bar.m-search-container,
-body.is-mobile .m-search-container {
-  position: absolute !important;
-  top: var(--yancotab-search-top) !important;
-  left: 50% !important;
-  transform: translateX(-50%) !important;
-  width: min(var(--yancotab-search-width), calc(100% - 32px)) !important;
-  max-width: calc(100% - 32px) !important;
-  height: var(--yancotab-search-height) !important;
-  z-index: 1150 !important;
-  transition: top 220ms ease, width 220ms ease, max-width 220ms ease, height 220ms ease, opacity 220ms ease !important;
-}
+/* (v3: removed — search bar in flow, styled in shell.css) */
 
-body.is-mobile .m-search-input {
-  height: var(--yancotab-search-height) !important;
-  border-radius: calc(var(--yancotab-search-height) / 2) !important;
-  transition: height 220ms ease, border-radius 220ms ease, padding 220ms ease, font-size 220ms ease !important;
-}
-
-body.is-mobile .m-grid-container {
-  top: var(--m-grid-top, 0px) !important;
-  left: var(--m-grid-left, 0px) !important;
-  width: var(--m-grid-width, 100%) !important;
-  height: var(--m-grid-height, 0px) !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  transition: top 220ms ease, left 220ms ease, width 220ms ease, height 220ms ease !important;
-}
+/* (v3: removed — grid uses flex layout, not CSS vars) */
 
 body.is-mobile .m-app-layer {
   z-index: 2000 !important;
@@ -6440,17 +6380,7 @@ body.is-mobile.is-orientation-transition .m-grid-pages {
   transition-duration: 220ms !important;
 }
 
-@media (orientation: landscape) {
-  body.is-mobile #smart-search-bar.m-search-container,
-  body.is-mobile .m-search-container {
-    max-width: calc(100% - 280px) !important;
-  }
-
-  body.is-mobile .m-search-input {
-    font-size: 15px !important;
-    padding: 0 14px !important;
-  }
-}
+/* (v3: removed — search responsive handled in shell.css) */
 
 /* ── Mobile Grid & Dock Positioning ── */
 /* Status Bar Background */
@@ -6465,25 +6395,9 @@ body.is-mobile.is-orientation-transition .m-grid-pages {
   z-index: 40;
 }
 
-/* Mobile Pages & Grid (v8 - Absolute Full Screen) */
-body.is-mobile .m-grid-container {
-  position: absolute;
-  /* Top/Left/Width/Height controlled by JS LayoutEngine */
-  z-index: 0;
-  /* Behind Dock and Search */
-  overflow: hidden;
-  touch-action: none;
-}
+/* (v3: removed — grid positioning handled by shell.css) */
 
-body.is-mobile .m-grid-pages {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  display: flex;
-  /* Horizontal pages */
-  will-change: transform;
-}
+/* (v3: removed — m-grid-pages styled in shell.css) */
 
 /* Items are absolutely positioned inside m-grid-pages */
 body.is-mobile .app-icon {

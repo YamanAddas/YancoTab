@@ -2,29 +2,33 @@
  * MobileLayoutEngineV2.js
  *
  * Pure math module. No DOM reads/mutations, no global state.
- * Computes grid layout metrics from viewport dimensions and safe insets.
+ * Computes honeycomb grid layout metrics from viewport dimensions.
+ *
+ * Honeycomb layout: even rows have `cols` columns, odd rows have `cols - 1`
+ * columns and are offset horizontally by half a cell width.
  */
 
 export class MobileLayoutEngine {
     constructor(config = {}) {
         this.config = {
-            gap: 12,
-            statusBarHeight: 52,
-            searchTopGap: 10,
-            searchHeight: 50,
-            searchBottomGap: 16,
-            landscapeSearchTop: 5,
-            landscapeSearchHeight: 34,
-            landscapeSearchBottomGap: 8,
-            dockHeightPortrait: 92,
-            dockHeightLandscape: 84,
+            statusBarHeight: 24,
+            greetingHeight: 70,
+            greetingTopGap: 20,
+            searchHeight: 46,
+            searchBottomGap: 20,
+            navBarHeight: 64,
+            navBarMargin: 16,
             gridBottomGap: 8,
-            dotsHeight: 22,
+            dotsHeight: 28,
             sideMargin: 12,
             minGridHeight: 200,
             phoneTopInsetFloor: 0,
             landscapeSideInsetFloor: 0,
             maxGridWidth: 1100,
+            // Honeycomb cell sizes by breakpoint
+            cellSmall: { w: 68, h: 74, hGap: 6, vGap: 2, hex: 52 },
+            cellMedium: { w: 82, h: 84, hGap: 10, vGap: 4, hex: 62 },
+            cellLarge: { w: 90, h: 90, hGap: 14, vGap: 6, hex: 68 },
             ...config,
         };
     }
@@ -59,40 +63,69 @@ export class MobileLayoutEngine {
         const c = this.config;
         const isLandscape = width > height;
 
-        const topReserved = isLandscape
-            ? c.statusBarHeight + c.landscapeSearchBottomGap
-            : c.statusBarHeight + c.searchTopGap + c.searchHeight + c.searchBottomGap;
-        const dockHeight = isLandscape ? c.dockHeightLandscape : c.dockHeightPortrait;
-        const bottomReserved = dockHeight + c.gridBottomGap + c.dotsHeight + insets.bottom;
+        // Top reserved: time bar + greeting + search
+        const topReserved = insets.top + c.greetingTopGap + c.greetingHeight
+            + c.searchHeight + c.searchBottomGap;
+
+        // Bottom reserved: nav bar + dots + padding
+        const bottomReserved = c.navBarHeight + c.navBarMargin + c.gridBottomGap
+            + c.dotsHeight + insets.bottom;
+
         const availableHeight = height - topReserved - bottomReserved;
 
+        // Grid width calculation
         let leftMargin = Math.max(c.sideMargin, insets.left);
         const rightMargin = Math.max(c.sideMargin, insets.right);
         let gridWidth = Math.max(220, width - leftMargin - rightMargin);
 
-        // Cap grid width on wide viewports (desktop) and center it
         if (gridWidth > c.maxGridWidth) {
             const excess = gridWidth - c.maxGridWidth;
             gridWidth = c.maxGridWidth;
             leftMargin += Math.floor(excess / 2);
         }
 
-        const gridHeight = Math.max(c.minGridHeight, availableHeight);
-
-        let cols;
-        let rows;
-        if (isLandscape) {
-            cols = gridWidth >= 1000 ? 8 : gridWidth >= 800 ? 7 : 6;
-            rows = availableHeight >= 520 ? 4 : availableHeight >= 380 ? 3 : 2;
+        // Pick cell size based on viewport width
+        let cell;
+        if (width <= 700) {
+            cell = c.cellSmall;
+        } else if (width >= 1400) {
+            cell = c.cellLarge;
         } else {
-            cols = width >= 768 ? 6 : 4;
-            rows = height >= 900 ? 6 : height >= 700 ? 5 : 4;
+            cell = c.cellMedium;
         }
 
-        const cellWidth = (gridWidth - (cols - 1) * c.gap) / cols;
-        const cellHeight = (gridHeight - (rows - 1) * c.gap) / rows;
-        const iconSize = Math.min(64, Math.min(cellWidth, cellHeight) * 0.75);
+        const cellWidth = cell.w;
+        const cellHeight = cell.h;
+        const hGap = cell.hGap;
+        const vGap = cell.vGap;
+        const iconSize = cell.hex;
 
+        // Calculate columns from available width
+        // Even row: cols * cellWidth + (cols-1) * hGap <= gridWidth
+        let cols = Math.floor((gridWidth + hGap) / (cellWidth + hGap));
+        if (isLandscape) {
+            cols = Math.max(5, Math.min(9, cols));
+        } else {
+            cols = Math.max(4, Math.min(8, cols));
+        }
+
+        // Calculate rows from available height
+        let rows = Math.floor((availableHeight + vGap) / (cellHeight + vGap));
+        if (isLandscape) {
+            rows = Math.max(2, Math.min(3, rows));
+        } else {
+            rows = Math.max(2, Math.min(5, rows));
+        }
+
+        // Honeycomb content dimensions
+        const contentWidth = cols * cellWidth + (cols - 1) * hGap;
+        const contentHeight = rows * cellHeight + (rows - 1) * vGap;
+        const gridHeight = Math.max(c.minGridHeight, contentHeight);
+
+        // Items per page (honeycomb: even rows = cols, odd rows = cols - 1)
+        const itemsPerPage = MobileLayoutEngine.calcItemsPerPage(cols, rows);
+
+        // Search area
         const portraitSearchWidth = Math.max(240, Math.min(620, width - 32));
         const landscapeSearchWidth = Math.max(240, Math.min(560, width - leftMargin - rightMargin - 260));
 
@@ -101,8 +134,8 @@ export class MobileLayoutEngine {
             insets,
             statusBarHeight: c.statusBarHeight,
             searchArea: {
-                top: isLandscape ? c.landscapeSearchTop : c.statusBarHeight + c.searchTopGap,
-                height: isLandscape ? c.landscapeSearchHeight : c.searchHeight,
+                top: insets.top + c.greetingTopGap + c.greetingHeight,
+                height: c.searchHeight,
                 width: isLandscape ? landscapeSearchWidth : portraitSearchWidth,
             },
             gridArea: {
@@ -110,63 +143,116 @@ export class MobileLayoutEngine {
                 height: gridHeight,
                 top: topReserved,
                 left: leftMargin,
+                contentWidth,
+                contentHeight,
             },
             metrics: {
                 cols,
+                colsOdd: cols - 1,
                 rows,
                 cellWidth,
                 cellHeight,
-                gap: c.gap,
-                itemsPerPage: cols * rows,
+                hGap,
+                vGap,
+                gap: hGap,
+                itemsPerPage,
                 iconSize,
+                honeycomb: true,
             },
         };
     }
+
     /**
-   * Pixel position of a cell (local to grid container).
-   * @param {number} page
-   * @param {number} row
-   * @param {number} col
-   * @param {number} pageWidth  Width of one page (= gridArea.width)
-   * @param {object} layout     Output of calculateLayout()
-   * @returns {{ x: number, y: number }}
-   */
+     * Pixel position of a cell (local to grid container).
+     * Honeycomb: odd rows offset by half a cell+gap.
+     */
     getCellPosition(page, row, col, pageWidth, layout) {
         const m = layout.metrics;
+        const honeycombWidth = m.cols * m.cellWidth + (m.cols - 1) * m.hGap;
+        const centerOffset = Math.max(0, (pageWidth - honeycombWidth) / 2);
+        const rowOffset = row % 2 === 1 ? (m.cellWidth + m.hGap) / 2 : 0;
+
         return {
-            x: page * pageWidth + col * (m.cellWidth + m.gap),
-            y: row * (m.cellHeight + m.gap),
+            x: page * pageWidth + centerOffset + col * (m.cellWidth + m.hGap) + rowOffset,
+            y: row * (m.cellHeight + m.vGap),
         };
     }
 
     /**
      * Convert a local point (relative to grid container) to page/row/col.
-     * @param {number} localX       X within grid container
-     * @param {number} localY       Y within grid container
-     * @param {number} pageOffset   Current scroll offset (negative for pages > 0)
-     * @param {number} pageWidth    Width of one page
-     * @param {object} layout       Output of calculateLayout()
-     * @returns {{ page, row, col } | null}
+     * Honeycomb-aware: accounts for row offset and varying column counts.
      */
     getGridLocationFromPoint(localX, localY, pageOffset, pageWidth, layout) {
         const m = layout.metrics;
+        const honeycombWidth = m.cols * m.cellWidth + (m.cols - 1) * m.hGap;
+        const centerOffset = Math.max(0, (pageWidth - honeycombWidth) / 2);
 
-        // VirtualX accounts for the scroll offset
         const virtualX = localX - pageOffset;
         const page = Math.floor(virtualX / pageWidth);
-        const pageRelX = virtualX % pageWidth;
+        const pageRelX = virtualX - page * pageWidth - centerOffset;
 
-        // Bounds check with some tolerance
-        if (
-            pageRelX < -10 || pageRelX > layout.gridArea.width + 10 ||
-            localY < -10 || localY > layout.gridArea.height + 10
-        ) {
-            return null;
-        }
+        // Determine row
+        const vStep = m.cellHeight + m.vGap;
+        if (localY < -10 || localY > layout.gridArea.height + 10) return null;
+        const row = Math.max(0, Math.min(m.rows - 1, Math.floor((localY + m.vGap / 2) / vStep)));
 
-        const col = Math.max(0, Math.min(m.cols - 1, Math.floor(pageRelX / (m.cellWidth + m.gap))));
-        const row = Math.max(0, Math.min(m.rows - 1, Math.floor(localY / (m.cellHeight + m.gap))));
+        // Determine col, accounting for row offset
+        const rowOffset = row % 2 === 1 ? (m.cellWidth + m.hGap) / 2 : 0;
+        const adjustedX = pageRelX - rowOffset;
+        const maxCols = MobileLayoutEngine.colsForRow(row, m);
+
+        if (adjustedX < -(m.cellWidth / 2) || pageRelX > honeycombWidth + 10) return null;
+
+        const col = Math.max(0, Math.min(maxCols - 1,
+            Math.floor((adjustedX + m.hGap / 2) / (m.cellWidth + m.hGap))));
 
         return { page, row, col };
+    }
+
+    // ─── Static Helpers (used by MobileGridState) ─────────────
+
+    /**
+     * Number of columns for a given row in honeycomb layout.
+     * Even rows: cols, Odd rows: cols - 1.
+     */
+    static colsForRow(row, metrics) {
+        return row % 2 === 0 ? metrics.cols : (metrics.colsOdd ?? metrics.cols - 1);
+    }
+
+    /**
+     * Total items that fit on one page.
+     */
+    static calcItemsPerPage(cols, rows) {
+        let total = 0;
+        for (let r = 0; r < rows; r++) {
+            total += r % 2 === 0 ? cols : cols - 1;
+        }
+        return total;
+    }
+
+    /**
+     * Convert a linear slot index (within a page) to { row, col }.
+     */
+    static slotToRowCol(slotInPage, metrics) {
+        let count = 0;
+        for (let r = 0; r < metrics.rows; r++) {
+            const rc = MobileLayoutEngine.colsForRow(r, metrics);
+            if (slotInPage < count + rc) {
+                return { row: r, col: slotInPage - count };
+            }
+            count += rc;
+        }
+        return null;
+    }
+
+    /**
+     * Convert { row, col } to a linear slot index (within a page).
+     */
+    static rowColToSlot(row, col, metrics) {
+        let slot = 0;
+        for (let r = 0; r < row; r++) {
+            slot += MobileLayoutEngine.colsForRow(r, metrics);
+        }
+        return slot + col;
     }
 }

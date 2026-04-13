@@ -29,7 +29,7 @@ export class AppGrid {
     this.dotsContainer = el('div', { class: 'm-grid-dots' });
 
     this.root.appendChild(this.pagesContainer);
-    this.root.appendChild(this.dotsContainer);
+    // Dots are mounted separately by the shell (grid has overflow:hidden)
 
     // Debug (disabled for production)
     this.debug = { log() { }, update() { }, error() { } };
@@ -238,19 +238,8 @@ export class AppGrid {
     this.currentLayout = this.layoutEngine.calculateLayout(w, h, safeInsets);
 
     const g = this.currentLayout.gridArea;
-    const search = this.currentLayout.searchArea || {};
 
-    // Apply layout engine's calculated area directly.
-    this.root.style.setProperty('--m-grid-top', `${g.top}px`);
-    this.root.style.setProperty('--m-grid-left', `${g.left}px`);
-    this.root.style.setProperty('--m-grid-width', `${g.width}px`);
-    this.root.style.setProperty('--m-grid-height', `${g.height}px`);
-    document.documentElement.style.setProperty('--yancotab-status-bar-height', `${this.currentLayout.statusBarHeight || 44}px`);
-    document.documentElement.style.setProperty('--yancotab-search-top', `${search.top ?? 56}px`);
-    document.documentElement.style.setProperty('--yancotab-search-height', `${search.height ?? 50}px`);
-    document.documentElement.style.setProperty('--yancotab-search-width', `${search.width ?? Math.min(window.innerWidth * 0.92, 620)}px`);
-    this.root.style.top = `${g.top}px`;
-    this.root.style.left = `${g.left}px`;
+    // Grid is in flow (not absolute) — just set dimensions
     this.root.style.width = `${g.width}px`;
     this.root.style.height = `${g.height}px`;
 
@@ -431,8 +420,10 @@ export class AppGrid {
     const label = el('div', {
       class: 'app-label',
       style: {
-        fontSize: '11px', color: '#fff', textAlign: 'center',
-        textShadow: '0 1px 2px rgba(0,0,0,0.5)',
+        fontSize: '10px', fontWeight: '500', color: 'rgba(200,220,240,0.5)',
+        textAlign: 'center',
+        textShadow: '0 1px 6px rgba(0,0,0,0.9)',
+        letterSpacing: '0.3px',
         whiteSpace: 'nowrap', overflow: 'hidden',
         textOverflow: 'ellipsis', maxWidth: '100%',
       },
@@ -458,24 +449,22 @@ export class AppGrid {
     this.dotsContainer.innerHTML = '';
 
     Object.assign(this.dotsContainer.style, {
-      position: 'absolute', bottom: '8px', left: '50%',
-      transform: 'translateX(-50%)',
-      height: '24px', minWidth: '60px', padding: '0 12px',
       display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-      zIndex: '40',
-      background: 'rgba(0,0,0,0.2)', borderRadius: '12px',
-      backdropFilter: 'blur(10px)',
+      padding: '8px 0 4px',
       touchAction: 'none', cursor: 'pointer',
     });
 
     for (let i = 0; i < count; i++) {
+      const isActive = i === activeIndex;
       const dot = el('div', {
         class: 'dot',
         style: {
-          width: '6px', height: '6px', borderRadius: '50%',
-          backgroundColor: i === activeIndex ? '#fff' : 'rgba(255,255,255,0.4)',
-          transition: 'all 0.2s',
-          boxShadow: i === activeIndex ? '0 0 4px rgba(255,255,255,0.5)' : 'none',
+          width: isActive ? '18px' : '6px',
+          height: '6px',
+          borderRadius: isActive ? '3px' : '50%',
+          backgroundColor: isActive ? '#00e5c1' : 'rgba(200,220,240,0.2)',
+          transition: 'all 0.3s',
+          boxShadow: isActive ? '0 0 8px rgba(0,229,193,0.4)' : 'none',
           pointerEvents: 'none',
         },
       });
@@ -490,8 +479,11 @@ export class AppGrid {
 
     const dots = this.dotsContainer.querySelectorAll('.dot');
     dots.forEach((d, i) => {
-      d.style.backgroundColor = i === index ? '#fff' : 'rgba(255,255,255,0.4)';
-      d.style.boxShadow = i === index ? '0 0 4px rgba(255,255,255,0.5)' : 'none';
+      const isActive = i === index;
+      d.style.width = isActive ? '18px' : '6px';
+      d.style.borderRadius = isActive ? '3px' : '50%';
+      d.style.backgroundColor = isActive ? '#00e5c1' : 'rgba(200,220,240,0.2)';
+      d.style.boxShadow = isActive ? '0 0 8px rgba(0,229,193,0.4)' : 'none';
     });
     this.interaction.currentPage = index;
   }

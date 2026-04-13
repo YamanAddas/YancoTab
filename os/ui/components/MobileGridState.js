@@ -13,7 +13,9 @@
  * Orientation stability: positionsByMode { portrait: {}, landscape: {} }
  */
 
-const STORAGE_KEY = 'yancotab_mobile_grid_v8';
+import { MobileLayoutEngine } from './MobileLayoutEngineV2.js';
+
+const STORAGE_KEY = 'yancotab_mobile_grid_v10';
 
 export class MobileGridState {
   constructor() {
@@ -112,7 +114,8 @@ export class MobileGridState {
     if (!item) return;
 
     const m = this.layout.metrics;
-    if (row >= m.rows || col >= m.cols || row < 0 || col < 0 || page < 0) return;
+    const maxCols = MobileLayoutEngine.colsForRow(row, m);
+    if (row >= m.rows || col >= maxCols || row < 0 || col < 0 || page < 0) return;
 
     const occupant = this._findItemAt(page, row, col);
     if (occupant && occupant.id !== id) {
@@ -322,12 +325,13 @@ export class MobileGridState {
       return String(a.title || a.id).localeCompare(String(b.title || b.id));
     });
 
-    const ipp = metrics.cols * metrics.rows;
+    const ipp = metrics.itemsPerPage || MobileLayoutEngine.calcItemsPerPage(metrics.cols, metrics.rows);
     visible.forEach((item, index) => {
       item.page = Math.floor(index / ipp);
       const local = index % ipp;
-      item.row = Math.floor(local / metrics.cols);
-      item.col = local % metrics.cols;
+      const pos = MobileLayoutEngine.slotToRowCol(local, metrics) || { row: 0, col: 0 };
+      item.row = pos.row;
+      item.col = pos.col;
     });
 
     if (resetSavedModes) {
@@ -371,12 +375,13 @@ export class MobileGridState {
       return String(a.id || '').localeCompare(String(b.id || ''), undefined, { numeric: true, sensitivity: 'base' });
     });
 
-    const ipp = metrics.cols * metrics.rows;
+    const ipp = metrics.itemsPerPage || MobileLayoutEngine.calcItemsPerPage(metrics.cols, metrics.rows);
     visible.forEach((item, index) => {
       item.page = Math.floor(index / ipp);
       const local = index % ipp;
-      item.row = Math.floor(local / metrics.cols);
-      item.col = local % metrics.cols;
+      const pos = MobileLayoutEngine.slotToRowCol(local, metrics) || { row: 0, col: 0 };
+      item.row = pos.row;
+      item.col = pos.col;
     });
 
     if (resetSavedModes) {
@@ -439,7 +444,8 @@ export class MobileGridState {
       if (!p) continue;
       const page = Number(p.page), row = Number(p.row), col = Number(p.col);
       if (!Number.isFinite(page) || !Number.isFinite(row) || !Number.isFinite(col)) continue;
-      if (row < 0 || col < 0 || row >= m.rows || col >= m.cols || page < 0) continue;
+      const maxCols = MobileLayoutEngine.colsForRow(row, m);
+      if (row < 0 || col < 0 || row >= m.rows || col >= maxCols || page < 0) continue;
 
       const key = `${page}:${row}:${col}`;
       if (used.has(key)) continue;
@@ -488,12 +494,18 @@ export class MobileGridState {
       return String(a.id).localeCompare(String(b.id));
     });
 
-    const ipp = m.cols * m.rows;
+    const ipp = m.itemsPerPage || MobileLayoutEngine.calcItemsPerPage(m.cols, m.rows);
     visible.forEach((item, index) => {
       item.page = Math.floor(index / ipp);
       const local = index % ipp;
-      item.row = Math.floor(local / m.cols);
-      item.col = local % m.cols;
+      const pos = MobileLayoutEngine.slotToRowCol(local, m);
+      if (pos) {
+        item.row = pos.row;
+        item.col = pos.col;
+      } else {
+        item.row = 0;
+        item.col = 0;
+      }
     });
 
     this._updatePageCount();
@@ -501,9 +513,13 @@ export class MobileGridState {
 
   _layoutSequentially(apps) {
     const m = this.layout.metrics;
-    const ipp = m.cols * m.rows;
+    const ipp = m.itemsPerPage || MobileLayoutEngine.calcItemsPerPage(m.cols, m.rows);
 
     apps.forEach((app, index) => {
+      const page = Math.floor(index / ipp);
+      const local = index % ipp;
+      const pos = MobileLayoutEngine.slotToRowCol(local, m) || { row: 0, col: 0 };
+
       this.items.set(app.id, {
         id: app.id,
         type: app.type || 'app',
@@ -513,9 +529,9 @@ export class MobileGridState {
         scheme: app.scheme,
         parent: null,
         children: [],
-        page: Math.floor(index / ipp),
-        row: Math.floor((index % ipp) / m.cols),
-        col: (index % ipp) % m.cols,
+        page,
+        row: pos.row,
+        col: pos.col,
         hidden: false,
       });
     });
@@ -552,20 +568,21 @@ export class MobileGridState {
    * Mutates both the items and the used set.
    */
   _fillIntoEmptySlots(items, used, metrics) {
+    const ipp = metrics.itemsPerPage || MobileLayoutEngine.calcItemsPerPage(metrics.cols, metrics.rows);
     let slotIndex = 0;
     for (const item of items) {
       while (true) {
-        const page = Math.floor(slotIndex / (metrics.cols * metrics.rows));
-        const local = slotIndex % (metrics.cols * metrics.rows);
-        const row = Math.floor(local / metrics.cols);
-        const col = local % metrics.cols;
-        const key = `${page}:${row}:${col}`;
+        const page = Math.floor(slotIndex / ipp);
+        const local = slotIndex % ipp;
+        const pos = MobileLayoutEngine.slotToRowCol(local, metrics);
         slotIndex++;
 
+        if (!pos) continue; // safety
+        const key = `${page}:${pos.row}:${pos.col}`;
         if (!used.has(key)) {
           item.page = page;
-          item.row = row;
-          item.col = col;
+          item.row = pos.row;
+          item.col = pos.col;
           used.add(key);
           break;
         }

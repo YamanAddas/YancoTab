@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept C — Nebula Deck</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #020608;
+    color: #c8d6e5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Layered Space Background ── */
+  .bg {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 50% 35% at 50% 100%, rgba(0,229,193,0.08) 0%, transparent 70%),
+      radial-gradient(ellipse 80% 50% at 30% 60%, rgba(0,60,120,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 70% 40%, rgba(0,229,193,0.04) 0%, transparent 50%),
+      #020608;
+  }
+
+  .stars {
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 5% 25%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 18% 68%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1.5px 1.5px at 32% 12%, rgba(0,229,193,0.45), transparent),
+      radial-gradient(1px 1px at 48% 52%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 62% 88%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 75% 22%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1.5px 1.5px at 88% 72%, rgba(0,229,193,0.3), transparent),
+      radial-gradient(1px 1px at 42% 38%, rgba(255,255,255,0.2), transparent),
+      radial-gradient(1px 1px at 95% 48%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 15% 92%, rgba(255,255,255,0.3), transparent);
+  }
+
+  /* ── Ground Glow (YancoVerse platform feel) ── */
+  .ground-glow {
+    position: fixed;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(0,229,193,0.08) 0%, transparent 70%);
+    filter: blur(40px);
+    pointer-events: none;
+  }
+
+  /* ── Shell ── */
+  .shell {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 32px;
+  }
+
+  /* ── Top Bar: Greeting left, Search center, Status right ── */
+  .top-bar {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 24px 0 0;
+    height: 68px;
+  }
+
+  .greeting {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .greeting h1 {
+    font-size: 20px;
+    font-weight: 600;
+    color: #e0ecf5;
+    letter-spacing: -0.01em;
+  }
+
+  .greeting p {
+    font-size: 11px;
+    font-weight: 300;
+    color: rgba(200,220,240,0.4);
+    margin-top: 3px;
+  }
+
+  .search-pill {
+    width: 420px;
+    height: 42px;
+    border-radius: 999px;
+    border: 0.5px solid rgba(0,229,193,0.12);
+    background: rgba(255,255,255,0.03);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+    font-size: 13px;
+    color: rgba(200,220,240,0.3);
+    box-shadow:
+      0 4px 24px rgba(0,0,0,0.2),
+      inset 0 0.5px 0 rgba(255,255,255,0.08);
+    transition: all 0.3s;
+  }
+
+  .search-pill:hover {
+    border-color: rgba(0,229,193,0.2);
+    background: rgba(255,255,255,0.05);
+  }
+
+  .search-dot {
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid rgba(0,229,193,0.3);
+    border-radius: 50%;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .search-dot::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 5px;
+    height: 1.5px;
+    background: rgba(0,229,193,0.3);
+    transform: rotate(45deg);
+  }
+
+  .status-area {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: rgba(200,220,240,0.45);
+    font-weight: 500;
+  }
+
+  .status-area .time {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 13px;
+    color: rgba(200,220,240,0.6);
+  }
+
+  /* ── Widget Strip ── */
+  .widget-strip {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0 8px;
+    justify-content: center;
+  }
+
+  .widget {
+    height: 78px;
+    min-width: 150px;
+    border-radius: 14px;
+    padding: 12px 16px;
+    background: rgba(4,12,24,0.45);
+    backdrop-filter: blur(16px);
+    border: 0.5px solid rgba(0,229,193,0.06);
+    box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.25s;
+  }
+
+  .widget:hover {
+    border-color: rgba(0,229,193,0.15);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,229,193,0.04), inset 0 0.5px 0 rgba(255,255,255,0.08);
+  }
+
+  .widget-wide { min-width: 280px; }
+
+  .widget-val {
+    font-size: 26px;
+    font-weight: 200;
+    color: #e0ecf5;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+
+  .widget-sub {
+    font-size: 10px;
+    color: rgba(200,220,240,0.3);
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+  }
+
+  /* ── Hex Grid (Honeycomb offset) ── */
+  .grid-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .honeycomb {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+
+  .hex-row {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .hex-row.offset {
+    margin-left: 44px;
+  }
+
+  .hex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 7px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    width: 84px;
+  }
+
+  .hex-item:hover { transform: translateY(-5px) scale(1.04); }
+
+  .hex {
+    width: 62px;
+    height: 62px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(160deg, rgba(10,28,52,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    position: relative;
+    transition: all 0.3s;
+    filter: drop-shadow(0 0 8px rgba(0,229,193,0.1)) drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+  }
+
+  /* Thick glowing border (YancoVerse signature) */
+  .hex::before {
+    content: '';
+    position: absolute;
+    inset: -2.5px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.5), rgba(0,229,193,0.1) 50%, rgba(0,229,193,0.3));
+    z-index: -1;
+    opacity: 0.35;
+    transition: opacity 0.3s;
+  }
+
+  /* Inner specular ring */
+  .hex::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(to bottom, rgba(255,255,255,0.06), transparent 40%);
+    pointer-events: none;
+  }
+
+  .hex-item:hover .hex::before { opacity: 0.7; }
+  .hex-item:hover .hex {
+    filter: drop-shadow(0 0 18px rgba(0,229,193,0.3)) drop-shadow(0 4px 12px rgba(0,0,0,0.4));
+  }
+
+  .hex-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(200,220,240,0.5);
+    text-align: center;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    letter-spacing: 0.3px;
+  }
+
+  .hex.folder-hex {
+    background: linear-gradient(160deg, rgba(0,229,193,0.06), rgba(4,12,24,0.92));
+  }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .mini-cell {
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+  }
+
+  /* ── Dock ── */
+  .dock {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0 22px;
+  }
+
+  .dock-bar {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 12px 32px;
+    border-radius: 32px;
+    background: rgba(4,10,20,0.4);
+    backdrop-filter: blur(32px);
+    border: 0.5px solid rgba(0,229,193,0.1);
+    box-shadow:
+      0 0 40px rgba(0,229,193,0.04),
+      0 -2px 20px rgba(0,229,193,0.02),
+      inset 0 0.5px 0 rgba(255,255,255,0.08);
+    position: relative;
+  }
+
+  /* Top edge glow line */
+  .dock-bar::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,229,193,0.3), transparent);
+    border-radius: 1px;
+  }
+
+  .dock-icon {
+    width: 46px;
+    height: 46px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(160deg, rgba(10,28,52,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    filter: drop-shadow(0 0 6px rgba(0,229,193,0.1));
+  }
+
+  .dock-icon:hover {
+    transform: scale(1.15) translateY(-3px);
+    filter: drop-shadow(0 0 14px rgba(0,229,193,0.25));
+  }
+
+  .dock-icon::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.35), rgba(0,229,193,0.08));
+    z-index: -1;
+    opacity: 0.4;
+  }
+
+  .dock-icon:hover::before { opacity: 0.7; }
+
+  .dock-label {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: 8px;
+    font-size: 10px;
+    color: rgba(200,220,240,0.7);
+    background: rgba(4,12,24,0.8);
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 0.5px solid rgba(0,229,193,0.15);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+
+  .dock-icon:hover .dock-label { opacity: 1; }
+
+  /* ── Quick Links (floating row above dock) ── */
+  .quick-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    padding: 4px 0;
+  }
+
+  .quick-chip {
+    height: 30px;
+    padding: 0 14px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.03);
+    border: 0.5px solid rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: rgba(200,220,240,0.4);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .quick-chip:hover {
+    background: rgba(0,229,193,0.06);
+    border-color: rgba(0,229,193,0.15);
+    color: rgba(200,220,240,0.7);
+  }
+
+  .quick-chip img {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  /* ── Concept Label ── */
+  .concept-tag {
+    position: fixed;
+    bottom: 12px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(0,229,193,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="stars"></div>
+<div class="ground-glow"></div>
+
+<div class="shell">
+  <!-- Top Bar -->
+  <div class="top-bar">
+    <div class="greeting">
+      <h1>Good afternoon</h1>
+      <p>Monday, April 13 &middot; 0&deg;C Current Location</p>
+    </div>
+    <div class="search-pill">
+      <div class="search-dot"></div>
+      Search, &gt; commands, ! quick notes...
+    </div>
+    <div class="status-area">
+      <span class="time">2:03 PM</span>
+      <span>100% &#x1F50B;</span>
+    </div>
+  </div>
+
+  <!-- Widget Strip -->
+  <div class="widget-strip">
+    <div class="widget">
+      <div class="widget-val">2:03</div>
+      <div class="widget-sub">Local Time</div>
+    </div>
+    <div class="widget widget-wide">
+      <div class="widget-val">0&deg;C <span style="font-size:13px;opacity:0.4;font-weight:300;">Partly Cloudy</span></div>
+      <div class="widget-sub">Weather</div>
+    </div>
+    <div class="widget">
+      <div class="widget-val">25:00</div>
+      <div class="widget-sub">Pomodoro</div>
+    </div>
+    <div class="widget">
+      <div class="widget-val">3</div>
+      <div class="widget-sub">Tasks Left</div>
+    </div>
+  </div>
+
+  <!-- Hex Grid (Honeycomb offset layout) -->
+  <div class="grid-area">
+    <div class="honeycomb">
+      <!-- Row 1: 7 icons -->
+      <div class="hex-row">
+        <div class="hex-item">
+          <div class="hex">&#x1F310;</div>
+          <div class="hex-label">Browser</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F5A9;</div>
+          <div class="hex-label">Calculator</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F551;</div>
+          <div class="hex-label">Clock</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4C1;</div>
+          <div class="hex-label">Files</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4CD;</div>
+          <div class="hex-label">Maps</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4DD;</div>
+          <div class="hex-label">Notes</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x26C5;</div>
+          <div class="hex-label">Weather</div>
+        </div>
+      </div>
+      <!-- Row 2: 6 icons, offset -->
+      <div class="hex-row offset">
+        <div class="hex-item">
+          <div class="hex">&#x2699;&#xFE0F;</div>
+          <div class="hex-label">Settings</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x2705;</div>
+          <div class="hex-label">Todo</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F916;</div>
+              <div class="mini-cell">&#x2728;</div>
+              <div class="mini-cell">&#x1F4AC;</div>
+              <div class="mini-cell">&#x1F9E0;</div>
+            </div>
+          </div>
+          <div class="hex-label">AI</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F3AE;</div>
+              <div class="mini-cell">&#x1F0CF;</div>
+              <div class="mini-cell">&#x1F40D;</div>
+              <div class="mini-cell">&#x1F9E9;</div>
+            </div>
+          </div>
+          <div class="hex-label">Games</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F426;</div>
+              <div class="mini-cell">&#x1F4F7;</div>
+              <div class="mini-cell">&#x1F3AC;</div>
+              <div class="mini-cell">&#x1F464;</div>
+            </div>
+          </div>
+          <div class="hex-label">Social</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F4FA;</div>
+              <div class="mini-cell">&#x1F3AC;</div>
+              <div class="mini-cell">&#x1F39E;</div>
+              <div class="mini-cell">&#x25B6;</div>
+            </div>
+          </div>
+          <div class="hex-label">TV</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Links -->
+  <div class="quick-row">
+    <div class="quick-chip">&#x1F30D; Google</div>
+    <div class="quick-chip">&#x1F4E7; Gmail</div>
+    <div class="quick-chip">&#x1F4F9; YouTube</div>
+    <div class="quick-chip">&#x1F4AC; ChatGPT</div>
+    <div class="quick-chip">&#x2795; Add</div>
+  </div>
+
+  <!-- Dock -->
+  <div class="dock">
+    <div class="dock-bar">
+      <div class="dock-icon">
+        &#x1F310;
+        <div class="dock-label">Browser</div>
+      </div>
+      <div class="dock-icon">
+        &#x1F4C1;
+        <div class="dock-label">Files</div>
+      </div>
+      <div class="dock-icon">
+        &#x2699;&#xFE0F;
+        <div class="dock-label">Settings</div>
+      </div>
+      <div class="dock-icon">
+        &#x1F4DD;
+        <div class="dock-label">Notes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="concept-tag">Concept C &mdash; Nebula Deck</div>
+</body>
+</html>

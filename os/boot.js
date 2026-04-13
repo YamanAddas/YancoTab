@@ -26,7 +26,15 @@ window.addEventListener('unhandledrejection', (e) => {
   }
 });
 
-const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+const nextFrame = () => new Promise((resolve) => {
+  if (typeof requestAnimationFrame === 'function') {
+    const id = requestAnimationFrame(resolve);
+    // Fallback if rAF doesn't fire (background tab / headless)
+    setTimeout(() => { cancelAnimationFrame(id); resolve(); }, 50);
+  } else {
+    setTimeout(resolve, 16);
+  }
+});
 
 function applyInitialTheme() {
   const mode = localStorage.getItem('yancotab_theme_mode');

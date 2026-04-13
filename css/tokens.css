@@ -107,8 +107,11 @@
 
   /* ── Hex Icon ── */
   --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  --hex-size: 64px;
-  --hex-gap:  14px;
+  --hex-size: 62px;
+  --hex-gap:  10px;
+
+  /* ── Nav Bar ── */
+  --nav-height: 64px;
 
   /* ── Legacy Aliases (v1.0 compat) ── */
   --glass-bg: rgba(255, 255, 255, 0.1);

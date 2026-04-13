@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git clone:*)",
+      "Bash(git branch:*)",
+      "Bash(wc -l /d/YancoTab/os/apps/*.js /d/YancoTab/os/apps/games/*.js)",
+      "Bash(xargs wc:*)",
+      "Bash(xargs ls:*)",
+      "Bash(awk '{print $9, $5}')",
+      "WebSearch",
+      "Bash(python3 -c \"from PIL import Image; print\\('Pillow available'\\)\")",
+      "Bash(python -c \"from PIL import Image; print\\('Pillow available'\\)\")",
+      "Bash(git add:*)",
+      "Bash(git commit -m ':*)",
+      "Bash(git push:*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concept B — Command Bridge</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #020608;
+    color: #c8d6e5;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  /* ── Deep Space Background ── */
+  .bg {
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 55%, rgba(0,229,193,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse 100% 60% at 50% 120%, rgba(0,60,100,0.2) 0%, transparent 50%),
+      #020608;
+  }
+
+  .stars {
+    position: fixed;
+    inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 8% 15%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 22% 70%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 40% 8%, rgba(0,229,193,0.4), transparent),
+      radial-gradient(1px 1px at 55% 45%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 78% 30%, rgba(255,255,255,0.35), transparent),
+      radial-gradient(1px 1px at 92% 65%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1.5px 1.5px at 35% 88%, rgba(0,229,193,0.35), transparent),
+      radial-gradient(1px 1px at 68% 82%, rgba(255,255,255,0.25), transparent),
+      radial-gradient(1px 1px at 12% 50%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 85% 12%, rgba(255,255,255,0.4), transparent);
+  }
+
+  /* ── Layout: Sidebar + Main ── */
+  .shell {
+    position: relative;
+    z-index: 1;
+    height: 100vh;
+    display: flex;
+  }
+
+  /* ── Sidebar (YancoVerse-inspired) ── */
+  .sidebar {
+    width: 72px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0;
+    gap: 6px;
+    background: rgba(4,10,20,0.6);
+    backdrop-filter: blur(24px);
+    border-right: 0.5px solid rgba(0,229,193,0.1);
+    box-shadow: inset -0.5px 0 0 rgba(255,255,255,0.05);
+  }
+
+  .sidebar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(0,229,193,0.15), rgba(0,229,193,0.05));
+    border: 1px solid rgba(0,229,193,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 200;
+    color: rgba(0,229,193,0.8);
+    margin-bottom: 16px;
+    box-shadow: 0 0 20px rgba(0,229,193,0.1);
+  }
+
+  .sidebar-item {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: rgba(200,220,240,0.4);
+    font-size: 18px;
+    position: relative;
+  }
+
+  .sidebar-item:hover {
+    background: rgba(0,229,193,0.08);
+    color: rgba(0,229,193,0.8);
+  }
+
+  .sidebar-item.active {
+    background: rgba(0,229,193,0.1);
+    color: rgba(0,229,193,0.9);
+    box-shadow: 0 0 15px rgba(0,229,193,0.08);
+  }
+
+  .sidebar-item.active::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    width: 3px;
+    height: 20px;
+    border-radius: 0 2px 2px 0;
+    background: rgba(0,229,193,0.7);
+    box-shadow: 0 0 8px rgba(0,229,193,0.4);
+  }
+
+  .sidebar-label {
+    font-size: 8px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .sidebar-spacer { flex: 1; }
+
+  /* ── Main Content ── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 0 48px;
+    max-width: 1100px;
+    position: relative;
+  }
+
+  /* ── Top Bar ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 0 0;
+    height: 60px;
+  }
+
+  .top-left {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .top-left h1 {
+    font-size: 22px;
+    font-weight: 600;
+    color: #e0ecf5;
+    letter-spacing: -0.01em;
+  }
+
+  .top-left p {
+    font-size: 12px;
+    font-weight: 300;
+    color: rgba(200,220,240,0.4);
+    margin-top: 2px;
+  }
+
+  .top-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .search-pill {
+    width: 360px;
+    height: 40px;
+    border-radius: 999px;
+    border: 0.5px solid rgba(0,229,193,0.12);
+    background: rgba(0,229,193,0.03);
+    backdrop-filter: blur(20px);
+    display: flex;
+    align-items: center;
+    padding: 0 18px;
+    gap: 8px;
+    font-size: 13px;
+    color: rgba(200,220,240,0.35);
+    box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.08);
+  }
+
+  .search-dot {
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(0,229,193,0.35);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-chip {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(200,220,240,0.5);
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 0.5px solid rgba(255,255,255,0.06);
+  }
+
+  /* ── Widget Row ── */
+  .widget-row {
+    display: flex;
+    gap: 14px;
+    padding: 20px 0 6px;
+  }
+
+  .widget {
+    flex: 1;
+    height: 88px;
+    border-radius: 16px;
+    padding: 14px 18px;
+    background: rgba(4,12,24,0.5);
+    backdrop-filter: blur(20px);
+    border: 0.5px solid rgba(0,229,193,0.08);
+    box-shadow: inset 0 0.5px 0 rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .widget:hover {
+    border-color: rgba(0,229,193,0.18);
+    box-shadow: 0 0 20px rgba(0,229,193,0.06), inset 0 0.5px 0 rgba(255,255,255,0.08);
+    transform: translateY(-2px);
+  }
+
+  .widget-val {
+    font-size: 28px;
+    font-weight: 200;
+    color: #e0ecf5;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .widget-lbl {
+    font-size: 11px;
+    color: rgba(200,220,240,0.35);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .widget-wide { flex: 2; }
+
+  /* ── Icon Grid ── */
+  .grid-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 0;
+  }
+
+  .icon-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px 10px;
+    width: 100%;
+    max-width: 860px;
+  }
+
+  .hex-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+    padding: 6px 0;
+  }
+
+  .hex-item:hover { transform: translateY(-3px); }
+
+  .hex {
+    width: 60px;
+    height: 60px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(145deg, rgba(8,24,48,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    position: relative;
+    transition: all 0.3s;
+    filter: drop-shadow(0 0 8px rgba(0,229,193,0.12));
+  }
+
+  .hex::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.35), rgba(0,229,193,0.06));
+    z-index: -1;
+    opacity: 0.4;
+    transition: opacity 0.3s;
+  }
+
+  .hex-item:hover .hex::before { opacity: 0.7; }
+  .hex-item:hover .hex {
+    filter: drop-shadow(0 0 16px rgba(0,229,193,0.25));
+  }
+
+  .hex-label {
+    font-size: 10px;
+    color: rgba(200,220,240,0.5);
+    text-align: center;
+    text-shadow: 0 1px 4px rgba(0,0,0,0.8);
+  }
+
+  .hex.folder-hex {
+    background: linear-gradient(145deg, rgba(0,229,193,0.06), rgba(4,12,24,0.92));
+  }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .mini-cell {
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+  }
+
+  /* ── Dock ── */
+  .dock {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 20px;
+  }
+
+  .dock-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 24px;
+    border-radius: 28px;
+    background: rgba(4,10,20,0.45);
+    backdrop-filter: blur(32px);
+    border: 0.5px solid rgba(0,229,193,0.12);
+    box-shadow: 0 0 30px rgba(0,229,193,0.04), inset 0 0.5px 0 rgba(255,255,255,0.1);
+  }
+
+  .dock-icon {
+    width: 44px;
+    height: 44px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(145deg, rgba(8,24,48,0.9), rgba(4,12,24,0.95));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    position: relative;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+
+  .dock-icon:hover { transform: scale(1.12); }
+
+  .dock-icon::before {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background: linear-gradient(135deg, rgba(0,229,193,0.25), rgba(0,229,193,0.05));
+    z-index: -1;
+  }
+
+  /* ── Concept Label ── */
+  .concept-tag {
+    position: fixed;
+    bottom: 12px;
+    right: 20px;
+    font-size: 11px;
+    color: rgba(0,229,193,0.3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    z-index: 10;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="stars"></div>
+
+<div class="shell">
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">Y</div>
+    <div class="sidebar-item active">
+      <span>&#x1F3E0;</span>
+      <span class="sidebar-label">Home</span>
+    </div>
+    <div class="sidebar-item">
+      <span>&#x1F4C1;</span>
+      <span class="sidebar-label">Files</span>
+    </div>
+    <div class="sidebar-item">
+      <span>&#x1F3AE;</span>
+      <span class="sidebar-label">Games</span>
+    </div>
+    <div class="sidebar-item">
+      <span>&#x1F916;</span>
+      <span class="sidebar-label">AI</span>
+    </div>
+    <div class="sidebar-spacer"></div>
+    <div class="sidebar-item">
+      <span>&#x2699;&#xFE0F;</span>
+      <span class="sidebar-label">Config</span>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="main">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <div class="top-left">
+        <h1>Good afternoon</h1>
+        <p>Monday, April 13 &middot; 0&deg;C Current Location</p>
+      </div>
+      <div class="top-right">
+        <div class="search-pill">
+          <div class="search-dot"></div>
+          Search, &gt; commands, ! quick notes...
+        </div>
+        <div class="status-chip">100% &#x1F50B;</div>
+      </div>
+    </div>
+
+    <!-- Widget Row -->
+    <div class="widget-row">
+      <div class="widget">
+        <div class="widget-val">2:03</div>
+        <div class="widget-lbl">Local Time</div>
+      </div>
+      <div class="widget widget-wide">
+        <div class="widget-val">0&deg;C &nbsp;<span style="font-size:14px;opacity:0.5;">Partly Cloudy</span></div>
+        <div class="widget-lbl">Current Location</div>
+      </div>
+      <div class="widget">
+        <div class="widget-val">25:00</div>
+        <div class="widget-lbl">Pomodoro</div>
+      </div>
+    </div>
+
+    <!-- Icon Grid -->
+    <div class="grid-area">
+      <div class="icon-grid">
+        <div class="hex-item">
+          <div class="hex">&#x1F310;</div>
+          <div class="hex-label">Browser</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F5A9;</div>
+          <div class="hex-label">Calculator</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F551;</div>
+          <div class="hex-label">Clock</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4C1;</div>
+          <div class="hex-label">Files</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4CD;</div>
+          <div class="hex-label">Maps</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x1F4DD;</div>
+          <div class="hex-label">Notes</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x26C5;</div>
+          <div class="hex-label">Weather</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex">&#x2705;</div>
+          <div class="hex-label">Todo</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F916;</div>
+              <div class="mini-cell">&#x2728;</div>
+              <div class="mini-cell">&#x1F4AC;</div>
+              <div class="mini-cell">&#x1F9E0;</div>
+            </div>
+          </div>
+          <div class="hex-label">AI</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F3AE;</div>
+              <div class="mini-cell">&#x1F0CF;</div>
+              <div class="mini-cell">&#x1F40D;</div>
+              <div class="mini-cell">&#x1F9E9;</div>
+            </div>
+          </div>
+          <div class="hex-label">Games</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F426;</div>
+              <div class="mini-cell">&#x1F4F7;</div>
+              <div class="mini-cell">&#x1F3AC;</div>
+              <div class="mini-cell">&#x1F464;</div>
+            </div>
+          </div>
+          <div class="hex-label">Social</div>
+        </div>
+        <div class="hex-item">
+          <div class="hex folder-hex">
+            <div class="mini-grid">
+              <div class="mini-cell">&#x1F4FA;</div>
+              <div class="mini-cell">&#x1F3AC;</div>
+              <div class="mini-cell">&#x1F39E;</div>
+              <div class="mini-cell">&#x25B6;</div>
+            </div>
+          </div>
+          <div class="hex-label">TV</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dock -->
+    <div class="dock">
+      <div class="dock-bar">
+        <div class="dock-icon">&#x1F310;</div>
+        <div class="dock-icon">&#x1F4C1;</div>
+        <div class="dock-icon">&#x2699;&#xFE0F;</div>
+        <div class="dock-icon">&#x1F4DD;</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="concept-tag">Concept B &mdash; Command Bridge</div>
+</body>
+</html>
