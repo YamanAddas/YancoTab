@@ -132,8 +132,8 @@ div.boot-screen .boot-text {
 .status-bar {
   position: relative;
   flex: 0 0 auto;
-  height: calc(32px + var(--safe-top));
-  padding: var(--safe-top) var(--space-xl) 0;
+  height: calc(52px + var(--safe-top));
+  padding: calc(var(--safe-top) + 20px) 20px 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -315,9 +315,9 @@ div.boot-screen .boot-text {
 .m-dock {
   position: relative;
   flex: 0 0 auto;
-  height: calc(64px + var(--safe-bottom));
-  padding: var(--space-xs) var(--space-lg) var(--safe-bottom);
-  margin-top: auto;
+  height: 64px;
+  padding: var(--space-xs) var(--space-xl);
+  margin: auto 16px calc(var(--safe-bottom) + 8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -326,7 +326,8 @@ div.boot-screen .boot-text {
   background: rgba(6, 11, 20, 0.45);
   -webkit-backdrop-filter: blur(32px) saturate(1.6);
   backdrop-filter: blur(32px) saturate(1.6);
-  border-top: none;
+  border: 0.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 30px;
   box-shadow: var(--inner-glow), 0 -4px 20px rgba(0, 0, 0, 0.15);
 }
 
@@ -338,7 +339,11 @@ div.boot-screen .boot-text {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.2s var(--ease-out);
+}
+
+.m-dock-item:hover {
+  transform: scale(1.1);
 }
 
 .m-dock-item:active {
@@ -435,7 +440,7 @@ div.boot-screen .boot-text {
 }
 
 .is-mobile .glass-chrome {
-  bottom: calc(64px + var(--safe-bottom, 0px));
+  bottom: calc(80px + var(--safe-bottom, 0px));
 }
 
 .glass-chrome-header {
@@ -618,10 +623,10 @@ div.boot-screen .boot-text {
   height: 100%;
   pointer-events: auto;
   border-radius: var(--radius-pill);
-  border: 1px solid rgba(0, 229, 193, 0.12);
-  background: rgba(6, 11, 20, 0.5);
-  -webkit-backdrop-filter: blur(32px) saturate(1.6);
-  backdrop-filter: blur(32px) saturate(1.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.05);
+  -webkit-backdrop-filter: blur(15px);
+  backdrop-filter: blur(15px);
   padding: 0 20px;
   color: var(--text-bright);
   font-size: 15px;
@@ -637,9 +642,9 @@ div.boot-screen .boot-text {
 }
 
 .m-search-input:focus {
-  background: rgba(6, 11, 20, 0.7);
-  border-color: rgba(0, 229, 193, 0.3);
-  box-shadow: 0 0 0 3px rgba(0, 229, 193, 0.06), 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 20px rgba(0, 229, 193, 0.05), var(--inner-glow);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.04), 0 8px 24px rgba(0, 0, 0, 0.3), var(--inner-glow);
 }
 
 /* Hide search when in-app */
@@ -703,6 +708,7 @@ body.in-app .m-search-container {
 /* ── Hex Folder Icon ── */
 .folder-hex {
   cursor: pointer;
+  background: radial-gradient(circle, rgba(8, 18, 32, 0.85) 30%, transparent 70%);
 }
 
 .folder-glass3d .folder-hex-content {
@@ -813,11 +819,11 @@ body.in-app .m-search-container {
 
   .mobile-dock,
   .m-dock {
-    height: calc(64px + var(--safe-bottom));
+    height: 64px;
   }
 
   .is-mobile .glass-chrome {
-    bottom: calc(64px + var(--safe-bottom, 0px));
+    bottom: calc(80px + var(--safe-bottom, 0px));
   }
 }
 

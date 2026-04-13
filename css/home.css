@@ -36,10 +36,11 @@ body.in-app .home-top {
 
 .greeting-sub {
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 300;
   color: var(--text);
   margin-top: 8px;
   letter-spacing: 0.02em;
+  opacity: 0.7;
 }
 
 @keyframes greetFadeIn {
