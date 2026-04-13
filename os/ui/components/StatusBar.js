@@ -1,7 +1,8 @@
 import { el } from '../../utils/dom.js';
 
 export class StatusBar {
-    constructor() {
+    constructor(kernel) {
+        this.kernel = kernel || null;
         this.root = null;
         this.elements = {};
         this.interval = null;
@@ -51,7 +52,12 @@ export class StatusBar {
     }
 
     getClock24h() {
-        try { return JSON.parse(localStorage.getItem('yancotab_clock_v2') || '{}').use24h || false; } catch { return false; }
+        try {
+            const state = this.kernel?.storage?.load('yancotab_clock_state_v3');
+            if (state && typeof state === 'object') return state.use24h || false;
+            // Fallback for legacy key
+            return JSON.parse(localStorage.getItem('yancotab_clock_v2') || '{}').use24h || false;
+        } catch { return false; }
     }
 
     startUpdates() {

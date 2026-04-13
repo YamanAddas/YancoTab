@@ -13,8 +13,12 @@ const BROWSER_PREFS_KEY = 'yancotab_browser_prefs';
 const BROWSER_STATE_KEY = 'yancotab_browser_v1';
 const LEGACY_BOOKMARKS_KEY = 'yancotab_bookmarks';
 
-function readJson(key, fallback = {}) {
+function readJson(key, fallback = {}, storage = null) {
   try {
+    if (storage) {
+      const data = storage.load(key);
+      return data !== null && data !== undefined ? data : fallback;
+    }
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
   } catch {
@@ -22,15 +26,18 @@ function readJson(key, fallback = {}) {
   }
 }
 
-function getBrowserPrefs() {
+function getBrowserPrefs(storage = null) {
+  const searchEngine = storage
+    ? (storage.load('yancotabSearchEngine') || 'google')
+    : (localStorage.getItem('yancotabSearchEngine') || 'google');
   const defaults = {
-    searchEngine: localStorage.getItem('yancotabSearchEngine') || 'google',
+    searchEngine,
     forceWebParam: true,
     historyLimit: 20,
     startTheme: 'aurora',
   };
 
-  const stored = readJson(BROWSER_PREFS_KEY, {});
+  const stored = readJson(BROWSER_PREFS_KEY, {}, storage);
   const historyLimit = Number(stored.historyLimit);
   const clampedHistory = Number.isFinite(historyLimit)
     ? Math.max(10, Math.min(100, Math.round(historyLimit)))
@@ -44,7 +51,7 @@ function getBrowserPrefs() {
   };
 }
 
-function setBrowserPrefs(nextPrefs) {
+function setBrowserPrefs(nextPrefs, storage = null) {
   const sanitized = {
     searchEngine: ['google', 'duck', 'bing'].includes(nextPrefs?.searchEngine) ? nextPrefs.searchEngine : 'google',
     forceWebParam: nextPrefs?.forceWebParam !== false,
@@ -53,8 +60,13 @@ function setBrowserPrefs(nextPrefs) {
       : 20,
     startTheme: ['aurora', 'graphite', 'midnight'].includes(nextPrefs?.startTheme) ? nextPrefs.startTheme : 'aurora',
   };
-  localStorage.setItem(BROWSER_PREFS_KEY, JSON.stringify(sanitized));
-  localStorage.setItem('yancotabSearchEngine', sanitized.searchEngine);
+  if (storage) {
+    storage.save(BROWSER_PREFS_KEY, sanitized);
+    storage.save('yancotabSearchEngine', sanitized.searchEngine);
+  } else {
+    localStorage.setItem(BROWSER_PREFS_KEY, JSON.stringify(sanitized));
+    localStorage.setItem('yancotabSearchEngine', sanitized.searchEngine);
+  }
   window.dispatchEvent(new CustomEvent('yancotab:browser-settings-changed', { detail: sanitized }));
 }
 
@@ -603,19 +615,19 @@ export class SettingsApp extends App {
     ]));
 
     const wallpapers = [
-      { css: 'url("assets/wallpaper.png")', name: 'Default' },
-      { css: 'url("assets/wallpapers/deep-blue.png")', name: 'Deep Blue' },
-      { css: 'url("assets/wallpapers/black.png")', name: 'Black' },
-      { css: 'url("assets/wallpapers/dark.png")', name: 'Dark' },
-      { css: 'url("assets/wallpapers/violet.png")', name: 'Violet' },
-      { css: 'url("assets/wallpapers/pink.png")', name: 'Pink' },
-      { css: 'url("assets/wallpapers/sky.png")', name: 'Sky' },
-      { css: 'url("assets/wallpapers/mint.png")', name: 'Mint' },
+      { css: 'url("assets/wallpaper.webp")', name: 'Default' },
+      { css: 'url("assets/wallpapers/deep-blue.webp")', name: 'Deep Blue' },
+      { css: 'url("assets/wallpapers/black.webp")', name: 'Black' },
+      { css: 'url("assets/wallpapers/dark.webp")', name: 'Dark' },
+      { css: 'url("assets/wallpapers/violet.webp")', name: 'Violet' },
+      { css: 'url("assets/wallpapers/pink.webp")', name: 'Pink' },
+      { css: 'url("assets/wallpapers/sky.webp")', name: 'Sky' },
+      { css: 'url("assets/wallpapers/mint.webp")', name: 'Mint' },
       { css: 'cosmic', name: 'Cosmic', special: true },
       { css: 'starfield', name: 'Starfield', special: true },
     ];
 
-    const currentWallpaper = localStorage.getItem(WALLPAPER_KEY) || wallpapers[0].css;
+    const currentWallpaper = this.kernel.storage.load(WALLPAPER_KEY) || wallpapers[0].css;
 
     const grid = el('div', { class: 'ys-wallpaper-grid' });
     wallpapers.forEach((wp) => {
@@ -645,7 +657,7 @@ export class SettingsApp extends App {
           shell.style.backgroundSize = 'cover';
           shell.style.backgroundPosition = 'center';
         }
-        localStorage.setItem(WALLPAPER_KEY, wp.css);
+        this.kernel.storage.save(WALLPAPER_KEY, wp.css);
 
         grid.querySelectorAll('.ys-wallpaper.selected').forEach((el) => el.classList.remove('selected'));
         option.classList.add('selected');
@@ -661,15 +673,15 @@ export class SettingsApp extends App {
     container.appendChild(this._group('Icon Layout', [
       this._actionRow('Reset Icon Positions', 'Restore default layout sorted by type and name', () => {
         if (!confirm('Reset home screen layout? Icons will be rearranged.')) return;
-        localStorage.removeItem(GRID_STORAGE_KEY);
-        localStorage.removeItem(HOME_LAYOUT_APPLIED_KEY);
+        this.kernel.storage.remove(GRID_STORAGE_KEY);
+        this.kernel.storage.remove(HOME_LAYOUT_APPLIED_KEY);
         localStorage.removeItem('yancotab_home_layout_v091_hotfix2');
-        localStorage.setItem(HOME_LAYOUT_MODE_KEY, 'type-name');
+        this.kernel.storage.save(HOME_LAYOUT_MODE_KEY, 'type-name');
         location.reload();
       }),
       this._actionRow('Reset Dock', 'Restore default dock items', () => {
         if (!confirm('Reset dock to defaults?')) return;
-        localStorage.removeItem(DOCK_STORAGE_KEY);
+        this.kernel.storage.remove(DOCK_STORAGE_KEY);
         location.reload();
       }),
     ]));
@@ -688,9 +700,9 @@ export class SettingsApp extends App {
   }
 
   _renderBrowser(container) {
-    const prefs = getBrowserPrefs();
+    const prefs = getBrowserPrefs(this.kernel.storage);
     const updatePrefs = (patch) => {
-      setBrowserPrefs({ ...prefs, ...patch });
+      setBrowserPrefs({ ...prefs, ...patch }, this.kernel.storage);
       this._renderContent();
     };
 
@@ -722,29 +734,29 @@ export class SettingsApp extends App {
     container.appendChild(this._group('Privacy & Data', [
       this._actionRow('Clear Browsing History', 'Remove saved recent links', () => {
         if (!confirm('Clear browsing history?')) return;
-        const state = readJson(BROWSER_STATE_KEY, {});
+        const state = readJson(BROWSER_STATE_KEY, {}, this.kernel.storage);
         state.history = [];
-        localStorage.setItem(BROWSER_STATE_KEY, JSON.stringify(state));
+        this.kernel.storage.save(BROWSER_STATE_KEY, state);
         alert('Browsing history cleared.');
       }, true),
       this._actionRow('Clear Bookmarks', 'Remove saved bookmarks', () => {
         if (!confirm('Clear saved bookmarks?')) return;
-        const state = readJson(BROWSER_STATE_KEY, {});
+        const state = readJson(BROWSER_STATE_KEY, {}, this.kernel.storage);
         state.bookmarks = [];
-        localStorage.setItem(BROWSER_STATE_KEY, JSON.stringify(state));
+        this.kernel.storage.save(BROWSER_STATE_KEY, state);
         localStorage.removeItem(LEGACY_BOOKMARKS_KEY);
         alert('Bookmarks cleared.');
       }, true),
       this._actionRow('Reset Browser Settings', 'Restore browser defaults', () => {
         if (!confirm('Reset browser settings and data?')) return;
-        localStorage.removeItem(BROWSER_STATE_KEY);
+        this.kernel.storage.remove(BROWSER_STATE_KEY);
         localStorage.removeItem(LEGACY_BOOKMARKS_KEY);
         setBrowserPrefs({
           searchEngine: 'google',
           forceWebParam: true,
           historyLimit: 20,
           startTheme: 'aurora',
-        });
+        }, this.kernel.storage);
         alert('Browser reset complete.');
       }, true),
     ]));
@@ -896,15 +908,18 @@ export class SettingsApp extends App {
 
     container.appendChild(this._group('Region & Format', [
       this._toggleRow('24-Hour Time', 'Use 24-hour clock format', get24(), (next) => {
-        const data = readJson('yancotab_clock_v2', {});
+        const data = readJson('yancotab_clock_state_v3', {}, this.kernel.storage);
         data.use24h = next;
-        localStorage.setItem('yancotab_clock_v2', JSON.stringify(data));
+        this.kernel.storage.save('yancotab_clock_state_v3', data);
         window.dispatchEvent(new CustomEvent('yancotab:clock_update'));
       }),
       this._toggleRow('Metric Units', 'Use Celsius for weather', getMetric(), (next) => {
-        const data = readJson('yancotab_weather_v1', {});
-        data.unit = next ? 'c' : 'f';
-        localStorage.setItem('yancotab_weather_v1', JSON.stringify(data));
+        const ws = this.kernel.getService('weather');
+        if (ws) {
+          const state = ws.getState();
+          state.unit = next ? 'c' : 'f';
+          ws.saveState(state);
+        }
         window.dispatchEvent(new CustomEvent('yancotab:weatherchange'));
       }),
     ]));

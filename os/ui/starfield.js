@@ -1,11 +1,14 @@
 /**
- * YancoTab v2.0 — Cosmic Starfield Background
+ * YancoTab v2.2 — Cosmic Starfield Background
  * Canvas-based twinkling starfield inspired by YancoHub.
  * Lightweight: runs at low FPS when idle, pauses when hidden.
+ * Skips entirely when a wallpaper image is active.
  */
 
-const STAR_COUNT = 120;
+const DEFAULT_STAR_COUNT = 80;
 const TWINKLE_SPEED = 0.003;
+const FPS_FOCUSED = 60;
+const FPS_BLURRED = 30;
 
 export function initStarfield() {
   const canvas = document.getElementById('starfield');
@@ -13,7 +16,30 @@ export function initStarfield() {
 
   const ctx = canvas.getContext('2d');
   let width, height, stars, raf;
-  let running = true;
+  let running = false;
+  let lastFrame = 0;
+  let frameInterval = 1000 / FPS_FOCUSED;
+
+  // Check if a wallpaper image is active (not 'black' or other solid-color wallpapers)
+  function hasImageWallpaper() {
+    const wp = localStorage.getItem('yancotab_wallpaper') || '';
+    // Solid color wallpapers (no image) — starfield should run
+    const solidWallpapers = ['black', 'dark', ''];
+    return !solidWallpapers.includes(wp);
+  }
+
+  // Check if starfield is disabled in settings
+  function isDisabledInSettings() {
+    try {
+      const raw = localStorage.getItem('yancotab_starfield_enabled');
+      if (raw === null) return false; // default: enabled
+      return raw === 'false';
+    } catch { return false; }
+  }
+
+  function shouldSkip() {
+    return hasImageWallpaper() || isDisabledInSettings();
+  }
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -28,7 +54,7 @@ export function initStarfield() {
 
   function createStars() {
     stars = [];
-    for (let i = 0; i < STAR_COUNT; i++) {
+    for (let i = 0; i < DEFAULT_STAR_COUNT; i++) {
       stars.push({
         x: Math.random() * width,
         y: Math.random() * height,
@@ -36,7 +62,6 @@ export function initStarfield() {
         alpha: Math.random(),
         phase: Math.random() * Math.PI * 2,
         speed: TWINKLE_SPEED + Math.random() * 0.004,
-        // Some stars are teal-tinted
         teal: Math.random() < 0.15,
       });
     }
@@ -44,6 +69,14 @@ export function initStarfield() {
 
   function draw(time) {
     if (!running) return;
+
+    // Throttle to target FPS
+    const delta = time - lastFrame;
+    if (delta < frameInterval) {
+      raf = requestAnimationFrame(draw);
+      return;
+    }
+    lastFrame = time - (delta % frameInterval);
 
     ctx.clearRect(0, 0, width, height);
 
@@ -65,6 +98,11 @@ export function initStarfield() {
   }
 
   function start() {
+    if (shouldSkip()) {
+      canvas.style.display = 'none';
+      return;
+    }
+    canvas.style.display = '';
     resize();
     createStars();
     running = true;
@@ -80,22 +118,31 @@ export function initStarfield() {
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
       stop();
-    } else {
+    } else if (!shouldSkip()) {
       running = true;
       raf = requestAnimationFrame(draw);
     }
   });
 
+  // Cap FPS when window loses focus
+  window.addEventListener('focus', () => {
+    frameInterval = 1000 / FPS_FOCUSED;
+  });
+  window.addEventListener('blur', () => {
+    frameInterval = 1000 / FPS_BLURRED;
+  });
+
   window.addEventListener('resize', () => {
+    if (!running) return;
     resize();
     createStars();
   });
 
-  // Respect reduced motion
+  // Respect reduced motion — render one static frame, no animation loop
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (shouldSkip()) { canvas.style.display = 'none'; return; }
     resize();
     createStars();
-    // Draw once, static
     draw(0);
     return;
   }

@@ -43,7 +43,7 @@ const REGISTRY = {
         default: 'google',
         validate: (v) => ['google', 'duck', 'bing'].includes(v),
     },
-    yancotab_browser_prefs_v1: {
+    yancotab_browser_prefs: {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
@@ -82,6 +82,61 @@ const REGISTRY = {
         version: 1,
         default: '',
         validate: (v) => typeof v === 'string',
+    },
+    yancotab_home_layout_mode: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: '',
+        validate: (v) => typeof v === 'string',
+    },
+    yancotab_user_name: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: '',
+        validate: (v) => typeof v === 'string',
+    },
+    yancotab_widgets: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: { clock: true, weather: true, todo: true, pomodoro: false },
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_quick_links: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: [
+            { label: 'Google', url: 'https://www.google.com' },
+            { label: 'YouTube', url: 'https://www.youtube.com' },
+            { label: 'GitHub', url: 'https://github.com' },
+            { label: 'Wikipedia', url: 'https://www.wikipedia.org' },
+            { label: 'Reddit', url: 'https://www.reddit.com' },
+        ],
+        validate: (v) => Array.isArray(v),
+    },
+    yancotab_onboarding_done: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: false,
+        validate: (v) => typeof v === 'boolean',
+    },
+    yancotab_discovery_dismissed: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v),
+    },
+    yancotab_starfield_enabled: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: true,
+        validate: (v) => typeof v === 'boolean',
     },
 
     // ── User Data (syncPolicy: 'conditional') ──
@@ -134,14 +189,14 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
-    yancotab_weather_state_v1: {
+    yancotabWeatherState: {
         storageClass: 'volatile',
         syncPolicy: 'never',
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
-    yancotab_weather_cache_v1: {
+    yancotabWeatherCacheV2: {
         storageClass: 'volatile',
         syncPolicy: 'never',
         version: 1,

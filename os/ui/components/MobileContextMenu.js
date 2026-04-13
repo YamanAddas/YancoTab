@@ -20,24 +20,24 @@ export class MobileContextMenu {
   }
 
   wallpapers = [
-    'assets/wallpaper.png',
-    'assets/wallpapers/deep-blue.png',
-    'assets/wallpapers/black.png',
-    'assets/wallpapers/dark.png',
-    'assets/wallpapers/violet.png',
-    'assets/wallpapers/pink.png',
-    'assets/wallpapers/sky.png',
-    'assets/wallpapers/mint.png',
+    'assets/wallpaper.webp',
+    'assets/wallpapers/deep-blue.webp',
+    'assets/wallpapers/black.webp',
+    'assets/wallpapers/dark.webp',
+    'assets/wallpapers/violet.webp',
+    'assets/wallpapers/pink.webp',
+    'assets/wallpapers/sky.webp',
+    'assets/wallpapers/mint.webp',
   ];
 
   legacyWallpaperMap = {
-    'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f35 100%)': 'assets/wallpapers/deep-blue.png',
-    '#000000': 'assets/wallpapers/black.png',
-    'linear-gradient(45deg, #121212, #2a2a2a)': 'assets/wallpapers/dark.png',
-    'linear-gradient(135deg, #667eea, #764ba2)': 'assets/wallpapers/violet.png',
-    'linear-gradient(135deg, #f093fb, #f5576c)': 'assets/wallpapers/pink.png',
-    'linear-gradient(135deg, #4facfe, #00f2fe)': 'assets/wallpapers/sky.png',
-    'linear-gradient(135deg, #43e97b, #38f9d7)': 'assets/wallpapers/mint.png',
+    'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f35 100%)': 'assets/wallpapers/deep-blue.webp',
+    '#000000': 'assets/wallpapers/black.webp',
+    'linear-gradient(45deg, #121212, #2a2a2a)': 'assets/wallpapers/dark.webp',
+    'linear-gradient(135deg, #667eea, #764ba2)': 'assets/wallpapers/violet.webp',
+    'linear-gradient(135deg, #f093fb, #f5576c)': 'assets/wallpapers/pink.webp',
+    'linear-gradient(135deg, #4facfe, #00f2fe)': 'assets/wallpapers/sky.webp',
+    'linear-gradient(135deg, #43e97b, #38f9d7)': 'assets/wallpapers/mint.webp',
   };
 
   normalizeWallpaper(saved) {

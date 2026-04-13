@@ -4,7 +4,8 @@
  * Cache-first for static assets, network-first for APIs.
  */
 
-const CACHE_NAME = 'yancotab-v2.1.0';
+// Version synced with os/version.js — update both together
+const CACHE_NAME = 'yancotab-v2.3.0';
 
 const PRECACHE = [
     './',
@@ -14,6 +15,7 @@ const PRECACHE = [
     './css/tokens.css',
     './css/reset.css',
     './css/shell.css',
+    './css/home.css',
     './css/main.css',
     './css/memory.css',
     './css/cards.css',
@@ -58,6 +60,16 @@ const PRECACHE = [
     './os/ui/components/SmartSearch.js',
     './os/ui/components/StatusBar.js',
     './os/ui/desktop/SmartIcon.js',
+    './os/ui/icons/AppIcons.js',
+    './os/ui/components/Greeting.js',
+    './os/ui/components/WidgetBar.js',
+    './os/ui/components/widgets/ClockWidget.js',
+    './os/ui/components/widgets/WeatherWidget.js',
+    './os/ui/components/widgets/TodoWidget.js',
+    './os/ui/components/widgets/PomodoroWidget.js',
+    './os/ui/components/Toast.js',
+    './os/ui/components/Onboarding.js',
+    './os/ui/components/QuickLinks.js',
     // Apps
     './os/apps/BrowserApp.js',
     './os/apps/CalculatorApp.js',
@@ -93,14 +105,14 @@ const PRECACHE = [
     './os/apps/games/trix/trixState.js',
     // Assets
     './assets/browser-icon.png',
-    './assets/wallpaper.png',
-    './assets/wallpapers/black.png',
-    './assets/wallpapers/dark.png',
-    './assets/wallpapers/deep-blue.png',
-    './assets/wallpapers/mint.png',
-    './assets/wallpapers/pink.png',
-    './assets/wallpapers/sky.png',
-    './assets/wallpapers/violet.png',
+    './assets/wallpaper.webp',
+    './assets/wallpapers/black.webp',
+    './assets/wallpapers/dark.webp',
+    './assets/wallpapers/deep-blue.webp',
+    './assets/wallpapers/mint.webp',
+    './assets/wallpapers/pink.webp',
+    './assets/wallpapers/sky.webp',
+    './assets/wallpapers/violet.webp',
 ];
 
 self.addEventListener('install', (event) => {

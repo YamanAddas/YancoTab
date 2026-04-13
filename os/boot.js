@@ -4,27 +4,6 @@ import { MobileShell } from './ui/mobileShell.js';
 import { initTheme } from './theme/theme.js';
 import { initStarfield } from './ui/starfield.js';
 
-
-// Apps
-import { SettingsApp } from './apps/SettingsApp.js';
-import { ClockApp } from './apps/ClockApp.js';
-import { SnakeApp } from './apps/SnakeApp.js';
-import { WeatherApp } from './apps/WeatherApp.js';
-import { MemoryApp } from './apps/MemoryApp.js';
-import { NotesApp } from './apps/NotesApp.js';
-import { BrowserApp } from './apps/BrowserApp.js';
-import { CalculatorApp } from './apps/CalculatorApp.js';
-import { FilesApp } from './apps/FilesApp.js';
-import { TicTacToeApp } from './apps/TicTacToeApp.js';
-import { MinesweeperApp } from './apps/games/MinesweeperApp.js';
-import { SolitaireApp } from './apps/games/SolitaireApp.js';
-import { SpiderSolitaireApp } from './apps/games/SpiderSolitaireApp.js';
-import { MahjongApp } from './apps/games/MahjongApp.js';
-import { TarneebApp } from './apps/games/TarneebApp.js';
-import { TrixApp } from './apps/games/TrixApp.js';
-import { TodoApp } from './apps/TodoApp.js';
-import { PomodoroApp } from './apps/PomodoroApp.js';
-
 // Global error handlers to catch any boot-time errors
 window.addEventListener('error', (e) => {
   console.error('[Boot] Uncaught Error:', e.error);
@@ -141,26 +120,27 @@ async function boot() {
     await kernel.boot();
     logStatus("Kernel Booted.");
 
-    // 2. Register Apps
+    // 2. Register Apps (lazy-loaded on first launch)
     logStatus("Registering Apps...");
-    kernel.processManager.register('settings', SettingsApp);
-    kernel.processManager.register('clock', ClockApp);
-    kernel.processManager.register('snake', SnakeApp);
-    kernel.processManager.register('weather', WeatherApp);
-    kernel.processManager.register('memory', MemoryApp);
-    kernel.processManager.register('notes', NotesApp);
-    kernel.processManager.register('browser', BrowserApp);
-    kernel.processManager.register('calculator', CalculatorApp);
-    kernel.processManager.register('files', FilesApp);
-    kernel.processManager.register('tictactoe', TicTacToeApp);
-    kernel.processManager.register('minesweeper', MinesweeperApp);
-    kernel.processManager.register('solitaire', SolitaireApp);
-    kernel.processManager.register('spider-solitaire', SpiderSolitaireApp);
-    kernel.processManager.register('mahjong', MahjongApp);
-    kernel.processManager.register('tarneeb', TarneebApp);
-    kernel.processManager.register('trix', TrixApp);
-    kernel.processManager.register('todo', TodoApp);
-    kernel.processManager.register('pomodoro', PomodoroApp);
+    const pm = kernel.processManager;
+    pm.registerLazy('settings',         () => import('./apps/SettingsApp.js').then(m => m.SettingsApp));
+    pm.registerLazy('clock',            () => import('./apps/ClockApp.js').then(m => m.ClockApp));
+    pm.registerLazy('snake',            () => import('./apps/SnakeApp.js').then(m => m.SnakeApp));
+    pm.registerLazy('weather',          () => import('./apps/WeatherApp.js').then(m => m.WeatherApp));
+    pm.registerLazy('memory',           () => import('./apps/MemoryApp.js').then(m => m.MemoryApp));
+    pm.registerLazy('notes',            () => import('./apps/NotesApp.js').then(m => m.NotesApp));
+    pm.registerLazy('browser',          () => import('./apps/BrowserApp.js').then(m => m.BrowserApp));
+    pm.registerLazy('calculator',       () => import('./apps/CalculatorApp.js').then(m => m.CalculatorApp));
+    pm.registerLazy('files',            () => import('./apps/FilesApp.js').then(m => m.FilesApp));
+    pm.registerLazy('tictactoe',        () => import('./apps/TicTacToeApp.js').then(m => m.TicTacToeApp));
+    pm.registerLazy('minesweeper',      () => import('./apps/games/MinesweeperApp.js').then(m => m.MinesweeperApp));
+    pm.registerLazy('solitaire',        () => import('./apps/games/SolitaireApp.js').then(m => m.SolitaireApp));
+    pm.registerLazy('spider-solitaire', () => import('./apps/games/SpiderSolitaireApp.js').then(m => m.SpiderSolitaireApp));
+    pm.registerLazy('mahjong',          () => import('./apps/games/MahjongApp.js').then(m => m.MahjongApp));
+    pm.registerLazy('tarneeb',          () => import('./apps/games/TarneebApp.js').then(m => m.TarneebApp));
+    pm.registerLazy('trix',             () => import('./apps/games/TrixApp.js').then(m => m.TrixApp));
+    pm.registerLazy('todo',             () => import('./apps/TodoApp.js').then(m => m.TodoApp));
+    pm.registerLazy('pomodoro',         () => import('./apps/PomodoroApp.js').then(m => m.PomodoroApp));
 
     // 3. Mount Shell (Mobile-Only Mode - Works on all devices)
     if (appShell) {

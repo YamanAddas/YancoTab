@@ -2,6 +2,7 @@ import { el } from "../../utils/dom.js";
 import { FolderIcon } from "../components/FolderIcon.js";
 import { GAME_ICONS } from "../components/GameIcons.js";
 import { PHOSPHOR_ICONS } from "../components/PhosphorIcons.js";
+import { getCategoryColor } from "../icons/AppIcons.js";
 
 /**
  * SmartIcon Component — v2.0 Hex
@@ -25,7 +26,12 @@ export class SmartIcon {
         });
 
         // 2. Inner content area (clipped by hex shape)
-        const contentWrapper = el("div", { class: "hex-icon-content" });
+        const isLight = document.body.classList.contains('theme-light');
+        const catColor = getCategoryColor(this.appId, isLight);
+        const contentWrapper = el("div", {
+            class: "hex-icon-content",
+            style: { backgroundColor: catColor }
+        });
 
         // 3. Render content based on type
         if (this.metadata.type === 'folder' || this.appId.startsWith('folder')) {

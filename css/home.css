@@ -1,0 +1,341 @@
+/* ============================================================
+   YancoTab — Home Screen Components
+   Greeting, Widgets, Quick Links, layout wiring
+   ============================================================ */
+
+/* ── Home Top Section ── */
+.home-top {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2px 20px 0;
+  gap: 6px;
+  transition: opacity var(--transition-normal);
+}
+
+body.in-app .home-top {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Greeting ── */
+.greeting-bar {
+  text-align: center;
+  padding: 2px 0;
+  animation: greetFadeIn 0.6s var(--ease-out) both;
+}
+
+.greeting-text {
+  font-size: clamp(18px, 3vw, 24px);
+  font-weight: 600;
+  color: var(--text-bright);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.greeting-sub {
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 4px;
+  letter-spacing: 0.01em;
+}
+
+@keyframes greetFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Widget Bar ── */
+.widget-bar {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  justify-content: center;
+  flex-wrap: nowrap;
+  width: 100%;
+  max-width: 680px;
+}
+
+.widget-bar::-webkit-scrollbar { display: none; }
+
+.widget-bar-empty { display: none; }
+
+/* ── Widget Cards ── */
+.widget-card {
+  min-width: 140px;
+  height: 88px;
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  background: var(--bg-card);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  border: 1px solid var(--border-accent);
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  cursor: pointer;
+  user-select: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.widget-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  border-color: rgba(0, 229, 193, 0.18);
+}
+
+.widget-card:active {
+  transform: scale(0.97);
+}
+
+.widget-medium {
+  min-width: 260px;
+}
+
+/* Widget typography */
+.widget-value {
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-bright);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.widget-value-sm {
+  font-size: 24px;
+}
+
+.widget-label {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.widget-label-sm {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.widget-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.widget-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.widget-empty-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 6px;
+  opacity: 0.6;
+}
+
+/* ── Todo Widget ── */
+.widget-todo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.widget-todo-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-bright);
+}
+
+.widget-todo-count {
+  font-size: 11px;
+  color: var(--accent);
+  background: var(--accent-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  font-weight: 500;
+}
+
+.widget-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.widget-todo-check {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-light);
+  flex-shrink: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 150ms, background 150ms;
+}
+
+.widget-todo-check:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.widget-todo-text {
+  font-size: 13px;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.widget-todo-more {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+/* ── Pomodoro Widget ── */
+.widget-pomo-progress {
+  margin-top: 8px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.widget-pomo-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.widget-pomo-cta {
+  font-size: 13px;
+  color: var(--accent);
+  margin-top: 10px;
+  font-weight: 500;
+}
+
+/* ── Quick Links ── */
+.quick-links-bar {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  width: 100%;
+  max-width: 520px;
+}
+
+.quick-links-bar::-webkit-scrollbar { display: none; }
+
+.quick-link-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.quick-link-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--text-bright);
+  transition: transform 150ms var(--ease-out), box-shadow 150ms var(--ease-out), border-color 150ms;
+  box-shadow: var(--shadow-sm);
+}
+
+.quick-link-circle img {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  pointer-events: auto;
+}
+
+.quick-link-item:hover .quick-link-circle {
+  transform: scale(1.08);
+  box-shadow: var(--glow-sm);
+  border-color: var(--border-accent);
+}
+
+.quick-link-item:active .quick-link-circle {
+  transform: scale(0.95);
+}
+
+.quick-link-add {
+  border-style: dashed;
+  border-color: var(--border-light);
+  color: var(--text-dim);
+  font-size: 18px;
+  background: transparent;
+}
+
+.quick-link-label {
+  font-size: 11px;
+  color: var(--text-dim);
+  max-width: 56px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+  .home-top {
+    padding: 4px 12px 2px;
+    gap: 8px;
+  }
+  .widget-card {
+    min-width: calc(50% - 6px);
+    height: 76px;
+    padding: 10px;
+  }
+  .widget-medium { min-width: 100%; }
+  .quick-links-bar { gap: 12px; }
+  .quick-link-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+}
+
+/* ── Light Theme ── */
+body.theme-light .widget-card {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border);
+}
+
+body.theme-light .widget-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: rgba(0, 122, 255, 0.15);
+}
+
+body.theme-light .quick-link-circle {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+body.theme-light .status-bar {
+  background: linear-gradient(180deg, rgba(245, 245, 247, 0.8) 0%, transparent 100%);
+}

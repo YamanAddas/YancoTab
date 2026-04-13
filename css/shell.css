@@ -108,30 +108,41 @@ div.boot-screen .boot-text {
   background-position: center;
 }
 
+.mobile-shell {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
 .app {
   position: fixed;
   inset: 0;
 }
 
+.m-app-layer {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-window);
+}
+
 /* ── Status Bar ── */
 .status-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: calc(44px + var(--safe-top));
+  position: relative;
+  flex: 0 0 auto;
+  height: calc(32px + var(--safe-top));
   padding: var(--safe-top) var(--space-xl) 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   z-index: var(--z-statusbar);
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-bright);
   pointer-events: none;
-  background: linear-gradient(180deg, rgba(6, 11, 20, 0.6) 0%, transparent 100%);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
+  background: transparent;
 }
 
 .sb-time {
@@ -140,10 +151,9 @@ div.boot-screen .boot-text {
 
 /* ── App Grid ── */
 .m-grid-container {
-  position: absolute;
-  inset: 0;
-  top: calc(44px + var(--safe-top));
-  bottom: calc(80px + var(--safe-bottom));
+  position: relative;
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -156,18 +166,19 @@ div.boot-screen .boot-text {
 .m-grid-page {
   flex: 0 0 100%;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, 80px);
   grid-auto-rows: min-content;
-  gap: var(--hex-gap);
-  padding: var(--space-lg) var(--space-lg) var(--space-xl);
+  gap: 4px 6px;
+  padding: var(--space-sm) var(--space-lg);
   align-content: start;
+  justify-content: center;
   justify-items: center;
 }
 
 /* ── Page Dots ── */
 .m-grid-dots {
   position: absolute;
-  bottom: calc(84px + var(--safe-bottom));
+  bottom: 8px;
   left: 0;
   right: 0;
   display: flex;
@@ -300,12 +311,11 @@ div.boot-screen .boot-text {
 /* ── Dock ── */
 .mobile-dock,
 .m-dock {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(80px + var(--safe-bottom));
-  padding: var(--space-sm) var(--space-lg) var(--safe-bottom);
+  position: relative;
+  flex: 0 0 auto;
+  height: calc(64px + var(--safe-bottom));
+  padding: var(--space-xs) var(--space-lg) var(--safe-bottom);
+  margin-top: auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -319,8 +329,8 @@ div.boot-screen .boot-text {
 
 /* Dock icon containers */
 .m-dock-item {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -422,7 +432,7 @@ div.boot-screen .boot-text {
 }
 
 .is-mobile .glass-chrome {
-  bottom: calc(80px + var(--safe-bottom, 0px));
+  bottom: calc(64px + var(--safe-bottom, 0px));
 }
 
 .glass-chrome-header {
@@ -591,13 +601,10 @@ div.boot-screen .boot-text {
 
 /* ── Smart Search (v2 glass pill) ── */
 .m-search-container {
-  position: absolute;
-  top: calc(env(safe-area-inset-top, 0px) + 12px);
-  left: 50%;
-  transform: translateX(-50%);
+  position: relative;
   width: min(92vw, 620px);
   max-width: calc(100% - 32px);
-  height: 48px;
+  height: 40px;
   z-index: var(--z-search, 1150);
   pointer-events: none;
 }
@@ -795,17 +802,13 @@ body.in-app .m-search-container {
 /* ── Landscape Adjustments ── */
 @media (orientation: landscape) {
   .m-grid-page {
-    grid-template-columns: repeat(6, 1fr);
-    padding: var(--space-sm) var(--space-xl);
+    grid-template-columns: repeat(6, 80px);
+    gap: 4px 8px;
   }
 
   .mobile-dock,
   .m-dock {
     height: calc(64px + var(--safe-bottom));
-  }
-
-  .m-grid-container {
-    bottom: calc(64px + var(--safe-bottom));
   }
 
   .is-mobile .glass-chrome {
@@ -817,10 +820,11 @@ body.in-app .m-search-container {
 @media (max-width: 375px) {
   :root {
     --hex-size: 56px;
-    --hex-gap: 10px;
   }
 
   .m-grid-page {
-    padding: var(--space-sm) var(--space-sm);
+    grid-template-columns: repeat(4, 68px);
+    gap: 2px 4px;
+    padding: var(--space-xs) var(--space-sm);
   }
 }

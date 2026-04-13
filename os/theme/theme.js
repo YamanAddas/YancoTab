@@ -17,6 +17,8 @@ export function getThemeMode() {
   if (legacyDark === 'true') return 'dark';
   if (legacyDark === 'false') return 'light';
 
+  // No explicit choice — follow OS preference
+  if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
   return 'dark';
 }
 

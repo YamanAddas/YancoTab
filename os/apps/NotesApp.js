@@ -620,16 +620,15 @@ export class NotesApp extends App {
 
     _loadMeta() {
         try {
-            const raw = localStorage.getItem(NOTES_META_KEY);
-            const parsed = raw ? JSON.parse(raw) : {};
-            return parsed && typeof parsed === 'object' ? parsed : {};
+            const data = this.kernel.storage?.load(NOTES_META_KEY);
+            return data && typeof data === 'object' ? data : {};
         } catch {
             return {};
         }
     }
 
     _persistMeta() {
-        localStorage.setItem(NOTES_META_KEY, JSON.stringify(this.notesMeta));
+        this.kernel.storage?.save(NOTES_META_KEY, this.notesMeta);
     }
 
     _getMeta(path) {

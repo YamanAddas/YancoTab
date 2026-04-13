@@ -30,7 +30,7 @@ export class ProcessManager {
     constructor(kernel) {
         this.kernel = kernel;
         this.processes = new Map(); // pid -> process
-        this.registry = new Map(); // appId -> AppClass
+        this.registry = new Map(); // appId -> AppClass or lazy loader
         this.nextPid = 1000;
         this._spawning = new Set(); // spawn lock per appId
 
@@ -40,7 +40,26 @@ export class ProcessManager {
     }
 
     register(appId, appClass) {
-        this.registry.set(appId, appClass);
+        this.registry.set(appId, { resolved: true, appClass });
+    }
+
+    registerLazy(appId, loaderFn) {
+        this.registry.set(appId, { resolved: false, loader: loaderFn, appClass: null });
+    }
+
+    isRegistered(appId) {
+        return this.registry.has(appId);
+    }
+
+    async _resolve(appId) {
+        const entry = this.registry.get(appId);
+        if (!entry) return null;
+        if (entry.resolved) return entry.appClass;
+        // Lazy: load the module, cache the class
+        const AppClass = await entry.loader();
+        entry.appClass = AppClass;
+        entry.resolved = true;
+        return AppClass;
     }
 
     async spawn(appId, config = {}) {
@@ -53,7 +72,7 @@ export class ProcessManager {
         console.log(`[ProcessManager] Request to spawn: ${appId}`);
 
         // A. Internal App (OS Process) - PRIORITY
-        const AppClass = this.registry.get(appId);
+        const AppClass = await this._resolve(appId);
 
         if (AppClass) {
             this._spawning.add(appId);

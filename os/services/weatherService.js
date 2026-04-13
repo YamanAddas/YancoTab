@@ -4,9 +4,10 @@ const WEATHER_CACHE_KEY = "yancotabWeatherCacheV2";
 const AUTO_REFRESH_MINS = 15;
 
 export class WeatherService {
-  constructor() {
+  constructor(storage) {
     this.stateKey = WEATHER_STATE_KEY;
     this.cacheKey = WEATHER_CACHE_KEY;
+    this._storage = storage || null;
   }
 
   toNumber(value) {
@@ -108,16 +109,16 @@ export class WeatherService {
   }
 
   getState() {
-    const raw = localStorage.getItem(this.stateKey);
-    if (raw) {
-      try {
-        const state = JSON.parse(raw);
-        return this.normalizeState(state);
-      } catch (error) {
-        // ignore parse errors
-      }
+    // Try kernel.storage first, fall back to direct localStorage
+    const stored = this._storage
+      ? this._storage.load(this.stateKey)
+      : (() => { try { return JSON.parse(localStorage.getItem(this.stateKey)); } catch { return null; } })();
+
+    if (stored && typeof stored === 'object') {
+      return this.normalizeState(stored);
     }
 
+    // Legacy migration (one-time, reads old keys directly)
     const legacyAreas = this.getLegacyAreas();
     const legacyUnit = localStorage.getItem("yancotabTempUnit") === "f" ? "f" : "c";
     const legacyExpanded = localStorage.getItem("yancotabWeatherOpen") === "true";
@@ -140,15 +141,11 @@ export class WeatherService {
 
   saveState(state) {
     const normalized = this.normalizeState(state);
-    localStorage.setItem(this.stateKey, JSON.stringify(normalized));
-    localStorage.setItem("yancotabWeatherAreas", JSON.stringify(normalized.locations.map((loc) => ({
-      label: loc.label,
-      query: loc.query,
-      lat: loc.lat || null,
-      lon: loc.lon || null,
-    }))));
-    localStorage.setItem("yancotabTempUnit", normalized.unit);
-    localStorage.setItem("yancotabWeatherOpen", normalized.expanded ? "true" : "false");
+    if (this._storage) {
+      this._storage.save(this.stateKey, normalized);
+    } else {
+      localStorage.setItem(this.stateKey, JSON.stringify(normalized));
+    }
   }
 
   getLegacyAreas() {
@@ -417,40 +414,30 @@ export class WeatherService {
     return { label, query, lat, lon };
   }
 
+  _loadCache() {
+    if (this._storage) return this._storage.load(this.cacheKey) || {};
+    try { return JSON.parse(localStorage.getItem(this.cacheKey)) || {}; } catch { return {}; }
+  }
+
+  _saveCache(cache) {
+    if (this._storage) { this._storage.save(this.cacheKey, cache); }
+    else { localStorage.setItem(this.cacheKey, JSON.stringify(cache)); }
+  }
+
   getCache(query, maxAge) {
-    const raw = localStorage.getItem(this.cacheKey);
-    if (!raw) {
-      return null;
-    }
-    try {
-      const cache = JSON.parse(raw);
-      const entry = cache[query];
-      if (!entry) {
-        return null;
-      }
-      const age = Date.now() - entry.ts;
-      const maxAgeMs = typeof maxAge === "number" ? maxAge : 1000 * 60 * 15;
-      if (age > maxAgeMs) {
-        return null;
-      }
-      return entry.data;
-    } catch (error) {
-      return null;
-    }
+    const cache = this._loadCache();
+    const entry = cache[query];
+    if (!entry) return null;
+    const age = Date.now() - entry.ts;
+    const maxAgeMs = typeof maxAge === "number" ? maxAge : 1000 * 60 * 15;
+    if (age > maxAgeMs) return null;
+    return entry.data;
   }
 
   setCache(query, data) {
-    const raw = localStorage.getItem(this.cacheKey);
-    let cache = {};
-    if (raw) {
-      try {
-        cache = JSON.parse(raw);
-      } catch (error) {
-        cache = {};
-      }
-    }
+    const cache = this._loadCache();
     cache[query] = { ts: Date.now(), data };
-    localStorage.setItem(this.cacheKey, JSON.stringify(cache));
+    this._saveCache(cache);
   }
 
   async fetchForecast(lat, lon) {

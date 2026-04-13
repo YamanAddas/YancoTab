@@ -24,6 +24,9 @@ import { SmartSearch } from './components/SmartSearch.js';
 import { StatusBar } from './components/StatusBar.js';
 import { HomeBar } from './components/HomeBar.js';
 import { MobileContextMenu } from './components/MobileContextMenu.js';
+import { Greeting } from './components/Greeting.js';
+import { ToastManager } from './components/Toast.js';
+import { Onboarding } from './components/Onboarding.js';
 import { defaultFolders } from '../config/defaultApps.js';
 
 export class MobileShell {
@@ -33,9 +36,10 @@ export class MobileShell {
       grid: new AppGrid(),
       dock: new Dock(),
       search: new SmartSearch(),
-      statusBar: new StatusBar(),
+      statusBar: new StatusBar(kernel),
       homeBar: new HomeBar(() => this.goHome()),
       contextMenu: new MobileContextMenu(this), // Desktop Context Menu
+      greeting: new Greeting(),
     };
 
     // Dock dispatches context-menu events to grid.root for unified handling
@@ -105,6 +109,16 @@ export class MobileShell {
     this._injectMobileStyles();
     this._bindSystemEvents();
     this.bindAlarmOverlay();
+
+    // Toast notification system
+    this._toast = new ToastManager();
+    this._toast.init();
+
+    // First-run onboarding
+    const onboarding = new Onboarding();
+    if (onboarding.shouldShow()) {
+      requestAnimationFrame(() => onboarding.show());
+    }
   }
 
   // ─── DOM Structure ──────────────────────────────────────────
@@ -114,6 +128,7 @@ export class MobileShell {
 
     this.dom = {
       wrapper: el('div', { class: 'mobile-shell' }),
+      homeTop: el('div', { class: 'home-top' }),
       statusBarLayer: this.components.statusBar.render(),
       appLayer: el('div', { class: 'm-app-layer', hidden: true }),
       homeBarLayer: this.components.homeBar.render(),
@@ -121,9 +136,14 @@ export class MobileShell {
       alarmOverlay: this.renderAlarmOverlay(),
     };
 
+    this.dom.homeTop.append(
+      this.components.greeting.render(),
+      this.components.search.render(),
+    );
+
     this.dom.wrapper.append(
       this.dom.statusBarLayer,
-      this.components.search.render(),
+      this.dom.homeTop,
       this.components.grid.root,
       this.components.dock.render(),
       this.dom.appLayer,
@@ -213,7 +233,7 @@ export class MobileShell {
     });
 
     // App lifecycle
-    kernel.on('process:started', ({ pid, app }) => {
+    kernel.on('process:started', ({ pid, appId, app }) => {
       this.dom.appLayer.innerHTML = '';
 
       // Glass chrome wrapper with unified header
@@ -229,7 +249,26 @@ export class MobileShell {
         }, '✕'),
       ]);
       chrome.appendChild(header);
-      chrome.appendChild(app.root);
+
+      try {
+        chrome.appendChild(app.root);
+      } catch (e) {
+        console.error(`[Shell] ${appName} crashed on mount:`, e);
+        const crashUi = el('div', {
+          class: 'app-crash',
+          style: 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:24px;text-align:center;color:var(--text-bright);'
+        }, [
+          el('h3', { style: 'font-size:18px;margin:0;' }, `${appName} crashed`),
+          el('p', { style: 'font-size:13px;color:var(--text-dim);margin:0;max-width:300px;' }, e.message || 'An unexpected error occurred'),
+          el('button', {
+            type: 'button',
+            style: 'margin-top:8px;padding:8px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;',
+            onclick: () => { app.close(); kernel.emit('app:open', appId || app.metadata?.id); },
+          }, 'Restart'),
+        ]);
+        chrome.appendChild(crashUi);
+      }
+
       this.dom.appLayer.appendChild(chrome);
 
       this.state.activePid = pid;
@@ -579,6 +618,44 @@ export class MobileShell {
       if (e.target.closest('.app-icon') || e.target.closest('.m-dock')) return; // handled by MobileInteraction
       e.preventDefault();
       this.components.contextMenu.show({ type: 'grid', x: e.clientX, y: e.clientY }, e.clientX, e.clientY);
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      // Ignore during IME composition
+      if (e.isComposing) return;
+
+      const isInput = e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA' || e.target?.isContentEditable;
+      const ctrl = e.ctrlKey || e.metaKey;
+
+      // Escape — close current app and go home (always active)
+      if (e.key === 'Escape') {
+        if (this.state.activePid) {
+          const proc = kernel.processManager.processes.get(this.state.activePid);
+          if (proc?.instance?.close) proc.instance.close();
+          e.preventDefault();
+        } else if (isInput) {
+          e.target.blur();
+        }
+        return;
+      }
+
+      // Don't override shortcuts when typing in inputs (except Escape above)
+      if (isInput) return;
+
+      // Ctrl+K / Cmd+K — focus SmartSearch
+      if (ctrl && e.key === 'k') {
+        e.preventDefault();
+        this.components.search.input?.focus();
+        return;
+      }
+
+      // Ctrl+, — open Settings
+      if (ctrl && e.key === ',') {
+        e.preventDefault();
+        kernel.emit('app:open', 'settings');
+        return;
+      }
     });
   }
 

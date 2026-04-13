@@ -91,7 +91,7 @@ export class Kernel {
         }
 
         try {
-            this.registerService('weather', new WeatherService());
+            this.registerService('weather', new WeatherService(this.storage));
         } catch (e) {
             console.error('[Kernel] WeatherService init failed:', e);
         }
