@@ -639,6 +639,7 @@ export class MobileGridState {
     }
 
     // 2. Custom items from storage (shortcuts, folders, aliases)
+    const registeredIds = new Set(currentApps.map(a => a.id));
     for (const item of storedItems) {
       if (this.items.has(item.id)) continue;
 
@@ -646,6 +647,9 @@ export class MobileGridState {
         (item.id.startsWith('shortcut-') ? 'shortcut' :
           item.id.startsWith('folder-') ? 'folder' :
             item.id.startsWith('alias-') ? 'alias' : 'app');
+
+      // Skip native apps that were removed from the registry
+      if (type === 'app' && !registeredIds.has(item.id)) continue;
 
       this.items.set(item.id, {
         id: item.id,

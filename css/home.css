@@ -241,29 +241,6 @@ body.in-app .home-top {
   margin-top: 2px;
 }
 
-/* ── Pomodoro Widget ── */
-.widget-pomo-progress {
-  margin-top: 8px;
-  height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.widget-pomo-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 2px;
-  transition: width 1s linear;
-}
-
-.widget-pomo-cta {
-  font-size: 13px;
-  color: var(--accent);
-  margin-top: 10px;
-  font-weight: 500;
-}
-
 /* ── Quick Links ── */
 .quick-links-bar {
   display: flex;

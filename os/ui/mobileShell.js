@@ -81,7 +81,6 @@ export class MobileShell {
       { id: 'trix', name: 'Trix', icon: 'game:trix' },
       { id: 'calculator', name: 'Calculator', icon: '🔢' },
       { id: 'todo', name: 'Todo', icon: '✅' },
-      { id: 'pomodoro', name: 'Pomodoro', icon: '🍅' },
       { id: 'files', name: 'Files', icon: '📁' },
       { id: 'photos', name: 'Photos', icon: '🖼️' },
       { id: 'maps', name: 'Maps', icon: '🗺️' },

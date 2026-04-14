@@ -150,7 +150,6 @@ async function boot() {
     pm.registerLazy('tarneeb',          () => import('./apps/games/TarneebApp.js').then(m => m.TarneebApp));
     pm.registerLazy('trix',             () => import('./apps/games/TrixApp.js').then(m => m.TrixApp));
     pm.registerLazy('todo',             () => import('./apps/TodoApp.js').then(m => m.TodoApp));
-    pm.registerLazy('pomodoro',         () => import('./apps/PomodoroApp.js').then(m => m.PomodoroApp));
     pm.registerLazy('maps',             () => import('./apps/MapsApp.js').then(m => m.MapsApp));
     pm.registerLazy('photos',           () => import('./apps/PhotosApp.js').then(m => m.PhotosApp));
 

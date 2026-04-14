@@ -9,13 +9,11 @@ import { kernel } from '../../kernel.js';
 import { ClockWidget } from './widgets/ClockWidget.js';
 import { WeatherWidget } from './widgets/WeatherWidget.js';
 import { TodoWidget } from './widgets/TodoWidget.js';
-import { PomodoroWidget } from './widgets/PomodoroWidget.js';
 
 const WIDGET_CLASSES = {
     clock: ClockWidget,
     weather: WeatherWidget,
     todo: TodoWidget,
-    pomodoro: PomodoroWidget,
 };
 
 export class WidgetBar {
@@ -37,7 +35,7 @@ export class WidgetBar {
         this._widgets = [];
         this.root.innerHTML = '';
 
-        const config = kernel.storage?.load('yancotab_widgets') || { clock: false, weather: false, todo: false, pomodoro: false };
+        const config = kernel.storage?.load('yancotab_widgets') || { clock: false, weather: false, todo: false };
 
         for (const [key, WidgetClass] of Object.entries(WIDGET_CLASSES)) {
             if (!config[key]) continue;

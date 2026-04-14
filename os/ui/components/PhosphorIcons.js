@@ -336,29 +336,4 @@ export const PHOSPHOR_ICONS = {
     <rect x="30" y="52" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)"/>
   </svg>`,
 
-  /* ── Pomodoro: timer with progress ring ── */
-  pomodoro: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="pomo-bg" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#4a1a1a"/><stop offset="1" stop-color="#2a0d0d"/>
-      </linearGradient>
-      <linearGradient id="pomo-ring" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stop-color="#ff6b6b"/><stop offset="1" stop-color="#ee5a24"/>
-      </linearGradient>
-    </defs>
-    <!-- Background circle -->
-    <circle cx="32" cy="34" r="24" fill="url(#pomo-bg)" stroke="rgba(255,255,255,0.08)" stroke-width="0.8"/>
-    <!-- Track ring -->
-    <circle cx="32" cy="34" r="20" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="3"/>
-    <!-- Progress ring (~75%) -->
-    <circle cx="32" cy="34" r="20" fill="none" stroke="url(#pomo-ring)" stroke-width="3"
-      stroke-dasharray="94.2 125.6" stroke-linecap="round" transform="rotate(-90 32 34)"/>
-    <!-- Time display -->
-    <text x="32" y="37" text-anchor="middle" fill="#ff6b6b" font-family="sans-serif" font-size="11" font-weight="700">25:00</text>
-    <!-- Stem -->
-    <rect x="30" y="8" width="4" height="5" rx="2" fill="#2a4a2a"/>
-    <!-- Leaf -->
-    <ellipse cx="37" cy="10" rx="4" ry="2.5" fill="#2ed573" opacity="0.7" transform="rotate(-20 37 10)"/>
-  </svg>`,
-
 };

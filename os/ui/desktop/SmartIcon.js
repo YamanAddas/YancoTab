@@ -313,7 +313,7 @@ export class SmartIcon {
     static _phosphorMap = {
       calculator: 'calculator', browser: 'browser', settings: 'settings',
       weather: 'weather', notes: 'notes', files: 'files', folder: 'files',
-      maps: 'maps', photos: 'photos', todo: 'todo', pomodoro: 'pomodoro',
+      maps: 'maps', photos: 'photos', todo: 'todo',
     };
 
     /** Render a Phosphor duotone icon */

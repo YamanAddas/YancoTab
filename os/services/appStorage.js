@@ -58,17 +58,6 @@ const REGISTRY = {
             ['google', 'duck', 'bing'].includes(v.searchEngine) &&
             typeof v.historyLimit === 'number',
     },
-    yancotab_pomodoro_settings: {
-        storageClass: 'preferences',
-        syncPolicy: 'always',
-        version: 1,
-        default: { workMin: 25, shortBreakMin: 5, longBreakMin: 15 },
-        validate: (v) =>
-            v && typeof v === 'object' &&
-            typeof v.workMin === 'number' &&
-            typeof v.shortBreakMin === 'number' &&
-            typeof v.longBreakMin === 'number',
-    },
     yancotab_wallpaper: {
         storageClass: 'preferences',
         syncPolicy: 'always',
@@ -101,7 +90,7 @@ const REGISTRY = {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
-        default: { clock: true, weather: true, todo: true, pomodoro: false },
+        default: { clock: true, weather: true, todo: true },
         validate: (v) => v && typeof v === 'object',
     },
     yancotab_quick_links: {
@@ -202,13 +191,6 @@ const REGISTRY = {
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object',
-    },
-    yancotab_pomodoro_sessions: {
-        storageClass: 'volatile',
-        syncPolicy: 'never',
-        version: 1,
-        default: [],
-        validate: (v) => Array.isArray(v),
     },
     yancotab_memory_best: {
         storageClass: 'volatile',
