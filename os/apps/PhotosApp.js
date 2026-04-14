@@ -179,9 +179,9 @@ export class PhotosApp extends App {
 
     _showMode(mode) {
         this.mode = mode;
-        this._galleryView.hidden = mode !== 'gallery';
-        this._editorView.hidden = mode !== 'editor';
-        this._wallpaperView.hidden = mode !== 'wallpaper';
+        this._galleryView.style.display = mode === 'gallery' ? '' : 'none';
+        this._editorView.style.display = mode === 'editor' ? '' : 'none';
+        this._wallpaperView.style.display = mode === 'wallpaper' ? '' : 'none';
 
         // Update nav tabs
         this._navBar.querySelectorAll('.photos-nav__tab').forEach(btn => {
@@ -201,8 +201,8 @@ export class PhotosApp extends App {
     _refreshGallery() {
         const items = this._getSortedGallery();
         this._galleryGrid.innerHTML = '';
-        this._emptyState.hidden = items.length > 0;
-        this._galleryGrid.hidden = items.length === 0;
+        this._emptyState.style.display = items.length > 0 ? 'none' : '';
+        this._galleryGrid.style.display = items.length === 0 ? 'none' : '';
 
         this._galleryGrid.classList.toggle('photos-gallery__grid--list', this.viewMode === 'list');
 
@@ -289,7 +289,7 @@ export class PhotosApp extends App {
 
     _updateBatchBar() {
         const count = this.selectedIds.size;
-        this._batchBar.hidden = count === 0;
+        this._batchBar.style.display = count === 0 ? 'none' : '';
         const countEl = this._batchBar.querySelector('.photos-toolbar__batch-count');
         if (countEl) countEl.textContent = `${count} selected`;
     }
