@@ -151,6 +151,7 @@ async function boot() {
     pm.registerLazy('trix',             () => import('./apps/games/TrixApp.js').then(m => m.TrixApp));
     pm.registerLazy('todo',             () => import('./apps/TodoApp.js').then(m => m.TodoApp));
     pm.registerLazy('pomodoro',         () => import('./apps/PomodoroApp.js').then(m => m.PomodoroApp));
+    pm.registerLazy('maps',             () => import('./apps/MapsApp.js').then(m => m.MapsApp));
 
     // 3. Mount Shell (Mobile-Only Mode - Works on all devices)
     if (appShell) {

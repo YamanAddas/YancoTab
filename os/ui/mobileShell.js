@@ -84,7 +84,7 @@ export class MobileShell {
       { id: 'pomodoro', name: 'Pomodoro', icon: '🍅' },
       { id: 'files', name: 'Files', icon: '📁' },
       { id: 'photos', name: 'Photos', icon: '🖼️', scheme: 'photos-redirect:' },
-      { id: 'maps', name: 'Maps', icon: '🗺️', scheme: 'comgooglemaps://', url: 'https://maps.google.com' },
+      { id: 'maps', name: 'Maps', icon: '🗺️' },
     ];
 
     this.components.grid.setApps(apps);
