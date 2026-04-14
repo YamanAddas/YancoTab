@@ -2,50 +2,39 @@ import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 
 /**
- * Clock App v0.8 — Premium Redesign
- *
- * Structure:
- * - Header: Title + Close Button
- * - Content: Main View Area
- * - TabBar: Bottom Navigation
+ * Clock App — Aurora v2
+ * Premium redesign: segmented control, digital/analog toggle,
+ * centisecond stopwatch, SVG timer ring, clean world list.
  */
 export class ClockApp extends App {
     constructor(kernel, pid) {
         super(kernel, pid);
-        this.metadata = { name: 'Clock', id: 'clock', icon: '🕒' };
+        this.metadata = { name: 'Clock', id: 'clock', icon: '\u{1F552}' };
         this.storeKey = 'yancotab_clock_v3';
         this.state = this.loadState();
         this.activeTab = 'world';
         this.intervals = [];
+        this.rafId = null;
         this.searchTimer = null;
         this.cityDb = this.buildCityDb();
         this.lastStopwatchSave = 0;
         this.lastTimerSave = 0;
+        this.editingAlarmId = null;
+        this.dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
         this.dayShort = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-
-        // Skin Switcher State
-        this.skinOrder = ['digital', 'analog', 'swiss', 'classic'];
-        this.currentSkinIndex = this.skinOrder.indexOf(this.state.mainClockStyle || 'digital');
-        if (this.currentSkinIndex === -1) this.currentSkinIndex = 0;
     }
 
     async init() {
-        this.root = el('div', { class: 'app-window app-clock-v3' });
+        this.root = el('div', { class: 'app-window clk' });
 
-        // Header
-        const header = el('div', { class: 'clock-header' }, [
-            el('div', { class: 'clock-title' }, 'Clock'),
-            el('button', { class: 'clock-close', onclick: () => this.close(), title: 'Close' }, '✕')
-        ]);
+        // Segmented control
+        this.segmented = el('div', { class: 'clk-seg' });
+        this.renderSegmented();
 
         // Content
-        this.content = el('div', { class: 'clock-content' });
+        this.content = el('div', { class: 'clk-content' });
 
-        // Tab Bar
-        this.tabBar = el('div', { class: 'clock-tab-bar' });
-        this.renderTabBar();
-
-        this.root.append(header, this.content, this.tabBar);
+        this.root.append(this.segmented, this.content);
         this.renderTab();
         this.startUpdates();
 
@@ -56,368 +45,164 @@ export class ClockApp extends App {
         window.addEventListener('yancotab:clock_update', this.onClockUpdate);
     }
 
-    renderTabBar() {
-        this.tabBar.innerHTML = '';
+    // ── Segmented Control ────────────────────────────────────
+    renderSegmented() {
+        this.segmented.innerHTML = '';
         const tabs = [
-            { id: 'world', label: 'World', icon: '🌐' },
-            { id: 'alarm', label: 'Alarms', icon: '⏰' },
-            { id: 'stopwatch', label: 'Stopwatch', icon: '⏱️' },
-            { id: 'timer', label: 'Timer', icon: '⏲️' }
+            { id: 'world', label: 'World' },
+            { id: 'alarm', label: 'Alarm' },
+            { id: 'stopwatch', label: 'Stopwatch' },
+            { id: 'timer', label: 'Timer' },
         ];
-
-        tabs.forEach(tab => {
+        tabs.forEach(t => {
             const btn = el('button', {
-                class: `clock-tab-btn ${this.activeTab === tab.id ? 'is-active' : ''}`,
-                onclick: () => this.switchTab(tab.id)
-            }, [
-                el('span', { class: 'clock-tab-icon' }, tab.icon),
-                el('span', { class: 'clock-tab-label' }, tab.label)
-            ]);
-            this.tabBar.appendChild(btn);
+                class: `clk-seg__btn ${this.activeTab === t.id ? 'is-active' : ''}`,
+                onclick: () => this.switchTab(t.id),
+            }, t.label);
+            this.segmented.appendChild(btn);
         });
     }
 
     switchTab(id) {
         if (this.activeTab === id) return;
         this.activeTab = id;
-        this.renderTabBar();
+        this.renderSegmented();
         this.renderTab();
     }
 
     renderTab() {
         this.content.classList.add('is-switching');
+        this.cancelRAF();
         requestAnimationFrame(() => {
             this.content.innerHTML = '';
-            this.content.className = `clock-content view-${this.activeTab} is-switching`;
-
+            this.content.className = `clk-content is-switching`;
             if (this.activeTab === 'world') this.renderWorld();
             else if (this.activeTab === 'alarm') this.renderAlarms();
             else if (this.activeTab === 'stopwatch') this.renderStopwatch();
             else if (this.activeTab === 'timer') this.renderTimer();
-
             requestAnimationFrame(() => this.content.classList.remove('is-switching'));
         });
     }
 
-    loadState() {
-        try {
-            const raw = localStorage.getItem(this.storeKey);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                parsed.mainClockStyle = parsed.mainClockStyle || 'digital';
-                parsed.worldClocks = Array.isArray(parsed.worldClocks)
-                    ? parsed.worldClocks.map((w) => this.normalizeWorldClock(w)).filter(Boolean)
-                    : [];
-                parsed.alarms = Array.isArray(parsed.alarms) ? parsed.alarms.map((a) => this.normalizeAlarm(a)) : [];
-                return parsed;
-            }
-        } catch (_) { /* ignore */ }
-        return {
-            use24h: false,
-            mainClockStyle: 'digital',
-            alarmAudio: { tone: 'pulse', volume: 0.45 },
-            worldClocks: [],
-            alarms: [],
-            stopwatch: { elapsed: 0, running: false, laps: [], lastStart: null },
-            timer: { duration: 300, remaining: 300, running: false, endsAt: null }
-        };
-    }
-
-    saveState() {
-        localStorage.setItem(this.storeKey, JSON.stringify(this.state));
-    }
-
-    normalizeWorldClock(w) {
-        if (!w || typeof w !== 'object') return null;
-        return {
-            label: w.label || 'Unknown',
-            tz: w.tz || 'UTC',
-            pinned: !!w.pinned
-        };
-    }
-
-    normalizeAlarm(a) {
-        if (!a || typeof a !== 'object') return null;
-        return {
-            id: a.id || `alarm-${Date.now()}-${Math.random()}`,
-            time: a.time || '00:00',
-            label: a.label || 'Alarm',
-            enabled: !!a.enabled,
-            days: Array.isArray(a.days) ? a.days : [],
-            snoozeMins: Number(a.snoozeMins) || 9
-        };
-    }
-
-    normalizeAlarmAudio(a) {
-        if (!a || typeof a !== 'object') return { tone: 'pulse', volume: 0.45 };
-        return {
-            tone: typeof a.tone === 'string' ? a.tone : 'pulse',
-            volume: Number.isFinite(Number(a.volume)) ? Math.max(0.05, Math.min(1, Number(a.volume))) : 0.45
-        };
-    }
-
-    startUpdates() {
-        const tick = setInterval(() => {
-            const now = new Date();
-            if (this.activeTab === 'world') {
-                this.updateWorldTimes(now);
-                // Update Main Clock Face if needed
-                if (this.state.mainClockStyle !== 'digital') {
-                    const canvas = this.content.querySelector('canvas');
-                    if (canvas) this.drawMainAnalog(now, canvas, this.state.mainClockStyle);
-                } else {
-                    const digital = this.content.querySelector('.clock-main-time');
-                    if (digital) digital.textContent = this.formatMainTime(now);
-                }
-            }
-            if (this.activeTab === 'stopwatch' && this.state.stopwatch.running) this.updateStopwatch(now);
-            if (this.activeTab === 'timer' && this.state.timer.running) this.updateTimer(now);
-            this.setThemeByTime(now);
-        }, 1000);
-        this.intervals.push(tick);
-    }
-
-    setThemeByTime(now) {
-        const h = now.getHours();
-        const theme = (h >= 6 && h < 18) ? 'day' : 'night';
-        if (this.root.dataset.clockTheme !== theme) {
-            this.root.dataset.clockTheme = theme;
-        }
-    }
-
-    /* ---------- World Clock ---------- */
+    // ── World Tab ────────────────────────────────────────────
     renderWorld() {
         this.content.innerHTML = '';
         const now = new Date();
 
-        // 1. Carousel
-        const prevBtn = el('button', { class: 'clock-skin-nav prev', onclick: () => this.cycleSkin(-1) }, '‹');
-        const nextBtn = el('button', { class: 'clock-skin-nav next', onclick: () => this.cycleSkin(1) }, '›');
+        // Hero clock
+        const hero = el('div', { class: 'clk-hero' });
+        this.renderHeroClock(hero, now);
 
-        const faceContainer = el('div', { class: 'clock-face-container' });
-        this.renderMainFaceInto(faceContainer, now);
-
-        const carousel = el('div', { class: 'clock-carousel' }, [
-            prevBtn, faceContainer, nextBtn
-        ]);
-
-        // 2. Tools
-        const tools = el('div', { class: 'clock-tools' }, [
+        // Toggle: Digital / Analog
+        const isAnalog = this.state.mainClockStyle === 'analog';
+        const toggle = el('div', { class: 'clk-face-toggle' }, [
             el('button', {
-                class: `clock-tool-btn ${this.state.use24h ? 'is-active' : ''}`,
-                onclick: () => {
-                    this.state.use24h = !this.state.use24h;
-                    this.saveState();
-                    this.renderWorld();
-                }
-            }, this.state.use24h ? '24H' : '12H')
+                class: `clk-face-toggle__btn ${!isAnalog ? 'is-active' : ''}`,
+                onclick: () => { this.state.mainClockStyle = 'digital'; this.saveState(); this.renderWorld(); },
+            }, 'Digital'),
+            el('button', {
+                class: `clk-face-toggle__btn ${isAnalog ? 'is-active' : ''}`,
+                onclick: () => { this.state.mainClockStyle = 'analog'; this.saveState(); this.renderWorld(); },
+            }, 'Analog'),
         ]);
 
-        // 3. List Section
-        const searchBox = el('div', { class: 'clock-search-container' });
-        const suggestBox = el('div', { class: 'clock-suggestions' });
+        // World clocks section
+        const sectionHeader = el('div', { class: 'clk-section-header' }, [
+            el('span', { class: 'clk-section-title' }, 'World Clocks'),
+            el('div', { class: 'clk-section-actions' }, [
+                el('button', {
+                    class: `clk-tool-btn ${this.state.use24h ? 'is-active' : ''}`,
+                    onclick: () => { this.state.use24h = !this.state.use24h; this.saveState(); this.renderWorld(); },
+                }, this.state.use24h ? '24H' : '12H'),
+                el('button', {
+                    class: 'clk-add-btn',
+                    onclick: () => this.toggleSearchField(),
+                }, '+ Add'),
+            ]),
+        ]);
+
+        // Search (hidden by default)
+        this.searchContainer = el('div', { class: 'clk-search' });
+        this.searchContainer.style.display = 'none';
+        const suggestBox = el('div', { class: 'clk-suggestions' });
         const input = el('input', {
-            class: 'clock-search-input',
+            class: 'clk-search__input',
             type: 'text',
-            placeholder: 'Add City',
+            placeholder: 'Search city or timezone...',
             style: 'font-size: 16px;',
             oninput: (e) => this.queueSearch(e.target.value, suggestBox),
-            onkeyup: (e) => { if (e.key === 'Enter') this.addWorldFromInput(e.target.value, suggestBox); }
+            onkeyup: (e) => { if (e.key === 'Enter') this.addWorldFromInput(e.target.value, suggestBox); },
         });
         this.worldInput = input;
-        searchBox.append(el('span', { class: 'search-icon' }, '🔍'), input, suggestBox);
+        this.searchContainer.append(input, suggestBox);
 
-        this.worldList = el('div', { class: 'clock-world-list' });
-        this.renderWorldList();
+        // World list
+        this.worldList = el('div', { class: 'clk-world-list' });
+        this.renderWorldList(now);
 
-        const listContainer = el('div', { class: 'clock-list-section' }, [
-            searchBox,
-            this.worldList
-        ]);
-
-        this.content.append(carousel, tools, listContainer);
+        this.content.append(hero, toggle, sectionHeader, this.searchContainer, this.worldList);
     }
 
-    cycleSkin(dir) {
-        this.currentSkinIndex = (this.currentSkinIndex + dir + this.skinOrder.length) % this.skinOrder.length;
-        this.state.mainClockStyle = this.skinOrder[this.currentSkinIndex];
-        this.saveState();
-
-        const container = this.content.querySelector('.clock-face-container');
-        if (container) {
-            container.innerHTML = '';
-            this.renderMainFaceInto(container, new Date());
+    toggleSearchField() {
+        if (!this.searchContainer) return;
+        const visible = this.searchContainer.style.display !== 'none';
+        this.searchContainer.style.display = visible ? 'none' : 'flex';
+        if (!visible && this.worldInput) {
+            this.worldInput.value = '';
+            setTimeout(() => this.worldInput.focus(), 50);
         }
     }
 
-    renderMainFaceInto(container, now) {
-        const style = this.state.mainClockStyle;
-        const face = el('div', { class: `clock-main-face clock-main-face-${style}` });
+    renderHeroClock(container, now) {
+        container.innerHTML = '';
+        const isAnalog = this.state.mainClockStyle === 'analog';
 
-        if (['analog', 'classic', 'swiss'].includes(style)) {
-            const canvas = el('canvas', { class: 'clock-main-analog', width: '260', height: '260' });
-            face.appendChild(canvas);
-            this.drawMainAnalog(now, canvas, style);
-            // Digital pill below analog
+        if (isAnalog) {
+            const canvas = el('canvas', { class: 'clk-analog', width: '240', height: '240' });
+            container.appendChild(canvas);
+            this.drawAnalog(now, canvas);
+            // Pill below analog
             const { time, ampm } = this.formatTimeParts(now);
-            face.appendChild(el('div', { class: 'clock-face-pill' }, `${time} ${ampm}`));
+            container.appendChild(el('div', { class: 'clk-analog-pill' }, `${time} ${ampm}`.trim()));
+            this.startAnalogRAF(canvas);
         } else {
-            // Digital
             const { time, ampm } = this.formatTimeParts(now);
-            const timeEl = el('div', { class: 'clock-main-time-wrap' }, [
-                el('span', { class: 'clock-time-text' }, time),
-                ampm ? el('span', { class: 'clock-ampm-text' }, ampm) : null
-            ]);
-
-            face.appendChild(timeEl);
-            face.appendChild(el('div', { class: 'clock-main-date' }, this.formatMainDate(now)));
-        }
-        container.appendChild(face);
-    }
-
-    formatTimeParts(now) {
-        const parts = new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric', minute: '2-digit', second: '2-digit',
-            hour12: !this.state.use24h
-        }).formatToParts(now);
-
-        const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value || '';
-        // Reconstruct time part without dayPeriod and trimming whitespace
-        const time = parts
-            .filter(p => p.type !== 'dayPeriod')
-            .map(p => p.value)
-            .join('')
-            .trim();
-
-        return { time, ampm: dayPeriod };
-    }
-
-    formatMainTime(now) {
-        const { time, ampm } = this.formatTimeParts(now);
-        return `${time} ${ampm}`.trim();
-    }
-
-    formatMainDate(now) {
-        return new Intl.DateTimeFormat('en-US', {
-            weekday: 'long', month: 'short', day: 'numeric'
-        }).format(now);
-    }
-
-    renderWorldList() {
-        this.worldList.innerHTML = '';
-        const now = new Date();
-        if (!this.state.worldClocks.length) {
-            this.worldList.appendChild(el('div', { class: 'clock-empty' }, 'No world clocks yet. Search and tap a result to add.'));
-            return;
-        }
-        this.state.worldClocks.forEach((wc, index) => {
-            const pinBtn = el('button', {
-                class: `clock-world-pin ${wc.pinned ? 'is-active' : ''}`,
-                title: wc.pinned ? 'Unpin' : 'Pin',
-                onclick: () => this.toggleWorldPin(wc.tz)
-            }, '★');
-            const upBtn = el('button', {
-                class: 'clock-world-move',
-                title: 'Move up',
-                onclick: () => this.moveWorldClock(wc.tz, -1)
-            }, '↑');
-            upBtn.disabled = index === 0;
-            const downBtn = el('button', {
-                class: 'clock-world-move',
-                title: 'Move down',
-                onclick: () => this.moveWorldClock(wc.tz, 1)
-            }, '↓');
-            downBtn.disabled = index === this.state.worldClocks.length - 1;
-            const row = el('div', { class: 'clock-world-row' }, [
-                el('div', { class: 'clock-world-city' }, [
-                    el('span', { class: 'clock-world-city-name' }, wc.label),
-                    wc.pinned ? el('span', { class: 'clock-world-pin-badge' }, 'Pinned') : null
-                ].filter(Boolean)),
-                el('div', { class: 'clock-world-meta' }, this.getOffsetLabel(wc.tz, now)),
-                el('div', { class: 'clock-world-time', 'data-tz': wc.tz }, this.formatWorldTime(wc.tz, now)),
-                el('div', { class: 'clock-world-actions' }, [
-                    pinBtn,
-                    upBtn,
-                    downBtn,
-                    el('button', { class: 'clock-world-remove', onclick: () => this.removeWorldClock(wc.tz) }, '×')
-                ])
-            ]);
-            this.worldList.appendChild(row);
-        });
-    }
-
-    updateWorldTimes(now = new Date()) {
-        const style = this.state.mainClockStyle || 'digital';
-
-        // Update Digital Face
-        const timeWrap = this.content.querySelector('.clock-main-time-wrap');
-        if (timeWrap && !['analog', 'classic', 'swiss'].includes(style)) {
-            const { time, ampm } = this.formatTimeParts(now);
-            const timeText = timeWrap.querySelector('.clock-time-text');
-            const ampmText = timeWrap.querySelector('.clock-ampm-text');
-            if (timeText) timeText.textContent = time;
-            if (ampmText) {
-                ampmText.textContent = ampm;
-                ampmText.style.display = ampm ? 'inline' : 'none';
-            } else if (ampm) {
-                // If it mistakenly didn't exist (e.g. switched modes), reconstruct
-                // This is a simple update loop; full re-render handles structural changes
+            // Split time into hours:minutes and seconds
+            const parts = time.split(':');
+            let hm, sec;
+            if (parts.length === 3) {
+                hm = parts[0] + ':' + parts[1];
+                sec = parts[2];
+            } else {
+                hm = time;
+                sec = '';
             }
+
+            const timeWrap = el('div', { class: 'clk-hero__time' }, [
+                el('span', { class: 'clk-hero__hm', 'data-role': 'hm' }, hm),
+                sec ? el('span', { class: 'clk-hero__sec', 'data-role': 'sec' }, ':' + sec) : null,
+                ampm ? el('span', { class: 'clk-hero__ampm' }, ampm) : null,
+            ].filter(Boolean));
+
+            const dateEl = el('div', { class: 'clk-hero__date', 'data-role': 'main-date' }, this.formatMainDate(now));
+            container.append(timeWrap, dateEl);
         }
-
-        // Update Analog Pill
-        const pill = this.content.querySelector('.clock-face-pill');
-        if (pill) {
-            const { time, ampm } = this.formatTimeParts(now);
-            pill.textContent = `${time} ${ampm}`;
-        }
-
-        const mainDate = this.content.querySelector('.clock-main-date');
-        if (mainDate) mainDate.textContent = this.formatMainDate(now);
-
-        if (['analog', 'classic', 'swiss'].includes(style)) {
-            const canvas = this.content.querySelector('.clock-main-analog');
-            if (canvas) this.drawMainAnalog(now, canvas, style);
-        }
-
-        this.content.querySelectorAll('.clock-world-time').forEach(el => {
-            const tz = el.dataset.tz;
-            el.textContent = this.formatWorldTime(tz, now);
-        });
     }
 
-    createStyleButton(id, label) {
-        return el('button', {
-            class: `clock-main-style-btn ${(this.state.mainClockStyle || 'digital') === id ? 'is-active' : ''}`,
-            type: 'button',
-            onclick: () => {
-                this.state.mainClockStyle = id;
-                this.saveState();
-                this.renderWorld();
-            }
-        }, label);
+    startAnalogRAF(canvas) {
+        this.cancelRAF();
+        const tick = () => {
+            this.drawAnalog(new Date(), canvas);
+            this.rafId = requestAnimationFrame(tick);
+        };
+        this.rafId = requestAnimationFrame(tick);
     }
 
-    renderMainFace(now, style) {
-        const face = el('div', { class: `clock-main-face clock-main-face-${style}` });
-        if (['analog', 'classic', 'swiss'].includes(style)) {
-            const canvas = el('canvas', { class: 'clock-main-analog', width: '220', height: '220', 'data-role': 'main-analog' });
-            face.appendChild(canvas);
-            this.drawMainAnalog(now, canvas, style);
-            face.appendChild(el('div', { class: 'clock-main-date', 'data-role': 'main-date' }, this.formatMainDate(now)));
-            return face;
-        }
-        face.appendChild(el('div', { class: 'clock-main-time', 'data-role': 'main-time' }, this.formatMainTime(now)));
-        face.appendChild(el('div', { class: 'clock-main-date', 'data-role': 'main-date' }, this.formatMainDate(now)));
-        return face;
-    }
-
-    drawMainAnalog(now, canvas, mode = 'analog') {
+    drawAnalog(now, canvas) {
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
-        const w = canvas.width;
-        const h = canvas.height;
-        const r = Math.min(w, h) / 2 - 10;
+        const w = canvas.width, h = canvas.height;
+        const r = Math.min(w, h) / 2 - 12;
         ctx.clearRect(0, 0, w, h);
         ctx.save();
         ctx.translate(w / 2, h / 2);
@@ -425,100 +210,712 @@ export class ClockApp extends App {
         // Face
         ctx.beginPath();
         ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.fillStyle = mode === 'classic'
-            ? 'rgba(18, 15, 12, 0.9)'
-            : mode === 'swiss'
-                ? 'rgba(236, 243, 249, 0.96)'
-                : 'rgba(6, 20, 34, 0.85)';
+        ctx.fillStyle = 'rgba(8, 16, 28, 0.92)';
         ctx.fill();
-        ctx.lineWidth = 4;
-        ctx.strokeStyle = mode === 'swiss'
-            ? 'rgba(30, 40, 52, 0.35)'
-            : mode === 'classic'
-                ? 'rgba(218, 194, 151, 0.45)'
-                : 'rgba(160, 220, 255, 0.45)';
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(0, 229, 193, 0.2)';
         ctx.stroke();
 
-        // Ticks
+        // Hour indices (lume dots)
         for (let i = 0; i < 12; i++) {
-            ctx.save();
-            ctx.rotate((Math.PI / 6) * i);
+            const angle = (Math.PI / 6) * i - Math.PI / 2;
+            const x = Math.cos(angle) * (r - 16);
+            const y = Math.sin(angle) * (r - 16);
+
             ctx.beginPath();
-            ctx.moveTo(0, -r + 12);
-            ctx.lineTo(0, -r + 26);
-            ctx.lineWidth = mode === 'swiss' ? 2 : 3;
-            ctx.strokeStyle = mode === 'swiss'
-                ? 'rgba(25, 33, 44, 0.8)'
-                : mode === 'classic'
-                    ? 'rgba(240, 224, 188, 0.65)'
-                    : 'rgba(210, 240, 255, 0.6)';
-            ctx.stroke();
-            ctx.restore();
+            if (i % 3 === 0) {
+                // Major indices — teal rectangles
+                ctx.save();
+                ctx.translate(x, y);
+                ctx.rotate((Math.PI / 6) * i);
+                ctx.fillStyle = 'rgba(0, 229, 193, 0.85)';
+                ctx.fillRect(-2, -8, 4, 16);
+                ctx.restore();
+            } else {
+                // Minor indices — small dots
+                ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 229, 193, 0.4)';
+                ctx.fill();
+            }
         }
 
-        if (mode === 'classic') {
-            ctx.fillStyle = 'rgba(242, 226, 194, 0.8)';
-            ctx.font = '15px "Times New Roman", serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            const romans = ['XII', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
-            romans.forEach((roman, i) => {
-                const a = (Math.PI / 6) * i - Math.PI / 2;
-                const x = Math.cos(a) * (r - 34);
-                const y = Math.sin(a) * (r - 34);
-                ctx.fillText(roman, x, y);
-            });
+        // Minute ticks
+        for (let i = 0; i < 60; i++) {
+            if (i % 5 === 0) continue;
+            const angle = (Math.PI / 30) * i - Math.PI / 2;
+            const x1 = Math.cos(angle) * (r - 4);
+            const y1 = Math.sin(angle) * (r - 4);
+            const x2 = Math.cos(angle) * (r - 8);
+            const y2 = Math.sin(angle) * (r - 8);
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.stroke();
         }
 
         const hour = now.getHours() % 12;
         const minute = now.getMinutes();
         const second = now.getSeconds();
+        const ms = now.getMilliseconds();
+        const smoothSecond = second + ms / 1000;
 
         // Hour hand
         ctx.save();
         ctx.rotate((Math.PI / 6) * hour + (Math.PI / 360) * minute);
         ctx.beginPath();
-        ctx.moveTo(0, 8);
+        ctx.moveTo(-2, 10);
+        ctx.lineTo(-3.5, 0);
         ctx.lineTo(0, -r * 0.45);
-        ctx.lineWidth = mode === 'swiss' ? 5 : 6;
-        ctx.strokeStyle = mode === 'swiss' ? '#202935' : mode === 'classic' ? '#e7d2a6' : '#7ef6e5';
-        ctx.stroke();
+        ctx.lineTo(3.5, 0);
+        ctx.lineTo(2, 10);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(200, 214, 229, 0.95)';
+        ctx.fill();
         ctx.restore();
 
         // Minute hand
         ctx.save();
         ctx.rotate((Math.PI / 30) * minute + (Math.PI / 1800) * second);
         ctx.beginPath();
-        ctx.moveTo(0, 12);
+        ctx.moveTo(-1.5, 14);
+        ctx.lineTo(-2.5, 0);
         ctx.lineTo(0, -r * 0.7);
-        ctx.lineWidth = mode === 'swiss' ? 3 : 4;
-        ctx.strokeStyle = mode === 'swiss' ? '#2b3948' : mode === 'classic' ? '#d9bb82' : '#5ac6ff';
-        ctx.stroke();
-        ctx.restore();
-
-        // Second hand
-        ctx.save();
-        ctx.rotate((Math.PI / 30) * second);
-        ctx.beginPath();
-        ctx.moveTo(0, 14);
-        ctx.lineTo(0, -r * 0.78);
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = mode === 'swiss' ? '#e44848' : '#ffffff';
-        ctx.stroke();
-        ctx.restore();
-
-        // Center
-        ctx.beginPath();
-        ctx.arc(0, 0, 5, 0, Math.PI * 2);
-        ctx.fillStyle = mode === 'swiss' ? '#2b3948' : mode === 'classic' ? '#e7d2a6' : '#d4f5ff';
+        ctx.lineTo(2.5, 0);
+        ctx.lineTo(1.5, 14);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(200, 214, 229, 0.9)';
         ctx.fill();
         ctx.restore();
+
+        // Second hand — smooth sweep
+        ctx.save();
+        ctx.rotate((Math.PI / 30) * smoothSecond);
+        ctx.beginPath();
+        ctx.moveTo(0, 20);
+        ctx.lineTo(0, -r * 0.82);
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#00e5c1';
+        ctx.stroke();
+        // Counterweight circle
+        ctx.beginPath();
+        ctx.arc(0, 14, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#00e5c1';
+        ctx.fill();
+        ctx.restore();
+
+        // Center cap
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fillStyle = '#00e5c1';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(0, 0, 2, 0, Math.PI * 2);
+        ctx.fillStyle = '#0a101c';
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    renderWorldList(now = new Date()) {
+        if (!this.worldList) return;
+        this.worldList.innerHTML = '';
+        if (!this.state.worldClocks.length) {
+            this.worldList.appendChild(el('div', { class: 'clk-empty' }, 'No world clocks added yet.'));
+            return;
+        }
+        this.state.worldClocks.forEach((wc, index) => {
+            const offset = this.getOffsetLabel(wc.tz, now);
+            const time = this.formatWorldTime(wc.tz, now);
+
+            const actions = el('div', { class: 'clk-world-row__actions' });
+            // Pin
+            actions.appendChild(el('button', {
+                class: `clk-icon-btn ${wc.pinned ? 'is-active' : ''}`,
+                title: wc.pinned ? 'Unpin' : 'Pin',
+                onclick: (e) => { e.stopPropagation(); this.toggleWorldPin(wc.tz); },
+            }, '\u2605'));
+            // Move up
+            if (index > 0) {
+                actions.appendChild(el('button', {
+                    class: 'clk-icon-btn',
+                    title: 'Move up',
+                    onclick: (e) => { e.stopPropagation(); this.moveWorldClock(wc.tz, -1); },
+                }, '\u2191'));
+            }
+            // Move down
+            if (index < this.state.worldClocks.length - 1) {
+                actions.appendChild(el('button', {
+                    class: 'clk-icon-btn',
+                    title: 'Move down',
+                    onclick: (e) => { e.stopPropagation(); this.moveWorldClock(wc.tz, 1); },
+                }, '\u2193'));
+            }
+            // Remove
+            actions.appendChild(el('button', {
+                class: 'clk-icon-btn clk-icon-btn--danger',
+                title: 'Remove',
+                onclick: (e) => { e.stopPropagation(); this.removeWorldClock(wc.tz); },
+            }, '\u00d7'));
+
+            const row = el('div', { class: 'clk-world-row' }, [
+                el('div', { class: 'clk-world-row__left' }, [
+                    el('span', { class: 'clk-world-row__city' }, wc.label),
+                    wc.pinned ? el('span', { class: 'clk-world-row__pin-badge' }, 'Pinned') : null,
+                    el('span', { class: 'clk-world-row__offset' }, offset),
+                ].filter(Boolean)),
+                el('div', { class: 'clk-world-row__right' }, [
+                    el('span', { class: 'clk-world-row__time', 'data-tz': wc.tz }, time),
+                    actions,
+                ]),
+            ]);
+            this.worldList.appendChild(row);
+        });
+    }
+
+    updateWorldTimes(now = new Date()) {
+        const isAnalog = this.state.mainClockStyle === 'analog';
+
+        if (!isAnalog) {
+            // Update digital hero
+            const { time, ampm } = this.formatTimeParts(now);
+            const parts = time.split(':');
+            let hm, sec;
+            if (parts.length === 3) { hm = parts[0] + ':' + parts[1]; sec = parts[2]; }
+            else { hm = time; sec = ''; }
+
+            const hmEl = this.content.querySelector('[data-role="hm"]');
+            const secEl = this.content.querySelector('[data-role="sec"]');
+            if (hmEl) hmEl.textContent = hm;
+            if (secEl) secEl.textContent = ':' + sec;
+
+            const dateEl = this.content.querySelector('[data-role="main-date"]');
+            if (dateEl) dateEl.textContent = this.formatMainDate(now);
+        }
+
+        // Update analog pill
+        const pill = this.content.querySelector('.clk-analog-pill');
+        if (pill) {
+            const { time, ampm } = this.formatTimeParts(now);
+            pill.textContent = `${time} ${ampm}`.trim();
+        }
+
+        // Update world times
+        this.content.querySelectorAll('.clk-world-row__time').forEach(timeEl => {
+            const tz = timeEl.dataset.tz;
+            if (tz) timeEl.textContent = this.formatWorldTime(tz, now);
+        });
+    }
+
+    // ── Alarm Tab ────────────────────────────────────────────
+    renderAlarms() {
+        this.content.innerHTML = '';
+        const alarmAudio = this.normalizeAlarmAudio(this.state.alarmAudio);
+        this.state.alarmAudio = alarmAudio;
+
+        const wrap = el('div', { class: 'clk-alarm' });
+
+        // Next alarm summary
+        const summary = this.getNextAlarmSummary();
+        wrap.appendChild(el('div', { class: 'clk-alarm__next' }, summary));
+
+        // Alarm list
+        const list = el('div', { class: 'clk-alarm__list' });
+        this.state.alarms.forEach((alarm, i) => {
+            const timeStr = this.formatAlarmTime(alarm.time);
+            const dayStr = this.formatDaySummary(alarm.days);
+
+            const row = el('div', { class: `clk-alarm-row ${alarm.enabled ? '' : 'is-disabled'}` });
+
+            const left = el('div', { class: 'clk-alarm-row__left' }, [
+                el('span', { class: 'clk-alarm-row__time' }, timeStr.time),
+                el('span', { class: 'clk-alarm-row__ampm' }, timeStr.ampm),
+            ]);
+
+            const mid = el('div', { class: 'clk-alarm-row__mid' }, [
+                el('span', { class: 'clk-alarm-row__label' }, alarm.label || 'Alarm'),
+                el('span', { class: 'clk-alarm-row__days' }, dayStr),
+            ]);
+
+            const toggle = el('button', {
+                class: `clk-toggle ${alarm.enabled ? 'is-on' : ''}`,
+                onclick: (e) => {
+                    e.stopPropagation();
+                    alarm.enabled = !alarm.enabled;
+                    this.saveState();
+                    this.renderAlarms();
+                },
+            }, [el('div', { class: 'clk-toggle__knob' })]);
+
+            row.append(left, mid, toggle);
+            row.onclick = (e) => {
+                if (e.target.closest('.clk-toggle')) return;
+                this.editingAlarmId = this.editingAlarmId === alarm.id ? null : alarm.id;
+                this.renderAlarms();
+            };
+            list.appendChild(row);
+
+            // Inline editor
+            if (this.editingAlarmId === alarm.id) {
+                list.appendChild(this.buildAlarmEditor(alarm, i));
+            }
+        });
+        wrap.appendChild(list);
+
+        // Add alarm button
+        wrap.appendChild(el('button', {
+            class: 'clk-alarm__add',
+            onclick: () => {
+                this.state.alarms.push(this.normalizeAlarm({
+                    id: `alarm-${Date.now()}`,
+                    time: '07:00',
+                    label: 'Alarm',
+                    enabled: true,
+                    days: [0, 1, 2, 3, 4, 5, 6],
+                    snoozeMins: 9,
+                }));
+                this.editingAlarmId = this.state.alarms[this.state.alarms.length - 1].id;
+                this.saveState();
+                this.renderAlarms();
+            },
+        }, '+ New Alarm'));
+
+        // Sound & snooze footer
+        const footer = el('div', { class: 'clk-alarm__footer' }, [
+            el('div', { class: 'clk-alarm__setting' }, [
+                el('span', {}, 'Sound'),
+                el('select', {
+                    class: 'clk-select',
+                    onchange: (e) => { this.state.alarmAudio.tone = e.target.value; this.saveState(); this.previewAlarmSound(); },
+                }, ['pulse', 'chime', 'soft'].map(t =>
+                    el('option', { value: t, ...(alarmAudio.tone === t ? { selected: '' } : {}) },
+                        t.charAt(0).toUpperCase() + t.slice(1))
+                )),
+            ]),
+            el('div', { class: 'clk-alarm__setting' }, [
+                el('span', {}, 'Volume'),
+                el('input', {
+                    class: 'clk-range',
+                    type: 'range',
+                    min: '0.05',
+                    max: '1',
+                    step: '0.05',
+                    value: String(alarmAudio.volume),
+                    oninput: (e) => { this.state.alarmAudio.volume = parseFloat(e.target.value); this.saveState(); },
+                }),
+            ]),
+        ]);
+        wrap.appendChild(footer);
+
+        this.content.appendChild(wrap);
+    }
+
+    formatAlarmTime(timeStr) {
+        const [h, m] = (timeStr || '07:00').split(':').map(Number);
+        if (this.state.use24h) {
+            return { time: `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`, ampm: '' };
+        }
+        const period = h >= 12 ? 'PM' : 'AM';
+        const h12 = h % 12 || 12;
+        return { time: `${h12}:${String(m).padStart(2, '0')}`, ampm: period };
+    }
+
+    buildAlarmEditor(alarm, index) {
+        const editor = el('div', { class: 'clk-alarm-editor' });
+
+        const inputs = el('div', { class: 'clk-alarm-editor__inputs' }, [
+            el('input', { class: 'clk-input', type: 'time', value: alarm.time || '07:00' }),
+            el('input', { class: 'clk-input', type: 'text', value: alarm.label || 'Alarm', placeholder: 'Label' }),
+        ]);
+
+        // Day selector
+        const daySet = new Set(Array.isArray(alarm.days) ? alarm.days : [0, 1, 2, 3, 4, 5, 6]);
+        const dayRow = el('div', { class: 'clk-alarm-editor__days' });
+        this.dayNames.forEach((d, idx) => {
+            const chip = el('button', {
+                class: `clk-day-chip ${daySet.has(idx) ? 'is-active' : ''}`,
+                onclick: () => {
+                    if (daySet.has(idx)) daySet.delete(idx); else daySet.add(idx);
+                    chip.classList.toggle('is-active', daySet.has(idx));
+                },
+            }, d);
+            dayRow.appendChild(chip);
+        });
+
+        // Snooze
+        const snoozeRow = el('div', { class: 'clk-alarm-editor__snooze' }, [
+            el('span', {}, 'Snooze'),
+            el('select', { class: 'clk-select' },
+                [1, 3, 5, 9, 10, 15, 30].map(m =>
+                    el('option', { value: String(m), ...(alarm.snoozeMins === m ? { selected: '' } : {}) }, `${m} min`)
+                )
+            ),
+        ]);
+
+        const actions = el('div', { class: 'clk-alarm-editor__actions' }, [
+            el('button', {
+                class: 'clk-btn clk-btn--danger',
+                onclick: () => {
+                    this.state.alarms.splice(index, 1);
+                    this.editingAlarmId = null;
+                    this.saveState();
+                    this.renderAlarms();
+                },
+            }, 'Delete'),
+            el('button', {
+                class: 'clk-btn clk-btn--primary',
+                onclick: () => {
+                    const timeInput = editor.querySelector('input[type="time"]');
+                    const labelInput = editor.querySelector('input[type="text"]');
+                    const snoozeSelect = editor.querySelector('.clk-alarm-editor__snooze select');
+                    alarm.time = timeInput.value;
+                    alarm.label = labelInput.value;
+                    alarm.days = Array.from(daySet).sort((a, b) => a - b);
+                    alarm.snoozeMins = parseInt(snoozeSelect.value) || 9;
+                    this.editingAlarmId = null;
+                    this.saveState();
+                    this.renderAlarms();
+                },
+            }, 'Save'),
+        ]);
+
+        editor.append(inputs, dayRow, snoozeRow, actions);
+        return editor;
+    }
+
+    // ── Stopwatch Tab ────────────────────────────────────────
+    renderStopwatch() {
+        this.content.innerHTML = '';
+        const elapsed = this.getStopwatchElapsed();
+        const wrap = el('div', { class: 'clk-stopwatch' });
+
+        // Display with centiseconds
+        const display = el('div', { class: 'clk-sw-display' });
+        this.renderStopwatchTime(display, elapsed);
+        wrap.appendChild(display);
+
+        // Controls
+        const startBtn = el('button', {
+            class: `clk-circle-btn ${this.state.stopwatch.running ? 'clk-circle-btn--stop' : 'clk-circle-btn--start'}`,
+            onclick: () => {
+                const now = Date.now();
+                if (this.state.stopwatch.running) {
+                    this.syncStopwatchElapsed(now);
+                    this.state.stopwatch.running = false;
+                    this.state.stopwatch.lastStart = null;
+                } else {
+                    this.state.stopwatch.running = true;
+                    this.state.stopwatch.lastStart = now;
+                }
+                this.saveState();
+                this.renderStopwatch();
+            },
+        }, this.state.stopwatch.running ? 'Stop' : 'Start');
+
+        const lapLabel = this.state.stopwatch.running ? 'Lap' : 'Reset';
+        const lapBtn = el('button', {
+            class: 'clk-circle-btn clk-circle-btn--secondary',
+            onclick: () => {
+                if (this.state.stopwatch.running) {
+                    const now = Date.now();
+                    const elapsedNow = this.syncStopwatchElapsed(now);
+                    this.state.stopwatch.laps.push(elapsedNow);
+                    this.saveState();
+                    this.renderStopwatch();
+                } else {
+                    this.state.stopwatch = { elapsed: 0, running: false, laps: [], lastStart: null };
+                    this.saveState();
+                    this.renderStopwatch();
+                }
+            },
+        }, lapLabel);
+
+        // Disable reset when no elapsed time and not running
+        if (!this.state.stopwatch.running && elapsed === 0) {
+            lapBtn.disabled = true;
+            lapBtn.classList.add('is-disabled');
+        }
+
+        wrap.appendChild(el('div', { class: 'clk-controls' }, [lapBtn, startBtn]));
+
+        // Laps
+        if (this.state.stopwatch.laps.length > 0) {
+            const lapsSection = el('div', { class: 'clk-laps' });
+            lapsSection.appendChild(el('div', { class: 'clk-laps__header' }, [
+                el('span', {}, 'Lap'),
+                el('span', {}, 'Split'),
+                el('span', {}, 'Total'),
+            ]));
+
+            const laps = this.state.stopwatch.laps;
+            // Compute splits
+            const splits = laps.map((cumulative, i) => i === 0 ? cumulative : cumulative - laps[i - 1]);
+            const bestSplit = Math.min(...splits);
+            const worstSplit = Math.max(...splits);
+
+            [...laps].reverse().forEach((cumulative, revIdx) => {
+                const i = laps.length - 1 - revIdx;
+                const split = splits[i];
+                let rowClass = 'clk-laps__row';
+                if (splits.length > 1) {
+                    if (split === bestSplit) rowClass += ' clk-laps__row--best';
+                    else if (split === worstSplit) rowClass += ' clk-laps__row--worst';
+                }
+
+                lapsSection.appendChild(el('div', { class: rowClass }, [
+                    el('span', {}, `Lap ${i + 1}`),
+                    el('span', { class: 'clk-mono' }, this.formatDurationMs(split)),
+                    el('span', { class: 'clk-mono' }, this.formatDurationMs(cumulative)),
+                ]));
+            });
+            wrap.appendChild(lapsSection);
+        }
+
+        this.content.appendChild(wrap);
+
+        // Start RAF for live updates if running
+        if (this.state.stopwatch.running) {
+            this.startStopwatchRAF();
+        }
+    }
+
+    renderStopwatchTime(container, ms) {
+        const { h, m, s, cs } = this.splitMs(ms);
+        container.innerHTML = '';
+        container.appendChild(el('span', { class: 'clk-sw-display__main' },
+            `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`));
+        container.appendChild(el('span', { class: 'clk-sw-display__cs' }, `.${String(cs).padStart(2, '0')}`));
+    }
+
+    startStopwatchRAF() {
+        this.cancelRAF();
+        const display = this.content.querySelector('.clk-sw-display');
+        if (!display) return;
+        const tick = () => {
+            if (!this.state.stopwatch.running) return;
+            const elapsed = this.getStopwatchElapsed();
+            this.renderStopwatchTime(display, elapsed);
+            this.rafId = requestAnimationFrame(tick);
+
+            // Periodic save
+            const now = Date.now();
+            if (!this.lastStopwatchSave || now - this.lastStopwatchSave > 5000) {
+                this.lastStopwatchSave = now;
+                this.saveState();
+            }
+        };
+        this.rafId = requestAnimationFrame(tick);
+    }
+
+    // ── Timer Tab ────────────────────────────────────────────
+    renderTimer() {
+        this.content.innerHTML = '';
+        const remaining = this.syncTimerRemaining();
+        const duration = this.state.timer.duration || 300;
+        const fraction = duration > 0 ? Math.max(0, remaining / duration) : 0;
+        const wrap = el('div', { class: 'clk-timer' });
+
+        // Presets
+        const presets = el('div', { class: 'clk-timer__presets' });
+        [1, 3, 5, 10, 15, 30].forEach(m => {
+            presets.appendChild(el('button', {
+                class: `clk-pill ${this.state.timer.duration === m * 60 && !this.state.timer.running ? 'is-active' : ''}`,
+                onclick: () => {
+                    this.state.timer.duration = m * 60;
+                    this.state.timer.remaining = m * 60;
+                    this.state.timer.running = false;
+                    this.state.timer.endsAt = null;
+                    this.saveState();
+                    this.renderTimer();
+                },
+            }, `${m}m`));
+        });
+        wrap.appendChild(presets);
+
+        // Ring + time display
+        const ringWrap = el('div', { class: 'clk-timer__ring-wrap' });
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('class', 'clk-timer__ring');
+        svg.setAttribute('viewBox', '0 0 200 200');
+
+        // Track
+        const track = document.createElementNS(svgNS, 'circle');
+        track.setAttribute('cx', '100');
+        track.setAttribute('cy', '100');
+        track.setAttribute('r', '88');
+        track.setAttribute('fill', 'none');
+        track.setAttribute('stroke', 'rgba(255,255,255,0.06)');
+        track.setAttribute('stroke-width', '6');
+
+        // Progress arc
+        const circumference = 2 * Math.PI * 88;
+        const arc = document.createElementNS(svgNS, 'circle');
+        arc.setAttribute('cx', '100');
+        arc.setAttribute('cy', '100');
+        arc.setAttribute('r', '88');
+        arc.setAttribute('fill', 'none');
+        arc.setAttribute('stroke', 'var(--accent, #00e5c1)');
+        arc.setAttribute('stroke-width', '6');
+        arc.setAttribute('stroke-linecap', 'round');
+        arc.setAttribute('stroke-dasharray', String(circumference));
+        arc.setAttribute('stroke-dashoffset', String(circumference * (1 - fraction)));
+        arc.setAttribute('transform', 'rotate(-90 100 100)');
+        arc.setAttribute('class', 'clk-timer__arc');
+
+        svg.append(track, arc);
+        ringWrap.appendChild(svg);
+
+        // Time inside ring
+        const timeDisplay = el('div', { class: 'clk-timer__time', 'data-role': 'timer-display' },
+            this.formatDuration(remaining * 1000));
+        ringWrap.appendChild(timeDisplay);
+
+        // Done state
+        if (remaining <= 0 && !this.state.timer.running && this.state.timer.duration > 0 && this.state.timer.remaining <= 0) {
+            timeDisplay.textContent = 'Done!';
+            timeDisplay.classList.add('is-done');
+        }
+
+        wrap.appendChild(ringWrap);
+
+        // Controls
+        const isRunning = this.state.timer.running;
+        const startBtn = el('button', {
+            class: `clk-circle-btn ${isRunning ? 'clk-circle-btn--stop' : 'clk-circle-btn--start'}`,
+            onclick: () => {
+                const now = Date.now();
+                if (isRunning) {
+                    this.syncTimerRemaining(now);
+                    this.state.timer.running = false;
+                    this.state.timer.endsAt = null;
+                } else {
+                    if (this.state.timer.remaining <= 0) this.state.timer.remaining = this.state.timer.duration;
+                    this.state.timer.running = true;
+                    this.state.timer.endsAt = now + this.state.timer.remaining * 1000;
+                }
+                this.saveState();
+                this.renderTimer();
+            },
+        }, isRunning ? 'Pause' : 'Start');
+
+        const cancelBtn = el('button', {
+            class: 'clk-circle-btn clk-circle-btn--secondary',
+            onclick: () => {
+                this.state.timer.remaining = this.state.timer.duration;
+                this.state.timer.running = false;
+                this.state.timer.endsAt = null;
+                this.saveState();
+                this.renderTimer();
+            },
+        }, 'Reset');
+
+        wrap.appendChild(el('div', { class: 'clk-controls' }, [cancelBtn, startBtn]));
+
+        this.content.appendChild(wrap);
+
+        if (isRunning) this.startTimerRAF();
+    }
+
+    startTimerRAF() {
+        this.cancelRAF();
+        const tick = () => {
+            if (!this.state.timer.running) return;
+            const nowMs = Date.now();
+            const remaining = this.syncTimerRemaining(nowMs);
+
+            const display = this.content.querySelector('[data-role="timer-display"]');
+            if (display) display.textContent = this.formatDuration(remaining * 1000);
+
+            // Update arc
+            const duration = this.state.timer.duration || 1;
+            const fraction = Math.max(0, remaining / duration);
+            const arc = this.content.querySelector('.clk-timer__arc');
+            if (arc) {
+                const circumference = 2 * Math.PI * 88;
+                arc.setAttribute('stroke-dashoffset', String(circumference * (1 - fraction)));
+            }
+
+            // Periodic save
+            if (!this.lastTimerSave || nowMs - this.lastTimerSave > 5000) {
+                this.lastTimerSave = nowMs;
+                this.saveState();
+            }
+
+            if (remaining <= 0) {
+                this.state.timer.running = false;
+                this.state.timer.endsAt = null;
+                this.saveState();
+                this.renderTimer();
+                this.notify('Timer complete!');
+                return;
+            }
+
+            this.rafId = requestAnimationFrame(tick);
+        };
+        this.rafId = requestAnimationFrame(tick);
+    }
+
+    // ── Update Loop ──────────────────────────────────────────
+    startUpdates() {
+        const tick = setInterval(() => {
+            const now = new Date();
+            if (this.activeTab === 'world') {
+                this.updateWorldTimes(now);
+            }
+            this.setThemeByTime(now);
+        }, 1000);
+        this.intervals.push(tick);
+    }
+
+    // ── Helpers ──────────────────────────────────────────────
+    cancelRAF() {
+        if (this.rafId) { cancelAnimationFrame(this.rafId); this.rafId = null; }
+    }
+
+    splitMs(ms) {
+        const total = Math.max(0, ms);
+        const cs = Math.floor((total % 1000) / 10);
+        const totalSec = Math.floor(total / 1000);
+        const s = totalSec % 60;
+        const m = Math.floor((totalSec % 3600) / 60);
+        const h = Math.floor(totalSec / 3600);
+        return { h, m, s, cs };
+    }
+
+    formatDurationMs(ms) {
+        const { h, m, s, cs } = this.splitMs(ms);
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+    }
+
+    formatDuration(ms) {
+        const totalSec = Math.max(0, Math.floor(ms / 1000));
+        const hrs = Math.floor(totalSec / 3600);
+        const mins = Math.floor((totalSec % 3600) / 60);
+        const secs = totalSec % 60;
+        if (hrs > 0) return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+        return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    formatTimeParts(now) {
+        const parts = new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric', minute: '2-digit', second: '2-digit',
+            hour12: !this.state.use24h,
+        }).formatToParts(now);
+        const dayPeriod = parts.find(p => p.type === 'dayPeriod')?.value || '';
+        const time = parts.filter(p => p.type !== 'dayPeriod').map(p => p.value).join('').trim();
+        return { time, ampm: dayPeriod };
+    }
+
+    formatMainDate(now) {
+        return new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'short', day: 'numeric' }).format(now);
     }
 
     formatWorldTime(tz, now) {
         try {
             return new Intl.DateTimeFormat('en-US', {
-                hour: '2-digit', minute: '2-digit', hour12: !this.state.use24h, timeZone: tz
+                hour: '2-digit', minute: '2-digit', hour12: !this.state.use24h, timeZone: tz,
             }).format(now);
         } catch (_) { return '--:--'; }
     }
@@ -536,8 +933,57 @@ export class ClockApp extends App {
             const h = Math.floor(abs / 60);
             const m = abs % 60;
             const offset = m ? `${sign}${h}h ${m}m` : `${sign}${h}h`;
-            return `${day} · GMT${offset}`;
-        } catch (_) { return '—'; }
+            return `${day} \u00b7 GMT${offset}`;
+        } catch (_) { return '\u2014'; }
+    }
+
+    // ── State ────────────────────────────────────────────────
+    loadState() {
+        try {
+            const raw = localStorage.getItem(this.storeKey);
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                parsed.mainClockStyle = parsed.mainClockStyle || 'digital';
+                // Normalize legacy skin values to digital/analog
+                if (!['digital', 'analog'].includes(parsed.mainClockStyle)) {
+                    parsed.mainClockStyle = parsed.mainClockStyle === 'digital' ? 'digital' : 'analog';
+                }
+                parsed.worldClocks = Array.isArray(parsed.worldClocks)
+                    ? parsed.worldClocks.map(w => this.normalizeWorldClock(w)).filter(Boolean) : [];
+                parsed.alarms = Array.isArray(parsed.alarms) ? parsed.alarms.map(a => this.normalizeAlarm(a)) : [];
+                return parsed;
+            }
+        } catch (_) { /* ignore */ }
+        return {
+            use24h: false,
+            mainClockStyle: 'digital',
+            alarmAudio: { tone: 'pulse', volume: 0.45 },
+            worldClocks: [],
+            alarms: [],
+            stopwatch: { elapsed: 0, running: false, laps: [], lastStart: null },
+            timer: { duration: 300, remaining: 300, running: false, endsAt: null },
+            sunTimes: null,
+            weatherCode: null,
+            weatherFxEnabled: false,
+        };
+    }
+
+    saveState() {
+        try { localStorage.setItem(this.storeKey, JSON.stringify(this.state)); } catch (_) { /* ignore */ }
+    }
+
+    // ── World clock CRUD ─────────────────────────────────────
+    addWorldClock(label, tz) {
+        const normalized = this.normalizeWorldClock({ label, tz, pinned: false });
+        if (!normalized) return false;
+        if (this.state.worldClocks.some(w => w.tz === normalized.tz)) {
+            this.notify('City already added');
+            return false;
+        }
+        this.state.worldClocks = this.sortWorldClocksByPin([normalized, ...this.state.worldClocks.map(w => this.normalizeWorldClock(w)).filter(Boolean)]);
+        this.saveState();
+        this.renderWorldList();
+        return true;
     }
 
     removeWorldClock(tz) {
@@ -547,7 +993,7 @@ export class ClockApp extends App {
     }
 
     moveWorldClock(tz, direction) {
-        const i = this.state.worldClocks.findIndex((w) => w.tz === tz);
+        const i = this.state.worldClocks.findIndex(w => w.tz === tz);
         if (i < 0) return;
         const next = i + direction;
         if (next < 0 || next >= this.state.worldClocks.length) return;
@@ -559,7 +1005,7 @@ export class ClockApp extends App {
     }
 
     toggleWorldPin(tz) {
-        const i = this.state.worldClocks.findIndex((w) => w.tz === tz);
+        const i = this.state.worldClocks.findIndex(w => w.tz === tz);
         if (i < 0) return;
         const copy = [...this.state.worldClocks];
         copy[i] = { ...copy[i], pinned: !copy[i].pinned };
@@ -568,40 +1014,13 @@ export class ClockApp extends App {
         this.renderWorldList();
     }
 
-    addWorldFromInput(value, box) {
-        const term = value.trim();
-        if (!term) return;
-        const fuzzy = this.cityDb.find(c => c.name.toLowerCase() === term.toLowerCase());
-        if (fuzzy) {
-            this.addWorldClock(fuzzy.name, fuzzy.tz);
-            box.classList.remove('is-open');
-            box.innerHTML = '';
-            if (this.worldInput) this.worldInput.value = '';
-            return;
-        }
-        const partial = this.cityDb.find((c) =>
-            c.name.toLowerCase().includes(term.toLowerCase()) || c.tz.toLowerCase().includes(term.toLowerCase())
-        );
-        if (partial) {
-            this.addWorldClock(partial.name, partial.tz);
-            box.classList.remove('is-open');
-            box.innerHTML = '';
-            if (this.worldInput) this.worldInput.value = '';
-            return;
-        }
-        if (term.includes('/')) {
-            try {
-                new Intl.DateTimeFormat('en-US', { timeZone: term }).format(new Date());
-                this.addWorldClock(term.split('/').pop().replace(/_/g, ' '), term);
-                box.classList.remove('is-open');
-                box.innerHTML = '';
-                if (this.worldInput) this.worldInput.value = '';
-            } catch (_) {
-                this.notify('Unknown timezone');
-            }
-        }
+    sortWorldClocksByPin(list = this.state.worldClocks) {
+        const pins = [], rest = [];
+        list.forEach(item => { if (item.pinned) pins.push(item); else rest.push(item); });
+        return [...pins, ...rest];
     }
 
+    // ── Search ───────────────────────────────────────────────
     queueSearch(term, box) {
         clearTimeout(this.searchTimer);
         this.searchTimer = setTimeout(() => this.searchTimeZones(term, box), 250);
@@ -611,7 +1030,6 @@ export class ClockApp extends App {
         const query = term.trim();
         if (query.length < 2) { box.classList.remove('is-open'); box.innerHTML = ''; return; }
 
-        // Remote geocode
         try {
             const url = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=8&language=en`;
             const res = await fetch(url);
@@ -620,13 +1038,12 @@ export class ClockApp extends App {
                 const results = Array.isArray(data?.results) ? data.results : [];
                 const mapped = results.filter(r => r.timezone).map(r => ({
                     name: [r.name, r.admin1, r.country].filter(Boolean).join(', '),
-                    tz: r.timezone
+                    tz: r.timezone,
                 }));
                 if (mapped.length) { this.renderSuggestionList(mapped, box); return; }
             }
         } catch (_) { /* ignore */ }
 
-        // Fallback fuzzy
         const lower = query.toLowerCase();
         const items = this.cityDb
             .map(c => ({ ...c, score: this.fuzzyScore(c, lower) }))
@@ -640,16 +1057,16 @@ export class ClockApp extends App {
         box.innerHTML = '';
         if (!items.length) { box.classList.remove('is-open'); return; }
         items.forEach(({ name, tz }) => {
-            const btn = el('button', {
-                class: 'clock-suggestion',
+            box.appendChild(el('button', {
+                class: 'clk-suggestion',
                 onclick: () => {
                     this.addWorldClock(name, tz);
                     box.classList.remove('is-open');
                     box.innerHTML = '';
                     if (this.worldInput) this.worldInput.value = '';
-                }
-            }, `${name} — ${tz}`);
-            box.appendChild(btn);
+                    if (this.searchContainer) this.searchContainer.style.display = 'none';
+                },
+            }, `${name} \u2014 ${tz}`));
         });
         box.classList.add('is-open');
     }
@@ -662,509 +1079,39 @@ export class ClockApp extends App {
         return 0;
     }
 
-    /* ---------- Alarms ---------- */
-    renderAlarms() {
-        this.content.innerHTML = '';
-        const alarmAudio = this.normalizeAlarmAudio(this.state.alarmAudio);
-        this.state.alarmAudio = alarmAudio;
-
-        // Alarm List Container
-        const list = el('div', { class: 'clock-alarm-list' });
-
-        // Header / Summary
-        const summary = el('div', { class: 'clock-alarm-summary' }, [
-            el('h3', {}, 'Alarms'),
-            el('p', {}, this.getNextAlarmSummary())
-        ]);
-
-        list.appendChild(summary);
-
-        // List Items
-        this.state.alarms.forEach((alarm, i) => {
-            const row = el('div', { class: 'clock-alarm-row' }, [
-                el('div', { class: 'clock-alarm-time' }, alarm.time),
-                el('div', { class: 'clock-alarm-meta' }, [
-                    el('div', { class: 'clock-alarm-label' }, alarm.label || 'Alarm'),
-                    el('div', { class: 'clock-alarm-days' }, this.formatDaySummary(alarm.days))
-                ]),
-                el('div', { class: 'clock-alarm-controls' }, [
-                    el('button', {
-                        class: `clock-toggle-switch ${alarm.enabled ? 'is-on' : ''}`,
-                        onclick: (e) => {
-                            e.stopPropagation();
-                            alarm.enabled = !alarm.enabled;
-                            this.saveState();
-                            this.renderAlarms();
-                        }
-                    }, el('div', { class: 'toggle-knob' }))
-                ])
-            ]);
-
-            row.onclick = (e) => {
-                if (e.target.closest('.clock-toggle-switch')) return;
-                this.editingAlarmId = this.editingAlarmId === alarm.id ? null : alarm.id;
-                this.renderAlarms();
-            };
-
-            list.appendChild(row);
-
-            if (this.editingAlarmId === alarm.id) {
-                list.appendChild(this.buildAlarmEditor(alarm, i));
-            }
-        });
-
-        // Add Button (Floating or Bottom List)
-        const addRow = this.buildAddAlarmRow();
-        list.appendChild(addRow);
-
-        this.content.appendChild(list);
-    }
-
-    buildAddAlarmRow() {
-        const timeInput = el('input', { class: 'clock-input', type: 'time', value: '07:00' });
-        const labelInput = el('input', { class: 'clock-input', placeholder: 'Label' });
-        const addBtn = el('button', {
-            class: 'clock-btn primary full-width',
-            onclick: () => {
-                this.state.alarms.push(this.normalizeAlarm({
-                    id: `alarm-${Date.now()}`,
-                    time: timeInput.value,
-                    label: labelInput.value || 'Alarm',
-                    enabled: true,
-                    days: [0, 1, 2, 3, 4, 5, 6],
-                    snoozeMins: 9
-                }));
-                this.saveState();
-                this.renderAlarms();
-            }
-        }, '+ Add Alarm');
-
-        return el('div', { class: 'clock-add-section' }, [
-            el('div', { class: 'clock-add-inputs' }, [timeInput, labelInput]),
-            addBtn
-        ]);
-    }
-
-    buildAlarmEditor(alarm, index) {
-        const editor = el('div', { class: 'clock-alarm-editor' });
-        const timeInput = el('input', { class: 'clock-input', type: 'time', value: alarm.time || '07:00' });
-        const labelInput = el('input', { class: 'clock-input', value: alarm.label || 'Alarm' });
-
-        // Days
-        const daySet = new Set(Array.isArray(alarm.days) ? alarm.days : [0, 1, 2, 3, 4, 5, 6]);
-        const dayRow = el('div', { class: 'clock-day-row' });
-        this.dayShort.forEach((d, idx) => {
-            const chip = el('button', {
-                class: `clock-day-chip ${daySet.has(idx) ? 'is-active' : ''}`,
-                onclick: () => {
-                    if (daySet.has(idx)) daySet.delete(idx); else daySet.add(idx);
-                    chip.classList.toggle('is-active', daySet.has(idx));
-                }
-            }, d);
-            dayRow.appendChild(chip);
-        });
-
-        const actions = el('div', { class: 'clock-editor-actions' }, [
-            el('button', {
-                class: 'clock-btn danger',
-                onclick: () => {
-                    this.state.alarms.splice(index, 1);
-                    this.editingAlarmId = null;
-                    this.saveState();
-                    this.renderAlarms();
-                }
-            }, 'Delete'),
-            el('button', {
-                class: 'clock-btn primary',
-                onclick: () => {
-                    alarm.time = timeInput.value;
-                    alarm.label = labelInput.value;
-                    alarm.days = Array.from(daySet).sort((a, b) => a - b);
-                    this.editingAlarmId = null;
-                    this.saveState();
-                    this.renderAlarms();
-                }
-            }, 'Save')
-        ]);
-
-        editor.append(dayRow, el('div', { class: 'clock-editor-inputs' }, [timeInput, labelInput]), actions);
-        return editor;
-    }
-
-    /* ---------- Stopwatch ---------- */
-    /* ---------- Stopwatch ---------- */
-    renderStopwatch() {
-        this.content.innerHTML = '';
-        const elapsed = this.getStopwatchElapsed();
-
-        const display = el('div', { class: 'clock-display-large' }, this.formatDuration(elapsed));
-
-        // Controls
-        const startBtn = el('button', {
-            class: `clock-circle-btn ${this.state.stopwatch.running ? 'stop' : 'start'}`,
-            onclick: () => {
-                const now = Date.now();
-                if (this.state.stopwatch.running) {
-                    this.syncStopwatchElapsed(now);
-                    this.state.stopwatch.running = false;
-                    this.state.stopwatch.lastStart = null;
-                } else {
-                    this.state.stopwatch.running = true;
-                    this.state.stopwatch.lastStart = now;
-                }
-                this.saveState();
-                this.renderStopwatch();
-            }
-        }, this.state.stopwatch.running ? 'Stop' : 'Start');
-
-        const lapBtn = el('button', {
-            class: 'clock-circle-btn secondary',
-            onclick: () => {
-                if (this.state.stopwatch.running) {
-                    const now = Date.now();
-                    const elapsedNow = this.syncStopwatchElapsed(now);
-                    this.state.stopwatch.laps.push(elapsedNow);
-                    this.saveState();
-                    this.renderStopwatch();
-                } else {
-                    // Reset
-                    this.state.stopwatch = { elapsed: 0, running: false, laps: [], lastStart: null };
-                    this.saveState();
-                    this.renderStopwatch();
-                }
-            }
-        }, this.state.stopwatch.running ? 'Lap' : 'Reset');
-
-        const controls = el('div', { class: 'clock-controls-row' }, [lapBtn, startBtn]);
-
-        // Laps
-        const lapsList = el('div', { class: 'clock-laps-list' });
-        [...this.state.stopwatch.laps].reverse().forEach((lap, i) => {
-            const idx = this.state.stopwatch.laps.length - i;
-            lapsList.appendChild(el('div', { class: 'clock-lap-item' }, [
-                el('span', {}, `Lap ${idx}`),
-                el('span', { class: 'mono' }, this.formatDuration(lap))
-            ]));
-        });
-
-        this.content.append(display, controls, lapsList);
-    }
-
-    updateStopwatch(nowDate = new Date()) {
-        if (!this.state.stopwatch.running) return;
-        const nowMs = nowDate.getTime();
-        const elapsed = this.syncStopwatchElapsed(nowMs);
-        const display = this.content.querySelector('.clock-display-large');
-        if (display) display.textContent = this.formatDuration(elapsed);
-        if (!this.lastStopwatchSave || nowMs - this.lastStopwatchSave > 5000) {
-            this.lastStopwatchSave = nowMs;
-            this.saveState();
+    addWorldFromInput(value, box) {
+        const term = value.trim();
+        if (!term) return;
+        const fuzzy = this.cityDb.find(c => c.name.toLowerCase() === term.toLowerCase());
+        if (fuzzy) {
+            this.addWorldClock(fuzzy.name, fuzzy.tz);
+            box.classList.remove('is-open'); box.innerHTML = '';
+            if (this.worldInput) this.worldInput.value = '';
+            return;
         }
-    }
-
-    /* ---------- Timer ---------- */
-    renderTimer() {
-        this.content.innerHTML = '';
-        const remaining = this.syncTimerRemaining();
-
-        // Progress Ring (Visual Only for now, could be canvas)
-        const display = el('div', { class: 'clock-display-large clock-timer-display' }, this.formatDuration(remaining * 1000));
-
-        // Controls
-        const startBtn = el('button', {
-            class: `clock-circle-btn ${this.state.timer.running ? 'stop' : 'start'}`,
-            onclick: () => {
-                const now = Date.now();
-                if (this.state.timer.running) {
-                    this.syncTimerRemaining(now);
-                    this.state.timer.running = false;
-                    this.state.timer.endsAt = null;
-                } else {
-                    if (this.state.timer.remaining <= 0) this.state.timer.remaining = this.state.timer.duration;
-                    this.state.timer.running = true;
-                    this.state.timer.endsAt = now + this.state.timer.remaining * 1000;
-                }
-                this.saveState();
-                this.renderTimer();
-            }
-        }, this.state.timer.running ? 'Pause' : 'Start');
-
-        const cancelBtn = el('button', {
-            class: 'clock-circle-btn secondary',
-            onclick: () => {
-                this.state.timer.remaining = this.state.timer.duration;
-                this.state.timer.running = false;
-                this.state.timer.endsAt = null;
-                this.saveState();
-                this.renderTimer();
-            }
-        }, 'Reset');
-
-        const controls = el('div', { class: 'clock-controls-row' }, [cancelBtn, startBtn]);
-
-        // Quick Adds
-        const quickAdd = el('div', { class: 'clock-timer-presets' },
-            [1, 5, 10, 15].map(m => el('button', {
-                class: 'clock-pill-btn',
-                onclick: () => {
-                    this.state.timer.duration = m * 60;
-                    this.state.timer.remaining = m * 60;
-                    this.state.timer.running = false;
-                    this.state.timer.endsAt = null;
-                    this.saveState();
-                    this.renderTimer();
-                }
-            }, `+${m}m`))
+        const partial = this.cityDb.find(c =>
+            c.name.toLowerCase().includes(term.toLowerCase()) || c.tz.toLowerCase().includes(term.toLowerCase())
         );
-
-        this.content.append(display, controls, quickAdd);
-    }
-
-    updateTimer(nowDate = new Date()) {
-        const nowMs = nowDate.getTime();
-        if (!this.state.timer.running) return;
-        this.syncTimerRemaining(nowMs);
-        if (!this.lastTimerSave || nowMs - this.lastTimerSave > 5000) {
-            this.lastTimerSave = nowMs;
-            this.saveState();
-        }
-        const display = this.content.querySelector('.clock-timer-display');
-        if (display) display.textContent = this.formatDuration(this.state.timer.remaining * 1000);
-        if (this.state.timer.remaining <= 0) {
-            this.state.timer.running = false;
-            this.state.timer.endsAt = null;
-            this.saveState();
-            alert('Timer Complete!');
-        }
-    }
-
-    /* ---------- Helpers ---------- */
-    setupDepthFx() {
-        if (!this.root) return;
-        this.teardownDepthFx();
-        if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-            this.resetDepthFxVars();
+        if (partial) {
+            this.addWorldClock(partial.name, partial.tz);
+            box.classList.remove('is-open'); box.innerHTML = '';
+            if (this.worldInput) this.worldInput.value = '';
             return;
         }
-
-        const clamp = (n, min, max) => Math.max(min, Math.min(max, n));
-        const queueFromPoint = (clientX, clientY, pressed = false) => {
-            const rect = this.root.getBoundingClientRect();
-            if (!rect.width || !rect.height) return;
-            const nx = clamp((clientX - rect.left) / rect.width, 0, 1) - 0.5;
-            const ny = clamp((clientY - rect.top) / rect.height, 0, 1) - 0.5;
-
-            if (this.depthRaf) cancelAnimationFrame(this.depthRaf);
-            this.depthRaf = requestAnimationFrame(() => {
-                this.depthRaf = null;
-                this.root.style.setProperty('--clock-card-tilt-x', `${(ny * -6.5).toFixed(2)}deg`);
-                this.root.style.setProperty('--clock-card-tilt-y', `${(nx * 8).toFixed(2)}deg`);
-                this.root.style.setProperty('--clock-shift-soft-x', `${(nx * 2).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-shift-soft-y', `${(ny * 2).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-shift-mid-x', `${(nx * 5).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-shift-mid-y', `${(ny * 5).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-shift-strong-x', `${(nx * 9).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-shift-strong-y', `${(ny * 9).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-orb-shift-x', `${(nx * 18).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-orb-shift-y', `${(ny * 14).toFixed(2)}px`);
-                this.root.style.setProperty('--clock-glow-x', `${(50 + nx * 42).toFixed(2)}%`);
-                this.root.style.setProperty('--clock-glow-y', `${(28 + ny * 28).toFixed(2)}%`);
-                this.root.classList.toggle('is-pressing', pressed);
-            });
-        };
-
-        const resetSoon = () => {
-            this.root.classList.remove('is-pressing');
-            this.resetDepthFxVars();
-        };
-
-        const onPointerMove = (e) => queueFromPoint(e.clientX, e.clientY);
-        const onPointerDown = (e) => queueFromPoint(e.clientX, e.clientY, true);
-        const onPointerUp = () => this.root.classList.remove('is-pressing');
-        const onPointerLeave = () => resetSoon();
-        const onTouchMove = (e) => {
-            const t = e.touches && e.touches[0];
-            if (t) queueFromPoint(t.clientX, t.clientY);
-        };
-        const onTouchStart = (e) => {
-            const t = e.touches && e.touches[0];
-            if (t) queueFromPoint(t.clientX, t.clientY, true);
-        };
-        const onTouchEnd = () => resetSoon();
-
-        this.root.addEventListener('pointermove', onPointerMove);
-        this.root.addEventListener('pointerdown', onPointerDown);
-        this.root.addEventListener('pointerup', onPointerUp);
-        this.root.addEventListener('pointercancel', onPointerLeave);
-        this.root.addEventListener('pointerleave', onPointerLeave);
-        this.root.addEventListener('touchstart', onTouchStart, { passive: true });
-        this.root.addEventListener('touchmove', onTouchMove, { passive: true });
-        this.root.addEventListener('touchend', onTouchEnd, { passive: true });
-        this.root.addEventListener('touchcancel', onTouchEnd, { passive: true });
-
-        this.depthCleanup = () => {
-            this.root.removeEventListener('pointermove', onPointerMove);
-            this.root.removeEventListener('pointerdown', onPointerDown);
-            this.root.removeEventListener('pointerup', onPointerUp);
-            this.root.removeEventListener('pointercancel', onPointerLeave);
-            this.root.removeEventListener('pointerleave', onPointerLeave);
-            this.root.removeEventListener('touchstart', onTouchStart);
-            this.root.removeEventListener('touchmove', onTouchMove);
-            this.root.removeEventListener('touchend', onTouchEnd);
-            this.root.removeEventListener('touchcancel', onTouchEnd);
-        };
-        this.resetDepthFxVars();
-    }
-
-    resetDepthFxVars() {
-        if (!this.root) return;
-        this.root.style.setProperty('--clock-card-tilt-x', '0deg');
-        this.root.style.setProperty('--clock-card-tilt-y', '0deg');
-        this.root.style.setProperty('--clock-shift-soft-x', '0px');
-        this.root.style.setProperty('--clock-shift-soft-y', '0px');
-        this.root.style.setProperty('--clock-shift-mid-x', '0px');
-        this.root.style.setProperty('--clock-shift-mid-y', '0px');
-        this.root.style.setProperty('--clock-shift-strong-x', '0px');
-        this.root.style.setProperty('--clock-shift-strong-y', '0px');
-        this.root.style.setProperty('--clock-orb-shift-x', '0px');
-        this.root.style.setProperty('--clock-orb-shift-y', '0px');
-        this.root.style.setProperty('--clock-glow-x', '50%');
-        this.root.style.setProperty('--clock-glow-y', '28%');
-    }
-
-    teardownDepthFx() {
-        if (this.depthRaf) {
-            cancelAnimationFrame(this.depthRaf);
-            this.depthRaf = null;
-        }
-        if (this.depthCleanup) {
-            this.depthCleanup();
-            this.depthCleanup = null;
+        if (term.includes('/')) {
+            try {
+                new Intl.DateTimeFormat('en-US', { timeZone: term }).format(new Date());
+                this.addWorldClock(term.split('/').pop().replace(/_/g, ' '), term);
+                box.classList.remove('is-open'); box.innerHTML = '';
+                if (this.worldInput) this.worldInput.value = '';
+            } catch (_) { this.notify('Unknown timezone'); }
         }
     }
 
-    setThemeByTime(now) {
-        const theme = this.resolveThemeBySun(now);
-        this.root.dataset.clockTheme = theme;
-        this.updateSkyLayer(theme);
-    }
-
-    resolveThemeBySun(now) {
-        const sun = this.state.sunTimes;
-        if (sun && typeof sun.sunrise === 'string' && typeof sun.sunset === 'string') {
-            const sunrise = new Date(sun.sunrise).getTime();
-            const sunset = new Date(sun.sunset).getTime();
-            const current = now.getTime();
-            if (Number.isFinite(sunrise) && Number.isFinite(sunset) && sunset > sunrise) {
-                const dawnStart = sunrise - 45 * 60 * 1000;
-                const dawnEnd = sunrise + 45 * 60 * 1000;
-                const sunsetStart = sunset - 70 * 60 * 1000;
-                const sunsetEnd = sunset + 40 * 60 * 1000;
-                const eveningEnd = sunset + 150 * 60 * 1000;
-                const noon = new Date(now);
-                noon.setHours(12, 0, 0, 0);
-                if (current < dawnStart) return 'night';
-                if (current < dawnEnd) return 'dawn';
-                if (current < sunsetStart) return current < noon.getTime() ? 'morning' : 'afternoon';
-                if (current < sunsetEnd) return 'sunset';
-                if (current < eveningEnd) return 'evening';
-                return 'night';
-            }
-        }
-
-        const hour = now.getHours();
-        if (hour >= 5 && hour < 7) return 'dawn';
-        if (hour >= 7 && hour < 12) return 'morning';
-        if (hour >= 12 && hour < 17) return 'afternoon';
-        if (hour >= 17 && hour < 20) return 'sunset';
-        if (hour >= 20 && hour < 22) return 'evening';
-        return 'night';
-    }
-
-    updateSkyLayer(phase) {
-        if (!this.skyLayer) return;
-        this.skyLayer.dataset.phase = phase || 'night';
-        if (!this.state.weatherFxEnabled) {
-            this.skyLayer.dataset.weather = 'off';
-            return;
-        }
-        this.skyLayer.dataset.weather = this.getWeatherBucket(this.state.weatherCode);
-    }
-
-    getWeatherBucket(code) {
-        if (!Number.isFinite(code)) return 'clear';
-        if ([45, 48].includes(code)) return 'fog';
-        if ([71, 73, 75, 77, 85, 86].includes(code)) return 'snow';
-        if ([95, 96, 99].includes(code)) return 'storm';
-        if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code)) return 'rain';
-        if ([1, 2, 3].includes(code)) return 'cloudy';
-        return 'clear';
-    }
-
-    async refreshSkyWeather() {
-        if (this.weatherFetchInFlight) return;
-        const coords = this.getWeatherCoords();
-        if (!coords) {
-            this.lastWeatherFetch = Date.now();
-            return;
-        }
-        this.weatherFetchInFlight = true;
-        try {
-            const needsWeather = this.state.weatherFxEnabled;
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=sunrise,sunset&forecast_days=1&timezone=auto${needsWeather ? '&current=weather_code' : ''}`;
-            const res = await fetch(url);
-            if (res.ok) {
-                const data = await res.json();
-                let changed = false;
-                const code = Number(data?.current?.weather_code);
-                if (needsWeather && Number.isFinite(code) && this.state.weatherCode !== code) {
-                    this.state.weatherCode = code;
-                    changed = true;
-                }
-                const sunrise = data?.daily?.sunrise?.[0];
-                const sunset = data?.daily?.sunset?.[0];
-                const sunDate = data?.daily?.time?.[0];
-                if (typeof sunrise === 'string' && typeof sunset === 'string') {
-                    const nextSun = { date: sunDate || sunrise.slice(0, 10), sunrise, sunset };
-                    const prev = this.state.sunTimes || {};
-                    if (prev.date !== nextSun.date || prev.sunrise !== nextSun.sunrise || prev.sunset !== nextSun.sunset) {
-                        this.state.sunTimes = nextSun;
-                        changed = true;
-                    }
-                }
-                if (changed) {
-                    this.saveState();
-                }
-            }
-        } catch (_) {
-            // Keep last known sky state on network failures.
-        } finally {
-            this.lastWeatherFetch = Date.now();
-            this.weatherFetchInFlight = false;
-            this.updateSkyLayer(this.root.dataset.clockTheme || 'night');
-        }
-    }
-
-    getWeatherCoords() {
-        try {
-            const legacy = JSON.parse(localStorage.getItem('yancotab_weather_v1') || 'null');
-            if (legacy && Number.isFinite(Number(legacy.lat)) && Number.isFinite(Number(legacy.lon))) {
-                return { lat: Number(legacy.lat), lon: Number(legacy.lon) };
-            }
-        } catch (_) { /* ignore */ }
-        try {
-            const state = JSON.parse(localStorage.getItem('yancotabWeatherState') || 'null');
-            const loc = state?.currentLocation;
-            if (loc && Number.isFinite(Number(loc.lat)) && Number.isFinite(Number(loc.lon))) {
-                return { lat: Number(loc.lat), lon: Number(loc.lon) };
-            }
-        } catch (_) { /* ignore */ }
-        return null;
-    }
-
+    // ── Alarm helpers ────────────────────────────────────────
     normalizeAlarm(alarm) {
         const days = Array.isArray(alarm?.days)
-            ? alarm.days.filter((d) => Number.isInteger(d) && d >= 0 && d <= 6).sort((a, b) => a - b)
+            ? alarm.days.filter(d => Number.isInteger(d) && d >= 0 && d <= 6).sort((a, b) => a - b)
             : [0, 1, 2, 3, 4, 5, 6];
         return {
             id: alarm?.id || `alarm-${Date.now()}-${Math.random().toString(16).slice(2, 6)}`,
@@ -1174,7 +1121,7 @@ export class ClockApp extends App {
             days: days.length ? days : [0, 1, 2, 3, 4, 5, 6],
             snoozeMins: Number.isFinite(Number(alarm?.snoozeMins)) ? Math.max(1, Math.min(30, Number(alarm.snoozeMins))) : 9,
             snoozedUntil: Number.isFinite(Number(alarm?.snoozedUntil)) ? Number(alarm.snoozedUntil) : null,
-            lastTriggerKey: typeof alarm?.lastTriggerKey === 'string' ? alarm.lastTriggerKey : ''
+            lastTriggerKey: typeof alarm?.lastTriggerKey === 'string' ? alarm.lastTriggerKey : '',
         };
     }
 
@@ -1183,7 +1130,7 @@ export class ClockApp extends App {
         const allowed = ['pulse', 'chime', 'soft'];
         return {
             tone: allowed.includes(tone) ? tone : 'pulse',
-            volume: Number.isFinite(Number(audio?.volume)) ? Math.max(0.05, Math.min(1, Number(audio.volume))) : 0.45
+            volume: Number.isFinite(Number(audio?.volume)) ? Math.max(0.05, Math.min(1, Number(audio.volume))) : 0.45,
         };
     }
 
@@ -1192,30 +1139,8 @@ export class ClockApp extends App {
         return {
             label: entry.label || entry.tz.split('/').pop().replace(/_/g, ' '),
             tz: entry.tz,
-            pinned: entry.pinned === true
+            pinned: entry.pinned === true,
         };
-    }
-
-    sortWorldClocksByPin(list = this.state.worldClocks) {
-        const pins = [];
-        const rest = [];
-        list.forEach((item) => {
-            if (item.pinned) pins.push(item); else rest.push(item);
-        });
-        return [...pins, ...rest];
-    }
-
-    addWorldClock(label, tz) {
-        const normalized = this.normalizeWorldClock({ label, tz, pinned: false });
-        if (!normalized) return false;
-        if (this.state.worldClocks.some((w) => w.tz === normalized.tz)) {
-            this.notify('City already added');
-            return false;
-        }
-        this.state.worldClocks = this.sortWorldClocksByPin([normalized, ...this.state.worldClocks.map((w) => this.normalizeWorldClock(w)).filter(Boolean)]);
-        this.saveState();
-        this.renderWorldList();
-        return true;
     }
 
     previewAlarmSound() {
@@ -1223,38 +1148,30 @@ export class ClockApp extends App {
         this.state.alarmAudio = audio;
         this.saveState();
         const clock = this.kernel?.getService?.('clock');
-        if (clock && typeof clock.playAlarmSound === 'function') {
-            clock.playAlarmSound(audio);
-        }
-    }
-
-    notify(message) {
-        window.dispatchEvent(new CustomEvent('yancotab:notify', { detail: { message } }));
-    }
-
-    getNextForAlarmLabel(alarm) {
-        const next = this.getNextAlarmDate(alarm, new Date());
-        if (!next) return 'Next: —';
-        return `Next: ${next.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: !this.state.use24h })}`;
+        if (clock && typeof clock.playAlarmSound === 'function') clock.playAlarmSound(audio);
     }
 
     getNextAlarmSummary() {
         const now = new Date();
         let nextAlarm = null;
-        this.state.alarms.forEach((alarm) => {
+        this.state.alarms.forEach(alarm => {
             if (!alarm.enabled) return;
             const next = this.getNextAlarmDate(alarm, now);
             if (!next) return;
             if (!nextAlarm || next < nextAlarm) nextAlarm = next;
         });
         if (!nextAlarm) return 'No upcoming alarms';
-        return `Next alarm: ${nextAlarm.toLocaleString('en-US', { weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: !this.state.use24h })}`;
+        const diff = nextAlarm - now;
+        const hours = Math.floor(diff / 3600000);
+        const mins = Math.floor((diff % 3600000) / 60000);
+        let inStr = '';
+        if (hours > 0) inStr += `${hours}h `;
+        inStr += `${mins}m`;
+        return `Next alarm in ${inStr}`;
     }
 
     getNextAlarmDate(alarm, fromDate) {
-        if (alarm.snoozedUntil && alarm.snoozedUntil > fromDate.getTime()) {
-            return new Date(alarm.snoozedUntil);
-        }
+        if (alarm.snoozedUntil && alarm.snoozedUntil > fromDate.getTime()) return new Date(alarm.snoozedUntil);
         const [h, m] = (alarm.time || '07:00').split(':').map(Number);
         if (!Number.isFinite(h) || !Number.isFinite(m)) return null;
         for (let i = 0; i < 8; i += 1) {
@@ -1272,23 +1189,18 @@ export class ClockApp extends App {
         if (!Array.isArray(days) || !days.length) return 'Never';
         if (days.length === 7) return 'Every day';
         const wk = [1, 2, 3, 4, 5];
-        if (wk.every((d) => days.includes(d)) && days.length === 5) return 'Weekdays';
-        return days.map((d) => this.dayShort[d] || '').join(' ');
+        if (wk.every(d => days.includes(d)) && days.length === 5) return 'Weekdays';
+        const wknd = [0, 6];
+        if (wknd.every(d => days.includes(d)) && days.length === 2) return 'Weekends';
+        return days.map(d => this.dayNames[d] || '').join(' ');
     }
 
-    formatDuration(ms) {
-        const totalSec = Math.max(0, Math.floor(ms / 1000));
-        const hrs = Math.floor(totalSec / 3600);
-        const mins = Math.floor((totalSec % 3600) / 60);
-        const secs = totalSec % 60;
-        return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-    }
-
+    // ── Stopwatch/Timer helpers ──────────────────────────────
     getStopwatchElapsed(nowMs = Date.now()) {
-        const stopwatch = this.state.stopwatch || {};
-        const base = Number.isFinite(stopwatch.elapsed) ? Math.max(0, stopwatch.elapsed) : 0;
-        if (!stopwatch.running || !Number.isFinite(stopwatch.lastStart)) return base;
-        return base + Math.max(0, nowMs - stopwatch.lastStart);
+        const sw = this.state.stopwatch || {};
+        const base = Number.isFinite(sw.elapsed) ? Math.max(0, sw.elapsed) : 0;
+        if (!sw.running || !Number.isFinite(sw.lastStart)) return base;
+        return base + Math.max(0, nowMs - sw.lastStart);
     }
 
     syncStopwatchElapsed(nowMs = Date.now()) {
@@ -1301,8 +1213,7 @@ export class ClockApp extends App {
     getTimerRemainingSeconds(nowMs = Date.now()) {
         const timer = this.state.timer || {};
         const remaining = Number.isFinite(timer.remaining) ? Math.max(0, timer.remaining) : 0;
-        if (!timer.running) return remaining;
-        if (!Number.isFinite(timer.endsAt)) return remaining;
+        if (!timer.running || !Number.isFinite(timer.endsAt)) return remaining;
         return Math.max(0, Math.round((timer.endsAt - nowMs) / 1000));
     }
 
@@ -1316,11 +1227,49 @@ export class ClockApp extends App {
         return remaining;
     }
 
+    // ── Theming ──────────────────────────────────────────────
+    setThemeByTime(now) {
+        const theme = this.resolveThemeBySun(now);
+        if (this.root) this.root.dataset.clockTheme = theme;
+    }
 
+    resolveThemeBySun(now) {
+        const sun = this.state.sunTimes;
+        if (sun && typeof sun.sunrise === 'string' && typeof sun.sunset === 'string') {
+            const sunrise = new Date(sun.sunrise).getTime();
+            const sunset = new Date(sun.sunset).getTime();
+            const current = now.getTime();
+            if (Number.isFinite(sunrise) && Number.isFinite(sunset) && sunset > sunrise) {
+                const dawnStart = sunrise - 45 * 60 * 1000;
+                const dawnEnd = sunrise + 45 * 60 * 1000;
+                const sunsetStart = sunset - 70 * 60 * 1000;
+                const sunsetEnd = sunset + 40 * 60 * 1000;
+                const eveningEnd = sunset + 150 * 60 * 1000;
+                if (current < dawnStart) return 'night';
+                if (current < dawnEnd) return 'dawn';
+                if (current < sunsetStart) return current < new Date(now).setHours(12, 0, 0, 0) ? 'morning' : 'afternoon';
+                if (current < sunsetEnd) return 'sunset';
+                if (current < eveningEnd) return 'evening';
+                return 'night';
+            }
+        }
+        const hour = now.getHours();
+        if (hour >= 5 && hour < 7) return 'dawn';
+        if (hour >= 7 && hour < 12) return 'morning';
+        if (hour >= 12 && hour < 17) return 'afternoon';
+        if (hour >= 17 && hour < 20) return 'sunset';
+        if (hour >= 20 && hour < 22) return 'evening';
+        return 'night';
+    }
 
+    notify(message) {
+        window.dispatchEvent(new CustomEvent('yancotab:notify', { detail: { message } }));
+    }
+
+    // ── City Database ────────────────────────────────────────
     buildCityDb() {
-        const cities = [
-            ['Louisville, KY', 'America/New_York'], // requested
+        return [
+            ['Louisville, KY', 'America/New_York'],
             ['New York', 'America/New_York'], ['Boston', 'America/New_York'], ['Washington', 'America/New_York'],
             ['Miami', 'America/New_York'], ['Chicago', 'America/Chicago'], ['Dallas', 'America/Chicago'],
             ['Denver', 'America/Denver'], ['Los Angeles', 'America/Los_Angeles'], ['San Francisco', 'America/Los_Angeles'],
@@ -1335,14 +1284,14 @@ export class ClockApp extends App {
             ['Tokyo', 'Asia/Tokyo'], ['Seoul', 'Asia/Seoul'], ['Beijing', 'Asia/Shanghai'],
             ['Singapore', 'Asia/Singapore'], ['Hong Kong', 'Asia/Hong_Kong'], ['Bangkok', 'Asia/Bangkok'],
             ['Sydney', 'Australia/Sydney'], ['Melbourne', 'Australia/Melbourne'], ['Auckland', 'Pacific/Auckland'],
-            ['Honolulu', 'Pacific/Honolulu'], ['Anchorage', 'America/Anchorage']
-        ];
-        return cities.map(([name, tz]) => ({ name, tz }));
+            ['Honolulu', 'Pacific/Honolulu'], ['Anchorage', 'America/Anchorage'],
+        ].map(([name, tz]) => ({ name, tz }));
     }
 
+    // ── Cleanup ──────────────────────────────────────────────
     destroy() {
-        if (this.teardownDepthFx) this.teardownDepthFx();
-        this.intervals.forEach((i) => clearInterval(i));
+        this.cancelRAF();
+        this.intervals.forEach(i => clearInterval(i));
         this.intervals = [];
         if (this.onClockUpdate) window.removeEventListener('yancotab:clock_update', this.onClockUpdate);
         super.destroy();
