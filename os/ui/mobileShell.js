@@ -83,7 +83,7 @@ export class MobileShell {
       { id: 'todo', name: 'Todo', icon: '✅' },
       { id: 'pomodoro', name: 'Pomodoro', icon: '🍅' },
       { id: 'files', name: 'Files', icon: '📁' },
-      { id: 'photos', name: 'Photos', icon: '🖼️', scheme: 'photos-redirect:' },
+      { id: 'photos', name: 'Photos', icon: '🖼️' },
       { id: 'maps', name: 'Maps', icon: '🗺️' },
     ];
 
