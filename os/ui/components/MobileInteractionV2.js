@@ -17,7 +17,7 @@ export class MobileInteraction {
         this.cfg = {
             longPressMs: 350,
             moveThreshold: 6,
-            swipeCommitPx: 34,
+            swipeCommitPx: 20,
             dragFromLongPressPx: 20,
             dragFromLongPressMs: 120,
             pageFlipDelayMs: 460,
@@ -232,9 +232,22 @@ export class MobileInteraction {
                 if (dist > this.cfg.moveThreshold) {
                     this._clearLPTimer();
                     this._animatePress(this._ptr.targetEl, false);
-                    if (this._ptr.targetId) { this._startDrag(e); }
-                    else if (Math.abs(dx) > Math.abs(dy)) { this._mode = 'SWIPING'; this._dispatch('menu:hide'); }
-                    else { this._reset(); }
+                    const absX = Math.abs(dx);
+                    const absY = Math.abs(dy);
+                    if (absX > absY * 1.3 && absX > 8) {
+                        // Clearly horizontal → page swipe wins, even if started on an icon
+                        this._mode = 'SWIPING';
+                        this._dispatch('menu:hide');
+                    } else if (this._ptr.targetId) {
+                        // On icon, non-horizontal → drag
+                        this._startDrag(e);
+                    } else if (absX >= absY) {
+                        // Empty space, horizontal-ish → swipe
+                        this._mode = 'SWIPING';
+                        this._dispatch('menu:hide');
+                    } else {
+                        this._reset();
+                    }
                 }
                 break;
             case 'LONG_PRESS':
