@@ -71,6 +71,7 @@ export class MobileShell {
       { id: 'files',    name: 'Files',      icon: '📁' },
       { id: 'maps',     name: 'Maps',       icon: '🗺️' },
       { id: 'notes',    name: 'Notes',      icon: '📝' },
+      { id: 'pdf-reader', name: 'PDF Reader', icon: '📕' },
       { id: 'photos',   name: 'Photos',     icon: '🖼️' },
       { id: 'settings', name: 'Settings',   icon: '⚙️' },
       { id: 'todo',     name: 'Todo',       icon: '✅' },

@@ -19,6 +19,7 @@ export class FileSystemService {
         this.mkdir('/home');
         this.mkdir('/home/documents');
         this.mkdir('/home/downloads');
+        this.mkdir('/home/photos');
         this.mkdir('/home/trash');
     }
 

@@ -6119,6 +6119,9 @@ body.theme-light .notes-editor-root .notes-ed-status {
 .app-files-v5 .yf-card-icon[data-type="media"] {
   background: linear-gradient(150deg, rgba(255, 138, 128, 0.28), rgba(255, 138, 128, 0.1));
 }
+.app-files-v5 .yf-card-icon[data-type="pdf"] {
+  background: linear-gradient(150deg, rgba(211, 47, 47, 0.28), rgba(211, 47, 47, 0.1));
+}
 .app-files-v5 .yf-card-icon[data-type="unknown"] {
   background: linear-gradient(150deg, rgba(160, 170, 190, 0.2), rgba(160, 170, 190, 0.06));
 }

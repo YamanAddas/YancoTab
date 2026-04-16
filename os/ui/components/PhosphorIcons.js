@@ -306,6 +306,34 @@ export const PHOSPHOR_ICONS = {
     </g>
   </svg>`,
 
+  /* ── PDF Reader: document with PDF badge ── */
+  'pdf-reader': `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="pdf-bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#c0392b"/><stop offset="1" stop-color="#922b21"/>
+      </linearGradient>
+      <linearGradient id="pdf-page" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#fefefe"/><stop offset="1" stop-color="#ecf0f1"/>
+      </linearGradient>
+    </defs>
+    <!-- Page shadow -->
+    <rect x="15" y="7" width="34" height="50" rx="3" fill="rgba(0,0,0,0.2)"/>
+    <!-- Main page -->
+    <rect x="13" y="5" width="34" height="50" rx="3" fill="url(#pdf-page)" stroke="rgba(0,0,0,0.08)" stroke-width="0.5"/>
+    <!-- Dog-ear fold -->
+    <path d="M37 5 L47 5 L47 15 Z" fill="#ddd"/>
+    <path d="M37 5 L37 15 L47 15 Z" fill="#e8e8e8" stroke="rgba(0,0,0,0.05)" stroke-width="0.3"/>
+    <!-- Text lines -->
+    <rect x="18" y="20" width="20" height="2" rx="1" fill="#bdc3c7"/>
+    <rect x="18" y="25" width="24" height="2" rx="1" fill="#bdc3c7"/>
+    <rect x="18" y="30" width="16" height="2" rx="1" fill="#bdc3c7"/>
+    <rect x="18" y="35" width="22" height="2" rx="1" fill="#bdc3c7"/>
+    <rect x="18" y="40" width="18" height="2" rx="1" fill="#bdc3c7"/>
+    <!-- PDF badge -->
+    <rect x="28" y="44" width="24" height="14" rx="3" fill="url(#pdf-bg)"/>
+    <text x="40" y="54.5" text-anchor="middle" font-family="system-ui,sans-serif" font-size="8" font-weight="700" fill="white" letter-spacing="0.5">PDF</text>
+  </svg>`,
+
   /* ── Todo: clipboard with checkmarks ── */
   todo: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
     <defs>

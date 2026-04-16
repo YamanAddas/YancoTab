@@ -152,6 +152,7 @@ async function boot() {
     pm.registerLazy('todo',             () => import('./apps/TodoApp.js').then(m => m.TodoApp));
     pm.registerLazy('maps',             () => import('./apps/MapsApp.js').then(m => m.MapsApp));
     pm.registerLazy('photos',           () => import('./apps/PhotosApp.js').then(m => m.PhotosApp));
+    pm.registerLazy('pdf-reader',       () => import('./apps/PdfReaderApp.js').then(m => m.PdfReaderApp));
 
     // 3. Mount Shell (Mobile-Only Mode - Works on all devices)
     if (appShell) {

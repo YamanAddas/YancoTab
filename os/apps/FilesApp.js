@@ -1147,9 +1147,15 @@ export class FilesApp extends App {
             return;
         }
 
+        // Open images in the Photos app editor
         if (IMAGE_EXTENSIONS.has(ext) && content.startsWith('data:')) {
-            const popup = window.open(content, '_blank', 'noopener');
-            if (!popup) alert('Image preview blocked by browser popup settings.');
+            await this.openInPhotos(path);
+            return;
+        }
+
+        // Open PDFs in the PDF Reader app
+        if (ext === 'pdf' && content.startsWith('data:')) {
+            await this.openInPdfReader(path);
             return;
         }
 
@@ -1169,6 +1175,24 @@ export class FilesApp extends App {
         }
 
         await this.kernel.processManager.spawn('notes', { path, content });
+    }
+
+    async openInPhotos(path) {
+        if (!this.kernel?.processManager?.spawn) {
+            alert('Photos app is not available right now.');
+            return;
+        }
+
+        await this.kernel.processManager.spawn('photos', { filePath: path });
+    }
+
+    async openInPdfReader(path) {
+        if (!this.kernel?.processManager?.spawn) {
+            alert('PDF Reader is not available right now.');
+            return;
+        }
+
+        await this.kernel.processManager.spawn('pdf-reader', { filePath: path });
     }
 
     promptNewFolder() {
@@ -1687,7 +1711,7 @@ export class FilesApp extends App {
         if (['txt', 'md', 'log', 'csv'].includes(ext)) return 'text';
         if (['zip', 'rar', '7z', 'tar', 'gz', 'bz2'].includes(ext)) return 'archive';
         if (['mp3', 'wav', 'aac', 'flac', 'mp4', 'mov', 'webm', 'mkv', 'avi'].includes(ext)) return 'media';
-        if (ext === 'pdf') return 'text';
+        if (ext === 'pdf') return 'pdf';
         return 'unknown';
     }
 
@@ -1695,6 +1719,7 @@ export class FilesApp extends App {
         if (item.type === 'directory') {
             if (item.path.startsWith(TRASH_PATH)) return '🗑️';
             if (item.path === '/home/downloads') return '⬇️';
+            if (item.path === '/home/photos') return '🖼️';
             return '📁';
         }
 

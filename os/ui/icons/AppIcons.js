@@ -34,6 +34,7 @@ export const APP_ICON_REGISTRY = {
   browser:     { category: 'media', svgSource: 'phosphor', svgKey: 'browser' },
   files:       { category: 'media', svgSource: 'phosphor', svgKey: 'files' },
   photos:      { category: 'media', svgSource: 'phosphor', svgKey: 'photos' },
+  'pdf-reader': { category: 'media', svgSource: 'phosphor', svgKey: 'pdf-reader' },
   maps:        { category: 'media', svgSource: 'phosphor', svgKey: 'maps' },
 
   // Utilities

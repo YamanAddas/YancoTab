@@ -4,16 +4,20 @@
  * Gallery:   View saved images, drag-drop import, paste from clipboard
  * Editor:    Full image editor with crop, adjust, filters, annotate, color tools
  * Wallpaper: Browse curated wallpapers, set rotation schedules
+ *
+ * Storage:   All photos live in /home/photos via FileSystemService,
+ *            making them accessible from the Files app too.
  */
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
 
-const STORE_KEY = 'yancotab_photos_v1';
 const VIEW_KEY = 'yancotab_photos_view';
 const SORT_KEY = 'yancotab_photos_sort';
-const GALLERY_KEY = 'yancotab_photos_gallery';
+const PHOTOS_DIR = '/home/photos';
+const LEGACY_GALLERY_KEY = 'yancotab_photos_gallery';
+const MIGRATION_FLAG = 'yancotab_photos_migrated_v1';
 
 export class PhotosApp extends App {
     constructor(kernel, pid) {
@@ -23,9 +27,10 @@ export class PhotosApp extends App {
         this.mode = 'gallery'; // gallery | editor | wallpaper
         this.viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
         this.sortMode = localStorage.getItem(SORT_KEY) || 'date';
-        this.gallery = this._loadGallery();
+        this.gallery = [];
         this.selectedIds = new Set();
         this.editor = null;
+        this.fs = kernel.getService('fs');
 
         this._boundPaste = this._onPaste.bind(this);
         this._boundKeydown = this._onKeydown.bind(this);
@@ -34,15 +39,27 @@ export class PhotosApp extends App {
     async init(options = {}) {
         this.root = el('div', { class: 'app-window app-photos' });
 
+        // Migrate legacy gallery data to filesystem
+        this._migrateLegacyGallery();
+
+        // Load gallery from filesystem
+        this.gallery = this._loadGalleryFromFS();
+
         this._buildUI();
         this._showMode('gallery');
 
         document.addEventListener('paste', this._boundPaste);
         document.addEventListener('keydown', this._boundKeydown);
 
-        // If launched with an image
+        // If launched with an image (from Files app)
         if (options?.imageData) {
-            this._openEditor(options.imageData);
+            this._openEditor(options.imageData, options.imageName);
+        } else if (options?.filePath) {
+            // Opened from Files app with a filesystem path
+            const file = this.fs.read(options.filePath);
+            if (file && file.content) {
+                this._openEditor(file.content, this._basename(options.filePath));
+            }
         }
     }
 
@@ -54,6 +71,112 @@ export class PhotosApp extends App {
             this.editor = null;
         }
         super.destroy();
+    }
+
+    // ─── Filesystem-backed Storage ───────────────────────────
+
+    _loadGalleryFromFS() {
+        if (!this.fs) return [];
+        const items = this.fs.list(PHOTOS_DIR);
+        return items
+            .filter(item => item.type === 'file')
+            .map(item => ({
+                id: item.meta?.photoId || item.path,
+                path: item.path,
+                name: this._basename(item.path),
+                dataUrl: item.content,
+                thumbnail: item.meta?.thumbnail || item.content,
+                width: item.meta?.width || 0,
+                height: item.meta?.height || 0,
+                size: item.meta?.size || 0,
+                created: item.meta?.created || Date.now(),
+                modified: item.meta?.modified || Date.now(),
+            }));
+    }
+
+    _savePhotoToFS(name, dataUrl, meta = {}) {
+        if (!this.fs) return null;
+        const cleanName = this._sanitizeFilename(name);
+        let targetPath = `${PHOTOS_DIR}/${cleanName}`;
+
+        // Resolve collision
+        if (this.fs.exists(targetPath)) {
+            const ext = cleanName.includes('.') ? cleanName.slice(cleanName.lastIndexOf('.')) : '';
+            const base = cleanName.includes('.') ? cleanName.slice(0, cleanName.lastIndexOf('.')) : cleanName;
+            let counter = 2;
+            while (this.fs.exists(targetPath)) {
+                targetPath = `${PHOTOS_DIR}/${base} (${counter})${ext}`;
+                counter++;
+            }
+        }
+
+        this.fs.write(targetPath, dataUrl, {
+            mime: meta.mime || 'image/png',
+            size: meta.size || 0,
+            width: meta.width || 0,
+            height: meta.height || 0,
+            thumbnail: meta.thumbnail || '',
+            photoId: meta.photoId || `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+            source: 'photos',
+            created: meta.created || Date.now(),
+        });
+
+        return targetPath;
+    }
+
+    _deletePhotoFromFS(photoPath) {
+        if (!this.fs || !photoPath) return;
+        // Move to trash instead of permanent delete
+        const name = this._basename(photoPath);
+        const trashPath = `/home/trash/${name}`;
+        try {
+            this.fs.rename(photoPath, trashPath);
+        } catch {
+            // If rename fails (e.g. collision in trash), just delete
+            this.fs.delete(photoPath);
+        }
+    }
+
+    _migrateLegacyGallery() {
+        if (localStorage.getItem(MIGRATION_FLAG)) return;
+        if (!this.fs) return;
+
+        try {
+            const raw = localStorage.getItem(LEGACY_GALLERY_KEY);
+            if (!raw) {
+                localStorage.setItem(MIGRATION_FLAG, '1');
+                return;
+            }
+
+            const oldGallery = JSON.parse(raw);
+            if (!Array.isArray(oldGallery) || oldGallery.length === 0) {
+                localStorage.setItem(MIGRATION_FLAG, '1');
+                return;
+            }
+
+            console.log(`[Photos] Migrating ${oldGallery.length} photos to filesystem...`);
+            for (const item of oldGallery) {
+                if (!item.dataUrl) continue;
+                this._savePhotoToFS(item.name || `photo_${item.id}.png`, item.dataUrl, {
+                    mime: 'image/png',
+                    size: item.size || 0,
+                    width: item.width || 0,
+                    height: item.height || 0,
+                    thumbnail: item.thumbnail || '',
+                    photoId: item.id,
+                    created: item.created || Date.now(),
+                });
+            }
+
+            // Clean up legacy storage
+            localStorage.removeItem(LEGACY_GALLERY_KEY);
+            localStorage.setItem(MIGRATION_FLAG, '1');
+            console.log('[Photos] Migration complete.');
+        } catch (e) {
+            console.warn('[Photos] Migration failed:', e);
+            // Still mark as migrated to avoid retrying
+            localStorage.setItem(MIGRATION_FLAG, '1');
+        }
     }
 
     // ─── UI Build ─────────────────────────────────────────────
@@ -189,6 +312,8 @@ export class PhotosApp extends App {
         });
 
         if (mode === 'gallery') {
+            // Reload from filesystem to pick up any external changes
+            this.gallery = this._loadGalleryFromFS();
             this._refreshGallery();
         } else if (mode === 'wallpaper' && !this._wallpaperMgr) {
             this._wallpaperMgr = new WallpaperManager(this._wallpaperView, this.kernel);
@@ -258,7 +383,7 @@ export class PhotosApp extends App {
             el('button', {
                 class: 'photos-thumb__btn photos-thumb__btn--danger',
                 title: 'Delete',
-                onclick: (e) => { e.stopPropagation(); this._deleteItem(item.id); },
+                onclick: (e) => { e.stopPropagation(); this._deleteItem(item); },
             }, '\uD83D\uDDD1'),
         ]);
 
@@ -325,20 +450,21 @@ export class PhotosApp extends App {
             const dataUrl = reader.result;
             const img = new Image();
             img.onload = () => {
-                const id = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                const item = {
-                    id,
-                    name: filename || `edited_${Date.now()}.png`,
-                    dataUrl,
-                    thumbnail: this._makeThumbnail(img),
+                const photoId = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                const name = filename || `edited_${Date.now()}.png`;
+                const thumbnail = this._makeThumbnail(img);
+
+                this._savePhotoToFS(name, dataUrl, {
+                    mime: 'image/png',
+                    size: blob.size,
                     width: img.width,
                     height: img.height,
-                    size: blob.size,
-                    created: Date.now(),
-                    modified: Date.now(),
-                };
-                this.gallery.unshift(item);
-                this._saveGallery();
+                    thumbnail,
+                    photoId,
+                });
+
+                // Reload and show gallery
+                this.gallery = this._loadGalleryFromFS();
                 this._showMode('gallery');
             };
             img.src = dataUrl;
@@ -443,21 +569,19 @@ export class PhotosApp extends App {
                 const dataUrl = reader.result;
                 const img = new Image();
                 img.onload = () => {
-                    const id = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-                    this.gallery.push({
-                        id,
-                        name: file.name,
-                        dataUrl,
-                        thumbnail: this._makeThumbnail(img),
+                    const photoId = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+                    this._savePhotoToFS(file.name, dataUrl, {
+                        mime: file.type || 'image/png',
+                        size: file.size,
                         width: img.width,
                         height: img.height,
-                        size: file.size,
-                        created: Date.now(),
-                        modified: Date.now(),
+                        thumbnail: this._makeThumbnail(img),
+                        photoId,
                     });
+
                     loaded++;
                     if (loaded === files.length) {
-                        this._saveGallery();
+                        this.gallery = this._loadGalleryFromFS();
                         this._refreshGallery();
                     }
                 };
@@ -504,10 +628,11 @@ export class PhotosApp extends App {
 
     _batchDelete() {
         for (const id of this.selectedIds) {
-            this._deleteItem(id, false);
+            const item = this.gallery.find(g => g.id === id);
+            if (item) this._deleteItem(item, false);
         }
         this.selectedIds.clear();
-        this._saveGallery();
+        this.gallery = this._loadGalleryFromFS();
         this._refreshGallery();
         this._updateBatchBar();
     }
@@ -523,27 +648,7 @@ export class PhotosApp extends App {
         }
     }
 
-    // ─── Storage ──────────────────────────────────────────────
-
-    _loadGallery() {
-        try {
-            const raw = localStorage.getItem(GALLERY_KEY);
-            return raw ? JSON.parse(raw) : [];
-        } catch { return []; }
-    }
-
-    _saveGallery() {
-        try {
-            localStorage.setItem(GALLERY_KEY, JSON.stringify(this.gallery));
-        } catch (e) {
-            console.warn('[Photos] Storage full, clearing old items');
-            // Remove oldest items if storage is full
-            while (this.gallery.length > 5) {
-                this.gallery.pop();
-            }
-            try { localStorage.setItem(GALLERY_KEY, JSON.stringify(this.gallery)); } catch {}
-        }
-    }
+    // ─── Sorting ──────────────────────────────────────────────
 
     _getSortedGallery() {
         const items = [...this.gallery];
@@ -575,10 +680,10 @@ export class PhotosApp extends App {
         a.click();
     }
 
-    _deleteItem(id, save = true) {
-        this.gallery = this.gallery.filter(g => g.id !== id);
-        if (save) {
-            this._saveGallery();
+    _deleteItem(item, refresh = true) {
+        this._deletePhotoFromFS(item.path);
+        if (refresh) {
+            this.gallery = this._loadGalleryFromFS();
             this._refreshGallery();
         }
     }
@@ -590,5 +695,16 @@ export class PhotosApp extends App {
         let size = bytes;
         while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
         return `${size.toFixed(i > 0 ? 1 : 0)} ${units[i]}`;
+    }
+
+    _basename(path) {
+        return (path || '').split('/').pop() || '';
+    }
+
+    _sanitizeFilename(name) {
+        return (name || 'photo.png')
+            .replace(/[<>:"/\\|?*]/g, '_')
+            .replace(/\s+/g, ' ')
+            .trim() || 'photo.png';
     }
 }
