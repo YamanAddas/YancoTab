@@ -291,6 +291,7 @@ export class PhotosApp extends App {
             el('span', { class: 'photos-toolbar__batch-count' }, '0 selected'),
             el('button', { class: 'photos-batch-btn', onclick: () => this._batchEdit() }, 'Edit'),
             el('button', { class: 'photos-batch-btn', onclick: () => this._batchDownload() }, 'Download'),
+            this._btnExportPdf = el('button', { class: 'photos-batch-btn photos-batch-btn--pdf', onclick: () => this._exportSelectedToPDF() }, '\uD83D\uDCC4 Export PDF'),
             el('button', { class: 'photos-batch-btn photos-batch-btn--danger', onclick: () => this._batchDelete() }, 'Delete'),
         ]);
         this._batchBar = batchBar;
@@ -706,5 +707,154 @@ export class PhotosApp extends App {
             .replace(/[<>:"/\\|?*]/g, '_')
             .replace(/\s+/g, ' ')
             .trim() || 'photo.png';
+    }
+
+    // ─── Images → PDF Export ──────────────────────────────────
+
+    async _exportSelectedToPDF() {
+        const selectedItems = this.gallery.filter(g => this.selectedIds.has(g.id));
+        if (!selectedItems.length) return;
+
+        const origText = this._btnExportPdf.textContent;
+        this._btnExportPdf.textContent = '\u23F3 Building...';
+        this._btnExportPdf.disabled = true;
+
+        try {
+            const pages = await Promise.all(selectedItems.map(item => this._imageToJpegPage(item)));
+            const validPages = pages.filter(Boolean);
+            if (!validPages.length) return;
+
+            const pdfBytes = this._buildImagesPdf(validPages);
+            const date = new Date().toISOString().slice(0, 10);
+            this._downloadBytes(pdfBytes, `photos_${date}.pdf`, 'application/pdf');
+        } finally {
+            this._btnExportPdf.textContent = origText;
+            this._btnExportPdf.disabled = false;
+        }
+    }
+
+    _imageToJpegPage(item) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                // Cap at 2× A4 resolution (1190×1684 px) to keep PDF sizes manageable
+                const MAX_W = 1190;
+                const MAX_H = 1684;
+                const scale = Math.min(1, MAX_W / img.naturalWidth, MAX_H / img.naturalHeight);
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.naturalWidth * scale);
+                canvas.height = Math.round(img.naturalHeight * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff'; // white background for PNGs with transparency
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const jpeg = canvas.toDataURL('image/jpeg', 0.88);
+                resolve({
+                    bytes: this._base64ToBytes(jpeg.split(',')[1]),
+                    width: canvas.width,
+                    height: canvas.height,
+                });
+            };
+            img.onerror = () => resolve(null);
+            img.src = item.dataUrl;
+        });
+    }
+
+    _buildImagesPdf(pages) {
+        // Pure-JS minimal PDF (PDF 1.4) with one JPEG image per page.
+        // Object layout:
+        //   1: Catalog, 2: Pages
+        //   Per page i: (3+i*3)=Page, (4+i*3)=Content stream, (5+i*3)=Image XObject
+        const PAGE_W = 595; // A4 in points (1 pt = 1/72 inch)
+        const PAGE_H = 842;
+        const MARGIN = 20;
+        const n = pages.length;
+        const totalObjs = 2 + n * 3;
+
+        const parts = [];
+        const offsets = {};
+        const enc = new TextEncoder();
+        const push = (str) => parts.push(enc.encode(str));
+        const pushBytes = (b) => parts.push(b);
+        const byteLen = () => parts.reduce((s, p) => s + p.length, 0);
+
+        // Header
+        push('%PDF-1.4\n');
+
+        // Object 1: Catalog
+        offsets[1] = byteLen();
+        push('1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
+
+        // Object 2: Pages
+        offsets[2] = byteLen();
+        const kids = Array.from({ length: n }, (_, i) => `${3 + i * 3} 0 R`).join(' ');
+        push(`2 0 obj\n<< /Type /Pages /Kids [${kids}] /Count ${n} >>\nendobj\n`);
+
+        for (let i = 0; i < n; i++) {
+            const { bytes, width, height } = pages[i];
+            const pageObjId = 3 + i * 3;
+            const contentObjId = 4 + i * 3;
+            const imageObjId = 5 + i * 3;
+
+            // Scale image to fit page with margins (never upscale)
+            const availW = PAGE_W - MARGIN * 2;
+            const availH = PAGE_H - MARGIN * 2;
+            const scale = Math.min(availW / width, availH / height, 1);
+            const imgW = Math.round(width * scale);
+            const imgH = Math.round(height * scale);
+            const x = Math.round(MARGIN + (availW - imgW) / 2);
+            const y = Math.round(MARGIN + (availH - imgH) / 2);
+
+            const content = `q ${imgW} 0 0 ${imgH} ${x} ${y} cm /Im1 Do Q\n`;
+
+            // Page object
+            offsets[pageObjId] = byteLen();
+            push(`${pageObjId} 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${PAGE_H}] /Contents ${contentObjId} 0 R /Resources << /XObject << /Im1 ${imageObjId} 0 R >> >> >>\nendobj\n`);
+
+            // Content stream
+            offsets[contentObjId] = byteLen();
+            push(`${contentObjId} 0 obj\n<< /Length ${content.length} >>\nstream\n${content}endstream\nendobj\n`);
+
+            // Image XObject (raw JPEG bytes via DCTDecode)
+            offsets[imageObjId] = byteLen();
+            push(`${imageObjId} 0 obj\n<< /Type /XObject /Subtype /Image /Width ${width} /Height ${height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${bytes.length} >>\nstream\n`);
+            pushBytes(bytes);
+            push('\nendstream\nendobj\n');
+        }
+
+        // Cross-reference table
+        const xrefOffset = byteLen();
+        push(`xref\n0 ${totalObjs + 1}\n`);
+        push('0000000000 65535 f \n'); // free entry for obj 0
+        for (let i = 1; i <= totalObjs; i++) {
+            push(`${String(offsets[i]).padStart(10, '0')} 00000 n \n`);
+        }
+
+        // Trailer
+        push(`trailer\n<< /Size ${totalObjs + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`);
+
+        // Concatenate all parts into one Uint8Array
+        const totalLen = parts.reduce((s, p) => s + p.length, 0);
+        const out = new Uint8Array(totalLen);
+        let pos = 0;
+        for (const p of parts) { out.set(p, pos); pos += p.length; }
+        return out;
+    }
+
+    _base64ToBytes(b64) {
+        const bin = atob(b64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        return bytes;
+    }
+
+    _downloadBytes(bytes, filename, mime) {
+        const blob = new Blob([bytes], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
     }
 }

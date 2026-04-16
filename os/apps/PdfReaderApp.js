@@ -6,10 +6,14 @@
  *  - Opening PDFs from the Files app (filesystem path)
  *  - Importing PDFs via file picker or drag-and-drop
  *  - Saving imported PDFs to /home/documents in the filesystem
- *  - Zoom controls, page info, download, and print
+ *  - Recent PDFs list in empty state
+ *  - Print (open in new tab) and Fullscreen
  */
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
+
+const RECENT_KEY = 'yancotab_pdf_recent';
+const MAX_RECENTS = 5;
 
 export class PdfReaderApp extends App {
     constructor(kernel, pid) {
@@ -19,7 +23,9 @@ export class PdfReaderApp extends App {
         this._currentBlobUrl = null;
         this._currentName = null;
         this._currentDataUrl = null;
+        this._currentPath = null;
         this._openedFromFiles = false;
+        this._fullscreenHandler = null;
     }
 
     async init(options = {}) {
@@ -29,9 +35,12 @@ export class PdfReaderApp extends App {
         // Opened from Files app with a filesystem path
         if (options?.filePath) {
             this._openedFromFiles = true;
+            this._currentPath = options.filePath;
             const file = this.fs?.read(options.filePath);
             if (file && file.content) {
-                this._loadFromDataUrl(file.content, this._basename(options.filePath));
+                const name = this._basename(options.filePath);
+                this._loadFromDataUrl(file.content, name);
+                this._addToRecents(name, options.filePath);
             }
         }
         // Opened with raw data URL
@@ -41,6 +50,9 @@ export class PdfReaderApp extends App {
     }
 
     destroy() {
+        if (this._fullscreenHandler) {
+            document.removeEventListener('fullscreenchange', this._fullscreenHandler);
+        }
         this._revokeBlobUrl();
         super.destroy();
     }
@@ -71,22 +83,26 @@ export class PdfReaderApp extends App {
                     onclick: () => this._download(),
                     style: 'display:none',
                 }, '\u2B07\uFE0F Download'),
+                this._btnPrint = el('button', {
+                    class: 'pdf-btn',
+                    title: 'Open in new tab to print (Ctrl+P)',
+                    onclick: () => this._print(),
+                    style: 'display:none',
+                }, '\uD83D\uDDA8\uFE0F Print'),
+                this._btnFullscreen = el('button', {
+                    class: 'pdf-btn',
+                    title: 'Fullscreen',
+                    onclick: () => this._toggleFullscreen(),
+                    style: 'display:none',
+                }, '\u26F6 Fullscreen'),
             ]),
         ]);
 
         // PDF viewer container (hidden until a PDF is loaded)
         this._viewerWrap = el('div', { class: 'pdf-viewer-wrap', style: 'display:none' });
 
-        // Empty state
-        this._emptyState = el('div', { class: 'pdf-empty' }, [
-            el('div', { class: 'pdf-empty__icon' }, '\uD83D\uDCD5'),
-            el('div', { class: 'pdf-empty__title' }, 'PDF Reader'),
-            el('div', { class: 'pdf-empty__hint' }, 'Open a PDF file or drag & drop one here'),
-            el('button', {
-                class: 'pdf-btn pdf-btn--primary',
-                onclick: () => this._triggerOpen(),
-            }, '\uD83D\uDCC2 Open PDF'),
-        ]);
+        // Empty state (built with current recents)
+        this._emptyState = this._buildEmptyStateEl();
 
         // Drop overlay
         this._dropOverlay = el('div', { class: 'pdf-drop-overlay' }, [
@@ -112,7 +128,52 @@ export class PdfReaderApp extends App {
             this._fileInput,
         );
 
+        // Fullscreen change handler — updates button label when user presses Esc
+        this._fullscreenHandler = () => {
+            const isFs = !!document.fullscreenElement;
+            this._btnFullscreen.textContent = isFs ? '\u26F6 Exit Full' : '\u26F6 Fullscreen';
+        };
+        document.addEventListener('fullscreenchange', this._fullscreenHandler);
+
         this._bindDragDrop();
+    }
+
+    // ─── Empty State ──────────────────────────────────────────
+
+    _buildEmptyStateEl() {
+        const recents = this._getValidRecents();
+        const children = [
+            el('div', { class: 'pdf-empty__icon' }, '\uD83D\uDCD5'),
+            el('div', { class: 'pdf-empty__title' }, 'PDF Reader'),
+            el('div', { class: 'pdf-empty__hint' }, 'Open a PDF file or drag & drop one here'),
+            el('button', {
+                class: 'pdf-btn pdf-btn--primary',
+                onclick: () => this._triggerOpen(),
+            }, '\uD83D\uDCC2 Open PDF'),
+        ];
+
+        if (recents.length > 0) {
+            const recentEls = recents.map(r =>
+                el('button', {
+                    class: 'pdf-recent-item',
+                    title: r.path,
+                    onclick: () => this._openRecent(r),
+                }, [
+                    el('span', { class: 'pdf-recent-item__icon' }, '\uD83D\uDCD5'),
+                    el('span', { class: 'pdf-recent-item__name' }, r.name),
+                    el('span', { class: 'pdf-recent-item__date' }, this._formatDate(r.openedAt)),
+                ])
+            );
+
+            children.push(
+                el('div', { class: 'pdf-recents' }, [
+                    el('div', { class: 'pdf-recents__title' }, 'Recently Opened'),
+                    el('div', { class: 'pdf-recents__list' }, recentEls),
+                ])
+            );
+        }
+
+        return el('div', { class: 'pdf-empty' }, children);
     }
 
     // ─── PDF Loading ──────────────────────────────────────────
@@ -130,9 +191,12 @@ export class PdfReaderApp extends App {
         // Show viewer, hide empty state
         this._emptyState.style.display = 'none';
         this._viewerWrap.style.display = '';
-        // Only show Save to Files when the PDF wasn't opened from Files (avoids duplicates)
+
+        // Show/hide toolbar buttons
         this._btnSave.style.display = this._openedFromFiles ? 'none' : '';
         this._btnDownload.style.display = '';
+        this._btnPrint.style.display = '';
+        this._btnFullscreen.style.display = '';
 
         // Render the PDF using embed
         this._viewerWrap.innerHTML = '';
@@ -189,6 +253,10 @@ export class PdfReaderApp extends App {
             source: 'pdf-reader',
         });
 
+        // Track in recents
+        this._currentPath = targetPath;
+        this._addToRecents(name, targetPath);
+
         // Brief visual feedback
         const origText = this._btnSave.textContent;
         this._btnSave.textContent = '\u2705 Saved!';
@@ -201,6 +269,64 @@ export class PdfReaderApp extends App {
         a.href = this._currentDataUrl;
         a.download = this._currentName || 'document.pdf';
         a.click();
+    }
+
+    _print() {
+        if (!this._currentBlobUrl) return;
+        // Open the PDF blob URL in a new tab — user can Ctrl+P from there
+        window.open(this._currentBlobUrl, '_blank');
+    }
+
+    _toggleFullscreen() {
+        if (!document.fullscreenElement) {
+            this.root.requestFullscreen?.();
+        } else {
+            document.exitFullscreen?.();
+        }
+    }
+
+    // ─── Recent PDFs ──────────────────────────────────────────
+
+    _addToRecents(name, path) {
+        if (!name || !path) return;
+        try {
+            const raw = localStorage.getItem(RECENT_KEY);
+            const recents = raw ? JSON.parse(raw) : [];
+            const filtered = recents.filter(r => r.path !== path);
+            filtered.unshift({ name, path, openedAt: Date.now() });
+            localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENTS)));
+        } catch { /* ignore */ }
+    }
+
+    _getRecents() {
+        try {
+            return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+        } catch { return []; }
+    }
+
+    _getValidRecents() {
+        // Only include recents whose file still exists in the filesystem
+        return this._getRecents().filter(r => this.fs?.exists(r.path));
+    }
+
+    _openRecent(recent) {
+        const file = this.fs?.read(recent.path);
+        if (file && file.content) {
+            this._openedFromFiles = true;
+            this._currentPath = recent.path;
+            this._loadFromDataUrl(file.content, recent.name);
+            this._addToRecents(recent.name, recent.path); // bump to top
+        }
+    }
+
+    _formatDate(timestamp) {
+        const d = new Date(timestamp);
+        const now = new Date();
+        const diffDays = Math.floor((now - d) / 86400000);
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        return d.toLocaleDateString();
     }
 
     // ─── Drag & Drop ──────────────────────────────────────────
