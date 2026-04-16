@@ -425,6 +425,14 @@ export class FilesApp extends App {
         const modifiedStr = item.meta?.modified ? this._formatDate(item.meta.modified) : (item.meta?.created ? this._formatDate(item.meta.created) : '');
         const sizeStr = item.meta?.size ? this._formatBytes(item.meta.size) : '';
 
+        // Use actual image thumbnail when available
+        const thumbnail = !isDirectory && IMAGE_EXTENSIONS.has(this._extension(item.path)) && item.meta?.thumbnail
+            ? item.meta.thumbnail
+            : null;
+        const iconChild = thumbnail
+            ? el('img', { class: 'yf-card-icon-thumb', src: thumbnail, alt: name, draggable: 'false' })
+            : icon;
+
         const tile = el('div', {
             class: `yf-card ${isDirectory ? 'is-directory' : 'is-file'} ${this.clipboard?.action === 'cut' && this.clipboard.path === item.path ? 'is-cut-source' : ''}`,
             'data-path': item.path,
@@ -440,7 +448,7 @@ export class FilesApp extends App {
                 this.showContextMenu(event.clientX, event.clientY, item);
             },
         }, [
-            el('div', { class: 'yf-card-icon', 'data-type': fileType }, icon),
+            el('div', { class: 'yf-card-icon', 'data-type': fileType }, iconChild),
             el('div', { class: 'yf-card-name', title: name }, name),
             el('div', { class: 'yf-card-sub', title: subtitle }, subtitle),
             el('div', { class: 'yf-card-meta' }, [
@@ -1459,11 +1467,18 @@ export class FilesApp extends App {
                 const stored = await this.readFileForStorage(file);
                 const nextPath = this._resolveCollisionPath(this._joinPath(this.currentPath, this._cleanName(file.name) || `upload-${Date.now()}`));
 
+                // Generate thumbnail for images so Photos gallery and Files tiles look good
+                let thumbnail = '';
+                if (file.type.startsWith('image/') && stored.startsWith('data:')) {
+                    thumbnail = await this._makeThumbnailFromDataUrl(stored);
+                }
+
                 this.fs.write(nextPath, stored, {
                     mime: file.type || 'application/octet-stream',
                     size: file.size || 0,
                     source: 'upload',
                     uploadedAt: Date.now(),
+                    ...(thumbnail ? { thumbnail } : {}),
                 });
             } catch (error) {
                 alert(`Upload failed for ${file.name}: ${error?.message || error}`);
@@ -1472,6 +1487,22 @@ export class FilesApp extends App {
 
         event.target.value = '';
         this.refresh();
+    }
+
+    _makeThumbnailFromDataUrl(dataUrl, size = 200) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const scale = Math.min(size / img.width, size / img.height);
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', 0.7));
+            };
+            img.onerror = () => resolve('');
+            img.src = dataUrl;
+        });
     }
 
     readFileForStorage(file) {

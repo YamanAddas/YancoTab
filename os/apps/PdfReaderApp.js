@@ -19,6 +19,7 @@ export class PdfReaderApp extends App {
         this._currentBlobUrl = null;
         this._currentName = null;
         this._currentDataUrl = null;
+        this._openedFromFiles = false;
     }
 
     async init(options = {}) {
@@ -27,6 +28,7 @@ export class PdfReaderApp extends App {
 
         // Opened from Files app with a filesystem path
         if (options?.filePath) {
+            this._openedFromFiles = true;
             const file = this.fs?.read(options.filePath);
             if (file && file.content) {
                 this._loadFromDataUrl(file.content, this._basename(options.filePath));
@@ -128,7 +130,8 @@ export class PdfReaderApp extends App {
         // Show viewer, hide empty state
         this._emptyState.style.display = 'none';
         this._viewerWrap.style.display = '';
-        this._btnSave.style.display = '';
+        // Only show Save to Files when the PDF wasn't opened from Files (avoids duplicates)
+        this._btnSave.style.display = this._openedFromFiles ? 'none' : '';
         this._btnDownload.style.display = '';
 
         // Render the PDF using embed
