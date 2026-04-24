@@ -29,6 +29,8 @@ import { showNewGameMenu } from './ui/NewGameMenu.js';
 import { playWinCascade } from './ui/winCascade.js';
 import { haptic } from './ui/haptics.js';
 import { mountPauseOverlay } from './ui/pause.js';
+import { showStartScreen } from './ui/StartScreen.js';
+import { bindSolitaireKeys } from './ui/keyboard.js';
 
 export class SolitaireApp extends App {
   constructor(kernel, pid) {
@@ -78,9 +80,23 @@ export class SolitaireApp extends App {
     frame.append(this.toolbar);
     this.root.append(frame);
 
+    this._showStartScreen();
+  }
+
+  // First-open menu. Also reachable from the New Game ▾ dropdown. When a save
+  // exists, "Continue" is primary and resumes without confirming abandon.
+  _showStartScreen() {
     const saved = loadSave(this.kernel);
-    if (saved && saved.state && !isWon(saved.state)) this._resumeGame(saved);
-    else this._newGame();
+    const hasSave = !!(saved && saved.state && !isWon(saved.state));
+    showStartScreen(this.root, { hasSave }, {
+      onContinue:   () => hasSave && this._resumeGame(saved),
+      onNewGame:    () => this._newGame(),
+      onDaily:      () => this._newGame({ seed: dailySeed() }),
+      onWinnable:   () => this._startWinnable(),
+      onCustomSeed: () => this._startCustomSeed(),
+      onStats:      () => this._showStats(),
+      onSettings:   () => this._showSettings(),
+    });
   }
 
   _intentCtx() {
@@ -401,6 +417,7 @@ export class SolitaireApp extends App {
       { label: 'Daily Deal',      onClick: () => this._startDailyDeal() },
       { label: 'Replay This Deal',onClick: () => this._replayDeal() },
       { label: 'Custom Seed…',    onClick: () => this._startCustomSeed() },
+      { label: 'Main Menu',       onClick: () => this._showStartScreen() },
     ]);
   }
 
@@ -468,28 +485,11 @@ export class SolitaireApp extends App {
     if (target) shake(target);
   }
 
-  _bindKeyboard() {
-    this._onKey = (e) => {
-      if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
-      if (e.isComposing) return;
-      if (!this.root?.isConnected) return;
-      switch (e.key.toLowerCase()) {
-        case 'n': this._confirmAndNewGame(); e.preventDefault(); break;
-        case 'u': this._undo(); e.preventDefault(); break;
-        case 'r': this._redo(); e.preventDefault(); break;
-        case 'h': this._showHint(); e.preventDefault(); break;
-        case 'a': this._autoFinish(); e.preventDefault(); break;
-        case 'p': this._togglePause(); e.preventDefault(); break;
-        case 'escape': if (this._paused) { this._resume(); e.preventDefault(); } break;
-        case ' ': this._dispatch({ type: 'DRAW' }); e.preventDefault(); break;
-      }
-    };
-    window.addEventListener('keydown', this._onKey);
-  }
+  _bindKeyboard() { this._unbindKeys = bindSolitaireKeys(this); }
 
   destroy() {
     this._stopTimer();
-    if (this._onKey) window.removeEventListener('keydown', this._onKey);
+    try { this._unbindKeys?.(); } catch {}
     try { this.board?.destroy(); } catch {}
     super.destroy();
   }

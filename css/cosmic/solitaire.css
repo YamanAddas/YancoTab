@@ -183,6 +183,66 @@
 }
 .cosmic-menu-item:hover { background: rgba(var(--accent-rgb), 0.12); }
 
+/* Start screen — first-open menu. Sits on the same overlay shell as the
+   win/stats modals; extra width and a tighter button stack distinguish it. */
+.cosmic-start-overlay { z-index: 10001; }
+
+.cosmic-start-card {
+  min-width: 320px;
+  max-width: 380px;
+  padding: 32px 28px 28px;
+}
+.cosmic-start-eyebrow {
+  font-family: var(--font-mono, monospace);
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  opacity: 0.75;
+  margin-bottom: 6px;
+}
+.cosmic-start-title {
+  font-size: 26px;
+  letter-spacing: 0.04em;
+  margin-bottom: 10px;
+}
+.cosmic-start-sub {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 20px;
+  line-height: 1.45;
+}
+.cosmic-start-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cosmic-start-btn {
+  width: 100%;
+  justify-content: center;
+  font-size: 14px;
+  padding: 10px 14px;
+}
+.cosmic-start-primary {
+  background: linear-gradient(180deg,
+    rgba(var(--accent-rgb), 0.28),
+    rgba(var(--accent-rgb), 0.14));
+  border-color: rgba(var(--accent-rgb), 0.55);
+  color: var(--accent-bright);
+  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.22);
+}
+.cosmic-start-primary:hover {
+  background: linear-gradient(180deg,
+    rgba(var(--accent-rgb), 0.36),
+    rgba(var(--accent-rgb), 0.18));
+}
+.cosmic-start-divider {
+  height: 1px;
+  margin: 6px 0 2px;
+  background: linear-gradient(90deg, transparent,
+    rgba(var(--accent-rgb), 0.25), transparent);
+}
+
 /* Modal overlays (win + stats) */
 .cosmic-win-overlay {
   position: absolute;
