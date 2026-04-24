@@ -26,7 +26,7 @@ export function saveStats(kernel, stats) {
 }
 
 export function defaultSettings() {
-  return { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false };
+  return { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false, cardBack: 'nebula' };
 }
 export function loadSettings(kernel) {
   try {

@@ -298,3 +298,41 @@
   gap: 8px;
   margin-top: 18px;
 }
+
+/* Card-back picker — four mini previews the user can click to choose a style.
+   The `.cosmic-card-back` inside each swatch inherits background from the
+   sibling `.back-<variant>` class (scoped by the swatch wrapper). */
+.cosmic-back-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.cosmic-back-choice:hover { background: rgba(var(--accent-rgb), 0.06); }
+.cosmic-back-choice input { position: absolute; opacity: 0; pointer-events: none; }
+.cosmic-back-choice:has(input:checked) {
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.08);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.25);
+}
+.cosmic-back-swatch {
+  position: relative;
+  width: 44px;
+  height: 60px;
+}
+.cosmic-back-swatch .cosmic-card-back {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.cosmic-back-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}

@@ -276,12 +276,15 @@ export class SolitaireApp extends App {
     saveStats(this.kernel, next);
   }
 
-  // Visual-only settings (4-color, lefty). Engine options take effect on next deal.
+  // Visual-only settings (4-color, lefty, card back). Engine options take effect on next deal.
   _applyVisualSettings() {
     const root = this.board?.root;
     if (!root) return;
     root.classList.toggle('four-color', !!this.settings.fourColor);
     root.classList.toggle('left-handed', !!this.settings.leftHanded);
+    // Mutually-exclusive card-back variant — strip any prior back-* then apply.
+    for (const c of [...root.classList]) if (c.startsWith('back-')) root.classList.remove(c);
+    root.classList.add(`back-${this.settings.cardBack || 'nebula'}`);
   }
 
   _showSettings() {

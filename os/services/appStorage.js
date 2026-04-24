@@ -224,7 +224,7 @@ const REGISTRY = {
         storageClass: 'volatile',
         syncPolicy: 'sync',
         version: 1,
-        default: { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false },
+        default: { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false, cardBack: 'nebula' },
         validate: (v) => v && typeof v === 'object',
     },
     yancotab_import_backup: {

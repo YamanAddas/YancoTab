@@ -24,6 +24,18 @@ export function showSettingsPanel(root, settings, onSave) {
     el('div', { class: 'cosmic-settings-label' }, title),
     el('div', { class: 'cosmic-settings-group' }, children),
   ]);
+  // Card-back swatch: radio whose visual is a 44×60 preview using the same
+  // back-* classes that style real cards. The <input> stays hidden but focusable.
+  const backSwatch = (value, label, checked) => {
+    const id = `sol-back-${value}`;
+    const input = el('input', { type: 'radio', name: 'cardBack', id, value });
+    if (checked) input.checked = true;
+    const swatch = el('div', { class: `cosmic-back-swatch back-${value}` }, [
+      el('div', { class: 'cosmic-card-back' }),
+    ]);
+    return el('label', { class: 'cosmic-back-choice', for: id, title: label },
+      [input, swatch, el('span', { class: 'cosmic-back-label' }, label)]);
+  };
 
   const card = el('div', { class: 'cosmic-win-card cosmic-settings-card' }, [
     el('div', { class: 'cosmic-win-title' }, 'Settings'),
@@ -39,6 +51,12 @@ export function showSettingsPanel(root, settings, onSave) {
     section('Display',
       check('sol-fourcolor', '4-color suits', !!settings.fourColor),
       check('sol-lefty', 'Left-handed layout', !!settings.leftHanded),
+    ),
+    section('Card back',
+      backSwatch('nebula', 'Nebula', (settings.cardBack || 'nebula') === 'nebula'),
+      backSwatch('hex',    'Hex',    settings.cardBack === 'hex'),
+      backSwatch('warp',   'Warp',   settings.cardBack === 'warp'),
+      backSwatch('aurora', 'Aurora', settings.cardBack === 'aurora'),
     ),
     el('div', { class: 'cosmic-settings-hint' },
       'Draw and scoring apply on the next deal.'),
@@ -56,6 +74,7 @@ export function showSettingsPanel(root, settings, onSave) {
       scoring: overlay.querySelector('input[name="scoring"]:checked')?.value || 'standard',
       fourColor: overlay.querySelector('#sol-fourcolor').checked,
       leftHanded: overlay.querySelector('#sol-lefty').checked,
+      cardBack: overlay.querySelector('input[name="cardBack"]:checked')?.value || 'nebula',
     };
     close();
     onSave(next);

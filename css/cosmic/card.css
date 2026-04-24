@@ -188,6 +188,45 @@
   cursor: grabbing;
 }
 
+/* ── Card-back variants ──
+   Applied as a class on an ancestor (e.g. .cosmic-solitaire.back-hex). The
+   default back defined above is "nebula"; these override the backdrop while
+   preserving the icon mark, inset stroke, and aurora specular layers. */
+
+/* Hex Lattice — honeycomb pattern at low opacity over deep elevated bg */
+.back-hex .cosmic-card-back {
+  background:
+    /* hex dots via layered radial-gradients */
+    radial-gradient(circle at 25% 25%, rgba(var(--accent-rgb), 0.18) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 75% 25%, rgba(var(--accent-rgb), 0.18) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 50% 60%, rgba(var(--accent-rgb), 0.18) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 0%  90%, rgba(var(--accent-rgb), 0.18) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 100% 90%, rgba(var(--accent-rgb), 0.18) 0 1.5px, transparent 2px),
+    linear-gradient(160deg, #0b1a2e 0%, #071220 100%);
+  background-size: 18px 20px, 18px 20px, 18px 20px, 18px 20px, 18px 20px, 100% 100%;
+}
+
+/* Warp Grid — clean 40×40 accent grid plus a subtle diagonal scan */
+.back-warp .cosmic-card-back {
+  background:
+    linear-gradient(to right,  rgba(var(--accent-rgb), 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--accent-rgb), 0.10) 1px, transparent 1px),
+    linear-gradient(135deg, transparent 48%, rgba(var(--accent-rgb), 0.08) 49%, rgba(var(--accent-rgb), 0.08) 51%, transparent 52%),
+    linear-gradient(160deg, #0a1628 0%, #050a14 100%);
+  background-size: 12px 12px, 12px 12px, 100% 100%, 100% 100%;
+}
+
+/* Aurora — multi-stop conic ribbon through teal → indigo → teal */
+.back-aurora .cosmic-card-back {
+  background:
+    conic-gradient(from 220deg at 50% 50%,
+      rgba(0, 229, 193, 0.22) 0deg,
+      rgba(107, 92, 255, 0.28) 120deg,
+      rgba(0, 229, 193, 0.22) 240deg,
+      rgba(107, 92, 255, 0.28) 360deg),
+    linear-gradient(160deg, #0a1628 0%, #060b14 100%);
+}
+
 /* Reduced motion: kill flip duration, keep visual state */
 @media (prefers-reduced-motion: reduce) {
   .cosmic-card-inner { transition: transform 0.08s linear; }
