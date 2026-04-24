@@ -279,6 +279,7 @@ export class SolitaireApp extends App {
       this.history.push(prev);
       this.future.length = 0;
       haptic('place');
+      this._persist(out.state);  // re-save: _onStateChange ran pre-push
     }
     return true;
   }
