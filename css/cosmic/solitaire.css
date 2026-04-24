@@ -188,29 +188,54 @@
 .cosmic-start-overlay { z-index: 10001; }
 
 .cosmic-start-card {
-  min-width: 320px;
-  max-width: 380px;
-  padding: 32px 28px 28px;
+  min-width: 340px;
+  max-width: 400px;
+  padding: 30px 30px 26px;
+  text-align: center;
 }
-.cosmic-start-eyebrow {
-  font-family: var(--font-mono, monospace);
-  font-size: 11px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
+/* Arabesque flourish above and below the title. Inline SVG inherits color
+   via currentColor, so the accent token drives it in both themes. */
+.cosmic-start-ornament {
+  display: flex;
+  justify-content: center;
+  align-items: center;
   color: var(--accent);
-  opacity: 0.75;
-  margin-bottom: 6px;
+  margin: 2px 0;
+  line-height: 0;
 }
+.cosmic-start-ornament + .cosmic-start-ornament { margin-top: 2px; }
+/* Title: italic serif, generous size, accent-gradient fill. Picks up a
+   decorative face when the OS has one (Cormorant/Playfair/Didot), falls
+   back to Baskerville/Georgia so every platform looks intentional. */
 .cosmic-start-title {
-  font-size: 26px;
-  letter-spacing: 0.04em;
-  margin-bottom: 10px;
+  font-family: 'Cormorant Garamond', 'Playfair Display', 'Didot',
+    'Bodoni MT', Baskerville, 'Book Antiqua', Georgia,
+    'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(40px, 8vw, 52px);
+  letter-spacing: 0.015em;
+  line-height: 1.05;
+  margin: 6px 0 6px;
+  background: linear-gradient(180deg,
+    rgba(255, 255, 255, 0.96) 0%,
+    var(--accent-bright) 55%,
+    var(--accent) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.35));
+  /* When a face actually carries stylistic alternates/swashes, use them. */
+  font-feature-settings: "salt" 1, "ss01" 1, "swsh" 1, "liga" 1, "dlig" 1;
+  text-transform: none;     /* undo .cosmic-win-title inheritance */
 }
 .cosmic-start-sub {
   font-size: 13px;
   color: var(--text);
-  margin-bottom: 20px;
+  margin: 10px auto 22px;
   line-height: 1.45;
+  max-width: 300px;
 }
 .cosmic-start-actions {
   display: flex;
