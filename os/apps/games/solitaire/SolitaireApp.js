@@ -28,7 +28,6 @@ import { showStuckPrompt } from './ui/StuckPrompt.js';
 import { showNewGameMenu } from './ui/NewGameMenu.js';
 import { playWinCascade } from './ui/winCascade.js';
 import { haptic } from './ui/haptics.js';
-import { mountPauseOverlay } from './ui/pause.js';
 import { showStartScreen } from './ui/StartScreen.js';
 import { bindSolitaireKeys } from './ui/keyboard.js';
 
@@ -180,6 +179,10 @@ export class SolitaireApp extends App {
   }
 
   _resumeGame(saved) {
+    // Continue may fire while _paused is still set (Pause routes to the
+    // menu). Clear it so dispatches work and the button label resets.
+    this._paused = false; this._pausedAt = 0;
+    if (this._pauseBtn) this._pauseBtn.textContent = 'Pause';
     const s = saved.state;
     this.history = Array.isArray(saved.history) ? saved.history : [];
     this.future = [];
@@ -235,16 +238,16 @@ export class SolitaireApp extends App {
     this.statTime.innerHTML = `Time <strong>${mm}:${ss}</strong>`;
   }
 
-  // Pause freezes the clock, overlays the board (no peeking in timed mode),
-  // and swallows dispatches. _pausedAt lets _resume shift _startTs forward
-  // by the paused duration so stats.time doesn't jump.
+  // Pause freezes the clock and opens the Main Menu — Continue/Stats/Settings/
+  // New Deal are all one tap away, and timed mode gets a board cover for free.
+  // _pausedAt lets _resume shift _startTs so stats.time doesn't jump.
   _togglePause() {
     if (this._paused) return this._resume();
     this._paused = true;
     this._pausedAt = Date.now();
     this._stopTimer();
     if (this._pauseBtn) this._pauseBtn.textContent = 'Resume';
-    this._pauseOverlay = mountPauseOverlay(this.board?.boardEl, () => this._resume());
+    this._showStartScreen();
   }
   _resume() {
     if (!this._paused) return;
@@ -252,8 +255,8 @@ export class SolitaireApp extends App {
     if (this._pausedAt) this._startTs += (Date.now() - this._pausedAt);
     this._pausedAt = 0;
     if (this._pauseBtn) this._pauseBtn.textContent = 'Pause';
-    this._pauseOverlay?.remove();
-    this._pauseOverlay = null;
+    // Close the start-screen if it's what the user dismissed (Esc, etc.).
+    this.root.querySelector('.cosmic-start-overlay')?.remove();
     // Re-arm directly — calling _startTimer would reset _startTs.
     if (this.settings.timed && !this._timerId) {
       this._timerId = setInterval(() => {
