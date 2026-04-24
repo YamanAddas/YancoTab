@@ -19,9 +19,18 @@ export function createCardView(card, { width, height, x, y, iconUrl }) {
   let cur = { x, y };
 
   const update = (nx, ny, faceUp) => {
-    if (nx !== cur.x || ny !== cur.y) {
+    // Always keep `cur` current so external writers (e.g. the drag controller
+    // directly mutating transform) can't strand the card at a stale position
+    // when the next render asserts (nx === cur.x && ny === cur.y). The old
+    // short-circuit was the root of the "cards go all over" bug: drag.js
+    // wrote transform directly, cur stayed at pre-drag, and _render bailed.
+    cur = { x: nx, y: ny };
+    // While the card is actively being dragged we must NOT write transform —
+    // the drag controller owns it for the lifetime of the pointer gesture.
+    // On pointerup the controller snap-backs to the pre-drag base, then the
+    // post-dispatch _render reaches here and commits the new resting place.
+    if (!el.classList.contains('dragging')) {
       el.style.transform = `translate(${nx}px, ${ny}px)`;
-      cur = { x: nx, y: ny };
     }
     if (faceUp !== undefined) setCardFaceUp(el, faceUp);
   };

@@ -4,6 +4,6 @@
   "type": "module",
   "description": "YancoTab — privacy-first new-tab Chrome extension",
   "scripts": {
-    "test": "node --test tests/notes-utils.test.js tests/file-system-service.test.js tests/window-chrome-logic.test.js"
+    "test": "node --test tests/notes-utils.test.js tests/file-system-service.test.js tests/window-chrome-logic.test.js tests/spider-drag-snapback.test.js"
   }
 }

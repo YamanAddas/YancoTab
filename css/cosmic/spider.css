@@ -126,3 +126,13 @@
   opacity: 0.55;
   font-size: 0.7em;
 }
+
+/* Drop-hint for non-empty columns: the slot placeholder is behind the cards
+ * and invisible, so the drag controller additionally lights up the topmost
+ * card with this class while a legal drop target is hovered. */
+.cosmic-spider .cosmic-card.hot-target {
+  filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.55));
+  outline: 2px solid rgba(var(--accent-rgb), 0.7);
+  outline-offset: 1px;
+  border-radius: var(--radius-md, 8px);
+}

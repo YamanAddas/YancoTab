@@ -97,9 +97,17 @@ export class DragController {
 
   _beginDrag() {
     this.active.started = true;
+    // Cache each card's pre-drag transform AND zIndex NOW so snap-back works
+    // even if pointerup fires before any pointermove (the hold-threshold
+    // path) and so cancel paths that never see a non-empty style.transform
+    // still have a correct target to restore.
     for (const id of this.active.ids) {
       const cv = this.getCardView(id);
       if (!cv) continue;
+      const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(cv.el.style.transform || '');
+      cv.el.dataset.dragBaseX = m ? m[1] : '0';
+      cv.el.dataset.dragBaseY = m ? m[2] : '0';
+      cv.el.dataset.dragBaseZ = cv.el.style.zIndex || '';
       cv.el.classList.add('dragging');
       cv.el.style.zIndex = '9999';
       cv.el.style.transition = 'none';
@@ -128,19 +136,47 @@ export class DragController {
   }
 
   _baseTransform(cv) {
-    const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(cv.el.style.transform || '');
-    if (!m) return { x: 0, y: 0 };
-    if (!cv.el.dataset.dragBaseX) {
-      cv.el.dataset.dragBaseX = m[1];
-      cv.el.dataset.dragBaseY = m[2];
-    }
-    return { x: +cv.el.dataset.dragBaseX, y: +cv.el.dataset.dragBaseY };
+    const x = parseFloat(cv.el.dataset.dragBaseX);
+    const y = parseFloat(cv.el.dataset.dragBaseY);
+    return {
+      x: Number.isFinite(x) ? x : 0,
+      y: Number.isFinite(y) ? y : 0,
+    };
   }
 
   _updateDropHint(e) {
-    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot').forEach((el) => el.classList.remove('hot'));
+    // Clear old highlights (both on slots and on topmost-card hints).
+    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot, .cosmic-card.hot-target')
+      .forEach((el) => el.classList.remove('hot', 'hot-target'));
     const target = this._hitTest(e.clientX, e.clientY);
-    if (target?.pileEl) target.pileEl.classList.add('hot');
+    // Skip the hint if we're hovering over our own source column — dropping
+    // there is a no-op anyway (_onUp gates on to !== from.pile).
+    if (!target || target.pile === this.active?.pile) return;
+    // Extra guard: only glow the target if the move would actually be legal.
+    // Cross-rank mismatches shouldn't pretend to be valid drop zones.
+    const s = this.getState();
+    if (!s) return;
+    const col = +target.pile.slice(1);
+    const pile = s.tableau[col];
+    const headId = this.active?.ids?.[0];
+    const headCard = headId ? this._findCardInTableau(s, headId) : null;
+    const legal = headCard && (pile.length === 0
+      || (pile[pile.length - 1].faceUp && pile[pile.length - 1].rank === headCard.rank + 1));
+    if (!legal) return;
+    // Mark the slot (visible on empty columns).
+    const slotEl = this.boardEl.querySelector(`.cosmic-pile-slot[data-pile="${target.pile}"]`);
+    if (slotEl) slotEl.classList.add('hot');
+    // And glow the topmost card so the hint is visible above the pile
+    // (slot is covered when the column has cards).
+    if (pile.length > 0) {
+      const topCv = this.getCardView(pile[pile.length - 1].id);
+      if (topCv) topCv.el.classList.add('hot-target');
+    }
+  }
+
+  _findCardInTableau(state, id) {
+    for (const col of state.tableau) for (const c of col) if (c.id === id) return c;
+    return null;
   }
 
   _hitTest(x, y) {
@@ -185,18 +221,16 @@ export class DragController {
     const from = { pile: this.active.pile, idx: this.active.fromIdx };
     const to = target?.pile || null;
 
-    for (const id of this.active.ids) {
-      const cv = this.getCardView(id);
-      if (!cv) continue;
-      cv.el.classList.remove('dragging');
-      cv.el.style.transition = '';
-      cv.el.style.zIndex = '';
-      delete cv.el.dataset.dragBaseX;
-      delete cv.el.dataset.dragBaseY;
-      const m = /translate\(([-\d.]+)px,\s*([-\d.]+)px\)/.exec(cv.el.style.transform || '');
-      if (m) cv.el.style.transform = `translate(${m[1]}px, ${m[2]}px)`;
-    }
-    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot').forEach((el) => el.classList.remove('hot'));
+    // Snap every dragged card back to its pre-drag render position. If the
+    // dispatch that follows succeeds, _render() will retarget to the new
+    // column via the CSS transition — the browser only commits the final
+    // transform in this synchronous block, so the snap-back is invisible on
+    // legal drops. On illegal drops (and drops onto non-tableau, where no
+    // dispatch fires) the snap-back is the ONLY commit, so the cards glide
+    // home instead of freezing at the release position.
+    this._snapBackDragged();
+    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot, .cosmic-card.hot-target')
+      .forEach((el) => el.classList.remove('hot', 'hot-target'));
 
     this._cleanup();
 
@@ -206,17 +240,30 @@ export class DragController {
   _onCancel() {
     if (!this.active) return;
     this._clearHold();
+    // Same snap-back as _onUp so an interrupted drag doesn't leave a card
+    // stranded mid-motion. Pointer cancellation is rare but happens when
+    // focus shifts (e.g. a modal opens) or the OS hijacks the pointer.
+    this._snapBackDragged();
+    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot, .cosmic-card.hot-target')
+      .forEach((el) => el.classList.remove('hot', 'hot-target'));
+    this._cleanup();
+  }
+
+  _snapBackDragged() {
+    if (!this.active) return;
     for (const id of this.active.ids) {
       const cv = this.getCardView(id);
       if (!cv) continue;
+      const base = this._baseTransform(cv);
+      const savedZ = cv.el.dataset.dragBaseZ;
       cv.el.classList.remove('dragging');
       cv.el.style.transition = '';
-      cv.el.style.zIndex = '';
+      cv.el.style.zIndex = savedZ || '';
       delete cv.el.dataset.dragBaseX;
       delete cv.el.dataset.dragBaseY;
+      delete cv.el.dataset.dragBaseZ;
+      cv.el.style.transform = `translate(${base.x}px, ${base.y}px)`;
     }
-    this.boardEl.querySelectorAll('.cosmic-pile-slot.hot').forEach((el) => el.classList.remove('hot'));
-    this._cleanup();
   }
 
   _cleanup() {
