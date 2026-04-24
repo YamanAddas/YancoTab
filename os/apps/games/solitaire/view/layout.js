@@ -16,9 +16,10 @@ export const LAYOUT = {
  * Compute a full layout given container pixel dimensions.
  * Returns sizes + absolute positions for every pile origin.
  */
-export function computeLayout(containerW, containerH) {
+export function computeLayout(containerW, containerH, opts = {}) {
   const pad = Math.max(8, containerW * LAYOUT.paddingRatio);
   const gap = Math.max(6, containerW * LAYOUT.gapRatio);
+  const leftHanded = !!opts.leftHanded;
 
   // Card width: fit 7 columns with 6 gaps in the content width.
   const contentW = containerW - pad * 2;
@@ -32,8 +33,14 @@ export function computeLayout(containerW, containerH) {
   // Column x-positions (used by both top row and tableau).
   const colX = (i) => pad + i * (cardW + gap);
 
-  // Top row: stock=col0, waste=col1, (gap=col2), foundations=col3..6
-  const piles = {
+  // Top row: default right-handed puts stock=col0, waste=col1, foundations=col3..6.
+  // Left-handed flips: foundations=col0..3, stock=col6, waste=col5.
+  const piles = leftHanded ? {
+    stock:      { x: colX(6), y: topY },
+    waste:      { x: colX(5), y: topY },
+    foundation: [0, 1, 2, 3].map((i) => ({ x: colX(i), y: topY })),
+    tableau:    [0, 1, 2, 3, 4, 5, 6].map((i) => ({ x: colX(i), y: tableauY })),
+  } : {
     stock:      { x: colX(0), y: topY },
     waste:      { x: colX(1), y: topY },
     foundation: [0, 1, 2, 3].map((i) => ({ x: colX(3 + i), y: topY })),

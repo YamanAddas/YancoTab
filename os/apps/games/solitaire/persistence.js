@@ -1,8 +1,9 @@
 // persistence.js — Save/load the active game + aggregate stats via kernel.storage.
 // State is serialisable (pure data), so we just JSON-roundtrip it.
 
-const SAVE_KEY  = 'yancotab_solitaire_save';
-const STATS_KEY = 'yancotab_solitaire_stats';
+const SAVE_KEY     = 'yancotab_solitaire_save';
+const STATS_KEY    = 'yancotab_solitaire_stats';
+const SETTINGS_KEY = 'yancotab_solitaire_settings';
 
 export function loadSave(kernel) {
   try { return kernel?.storage?.load(SAVE_KEY) ?? null; } catch { return null; }
@@ -22,6 +23,19 @@ export function loadStats(kernel) {
 }
 export function saveStats(kernel, stats) {
   try { kernel?.storage?.save(STATS_KEY, stats); } catch {}
+}
+
+export function defaultSettings() {
+  return { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false };
+}
+export function loadSettings(kernel) {
+  try {
+    const s = kernel?.storage?.load(SETTINGS_KEY);
+    return { ...defaultSettings(), ...(s || {}) };
+  } catch { return defaultSettings(); }
+}
+export function saveSettings(kernel, settings) {
+  try { kernel?.storage?.save(SETTINGS_KEY, settings); } catch {}
 }
 
 export function defaultStats() {

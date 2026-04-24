@@ -124,6 +124,7 @@ export function buildCosmicCard(card, opts = {}) {
   const outer = el('div', {
     class: `cosmic-card ${card.faceUp ? 'flipped' : ''}`,
     'data-card-id': card.id || `${card.suit}${card.rank}`,
+    'data-suit': card.suit,
   });
   if (opts.width) outer.style.setProperty('--card-w', `${opts.width}px`);
   if (opts.height) outer.style.setProperty('--card-h', `${opts.height}px`);

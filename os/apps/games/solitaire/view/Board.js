@@ -17,6 +17,7 @@ export class Board {
     this.slots = {};                 // pile-key → placeholder el
     this.layout = null;
     this.state = null;
+    this.layoutOpts = { leftHanded: false };
 
     this.root = el('div', { class: 'cosmic-solitaire' });
     this.inner = el('div', { class: 'cosmic-solitaire-inner' });
@@ -60,11 +61,17 @@ export class Board {
     else this._render();
   }
 
+  // Apply layout-affecting settings (e.g. left-handed). Forces re-layout.
+  setLayoutOpts(opts = {}) {
+    this.layoutOpts = { ...this.layoutOpts, ...opts };
+    this._relayout();
+  }
+
   _relayout() {
     const rect = this.inner.getBoundingClientRect();
     const w = rect.width || 800;
     const h = rect.height || 600;
-    this.layout = computeLayout(w, h);
+    this.layout = computeLayout(w, h, this.layoutOpts);
     if (this.state) {
       this.boardEl.style.minHeight = `${minBoardHeight(this.state, this.layout)}px`;
       this._render();

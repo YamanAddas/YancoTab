@@ -29,6 +29,7 @@ import { shake, pulse } from '../../../ui/motion.js';
 import {
   loadSave, saveGame, clearSave,
   loadStats, saveStats, applyGameResult,
+  loadSettings, saveSettings, defaultSettings,
 } from './persistence.js';
 
 const DEFAULT_OPTS = { drawCount: 1, scoring: 'standard' };
@@ -66,6 +67,7 @@ export class SolitaireApp extends App {
     this.board = null;
     this.history = [];   // past states for undo
     this.future = [];    // future states for redo; cleared by any user action
+    this.settings = defaultSettings();
     this.stats = { moves: 0, score: 0, time: 0 };
     this._timerId = null;
     this._startTs = 0;
@@ -89,8 +91,13 @@ export class SolitaireApp extends App {
     this._ensureStylesheet('css/cosmic/card.css');
     this._ensureStylesheet('css/cosmic/solitaire.css');
 
+    // Load user preferences before building the board so the first layout is correct.
+    this.settings = loadSettings(this.kernel);
+
     // Board
     this.board = new Board({ onIntent: (kind, p) => this._onBoardIntent(kind, p) });
+    this.board.setLayoutOpts({ leftHanded: !!this.settings.leftHanded });
+    this._applyVisualSettings();
 
     // Toolbar
     this.toolbar = this._buildToolbar();
@@ -134,13 +141,15 @@ export class SolitaireApp extends App {
     const hintBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Hint');
     const autoBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Auto-Collect');
     const statsBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Stats');
+    const setBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Settings');
     newBtn.addEventListener('click', (e) => this._showNewGameMenu(e.currentTarget));
     undoBtn.addEventListener('click', () => this._undo());
     redoBtn.addEventListener('click', () => this._redo());
     hintBtn.addEventListener('click', () => this._showHint());
     autoBtn.addEventListener('click', () => this._dispatch({ type: 'AUTO_COLLECT' }));
     statsBtn.addEventListener('click', () => this._showStats());
-    right.append(hintBtn, undoBtn, redoBtn, autoBtn, statsBtn, newBtn);
+    setBtn.addEventListener('click', () => this._showSettings());
+    right.append(hintBtn, undoBtn, redoBtn, autoBtn, statsBtn, setBtn, newBtn);
 
     tb.append(left, right);
     return tb;
@@ -155,7 +164,14 @@ export class SolitaireApp extends App {
       }
     }
     const seed = opts.seed ?? Math.floor(Math.random() * 0xffffffff);
-    const initial = dealFromSeed(seed, { ...DEFAULT_OPTS, ...opts });
+    // New deals honor the user's persisted draw / scoring preferences.
+    const engineOpts = {
+      ...DEFAULT_OPTS,
+      drawCount: this.settings.drawCount === 3 ? 3 : 1,
+      scoring: this.settings.scoring || 'standard',
+      ...opts,
+    };
+    const initial = dealFromSeed(seed, engineOpts);
     this.history = [];
     this.future = [];
     this.stats = { moves: 0, score: 0, time: 0 };
@@ -297,6 +313,90 @@ export class SolitaireApp extends App {
     saveStats(this.kernel, next);
   }
 
+  // Apply visual-only settings (4-color suits, left-handed mirror). Does NOT
+  // change engine options — drawCount/scoring take effect on next deal.
+  _applyVisualSettings() {
+    const root = this.board?.root;
+    if (!root) return;
+    root.classList.toggle('four-color', !!this.settings.fourColor);
+    root.classList.toggle('left-handed', !!this.settings.leftHanded);
+  }
+
+  _showSettings() {
+    // Dismiss any open settings modal first.
+    this.root.querySelector('.cosmic-settings-overlay')?.remove();
+
+    const s = this.settings;
+    const radio = (name, value, label, checked) => {
+      const id = `sol-${name}-${value}`;
+      const input = el('input', { type: 'radio', name, id, value });
+      if (checked) input.checked = true;
+      return el('label', { class: 'cosmic-radio', for: id }, [input, el('span', {}, label)]);
+    };
+    const check = (id, label, checked) => {
+      const input = el('input', { type: 'checkbox', id });
+      if (checked) input.checked = true;
+      return el('label', { class: 'cosmic-check', for: id }, [input, el('span', {}, label)]);
+    };
+    const section = (title, ...children) => el('div', { class: 'cosmic-settings-section' }, [
+      el('div', { class: 'cosmic-settings-label' }, title),
+      el('div', { class: 'cosmic-settings-group' }, children),
+    ]);
+
+    const card = el('div', { class: 'cosmic-win-card cosmic-settings-card' }, [
+      el('div', { class: 'cosmic-win-title' }, 'Settings'),
+      section('Draw',
+        radio('draw', '1', 'Draw 1', s.drawCount !== 3),
+        radio('draw', '3', 'Draw 3', s.drawCount === 3),
+      ),
+      section('Scoring',
+        radio('scoring', 'standard', 'Standard', s.scoring === 'standard'),
+        radio('scoring', 'vegas', 'Vegas', s.scoring === 'vegas'),
+        radio('scoring', 'cumulative', 'Cumulative Vegas', s.scoring === 'cumulative'),
+      ),
+      section('Display',
+        check('sol-fourcolor', '4-color suits', !!s.fourColor),
+        check('sol-lefty', 'Left-handed layout', !!s.leftHanded),
+      ),
+      el('div', { class: 'cosmic-settings-hint' },
+        'Draw and scoring apply on the next deal.'),
+      el('div', { class: 'cosmic-settings-actions' }, [
+        el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'cancel' }, 'Cancel'),
+        el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'save' }, 'Save'),
+      ]),
+    ]);
+    const overlay = el('div', { class: 'cosmic-win-overlay cosmic-settings-overlay' }, [card]);
+
+    const close = () => overlay.remove();
+    overlay.querySelector('[data-act="cancel"]').addEventListener('click', close);
+    overlay.querySelector('[data-act="save"]').addEventListener('click', () => {
+      const next = {
+        drawCount: overlay.querySelector('input[name="draw"]:checked')?.value === '3' ? 3 : 1,
+        scoring: overlay.querySelector('input[name="scoring"]:checked')?.value || 'standard',
+        fourColor: overlay.querySelector('#sol-fourcolor').checked,
+        leftHanded: overlay.querySelector('#sol-lefty').checked,
+      };
+      const engineChanged = next.drawCount !== s.drawCount || next.scoring !== s.scoring;
+      this.settings = next;
+      saveSettings(this.kernel, next);
+      // Visual settings apply live.
+      this._applyVisualSettings();
+      if (next.leftHanded !== s.leftHanded) {
+        this.board.setLayoutOpts({ leftHanded: next.leftHanded });
+      }
+      close();
+      if (engineChanged) {
+        // Prompt whether to start a new deal to pick up the rule change.
+        if (confirm('Draw or scoring changed. Start a new deal now?')) {
+          this._newGame();
+        }
+      }
+    });
+
+    this.root.append(overlay);
+    setTimeout(() => overlay.classList.add('visible'), 20);
+  }
+
   _showStats() {
     const stats = loadStats(this.kernel);
     const winPct = stats.played ? Math.round((stats.won / stats.played) * 100) : 0;
@@ -357,11 +457,16 @@ export class SolitaireApp extends App {
     if (!this._confirmAbandon()) return;
     // Bounded: 3 attempts × 8k nodes each ≤ ~600ms on a laptop. If no attempt
     // proves winnable in budget, fall through to the last seed anyway.
+    // Probe using the user's active draw/scoring so winnability matches play.
+    const probeOpts = {
+      drawCount: this.settings.drawCount === 3 ? 3 : 1,
+      scoring: this.settings.scoring || 'standard',
+    };
     const maxAttempts = 3;
     let chosenSeed = Math.floor(Math.random() * 0xffffffff);
     for (let i = 0; i < maxAttempts; i++) {
       const seed = Math.floor(Math.random() * 0xffffffff);
-      const { result } = solve(dealFromSeed(seed, DEFAULT_OPTS), { budget: 8000 });
+      const { result } = solve(dealFromSeed(seed, probeOpts), { budget: 8000 });
       chosenSeed = seed;
       if (result === 'win') break;
     }

@@ -55,6 +55,13 @@
 .cosmic-card-front.red  { color: #c8173a; }
 .cosmic-card-front.black { color: #0a0f1a; }
 
+/* 4-color suits — hearts red, diamonds blue, clubs green, spades ink.
+   Overrides the 2-color scheme above when .four-color is on an ancestor. */
+.four-color .cosmic-card[data-suit="H"] .cosmic-card-front { color: #c8173a; }
+.four-color .cosmic-card[data-suit="D"] .cosmic-card-front { color: #1e73ff; }
+.four-color .cosmic-card[data-suit="C"] .cosmic-card-front { color: #1a9c56; }
+.four-color .cosmic-card[data-suit="S"] .cosmic-card-front { color: #0a0f1a; }
+
 .cosmic-card-corner {
   display: flex;
   flex-direction: column;

@@ -245,3 +245,56 @@
 }
 .cosmic-stat-row span { color: var(--text); }
 .cosmic-stat-row strong { color: var(--accent-bright); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* Settings modal — reuses cosmic-win-overlay/card base */
+.cosmic-settings-card {
+  min-width: 320px;
+  max-width: 380px;
+  text-align: left;
+}
+.cosmic-settings-section {
+  margin-top: 14px;
+}
+.cosmic-settings-label {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(var(--accent-rgb), 0.75);
+  margin-bottom: 6px;
+}
+.cosmic-settings-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cosmic-radio,
+.cosmic-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  font: 500 13px var(--font-sans);
+  color: var(--text-bright);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.cosmic-radio:hover,
+.cosmic-check:hover { background: rgba(var(--accent-rgb), 0.12); }
+.cosmic-radio input,
+.cosmic-check input { accent-color: var(--accent); cursor: pointer; }
+.cosmic-settings-hint {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--text);
+  opacity: 0.8;
+}
+.cosmic-settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 18px;
+}
