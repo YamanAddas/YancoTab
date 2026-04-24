@@ -6,7 +6,8 @@ import { el } from '../../../utils/dom.js';
 import { createStore } from '../shared/store.js';
 import { dealFromSeed } from './engine/deal.js';
 import { isWon } from './engine/state.js';
-import { isStuck } from './engine/hints.js';
+import { isStuck, isAutoFinishReady } from './engine/hints.js';
+import { canPlaceOnFoundation } from './engine/rules.js';
 import { solve } from './engine/solver.js';
 import { dailySeed } from '../shared/rng.js';
 import { Board } from './view/Board.js';
@@ -111,7 +112,9 @@ export class SolitaireApp extends App {
     const undoBtn = mk('Undo');
     const redoBtn = mk('Redo');
     const hintBtn = mk('Hint');
-    const autoBtn = mk('Auto-Collect');
+    const autoBtn = mk('Auto-Finish');
+    this._autoBtn = autoBtn;
+    autoBtn.disabled = true;  // enabled only when board is solved-but-not-finished
     const statsBtn = mk('Stats');
     const setBtn = mk('Settings');
 
@@ -119,7 +122,7 @@ export class SolitaireApp extends App {
     undoBtn.addEventListener('click', () => this._undo());
     redoBtn.addEventListener('click', () => this._redo());
     hintBtn.addEventListener('click', () => this._showHint());
-    autoBtn.addEventListener('click', () => this._dispatch({ type: 'AUTO_COLLECT' }));
+    autoBtn.addEventListener('click', () => this._autoFinish());
     statsBtn.addEventListener('click', () => this._showStats());
     setBtn.addEventListener('click', () => this._showSettings());
     right.append(hintBtn, undoBtn, redoBtn, autoBtn, statsBtn, setBtn, newBtn);
@@ -190,6 +193,7 @@ export class SolitaireApp extends App {
     this.statMoves.innerHTML = `Moves <strong>${state.moves}</strong>`;
     this.statScore.innerHTML = `Score <strong>${state.score}</strong>`;
     this._renderTime();
+    if (this._autoBtn) this._autoBtn.disabled = !isAutoFinishReady(state);
   }
   _renderTime() {
     const s = this.stats.time;
@@ -226,6 +230,34 @@ export class SolitaireApp extends App {
     this.history.push(this.store.getState());
     this.store.dispatch({ type: 'REDO', payload: next });
     sfx.play('tick');
+  }
+
+  // Auto-Finish: when stock+waste are empty and every tableau card is face-up,
+  // step through the remaining foundation sends on a 40ms cadence so the player
+  // sees the cascade instead of an instant jump. Each step goes through the
+  // normal reducer so it's individually undoable and plays its own SFX.
+  _autoFinish() {
+    if (this._autoFinishing) return;
+    const s0 = this.store?.getState();
+    if (!s0 || !isAutoFinishReady(s0)) { sfx.play('fail'); return; }
+    this._autoFinishing = true;
+    const tick = () => {
+      const s = this.store.getState();
+      if (isWon(s)) { this._autoFinishing = false; return; }
+      // Pick any tableau top that fits on a foundation — order doesn't matter
+      // when the board is fully face-up and stock is empty.
+      for (let c = 0; c < 7; c++) {
+        const pile = s.tableau[c];
+        const top = pile[pile.length - 1];
+        if (top && canPlaceOnFoundation(s.foundation, top)) {
+          this._dispatch({ type: 'T_TO_FOUND', col: c });
+          setTimeout(tick, 40);
+          return;
+        }
+      }
+      this._autoFinishing = false;  // nothing to do (shouldn't happen)
+    };
+    tick();
   }
 
   _onStateChange(state, events) {
@@ -380,7 +412,7 @@ export class SolitaireApp extends App {
         case 'u': this._undo(); e.preventDefault(); break;
         case 'r': this._redo(); e.preventDefault(); break;
         case 'h': this._showHint(); e.preventDefault(); break;
-        case 'a': this._dispatch({ type: 'AUTO_COLLECT' }); e.preventDefault(); break;
+        case 'a': this._autoFinish(); e.preventDefault(); break;
         case ' ': this._dispatch({ type: 'DRAW' }); e.preventDefault(); break;
       }
     };

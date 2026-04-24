@@ -86,3 +86,15 @@ export function isStuck(state) {
   if (state.waste.length > 0 && state.scoring !== 'vegas') return false; // can recycle
   return !hasProductiveMove(state);
 }
+
+// Auto-Finish is offered only when the game is effectively solved — stock +
+// waste are empty and every tableau card is face-up. From there, naively
+// shuffling cards up to foundations always wins, so we expose a one-click
+// finisher instead of making the user click 52 cards.
+export function isAutoFinishReady(state) {
+  if (state.stock.length !== 0 || state.waste.length !== 0) return false;
+  for (const col of state.tableau) {
+    for (const c of col) if (!c.faceUp) return false;
+  }
+  return true;
+}
