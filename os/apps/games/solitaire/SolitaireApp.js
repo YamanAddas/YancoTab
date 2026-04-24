@@ -1,68 +1,31 @@
-// SolitaireApp — Cosmic Atelier rewrite (S2).
-// Replaces os/apps/games/SolitaireApp.js. Wires engine + Board + toolbar.
-//
-// S2 scope: render, click-to-move, double-click-to-foundation, new game,
-// undo (single step), stock recycle. No drag, no animations cascade, no
-// winnable-only, no solver — those land in S3/S5.
+// SolitaireApp — Cosmic Atelier. Thin shell: lifecycle + store wiring +
+// toolbar. Board view, modals, intents, and hint glow live in siblings.
 
 import { App } from '../../../core/App.js';
 import { el } from '../../../utils/dom.js';
 import { createStore } from '../shared/store.js';
 import { dealFromSeed } from './engine/deal.js';
-import {
-  drawFromStock,
-  moveWasteToTableau,
-  moveWasteToFoundation,
-  moveTableauToFoundation,
-  moveFoundationToTableau,
-  moveTableauToTableau,
-  autoCollect,
-} from './engine/moves.js';
-import { canPlaceOnFoundation, canPlaceOnTableau, isValidRun } from './engine/rules.js';
-import { SUIT_INDEX, isWon } from './engine/state.js';
-import { isStuck, enumerateMoves } from './engine/hints.js';
+import { isWon } from './engine/state.js';
+import { isStuck } from './engine/hints.js';
 import { solve } from './engine/solver.js';
 import { dailySeed } from '../shared/rng.js';
 import { Board } from './view/Board.js';
 import { sfx } from '../../../ui/sfx.js';
-import { shake, pulse } from '../../../ui/motion.js';
+import { shake } from '../../../ui/motion.js';
 import {
   loadSave, saveGame, clearSave,
   loadStats, saveStats, applyGameResult,
   loadSettings, saveSettings, defaultSettings,
 } from './persistence.js';
+import { reducer, DEFAULT_OPTS, hashString } from './engine/reducer.js';
+import { handleBoardIntent } from './intents.js';
+import { pickBestHint, resolveMoveEls, applyHintGlow, clearHintGlow } from './ui/hintGlow.js';
 import { showSettingsPanel } from './ui/SettingsPanel.js';
 import { showStatsPanel } from './ui/StatsPanel.js';
 import { showWinOverlay } from './ui/WinOverlay.js';
 import { showStuckPrompt } from './ui/StuckPrompt.js';
 import { showNewGameMenu } from './ui/NewGameMenu.js';
 import { playWinCascade } from './ui/winCascade.js';
-
-const DEFAULT_OPTS = { drawCount: 1, scoring: 'standard' };
-
-// Reducer dispatches to move functions. Each action is pure.
-function reducer(state, action) {
-  if (!state) return { state: action.payload, events: [{ type: 'reset' }] };
-
-  const apply = (next, eventType) => {
-    if (!next) return { state, events: [{ type: 'illegal' }] };
-    return { state: next, events: [{ type: eventType }] };
-  };
-
-  switch (action.type) {
-    case 'DRAW':            return apply(drawFromStock(state), 'draw');
-    case 'WASTE_TO_FOUND':  return apply(moveWasteToFoundation(state), 'moveFound');
-    case 'WASTE_TO_TABLEAU':return apply(moveWasteToTableau(state, action.col), 'moveTableau');
-    case 'T_TO_FOUND':      return apply(moveTableauToFoundation(state, action.col), 'moveFound');
-    case 'F_TO_T':          return apply(moveFoundationToTableau(state, action.suit, action.col), 'moveTableau');
-    case 'T_TO_T':          return apply(moveTableauToTableau(state, action.from, action.idx, action.to), 'moveTableau');
-    case 'AUTO_COLLECT':    return { state: autoCollect(state), events: [{ type: 'moveFound' }] };
-    case 'RESET':           return { state: action.payload, events: [{ type: 'reset' }] };
-    case 'UNDO':            return { state: action.payload, events: [{ type: 'undo' }] };
-    case 'REDO':            return { state: action.payload, events: [{ type: 'redo' }] };
-    default:                return { state, events: [] };
-  }
-}
 
 export class SolitaireApp extends App {
   constructor(kernel, pid) {
@@ -91,36 +54,38 @@ export class SolitaireApp extends App {
 
   render() {
     this.root.innerHTML = '';
-
-    // Ensure CSS included. If Settings loads global solitaire.css elsewhere this
-    // is redundant; the browser dedupes.
     this._ensureStylesheet('css/cosmic/card.css');
     this._ensureStylesheet('css/cosmic/solitaire.css');
 
-    // Load user preferences before building the board so the first layout is correct.
     this.settings = loadSettings(this.kernel);
 
-    // Board
-    this.board = new Board({ onIntent: (kind, p) => this._onBoardIntent(kind, p) });
+    this.board = new Board({
+      onIntent: (kind, p) => handleBoardIntent(this._intentCtx(), kind, p),
+    });
     this.board.setLayoutOpts({ leftHanded: !!this.settings.leftHanded });
     this._applyVisualSettings();
 
-    // Toolbar
     this.toolbar = this._buildToolbar();
 
-    // Layout
-    const frame = el('div', { class: 'cosmic-solitaire-frame', style: 'position:relative; flex:1 1 auto; min-height:0;' });
+    const frame = el('div', {
+      class: 'cosmic-solitaire-frame',
+      style: 'position:relative; flex:1 1 auto; min-height:0;',
+    });
     this.board.mount(frame);
     frame.append(this.toolbar);
     this.root.append(frame);
 
-    // Resume if a save exists, otherwise new deal.
     const saved = loadSave(this.kernel);
-    if (saved && saved.state && !isWon(saved.state)) {
-      this._resumeGame(saved);
-    } else {
-      this._newGame();
-    }
+    if (saved && saved.state && !isWon(saved.state)) this._resumeGame(saved);
+    else this._newGame();
+  }
+
+  _intentCtx() {
+    return {
+      getState: () => this.store.getState(),
+      dispatch: (a) => this._dispatch(a),
+      flashIllegal: (pile, idx) => this._flashIllegal(pile, idx),
+    };
   }
 
   _ensureStylesheet(href) {
@@ -141,13 +106,15 @@ export class SolitaireApp extends App {
     this.statTime  = el('span', { class: 'cosmic-stat' });
     left.append(this.statMoves, this.statScore, this.statTime);
 
-    const newBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'New Game ▾');
-    const undoBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Undo');
-    const redoBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Redo');
-    const hintBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Hint');
-    const autoBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Auto-Collect');
-    const statsBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Stats');
-    const setBtn = el('button', { class: 'cosmic-btn', type: 'button' }, 'Settings');
+    const mk = (label) => el('button', { class: 'cosmic-btn', type: 'button' }, label);
+    const newBtn = mk('New Game ▾');
+    const undoBtn = mk('Undo');
+    const redoBtn = mk('Redo');
+    const hintBtn = mk('Hint');
+    const autoBtn = mk('Auto-Collect');
+    const statsBtn = mk('Stats');
+    const setBtn = mk('Settings');
+
     newBtn.addEventListener('click', (e) => this._showNewGameMenu(e.currentTarget));
     undoBtn.addEventListener('click', () => this._undo());
     redoBtn.addEventListener('click', () => this._redo());
@@ -162,15 +129,11 @@ export class SolitaireApp extends App {
   }
 
   _newGame(opts = {}) {
-    // Record an abandonment if leaving an unfinished game mid-flight.
     if (this.store) {
       const cur = this.store.getState();
-      if (cur && !isWon(cur) && cur.moves > 0) {
-        this._recordResult({ won: false, state: cur });
-      }
+      if (cur && !isWon(cur) && cur.moves > 0) this._recordResult({ won: false, state: cur });
     }
     const seed = opts.seed ?? Math.floor(Math.random() * 0xffffffff);
-    // New deals honor the user's persisted draw / scoring preferences.
     const engineOpts = {
       ...DEFAULT_OPTS,
       drawCount: this.settings.drawCount === 3 ? 3 : 1,
@@ -200,7 +163,6 @@ export class SolitaireApp extends App {
     this.store.subscribe((state, events) => this._onStateChange(state, events));
     this.board.setState(s);
     this._updateStats(s);
-    // Resume the clock from saved elapsed seconds.
     this._startTs = Date.now() - (this.stats.time * 1000);
     if (this._timerId) clearInterval(this._timerId);
     this._timerId = setInterval(() => {
@@ -210,9 +172,7 @@ export class SolitaireApp extends App {
     sfx.play('tick');
   }
 
-  _confirmAndNewGame() {
-    if (this._confirmAbandon()) this._newGame();
-  }
+  _confirmAndNewGame() { if (this._confirmAbandon()) this._newGame(); }
 
   _startTimer() {
     if (this._timerId) clearInterval(this._timerId);
@@ -239,15 +199,11 @@ export class SolitaireApp extends App {
   }
 
   _dispatch(action) {
-    if (!this.store) return;
+    if (!this.store) return false;
     const prev = this.store.getState();
     const out = this.store.dispatch(action);
     const illegal = out.events?.some((e) => e.type === 'illegal');
-    if (illegal) {
-      sfx.play('fail');
-      return false;
-    }
-    // Push prev to history only if state actually changed.
+    if (illegal) { sfx.play('fail'); return false; }
     // Any new user action clears the redo future — symmetric with most editors.
     if (out.state !== prev) {
       this.history.push(prev);
@@ -259,8 +215,7 @@ export class SolitaireApp extends App {
   _undo() {
     if (this.history.length === 0) { sfx.play('fail'); return; }
     const prev = this.history.pop();
-    const cur = this.store.getState();
-    this.future.push(cur);
+    this.future.push(this.store.getState());
     this.store.dispatch({ type: 'UNDO', payload: prev });
     sfx.play('tick');
   }
@@ -268,8 +223,7 @@ export class SolitaireApp extends App {
   _redo() {
     if (this.future.length === 0) { sfx.play('fail'); return; }
     const next = this.future.pop();
-    const cur = this.store.getState();
-    this.history.push(cur);
+    this.history.push(this.store.getState());
     this.store.dispatch({ type: 'REDO', payload: next });
     sfx.play('tick');
   }
@@ -277,7 +231,6 @@ export class SolitaireApp extends App {
   _onStateChange(state, events) {
     this.board.setState(state);
     this._updateStats(state);
-    // Sounds per event
     if (events?.length) {
       const kinds = new Set(events.map((e) => e.type));
       if (kinds.has('moveFound')) sfx.play('chime');
@@ -292,35 +245,38 @@ export class SolitaireApp extends App {
       this._recordResult({ won: true, state });
       clearSave(this.kernel);
       playWinCascade(this.board?.boardEl);
-      this._showWin();
+      showWinOverlay(this.root, {
+        score: this.stats.score,
+        moves: this.stats.moves,
+        time: this.statTime.textContent.replace('Time ', ''),
+      }, () => this._newGame());
       return;
     }
-    // Stuck detection: only offer prompt when truly no moves remain.
     if (state.moves > 0 && isStuck(state) && !this._stuckPromptOpen) {
-      this._showStuckPrompt();
+      this._stuckPromptOpen = true;
+      showStuckPrompt(this.root, {
+        onUndo: () => this._undo(),
+        onNew: () => this._newGame(),
+        onClose: () => { this._stuckPromptOpen = false; },
+      });
     }
   }
 
   _persist(state) {
     if (!this.kernel) return;
-    const payload = { state, history: this.history, timeSec: this.stats.time };
-    saveGame(this.kernel, payload);
+    saveGame(this.kernel, { state, history: this.history, timeSec: this.stats.time });
   }
 
   _recordResult({ won, state }) {
     if (!this.kernel) return;
     const stats = loadStats(this.kernel);
     const next = applyGameResult(stats, {
-      won,
-      timeSec: this.stats.time,
-      moves: state.moves,
-      score: state.score,
+      won, timeSec: this.stats.time, moves: state.moves, score: state.score,
     });
     saveStats(this.kernel, next);
   }
 
-  // Apply visual-only settings (4-color suits, left-handed mirror). Does NOT
-  // change engine options — drawCount/scoring take effect on next deal.
+  // Visual-only settings (4-color, lefty). Engine options take effect on next deal.
   _applyVisualSettings() {
     const root = this.board?.root;
     if (!root) return;
@@ -344,9 +300,7 @@ export class SolitaireApp extends App {
     });
   }
 
-  _showStats() {
-    showStatsPanel(this.root, loadStats(this.kernel));
-  }
+  _showStats() { showStatsPanel(this.root, loadStats(this.kernel)); }
 
   _showNewGameMenu(anchor) {
     showNewGameMenu(this.root, anchor, [
@@ -359,16 +313,14 @@ export class SolitaireApp extends App {
 
   _startWinnable() {
     if (!this._confirmAbandon()) return;
-    // Bounded: 3 attempts × 8k nodes each ≤ ~600ms on a laptop. If no attempt
-    // proves winnable in budget, fall through to the last seed anyway.
-    // Probe using the user's active draw/scoring so winnability matches play.
+    // Bounded: 3 attempts × 8k nodes each ≤ ~600ms on a laptop. Falls through
+    // to the last seed even if no attempt proves winnable in budget.
     const probeOpts = {
       drawCount: this.settings.drawCount === 3 ? 3 : 1,
       scoring: this.settings.scoring || 'standard',
     };
-    const maxAttempts = 3;
     let chosenSeed = Math.floor(Math.random() * 0xffffffff);
-    for (let i = 0; i < maxAttempts; i++) {
+    for (let i = 0; i < 3; i++) {
       const seed = Math.floor(Math.random() * 0xffffffff);
       const { result } = solve(dealFromSeed(seed, probeOpts), { budget: 8000 });
       chosenSeed = seed;
@@ -378,16 +330,13 @@ export class SolitaireApp extends App {
   }
 
   _startDailyDeal() {
-    const seed = dailySeed();
-    if (this._confirmAbandon()) this._newGame({ seed });
+    if (this._confirmAbandon()) this._newGame({ seed: dailySeed() });
   }
 
   _startCustomSeed() {
     const raw = prompt('Enter a seed (number or text):');
     if (raw == null) return;
-    const seed = /^\d+$/.test(raw.trim())
-      ? +raw.trim()
-      : hashString(raw);
+    const seed = /^\d+$/.test(raw.trim()) ? +raw.trim() : hashString(raw);
     if (this._confirmAbandon()) this._newGame({ seed });
   }
 
@@ -399,217 +348,29 @@ export class SolitaireApp extends App {
     return true;
   }
 
-  _showStuckPrompt() {
-    this._stuckPromptOpen = true;
-    showStuckPrompt(this.root, {
-      onUndo: () => this._undo(),
-      onNew: () => this._newGame(),
-      onClose: () => { this._stuckPromptOpen = false; },
-    });
-  }
-
-  _showWin() {
-    showWinOverlay(this.root, {
-      score: this.stats.score,
-      moves: this.stats.moves,
-      time: this.statTime.textContent.replace('Time ', ''),
-    }, () => this._newGame());
-  }
-
-  // ── Intent handler — Board click/dblclick → engine moves ──────
-  _onBoardIntent(kind, payload) {
-    if (kind === 'dragDrop') { this._handleDrop(payload.from, payload.to); return; }
-    const { pile, index } = payload || {};
-    const s = this.store.getState();
-    if (kind === 'stockClick') {
-      this._dispatch({ type: 'DRAW' });
-      return;
-    }
-    if (kind === 'cardClick') {
-      if (pile === 'stock') { this._dispatch({ type: 'DRAW' }); return; }
-
-      // Single click on tableau top or waste → try foundation first, else no-op
-      // (full drag-drop lands in S3). We DO auto-send to foundation when legal.
-      if (pile === 'waste') {
-        const card = s.waste[s.waste.length - 1];
-        if (card && canPlaceOnFoundation(s.foundation, card)) {
-          this._dispatch({ type: 'WASTE_TO_FOUND' });
-          return;
-        }
-      }
-      if (pile.startsWith('t')) {
-        const col = +pile.slice(1);
-        const tp = s.tableau[col];
-        // Only act on the top card for now; middle-of-pile requires drag (S3).
-        if (index !== tp.length - 1) { this._flashIllegal(pile, index); return; }
-        const card = tp[tp.length - 1];
-        if (card && canPlaceOnFoundation(s.foundation, card)) {
-          this._dispatch({ type: 'T_TO_FOUND', col });
-          return;
-        }
-      }
-      if (pile.startsWith('f')) {
-        // Click on a foundation top — highlight; no default move yet.
-        return;
-      }
-      this._flashIllegal(pile, index);
-      return;
-    }
-    if (kind === 'cardDblClick') {
-      // Double-click: auto-collect as much as possible from the clicked pile's top.
-      if (pile === 'waste') { this._tryAuto('waste'); return; }
-      if (pile.startsWith('t')) { this._tryAuto(pile); return; }
-    }
-  }
-
-  // Translate a drag drop (from pile+idx, to pile) into an engine action.
-  _handleDrop(from, to) {
-    if (!from || !to || from.pile === to) return;
-    const s = this.store.getState();
-
-    // Waste → Foundation / Tableau
-    if (from.pile === 'waste') {
-      if (to.startsWith('f')) { this._dispatch({ type: 'WASTE_TO_FOUND' }) || this._flashIllegal('waste'); return; }
-      if (to.startsWith('t')) {
-        const col = +to.slice(1);
-        if (!this._dispatch({ type: 'WASTE_TO_TABLEAU', col })) this._flashIllegal('waste');
-        return;
-      }
-    }
-
-    // Tableau → Foundation / Tableau
-    if (from.pile.startsWith('t')) {
-      const fromCol = +from.pile.slice(1);
-      const fromIdx = from.idx;
-      const tp = s.tableau[fromCol];
-      const isTop = fromIdx === tp.length - 1;
-
-      if (to.startsWith('f')) {
-        if (!isTop) { this._flashIllegal(from.pile, fromIdx); return; }
-        if (!this._dispatch({ type: 'T_TO_FOUND', col: fromCol })) this._flashIllegal(from.pile, fromIdx);
-        return;
-      }
-      if (to.startsWith('t')) {
-        const toCol = +to.slice(1);
-        if (!this._dispatch({ type: 'T_TO_T', from: fromCol, idx: fromIdx, to: toCol })) {
-          this._flashIllegal(from.pile, fromIdx);
-        }
-        return;
-      }
-    }
-
-    // Foundation → Tableau
-    if (from.pile.startsWith('f') && to.startsWith('t')) {
-      const sIdx = +from.pile.slice(1);
-      const suit = ['H', 'D', 'C', 'S'][sIdx];
-      const col = +to.slice(1);
-      if (!this._dispatch({ type: 'F_TO_T', suit, col })) this._flashIllegal(from.pile);
-      return;
-    }
-
-    this._flashIllegal(from.pile, from.idx);
-  }
-
-  // Attempt to send one legal top card to foundation; if it worked, try again
-  // (handy for "rapid ascend" via double-click).
-  _tryAuto(pileKey) {
-    const s = this.store.getState();
-    if (pileKey === 'waste') {
-      const c = s.waste[s.waste.length - 1];
-      if (c && canPlaceOnFoundation(s.foundation, c)) {
-        this._dispatch({ type: 'WASTE_TO_FOUND' });
-      } else { this._flashIllegal(pileKey); }
-      return;
-    }
-    if (pileKey.startsWith('t')) {
-      const col = +pileKey.slice(1);
-      const tp = s.tableau[col];
-      const c = tp[tp.length - 1];
-      if (c && canPlaceOnFoundation(s.foundation, c)) {
-        this._dispatch({ type: 'T_TO_FOUND', col });
-      } else { this._flashIllegal(pileKey); }
-    }
-  }
-
-  // Hint: show the highest-ranked productive move by pulsing its source and
-  // destination. Falls back to DRAW only if nothing else is available.
   _showHint() {
     const s = this.store?.getState();
     if (!s) return;
-    const moves = enumerateMoves(s);
-    // Prefer a non-DRAW productive move; fall back to DRAW if that's all there is.
-    const move = moves.find((m) => m.type !== 'DRAW') || moves[0];
+    const move = pickBestHint(s);
     if (!move) { sfx.play('fail'); return; }
-
-    const pick = (pile, idx) => {
-      if (pile === 'stock') {
-        return this.board.boardEl.querySelector('.cosmic-pile-slot[data-pile="stock"]')
-          || this.board.boardEl.querySelector('.cosmic-card[data-pile="stock"]');
-      }
-      // Prefer a specific card-index when given, else top card, else slot.
-      if (idx != null) {
-        const c = this.board.boardEl.querySelector(
-          `.cosmic-card[data-pile="${pile}"][data-index="${idx}"]`);
-        if (c) return c;
-      }
-      const cards = this.board.boardEl.querySelectorAll(`.cosmic-card[data-pile="${pile}"]`);
-      if (cards.length) return cards[cards.length - 1];
-      return this.board.boardEl.querySelector(`.cosmic-pile-slot[data-pile="${pile}"]`);
-    };
-
-    let srcEl = null, dstEl = null;
-    switch (move.type) {
-      case 'DRAW':
-        srcEl = pick('stock');
-        break;
-      case 'WASTE_TO_FOUND': {
-        const c = s.waste[s.waste.length - 1];
-        srcEl = pick('waste');
-        dstEl = pick(`f${SUIT_INDEX[c.suit]}`);
-        break;
-      }
-      case 'WASTE_TO_TABLEAU':
-        srcEl = pick('waste');
-        dstEl = pick(`t${move.col}`);
-        break;
-      case 'T_TO_FOUND': {
-        const pile = s.tableau[move.col];
-        const top = pile[pile.length - 1];
-        srcEl = pick(`t${move.col}`, pile.length - 1);
-        dstEl = pick(`f${SUIT_INDEX[top.suit]}`);
-        break;
-      }
-      case 'T_TO_T':
-        srcEl = pick(`t${move.from}`, move.idx);
-        dstEl = pick(`t${move.to}`);
-        break;
-    }
-
-    this._clearHintGlow();
-    if (srcEl) srcEl.classList.add('cosmic-hint-src');
-    if (dstEl && dstEl !== srcEl) dstEl.classList.add('cosmic-hint-dst');
+    const { srcEl, dstEl } = resolveMoveEls(this.board.boardEl, s, move);
+    applyHintGlow(this.board.boardEl, srcEl, dstEl);
     sfx.play('tick');
     clearTimeout(this._hintTimer);
-    this._hintTimer = setTimeout(() => this._clearHintGlow(), 1200);
-  }
-
-  _clearHintGlow() {
-    if (!this.board?.boardEl) return;
-    this.board.boardEl.querySelectorAll('.cosmic-hint-src, .cosmic-hint-dst')
-      .forEach((e) => e.classList.remove('cosmic-hint-src', 'cosmic-hint-dst'));
+    this._hintTimer = setTimeout(() => clearHintGlow(this.board.boardEl), 1200);
   }
 
   _flashIllegal(pile, idx) {
     sfx.play('fail');
-    const el = this.board.boardEl.querySelector(`.cosmic-card[data-pile="${pile}"]${idx != null ? `[data-index="${idx}"]` : ''}`);
-    if (el) shake(el);
+    const sel = `.cosmic-card[data-pile="${pile}"]${idx != null ? `[data-index="${idx}"]` : ''}`;
+    const target = this.board.boardEl.querySelector(sel);
+    if (target) shake(target);
   }
 
   _bindKeyboard() {
     this._onKey = (e) => {
       if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
       if (e.isComposing) return;
-      // Only handle if our window is in focus (root is in the DOM)
       if (!this.root?.isConnected) return;
       switch (e.key.toLowerCase()) {
         case 'n': this._confirmAndNewGame(); e.preventDefault(); break;
@@ -629,13 +390,4 @@ export class SolitaireApp extends App {
     try { this.board?.destroy(); } catch {}
     super.destroy();
   }
-}
-
-function hashString(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
 }
