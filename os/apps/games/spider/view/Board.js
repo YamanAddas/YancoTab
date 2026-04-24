@@ -39,16 +39,39 @@ export class Board {
     this._ro.observe(this.inner);
 
     this._onClick = this._onClick.bind(this);
-    this._onDblClick = this._onDblClick.bind(this);
     this.boardEl.addEventListener('click', this._onClick);
-    this.boardEl.addEventListener('dblclick', this._onDblClick);
+    // NOTE: Spider intentionally has no double-click auto-route. Completed K→A
+    // same-suit runs move to the foundation automatically — the player never
+    // "sends" a card anywhere. Tap-to-move handles single clicks only.
 
     this.drag = new DragController({
       boardEl: this.boardEl,
       getState: () => this.state,
       getCardView: (id) => this.cards.get(id),
       getLayout: () => this.layout,
-      onDrop: ({ from, to }) => this.onIntent('dragDrop', { from, to }),
+      onDrop: ({ from, to }) => {
+        // A real drag just completed. Swallow the browser's synthesized click
+        // that will fire right after pointerup — otherwise Board._onClick
+        // would re-trigger tap-to-move on the drop target.
+        this._suppressNextClick();
+        this.onIntent('dragDrop', { from, to });
+      },
+    });
+  }
+
+  // Once-per-drag click eater. Captures the very next click anywhere in the
+  // document and prevents default + stopPropagation, then releases.
+  _suppressNextClick() {
+    const handler = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      window.removeEventListener('click', handler, true);
+    };
+    window.addEventListener('click', handler, true);
+    // Safety: if for some reason no click follows (e.g. pointercancel path),
+    // release the capture listener after one frame so future clicks aren't eaten.
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => window.removeEventListener('click', handler, true));
     });
   }
 
@@ -178,6 +201,7 @@ export class Board {
       const pileEl = document.createElement('div');
       pileEl.className = 'cosmic-card cosmic-spider-stock-pile face-down';
       pileEl.dataset.pile = 'stock';
+      pileEl.dataset.stockIdx = String(i);
       pileEl.style.position = 'absolute';
       pileEl.style.left = '0';
       pileEl.style.top = '0';
@@ -185,11 +209,19 @@ export class Board {
       pileEl.style.width = `${L.cardW}px`;
       pileEl.style.height = `${L.cardH}px`;
       pileEl.style.zIndex = String(800 + i);
-      // Use the same card-back gradient by reusing the existing class set — a
-      // minimal back-only card element.
-      pileEl.innerHTML = '<div class="cosmic-card-inner"><div class="cosmic-card-back"></div></div>';
+      // Minimal back-only card element, reusing the same back gradient classes.
+      pileEl.innerHTML = '<div class="cosmic-card-inner"><div class="cosmic-card-face cosmic-card-back"></div></div>';
       this.boardEl.append(pileEl);
       this.stockPileEls.push(pileEl);
+    }
+
+    // Count badge on the frontmost (highest-zIndex) back — shows deals left.
+    if (dealsRemaining > 0) {
+      const frontmost = this.stockPileEls[dealsRemaining - 1];
+      const badge = document.createElement('div');
+      badge.className = 'cosmic-spider-stock-count';
+      badge.textContent = String(dealsRemaining);
+      frontmost.append(badge);
     }
 
     // Show/hide stock empty-slot indicator: visible only when no deals remain.
@@ -279,14 +311,6 @@ export class Board {
     if (slotEl?.dataset.pile === 'stock') this.onIntent('stockClick', {});
   }
 
-  _onDblClick(e) {
-    const cardEl = this._findCardEl(e.target);
-    if (!cardEl) return;
-    const pile = cardEl.dataset.pile;
-    const idx = +cardEl.dataset.index;
-    this.onIntent('cardDblClick', { pile, index: idx });
-  }
-
   // ── Lifecycle ─────────────────────────────────────────────────
 
   mount(parent) { parent.append(this.root); }
@@ -295,7 +319,6 @@ export class Board {
     try { this._ro.disconnect(); } catch {}
     try { this.drag?.destroy(); } catch {}
     this.boardEl.removeEventListener('click', this._onClick);
-    this.boardEl.removeEventListener('dblclick', this._onDblClick);
     for (const el of this.stockPileEls) el.remove();
     this.stockPileEls = [];
     this.cards.clear();

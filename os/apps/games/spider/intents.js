@@ -1,9 +1,10 @@
-// intents.js — translate Board click/dblclick/drag intents into engine actions.
+// intents.js — translate Board click/drag intents into engine actions.
 // Spider has only two engine actions: T_TO_T (move run) and DEAL (new stock row).
-// Tap-to-move: single-clicking a tableau card tries to auto-route the run it
-// anchors to the best legal destination (hint-ranked). Double-click is reserved
-// for future "send this card to foundation via shortest path" behaviour; for
-// now it's an alias of single click.
+// Single click on a tableau card runs tap-to-move (auto-route to the best
+// legal destination by hint ranking). Drag-and-drop lets the player pick the
+// destination themselves. Double-click is intentionally NOT wired — Spider
+// doesn't auto-send cards anywhere; completed K→A same-suit runs go to
+// foundation automatically via the engine, not via user gesture.
 
 import { canPlaceOnTableau, isValidRun } from './engine/rules.js';
 
@@ -12,7 +13,7 @@ export function handleBoardIntent(ctx, kind, payload) {
   if (kind === 'stockClick') { ctx.dispatch({ type: 'DEAL' }); return; }
 
   const { pile, index } = payload || {};
-  if (kind === 'cardClick' || kind === 'cardDblClick') {
+  if (kind === 'cardClick') {
     if (pile === 'stock') { ctx.dispatch({ type: 'DEAL' }); return; }
     if (pile?.startsWith('t')) {
       tryTapToMove(ctx, +pile.slice(1), index);

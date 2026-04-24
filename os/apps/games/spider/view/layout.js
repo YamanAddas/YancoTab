@@ -16,8 +16,8 @@ export const LAYOUT = {
   topRowGap: 0.06,           // vertical gap below the top row
   fanOpenRatio: 0.24,        // face-up tableau card offset (of card height)
   fanClosedRatio: 0.10,      // face-down cards tuck in tighter
-  foundationOverlapX: 0.22,  // foundation trophies overlap horizontally
-  stockOverlapX: 0.12,       // stock deal-piles overlap horizontally
+  foundationOverlapX: 0.58,  // foundation trophies show ~42% of each tile
+  stockOverlapX: 0.55,       // stock deal-piles show ~45% of each back
 };
 
 /**
