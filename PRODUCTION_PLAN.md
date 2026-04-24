@@ -1,7 +1,7 @@
 # YancoTab — Production Plan
 
 > Master plan for taking YancoTab from v2.1.0 to Chrome Web Store and beyond.
-> Last updated: 2026-04-12
+> Last updated: 2026-04-24
 
 ---
 
@@ -16,14 +16,15 @@
 7. [Phase 2 — Delight (v2.3.0)](#phase-2--delight-v230)
 8. [Phase 3 — Store Launch (v2.4.0)](#phase-3--store-launch-v240)
 9. [Phase 4 — Grow (v2.5.0+)](#phase-4--grow-v250)
-10. [Visual Design System](#visual-design-system)
-11. [Icon System](#icon-system)
-12. [Widget System Specification](#widget-system-specification)
-13. [Onboarding Flow](#onboarding-flow)
-14. [Asset Production Guide](#asset-production-guide)
-15. [Architecture Invariants](#architecture-invariants)
-16. [Testing Strategy](#testing-strategy)
-17. [Store Submission Checklist](#store-submission-checklist)
+10. [Solitaire Remake — "Cosmic Klondike"](#solitaire-remake--cosmic-klondike)
+11. [Visual Design System](#visual-design-system)
+12. [Icon System](#icon-system)
+13. [Widget System Specification](#widget-system-specification)
+14. [Onboarding Flow](#onboarding-flow)
+15. [Asset Production Guide](#asset-production-guide)
+16. [Architecture Invariants](#architecture-invariants)
+17. [Testing Strategy](#testing-strategy)
+18. [Store Submission Checklist](#store-submission-checklist)
 
 ---
 
@@ -711,6 +712,337 @@ Via kernel event bus:
   ]
 }
 ```
+
+---
+
+## Solitaire Remake — "Cosmic Klondike"
+
+> Self-contained plan for replacing the current broken Klondike implementation with a premium, Yanco-themed game. This is the next entry in the neon-canvas game rewrites that started with Snake, Minesweeper, Memory, and Tic-Tac-Toe.
+
+### Why rewrite
+
+The current [os/apps/games/SolitaireApp.js](os/apps/games/SolitaireApp.js) is not playable. The audit surfaced structural and functional defects:
+
+| # | Defect | Location | Impact |
+|---|--------|----------|--------|
+| 1 | `isPortrait` referenced on line 184 but declared on line 197 | [SolitaireApp.js:184](os/apps/games/SolitaireApp.js:184) | `ReferenceError` on first `fitLayout()` — the reason the game doesn't render |
+| 2 | No win detection | [SolitaireApp.js:622](os/apps/games/SolitaireApp.js:622) | `// Check Win condition?` comment left behind |
+| 3 | Game state mutates DOM via `Card.element` | [Card.js](os/apps/games/cardEngine/Card.js) | No snapshotting, no headless tests, no AI hints |
+| 4 | Unseeded Fisher-Yates | [Deck.js:20](os/apps/games/cardEngine/Deck.js:20) | No replay, no daily challenge, no winnable-only |
+| 5 | Global `document.onmousemove` / `ontouchmove` drag | [SolitaireApp.js:532](os/apps/games/SolitaireApp.js:532) | Collides with other apps, breaks pen/pointer input |
+| 6 | `showHint()` finds *any* legal move, not the *best* | [SolitaireApp.js:748](os/apps/games/SolitaireApp.js:748) | Often suggests pointless waste→tableau moves |
+| 7 | No tap-to-move | — | Mobile play requires dragging tiny cards |
+| 8 | `history.maxHistory = 200` | [SolitaireApp.js:29](os/apps/games/SolitaireApp.js:29) | Undo silently truncates on long games |
+| 9 | No draw-3, no scoring, no timer, no stats | — | Missing all "premium" features |
+| 10 | No auto-complete when board is solved-but-not-finished | — | Player must manually click 52 cards |
+| 11 | No stuck detection | — | Player can spin forever when no moves remain |
+| 12 | No persistence | — | Closing the window loses the game |
+| 13 | Card back uses `#1a2a6c/#b21f1f/#fdbb2d` (red/gold) | [solitaire.css:575](css/solitaire.css:575) | Off-brand — clashes with Yanco teal |
+| 14 | Blue `#3ec8ff` accent | [solitaire.css:3](css/solitaire.css:3) | Ignores `--accent` token (teal `#00e5c1`) |
+| 15 | No sound, haptics, or win celebration | — | Feels inert |
+
+The rewrite replaces the app wholesale and leaves the Spider variant as a follow-up (Spider shares the engine so it becomes a thin view on top).
+
+### Vision
+
+**Cosmic Klondike** is a premium web-native Klondike Solitaire that feels at home inside YancoTab's cosmic-glass OS. It plays as well as Microsoft Solitaire Collection on desktop and as fluidly as MobilityWare on mobile, while looking like it was always part of YancoTab — not a skinned copy of a Windows game.
+
+**Non-goals:** 3D physics, monetization, online leaderboards, accounts, ads, analytics.
+
+### Feature scope
+
+#### Modes
+- **Draw-1** (default) and **Draw-3** (toggle in settings)
+- **Scoring:** Standard Klondike, Vegas, Cumulative Vegas (bank carries across hands)
+- **Timed** vs **Relaxed** (relaxed disables time-based score penalty)
+- **Winnable-only** toggle — deals that fail the solver are re-seeded
+- **Daily Deal** — seed = UTC `YYYYMMDD`; one seed per calendar day; tracked separately in stats
+- **Replay this deal** — re-uses the current seed
+- **Custom seed** — paste/share a seed string
+
+#### Core mechanics (rules)
+- Tableau: descending rank, alternating color. King to empty column.
+- Foundation: ascending by suit, Ace to empty. Four foundations (one per suit).
+- Multi-card moves: a run already in alternating-color descending order may move as a unit.
+- Stock → Waste: `drawCount` cards per click. Recycle waste when stock empty; enforce pass limit in Vegas Draw-3 (1 pass) and Vegas Draw-1 (3 passes).
+- **Thoughtful auto-move to foundation:** only auto-sends if card rank ≤ min(opposite-color foundation rank) + 2 (prevents stranding low cards).
+- **Auto-finish** button (not automatic): shown when stock+waste are empty and all tableau cards face-up.
+- **Win detection:** all 52 cards on foundations.
+- **Stuck detection:** enumerate all legal productive moves; if none and stock/waste exhausted, offer "Undo" or "New Deal".
+
+#### QoL / UX
+- Unlimited undo and redo (redo cleared on user action)
+- Hint engine with move ranking (uncovers face-down > empties column > foundation progress > frees buried low card > waste play)
+- **Smart drag:** auto-selects the valid run under the grabbed card
+- **Tap-to-move:** tap selects + glows legal targets, tap target to send; second tap on same card sends to best legal target (foundation > deepest uncover)
+- **Drag disambiguation:** 6px movement *or* 150ms hold = drag; otherwise tap
+- **Snap-back** spring animation on invalid drop
+- **Save-and-restore:** full state persists through `kernel.storage` on every move; game survives browser close
+- **Stats panel:** games played, wins, win %, current streak, longest streak, fastest win, fewest moves, best score — per mode
+- **Left-handed mode:** stock/waste mirror to the right side of the top row
+- **Card-back gallery:** 4 backs (Nebula, Hex Lattice, Warp Grid, Aurora) matching Yanco aesthetic
+- **Suit style:** 2-color classic (red/black) or 4-color colorblind-safe (hearts red, diamonds blue, clubs green, spades ink)
+- **Large-card** and **high-contrast** accessibility toggles (carry over from today's settings)
+- **Sound:** deal, flip, place, invalid, shuffle, win — short (<200ms), pitch-randomized ±50¢; master mute + SFX mute
+- **Haptics:** `navigator.vibrate([8])` on pick-up, `[12]` on place, `[10,40,10]` on invalid
+- **Win celebration:** card cascade (Win 3.x style) fallback to confetti burst; disabled on `prefers-reduced-motion`
+- **Pause:** blurs the board and freezes timer; prevents peeking in timed mode
+- **Keyboard shortcuts:** `N` new deal, `U` undo, `R` redo, `Space` draw, `H` hint, `A` auto-finish, `Esc` pause/menu
+
+### Architecture
+
+#### Module layout
+
+```
+os/apps/games/
+├── SolitaireApp.js                 # thin App shell: lifecycle + DOM mount
+├── solitaire/
+│   ├── engine/
+│   │   ├── state.js                # GameState shape + factory
+│   │   ├── rules.js                # pure isLegal, canAutoFoundation, isWin, isStuck
+│   │   ├── moves.js                # Move types + applyMove (pure)
+│   │   ├── deal.js                 # seeded deal from rng
+│   │   ├── scoring.js              # Standard | Vegas | CumulativeVegas strategies
+│   │   ├── hints.js                # ranked hint selection
+│   │   └── solver.js               # DFS + transposition table, used for winnable-only + stuck
+│   ├── view/
+│   │   ├── Board.js                # DOM scaffold, drop-zone metadata
+│   │   ├── CardView.js             # stateless card renderer (takes {suit,rank,faceUp})
+│   │   ├── layout.js               # fitLayout — pure geometry, no DOM writes
+│   │   ├── animations.js           # move, snapBack, flip, cascade, confetti
+│   │   ├── input.js                # pointer events, drag/tap disambiguation
+│   │   └── themes.js               # card backs, suit colors, token bindings
+│   ├── ui/
+│   │   ├── Toolbar.js              # New/Undo/Redo/Hint/Auto/Settings/Stats
+│   │   ├── StatsPanel.js
+│   │   ├── SettingsPanel.js
+│   │   ├── WinOverlay.js
+│   │   └── StuckPrompt.js
+│   └── persistence.js              # save/load via kernel.storage
+└── shared/
+    ├── rng.js                      # existing — extend with seededMulberry32
+    └── store.js                    # existing — reducer pattern for game state
+```
+
+#### State model (pure, serialisable)
+
+```js
+// engine/state.js
+{
+  tableau: CardId[][],              // 7 piles, bottom→top
+  faceDown: Set<CardId>,            // which tableau cards are face-down
+  foundation: CardId[][],           // 4 piles, indexed by suit
+  stock: CardId[],                  // top = last
+  waste: CardId[],
+  deck: Record<CardId, {suit, rank}>, // immutable lookup; CardId = suit*13 + rank-1
+  mode: { draw: 1|3, scoring: 'standard'|'vegas'|'vegasCumulative', timed: bool, winnableOnly: bool },
+  seed: string,                     // reproducible deal
+  score: number,
+  vegasBank: number,                // cumulative mode
+  passCount: number,                // stock passes this deal
+  moveCount: number,
+  timeMs: number,                   // accumulated play time (paused excluded)
+  startedAt: number,
+  history: Move[],                  // full move log — undo stack
+  future: Move[],                   // redo stack
+  phase: 'dealing'|'playing'|'won'|'paused'|'stuck'
+}
+```
+
+`CardView` reads from the deck lookup and renders — it never owns state. This is the critical split that today's code is missing.
+
+#### Move command pattern
+
+Every mutation is a `Move` object applied by `applyMove(state, move)`; every move carries the inverse data needed to undo it:
+
+```js
+type Move =
+  | { type: 'stockDraw', drawCount: 1|3, drawnIds: CardId[] }
+  | { type: 'stockRecycle', wasteSnapshot: CardId[], passDelta: 1 }
+  | { type: 'tab2tab', fromCol, toCol, count, flippedId?: CardId }
+  | { type: 'tab2foundation', fromCol, suit, flippedId?: CardId }
+  | { type: 'waste2tab', toCol }
+  | { type: 'waste2foundation', suit }
+  | { type: 'foundation2tab', suit, toCol }
+  | { type: 'autoFinish', sequence: Move[] }  // compound, undone as one step
+```
+
+Undo = pop from `history`, apply inverse, push to `future`. Redo = pop from `future`, re-apply, push to `history`. Stock recycles snapshot the waste order because Vegas pass-limit enforcement must survive undo.
+
+#### Seeded RNG
+
+Extend [os/apps/games/shared/rng.js](os/apps/games/shared/rng.js) with a `seededRng(seed)` returning a Mulberry32 generator. `deal.js` does Fisher-Yates over `[0..51]` driven by this generator. The existing `crypto.getRandomValues` path still fuels the seed when no seed is supplied (`'R' + randomHex(8)`).
+
+#### Solver (for winnable-only and stuck detection)
+
+Depth-first search with:
+- Transposition table keyed by `(tableau-hash, foundation-levels, waste-head, stock-length)`
+- Branch pruning: never undo a just-made move; always prefer foundation moves first
+- Node cap: 100k per query (empirically solves ~97% of winnable deals in < 200ms on a laptop)
+- Used at deal time for `winnableOnly` (reject + reseed up to 5× before giving up and serving the deal anyway), and at stuck-check time (deterministic "no more moves" certainty within budget).
+
+#### Input
+
+Single `input.js` using Pointer Events (`pointerdown/move/up/cancel/capture`). No globals. The board sets `touch-action: none`. Drag threshold: 6px movement or 150ms hold. On `pointercancel`, rollback the pickup (cards reappear in source pile).
+
+Tap-to-move flow:
+1. First tap selects card(s); board highlights legal targets with `--accent-glow`.
+2. Tap on highlighted target → execute move.
+3. Second tap on the selected card → auto-route: best legal target per hint ranking.
+4. Tap elsewhere → deselect.
+
+#### Persistence
+
+Save via `kernel.storage.set('solitaire/savegame', serialised)` after every committed move, throttled 120ms. On `init()`, if a save exists and phase !== 'won', offer a "Resume" button alongside "New Deal". Stats live at `kernel.storage.set('solitaire/stats', {...})` — per-mode aggregates, never wiped.
+
+### Visual design — Yanco theme binding
+
+**Hard rule:** every color in the new `css/solitaire.css` must resolve to a token from [css/tokens.css](css/tokens.css) or a documented game-scoped derivative. No hard-coded blues, no off-brand reds/yellows.
+
+#### Board surface
+- Background: base `--bg` (#060b14) + `--yv-edge-glow` radial overlay + faint hex lattice (12% opacity) using `--hex-clip` tiled. This ties the solitaire felt to the YancoTab hex-icon language.
+- Board "felt" has a subtle `radial-gradient` of `rgba(var(--accent-rgb), 0.06)` from center — replaces today's ruled-line overlay.
+- Foundation and empty-pile placeholders: 1.5px dashed `var(--border-light)` + suit glyph at 18% `var(--accent)` opacity.
+
+#### Card face (default "Inked" style)
+- Background: pure white with a 0.5px `var(--inner-glow)` inset, radius `var(--radius-sm)` (6px).
+- Red suits: `#ff4757` (= `--danger`).
+- Black suits: `#0a0f1a` (= `--accent-contrast`).
+- Rank typography: `var(--font-mono)` (JetBrains Mono) at ~34% of card width. Corner pips top-left + bottom-right (rotated 180°).
+- Center: large suit glyph at ~70% card width.
+- Optional **4-color mode:** hearts `#ff4757`, diamonds `#0a84ff` (= `--info`), clubs `#34d399` (= `--success`), spades `#0a0f1a`.
+
+#### Card backs (4 options, all on-brand)
+| ID | Name | Composition |
+|----|------|-------------|
+| `nebula` (default) | Nebula | Linear gradient `#081028 → #0c1a35 → #081028` + radial `rgba(var(--accent-rgb), 0.25)` top-left + 3 star specks |
+| `hex` | Hex Lattice | `--hex-clip` tile at 8% opacity over `--bg-elevated`, accent hairline border |
+| `warp` | Warp Grid | 40×40 grid lines in `rgba(var(--accent-rgb), 0.08)` + diagonal scanline |
+| `aurora` | Aurora | Multi-stop conic gradient through `#00e5c1 → #6b5cff → #00e5c1` at 12% opacity over `--bg-card` |
+
+All backs carry a 1px inset highlight (`var(--inner-glow)`) and a 2px card radius.
+
+#### Header / toolbar
+- Glass panel: `background: var(--bg-panel)`, `backdrop-filter: var(--glass-blur)`, `border-bottom: 1px solid var(--border)`.
+- Buttons: `var(--bg-glass)` fill, 1px `var(--border-light)` border, `var(--radius-md)` (12px) radius, icon + optional label, 32px height on desktop, 36px compact on mobile.
+- Active/pressed: border shifts to `var(--border-accent)`, glow `var(--glow-sm)`.
+- Title: `font-sans`, 13px, uppercase, letter-spacing 1.5px, `var(--text-bright)` with `text-shadow: 0 0 10px var(--accent-glow)`.
+
+#### Interactive feedback
+- **Drop-zone highlight** (drag): outline 2px `rgba(var(--accent-rgb), 0.55)`, scale 1.02, box-shadow `var(--glow-sm)`. 180ms `var(--ease-out)`.
+- **Selected card** (tap-to-move): same glow + 2° tilt + 4px lift.
+- **Legal-target pulse** (tap-to-move secondary indicator): 900ms pulse on `var(--ease-spring)`.
+- **Invalid drop**: spring snap-back, 180ms, plus `[10, 40, 10]` haptic; *no* red flash — that reads as hostile.
+- **Hint**: source card glows `var(--accent-bright)`, destination outlines `var(--accent)`; auto-clear after 900ms.
+- **Card pickup**: translateY(-4px), tilt 2°, filter drop-shadow `var(--shadow-lg)`, 120ms.
+
+#### Animations
+- Deal: staggered card-slide from stock position, 30ms step, 260ms ease-out per card.
+- Move: 180ms ease-out translate; foundation moves get a 40ms post-bounce.
+- Flip: 240ms rotateY on the card's `.inner`, mid-point z-flip for back→front.
+- Snap-back: spring `var(--transition-spring)` on translate, reverts to original coords.
+- **Win cascade:** each foundation top card sheds a physics-simulated trail (gravity 900, damping 0.995) across the board for 3.5s. Particles use `var(--accent)` + `var(--accent-bright)` + suit color. On `prefers-reduced-motion`: static gold halo instead.
+- Auto-finish: 40ms step between foundation sends.
+
+#### Typography
+- Toolbar and labels: `var(--font-sans)` (Inter).
+- Rank pips and timer/score readouts: `var(--font-mono)` (JetBrains Mono) for the "instrument panel" feel already used in YancoTab's widgets.
+
+### Responsive layout
+
+The existing `fitLayout` algorithm is directionally right but buggy. Rewrite in `view/layout.js` as a **pure function** `computeLayout({width, height, orientation, cardCount}) → {cardW, cardH, gap, stackOffset, compressOffset}`, unit-tested.
+
+Rules:
+- 7 columns, aspect ratio 1.45 card-h:card-w.
+- Minimum card width 30px (guarantees 44px touch target vertically with stack offset).
+- Maximum card width 100px (prevents comically large cards on 4K).
+- Portrait: prioritize height; divisor 5.5 of available height.
+- Landscape: divisor 3.9 of available height.
+- Tableau compression: once `(pile.length - 1) × stackOffset + cardH > availableTableauH`, compute `maxOffset = (availableH - cardH) / (pile.length - 1)` with a 90% safety margin; floor at 8px.
+- Face-down cards use a tighter 40% stack offset (so buried cards pack denser than visible ones).
+- **Mirror mode** (left-handed) is a CSS class that swaps flex-direction on `.sol-top` and applies `transform: scaleX(-1)` to foundation glyphs.
+
+### Implementation phases
+
+The whole rewrite should land as one feature branch, but work through these sub-phases so each commit runs:
+
+**Phase S1 — Engine skeleton (no UI)**
+- `engine/state.js`, `engine/deal.js`, `engine/rules.js`, `engine/moves.js`, seededRng
+- 95%+ branch coverage in a new `tests/solitaire-engine.test.js` (rules, apply/undo invariance, seeded determinism)
+- Deliverable: `node --test tests/solitaire-engine.test.js` passes
+
+**Phase S2 — Scoring + hint + solver**
+- `engine/scoring.js` strategies + tests
+- `engine/hints.js` ranked hint + tests
+- `engine/solver.js` with node-cap budget + tests (must solve Microsoft Seed 11982 — the famous unwinnable deal — as unwinnable; and solve seed 1 as winnable)
+
+**Phase S3 — View + input**
+- `view/CardView.js`, `view/Board.js`, `view/layout.js` (pure + tested)
+- `view/input.js` Pointer Events with drag/tap disambiguation
+- `view/animations.js` move + snap-back
+- Deliverable: playable Draw-1, Standard scoring, undo/redo, no settings UI yet
+
+**Phase S4 — UI chrome + persistence**
+- `ui/Toolbar.js`, `ui/SettingsPanel.js`, `ui/StatsPanel.js`
+- `persistence.js` save/load through `kernel.storage`
+- Resume prompt on app init
+- Keyboard shortcuts
+
+**Phase S5 — Polish**
+- Win cascade, confetti, sound, haptics
+- Card-back gallery
+- 4-color suit mode
+- Left-handed mirror
+- Stuck detection + prompt
+- Auto-finish flow
+
+**Phase S6 — Spider follow-up (separate branch)**
+- Reuse engine with Spider-specific rules module (`spider/rules.js`, `spider/deal.js`)
+- Reuse view, theme, toolbar
+- Not in scope of this rewrite's PR; tracked as follow-up issue
+
+### Acceptance criteria
+
+A reviewer should be able to confirm every one of these by inspection:
+
+1. Start a new Draw-1 game, play to completion using only taps (no drag). Win triggers cascade.
+2. Start a new Draw-3 Vegas game, exhaust stock once → stock shows "recycle disabled" placeholder; attempt to click → no-op + toast.
+3. Undo 50 moves into the deal; redo all 50; engine state is bit-identical to pre-undo (checked via state hash).
+4. Enable "winnable only", start 10 deals; solver confirms all 10 are solvable within 100k nodes.
+5. Open today's Daily Deal on two devices on the same date → identical deal, identical seed.
+6. Mid-game, close the browser tab. Reopen. "Resume" button appears; resumed state is identical.
+7. Toggle left-handed mode → stock/waste appear on the right; drag/drop still works.
+8. Toggle 4-color mode → diamonds are blue, clubs are green; rank legibility unchanged.
+9. Enable `prefers-reduced-motion` at the OS level → no particle effects, no card cascade; flip animations drop to 0.01ms.
+10. Open with no save → start screen shows "New Deal" + "Daily Deal" + "Custom Seed" + "Stats"; no console errors.
+11. Play until stuck (no moves, stock exhausted) → modal offers Undo / New Deal; solver confirms truly stuck.
+12. All colors in DevTools computed styles resolve to `var(...)` tokens from [css/tokens.css](css/tokens.css); no raw hex other than the four card-back palettes documented above.
+13. On a 375×667 viewport, all 7 columns are visible, no cards clip bottom, touch targets ≥ 36px.
+14. Lighthouse accessibility pass on the solitaire window ≥ 95.
+15. Running `node --test tests/solitaire-engine.test.js tests/solitaire-layout.test.js` passes with 100+ tests.
+
+### Test plan
+
+- **Unit** ([tests/solitaire-engine.test.js](tests/solitaire-engine.test.js)): rules, apply/undo symmetry, seeded determinism, scoring strategies, hint ranking against fixture boards, solver against known winnable/unwinnable seeds.
+- **Layout** ([tests/solitaire-layout.test.js](tests/solitaire-layout.test.js)): `computeLayout` across 12 viewport sizes, portrait and landscape, min/max clamps.
+- **Manual smoke**: the 15 acceptance criteria above, walked once before PR.
+- **Performance**: solver p95 < 250ms on 2019 MBP; deal animation holds 60fps; autofinish holds 60fps at 40ms/card.
+
+### Migration + compatibility
+
+- Replace [os/apps/games/SolitaireApp.js](os/apps/games/SolitaireApp.js) entirely. Keep the class export signature (`export class SolitaireApp extends App`) so [os/boot.js](os/boot.js) registration is unchanged.
+- Delete the shared [os/apps/games/cardEngine/Card.js](os/apps/games/cardEngine/Card.js) — it's a DOM-owning card that nothing else should use. Move suit/rank constants to `solitaire/engine/state.js`.
+- `cardEngine/Deck.js` is retained only if another game uses it; otherwise delete. (Audit: grep `cardEngine/Deck`.)
+- Current [css/solitaire.css](css/solitaire.css) is replaced. Keep the file name so `<link rel="stylesheet" href="css/solitaire.css">` in the app still resolves.
+- Spider continues to use the old engine until its separate rewrite lands; no cross-contamination.
+- Storage: old `yancotab_card_settings` localStorage key is read once on init and migrated into `kernel.storage('solitaire/settings')`, then deleted.
+
+### Open decisions
+
+- **Daily Deal leaderboard?** Out of scope — requires a server and violates privacy-first. Document as "not planned".
+- **Freecell / Spider in the same app?** No — separate apps, shared engine.
+- **Cloud sync of stats via `chrome.storage.sync`?** Yes — piggyback on the existing AppStorage sync pipeline; stats are < 2KB.
+- **Sound asset format?** WebAudio synthesized (no binary assets) to keep the extension zip under the 10MB store cap and match Neon Serpent's approach.
 
 ---
 

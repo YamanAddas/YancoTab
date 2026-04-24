@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cosmic Card — Demo</title>
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/cosmic/card.css" />
+  <style>
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text-bright); font-family: var(--font-sans); min-height: 100vh; }
+    .stage {
+      padding: 64px;
+      display: flex; flex-direction: column; gap: 48px;
+      background: var(--bg), var(--aurora-bg);
+      background-blend-mode: screen;
+      min-height: 100vh;
+    }
+    h1 { font-weight: 500; letter-spacing: -0.02em; margin: 0; }
+    .row { display: flex; gap: 20px; align-items: flex-end; }
+    .label { color: var(--text); font-size: 13px; margin-bottom: 8px; }
+    .col { display: flex; flex-direction: column; }
+    .sizes { display: flex; gap: 24px; align-items: flex-end; }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <h1>Cosmic Card — back (YancoTab icon) + front</h1>
+
+    <div class="row">
+      <div class="col">
+        <div class="label">Face-down (default)</div>
+        <div id="a"></div>
+      </div>
+      <div class="col">
+        <div class="label">Face-up</div>
+        <div id="b"></div>
+      </div>
+      <div class="col">
+        <div class="label">Click to flip</div>
+        <div id="c"></div>
+      </div>
+    </div>
+
+    <div class="sizes">
+      <div class="col"><div class="label">Small (56px)</div><div id="s"></div></div>
+      <div class="col"><div class="label">Medium (72px default)</div><div id="m"></div></div>
+      <div class="col"><div class="label">Large (110px)</div><div id="l"></div></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { buildCosmicCard, setCardFaceUp } from '../os/ui/cardFace.js';
+
+    const mk = (suit, rank, faceUp, opts) => buildCosmicCard({ suit, rank, faceUp, id: `${suit}${rank}` }, opts);
+
+    document.getElementById('a').append(mk('H', 1, false));
+    document.getElementById('b').append(mk('S', 13, true));
+
+    const c = mk('D', 12, false);
+    c.classList.add('selectable');
+    c.addEventListener('click', () => setCardFaceUp(c, !c.classList.contains('flipped')));
+    document.getElementById('c').append(c);
+
+    document.getElementById('s').append(mk('C', 7, false, { width: 56, height: 78 }));
+    document.getElementById('m').append(mk('H', 10, false));
+    document.getElementById('l').append(mk('S', 1, false, { width: 110, height: 152 }));
+  </script>
+</body>
+</html>

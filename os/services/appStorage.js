@@ -206,6 +206,20 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
+    yancotab_solitaire_save: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: null,
+        validate: (v) => v === null || (v && typeof v === 'object'),
+    },
+    yancotab_solitaire_stats: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: { played: 0, won: 0, bestTimeSec: null, bestMoves: null, bestScore: 0, currentStreak: 0, longestStreak: 0 },
+        validate: (v) => v && typeof v === 'object',
+    },
     yancotab_import_backup: {
         storageClass: 'volatile',
         syncPolicy: 'never',

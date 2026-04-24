@@ -1,0 +1,187 @@
+/* ============================================================
+   Cosmic Atelier — Card System
+   Shared by Solitaire, Spider, and future card games.
+   Pure visual layer; reads tokens from css/tokens.css.
+   ============================================================ */
+
+/* ── Flip container ── */
+.cosmic-card {
+  position: relative;
+  width: var(--card-w, 72px);
+  height: var(--card-h, 100px);
+  perspective: 900px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  will-change: transform;
+}
+
+.cosmic-card-inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transition: transform 0.42s var(--spring-snap);
+}
+
+.cosmic-card.flipped .cosmic-card-inner {
+  transform: rotateY(180deg);
+}
+
+.cosmic-card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--depth-3);
+}
+
+/* ── FRONT FACE ──
+   Pre-rotated 180° so the back is the "native" visible face at rest.
+   When inner rotates 180° (.flipped), the front comes into view. */
+.cosmic-card-front {
+  transform: rotateY(180deg);
+  background:
+    var(--specular),
+    linear-gradient(180deg, #f5f8ff 0%, #dde4ef 100%);
+  color: #0a0f1a;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding: 6px 8px;
+  font-family: var(--font-sans);
+}
+
+.cosmic-card-front.red  { color: #c8173a; }
+.cosmic-card-front.black { color: #0a0f1a; }
+
+.cosmic-card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-weight: 700;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.02em;
+}
+
+.cosmic-card-corner .rank { font-size: calc(var(--card-w, 72px) * 0.26); }
+.cosmic-card-corner .suit { font-size: calc(var(--card-w, 72px) * 0.22); margin-top: 2px; }
+
+.cosmic-card-corner.top-left  { justify-self: start; }
+.cosmic-card-corner.bottom-right {
+  justify-self: end;
+  transform: rotate(180deg);
+  align-self: end;
+}
+
+.cosmic-card-center {
+  display: grid;
+  place-items: center;
+  opacity: 0.92;
+}
+
+.cosmic-card-center .suit-big {
+  font-size: calc(var(--card-w, 72px) * 0.58);
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* Subtle inner stroke + light source */
+.cosmic-card-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* ── BACK FACE ──
+   The default (face-down) view. YancoTab icon fills with small margin,
+   on a deep-space gradient with teal edge glow + aurora wash. */
+.cosmic-card-back {
+  background:
+    /* inner edge glow */
+    radial-gradient(ellipse at 50% 50%, rgba(var(--accent-rgb), 0.18), transparent 65%),
+    /* corner vignette */
+    radial-gradient(circle at 0% 0%, rgba(var(--accent-rgb), 0.20), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(var(--accent-rgb), 0.15), transparent 40%),
+    /* base */
+    linear-gradient(160deg, #0a1628 0%, #060b14 60%, #040810 100%);
+  display: grid;
+  place-items: center;
+  padding: 3%;
+  isolation: isolate;
+}
+
+.cosmic-card-back::before {
+  /* aurora wash behind the icon */
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--aurora-bg);
+  opacity: 0.35;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+
+.cosmic-card-back::after {
+  /* crisp inner stroke + top-left specular */
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  background: var(--specular);
+  opacity: 0.6;
+  mix-blend-mode: screen;
+}
+
+.cosmic-card-back .cb-icon {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  z-index: 1;
+}
+
+.cosmic-card-back .cb-icon img {
+  width: 108%;   /* slight overscan — icon bleeds to the corners */
+  height: 108%;
+  object-fit: contain;
+  /* premium glow + contrast on the teal mark */
+  filter:
+    drop-shadow(0 0 10px rgba(var(--accent-rgb), 0.55))
+    drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+/* Hover/selection affordance — only on pointer devices */
+@media (hover: hover) {
+  .cosmic-card.selectable:hover .cosmic-card-face {
+    box-shadow: var(--depth-4);
+    transform: translateY(-1px);
+  }
+}
+
+.cosmic-card.selected .cosmic-card-face {
+  box-shadow: var(--depth-5);
+  outline: 2px solid rgba(var(--accent-rgb), 0.9);
+  outline-offset: 1px;
+}
+
+.cosmic-card.dragging {
+  z-index: 1000;
+  cursor: grabbing;
+}
+
+/* Reduced motion: kill flip duration, keep visual state */
+@media (prefers-reduced-motion: reduce) {
+  .cosmic-card-inner { transition: transform 0.08s linear; }
+}

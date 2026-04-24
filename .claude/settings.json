@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "_comment_on_this_file": "Loose denylist — Yaman trusts himself. Only footguns that could nuke work with zero warning are blocked. Hooks wire post-edit linting and size-cap enforcement.",
+
+  "permissions": {
+    "allow": ["Bash(*)", "Edit", "Write", "Read"],
+    "deny": [
+      "Bash(rm -rf /*)",
+      "Bash(rm -rf ~*)",
+      "Bash(rm -rf $HOME*)",
+      "Bash(sudo rm -rf*)",
+      "Bash(git push --force*)",
+      "Bash(git push -f*)",
+      "Bash(git reset --hard origin/main)",
+      "Bash(git branch -D main)",
+      "Bash(git branch -D master)",
+      "Bash(git checkout -- .)",
+      "Bash(:() :|:&)"
+    ]
+  },
+
+  "_comment_on_hooks": "PostToolUse runs the size-cap guard and reminds about tests after Edit/Write on JS files. PreToolUse is a no-op stub for future Bash guarding.",
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "bash scripts/guard-bash.sh || true" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          { "type": "command", "command": "node scripts/guard-filesize.mjs || true" }
+        ]
+      }
+    ]
+  },
+
+  "_comment_on_env": "Environment hints. Claude Code reads these to avoid guessing.",
+  "env": { "YANCOTAB_DEV": "1" }
+}

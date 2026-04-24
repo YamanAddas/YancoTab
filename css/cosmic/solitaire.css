@@ -1,0 +1,247 @@
+/* ============================================================
+   Cosmic Atelier — Solitaire Board
+   Deep space + aurora wash; piles are outlined slots; cards
+   stack via absolute positioning (see view/layout.js).
+   ============================================================ */
+
+.cosmic-solitaire {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 520px;
+  background:
+    var(--aurora-bg),
+    radial-gradient(ellipse at 50% -10%, rgba(var(--accent-rgb), 0.08), transparent 60%),
+    linear-gradient(180deg, #060b14 0%, #040810 100%);
+  overflow: hidden;
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+}
+
+/* Optional constellation layer (S3 will animate) */
+.cosmic-solitaire::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.35), transparent 50%),
+    radial-gradient(1px 1px at 80% 15%, rgba(var(--accent-rgb),0.45), transparent 50%),
+    radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.25), transparent 50%),
+    radial-gradient(1px 1px at 65% 85%, rgba(var(--accent-rgb),0.40), transparent 50%),
+    radial-gradient(1px 1px at 45% 40%, rgba(255,255,255,0.30), transparent 50%);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Scroll wrapper — tableau can grow tall on big runs */
+.cosmic-solitaire-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  padding: 0;
+}
+
+/* Board — cards positioned absolutely against this */
+.cosmic-solitaire-board {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Pile placeholder — shown when a pile is empty or as a drop target */
+.cosmic-pile-slot {
+  border-radius: var(--radius-md);
+  border: 1.5px dashed rgba(var(--accent-rgb), 0.22);
+  background: rgba(0, 0, 0, 0.18);
+  box-shadow: var(--depth-1);
+  display: grid;
+  place-items: center;
+  transition: border-color 0.2s var(--spring-soft), background 0.2s var(--spring-soft), box-shadow 0.2s var(--spring-soft);
+}
+
+.cosmic-pile-slot[data-label]::after {
+  content: attr(data-label);
+  color: rgba(var(--accent-rgb), 0.55);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.cosmic-pile-slot.kind-foundation[data-label]::after {
+  font-size: 22px;
+  letter-spacing: 0;
+}
+
+.cosmic-card.dragging {
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.55)) drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.25));
+  cursor: grabbing;
+}
+
+.cosmic-pile-slot.hot {
+  border-color: rgba(var(--accent-rgb), 0.7);
+  background: rgba(var(--accent-rgb), 0.06);
+  box-shadow: var(--depth-2), 0 0 18px rgba(var(--accent-rgb), 0.25);
+}
+
+/* Hint glow — source pulses brighter, destination outlines */
+@keyframes cosmic-hint-pulse {
+  0%, 100% { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.55), 0 0 18px rgba(var(--accent-rgb), 0.35); }
+  50%      { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.85), 0 0 28px rgba(var(--accent-rgb), 0.55); }
+}
+.cosmic-hint-src,
+.cosmic-hint-dst {
+  animation: cosmic-hint-pulse 0.9s ease-in-out infinite;
+  border-radius: var(--radius-md);
+  z-index: 50;
+}
+.cosmic-hint-dst {
+  animation-delay: 0.18s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .cosmic-hint-src, .cosmic-hint-dst {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.75), 0 0 18px rgba(var(--accent-rgb), 0.4);
+  }
+}
+
+/* Toolbar */
+.cosmic-toolbar {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  background: linear-gradient(180deg, transparent 0%, rgba(6,11,20,0.85) 60%);
+  pointer-events: none;
+}
+
+.cosmic-toolbar > * { pointer-events: auto; }
+
+.cosmic-toolbar-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.cosmic-stat {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text);
+  padding: 6px 12px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  border-radius: var(--radius-pill);
+}
+
+.cosmic-stat strong { color: var(--accent-bright); font-weight: 600; }
+
+.cosmic-btn {
+  appearance: none;
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--text-bright);
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+  font: 500 13px var(--font-sans);
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.15s var(--spring-snap), background 0.15s, box-shadow 0.15s;
+}
+.cosmic-btn:hover { background: rgba(var(--accent-rgb), 0.14); box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.3); }
+.cosmic-btn:active { transform: scale(0.97); }
+
+/* New Game dropdown menu */
+.cosmic-menu {
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+  padding: 6px;
+  background: var(--bg-panel);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  border-radius: var(--radius-md);
+  box-shadow: var(--depth-2), 0 0 24px rgba(var(--accent-rgb), 0.15);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+.cosmic-menu-item {
+  appearance: none;
+  background: transparent;
+  border: none;
+  color: var(--text-bright);
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font: 500 13px var(--font-sans);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.cosmic-menu-item:hover { background: rgba(var(--accent-rgb), 0.12); }
+
+/* Modal overlays (win + stats) */
+.cosmic-win-overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(6, 11, 20, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  opacity: 0;
+  transition: opacity 0.28s var(--spring-soft);
+  z-index: 10000;
+}
+.cosmic-win-overlay.visible { opacity: 1; }
+
+.cosmic-win-card {
+  min-width: 280px;
+  max-width: 360px;
+  padding: 28px 24px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+  box-shadow: var(--depth-3), 0 0 40px rgba(var(--accent-rgb), 0.18);
+  color: var(--text-bright);
+  text-align: center;
+}
+
+.cosmic-win-title {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-bright);
+  margin-bottom: 14px;
+}
+
+.cosmic-win-sub {
+  font-size: 13px;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.cosmic-stats-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+  text-align: left;
+}
+
+.cosmic-stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(var(--accent-rgb), 0.04);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+.cosmic-stat-row span { color: var(--text); }
+.cosmic-stat-row strong { color: var(--accent-bright); font-weight: 600; font-variant-numeric: tabular-nums; }
