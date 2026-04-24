@@ -67,6 +67,7 @@ The kernel exposes: `kernel.storage`, `kernel.emit`, `kernel.on`, `kernel.proces
 - **Agents:** invoke `architect` before a new app or game; invoke `redteamer` for any feature that handles user-controlled HTML, URLs, or file uploads.
 - **Plan:** see `PRODUCTION_PLAN.md` for the active roadmap (v2.3 → v2.4 → Chrome Web Store).
 - **Preview verification:** for any browser-observable change, follow the preview_* workflow — never ask the user to reload manually.
+- **Git flow:** commit and push directly to `main` (`git push`) whenever a chunk of work lands clean — tests pass, no half-applied edits, no obvious regressions — or whenever Yaman asks. Don't ask permission first. Still: never force-push, never skip hooks, never commit secrets, never commit without reading the diff.
 
 ## Communication with Yaman
 
