@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together
-const CACHE_NAME = 'yancotab-v2.3.1';
+const CACHE_NAME = 'yancotab-v2.3.2';
 
 const PRECACHE = [
     './',
@@ -100,7 +100,29 @@ const PRECACHE = [
     './os/ui/cardFace.js',
     './css/cosmic/card.css',
     './css/cosmic/solitaire.css',
-    './os/apps/games/SpiderSolitaireApp.js',
+    './os/apps/games/spider/SpiderSolitaireApp.js',
+    './os/apps/games/spider/intents.js',
+    './os/apps/games/spider/persistence.js',
+    './os/apps/games/spider/engine/deal.js',
+    './os/apps/games/spider/engine/hints.js',
+    './os/apps/games/spider/engine/moves.js',
+    './os/apps/games/spider/engine/reducer.js',
+    './os/apps/games/spider/engine/rules.js',
+    './os/apps/games/spider/engine/state.js',
+    './os/apps/games/spider/view/Board.js',
+    './os/apps/games/spider/view/CardView.js',
+    './os/apps/games/spider/view/drag.js',
+    './os/apps/games/spider/view/layout.js',
+    './os/apps/games/spider/ui/SettingsPanel.js',
+    './os/apps/games/spider/ui/StartScreen.js',
+    './os/apps/games/spider/ui/StatsPanel.js',
+    './os/apps/games/spider/ui/StuckPrompt.js',
+    './os/apps/games/spider/ui/WinOverlay.js',
+    './os/apps/games/spider/ui/haptics.js',
+    './os/apps/games/spider/ui/hintGlow.js',
+    './os/apps/games/spider/ui/keyboard.js',
+    './os/apps/games/spider/ui/overlay.js',
+    './css/cosmic/spider.css',
     './os/apps/games/TarneebApp.js',
     './os/apps/games/TrixApp.js',
     './os/apps/games/cardEngine/Card.js',

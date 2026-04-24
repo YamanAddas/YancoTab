@@ -1,0 +1,96 @@
+/* cosmic/spider.css — Spider-specific overrides on top of solitaire.css.
+ * Covers: difficulty picker row, the stock pile indicator (stacked card-backs
+ * for remaining deals), and tighter card proportions for the 10-column board.
+ *
+ * All colors resolve to tokens from css/tokens.css. No hard-coded hex outside
+ * the card-back gradients inherited from card.css.
+ */
+
+/* ── Start screen: difficulty picker ─────────────────────────── */
+
+.cosmic-spider-diff-label {
+  margin-top: 10px;
+  font-size: 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.cosmic-spider-diff-row {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 8px 0 14px;
+}
+
+.cosmic-btn.cosmic-spider-diff {
+  padding: 8px 16px;
+  min-width: 72px;
+  font-size: 13px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  border-radius: var(--radius-md, 12px);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.cosmic-btn.cosmic-spider-diff:hover {
+  background: var(--accent-bg);
+  color: var(--text-bright);
+}
+
+.cosmic-btn.cosmic-spider-diff.selected {
+  background: var(--accent-dim);
+  border-color: var(--border-accent);
+  color: var(--text-bright);
+  box-shadow: var(--glow-sm);
+}
+
+/* ── Stock indicator pile (stacked card-backs for remaining deals) ── */
+
+.cosmic-card.cosmic-spider-stock-pile {
+  /* Use the same card geometry and back gradient as real face-down cards.
+   * The inner div is set by Board.js to .cosmic-card-inner > .cosmic-card-back
+   * so existing back-* variants (nebula/hex/warp/aurora) style it for free. */
+  cursor: pointer;
+  transition: transform 160ms ease-out, box-shadow 160ms ease-out;
+}
+
+.cosmic-card.cosmic-spider-stock-pile:hover {
+  transform: translate(var(--dx, 0), -3px);
+  box-shadow: var(--glow-sm);
+}
+
+/* When the stock is exhausted the empty-slot placeholder is visible instead. */
+.cosmic-pile-slot.kind-stock {
+  transition: opacity 200ms ease;
+}
+
+/* ── Stats panel: per-difficulty blocks ──────────────────────── */
+
+.cosmic-stats-block {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-light);
+}
+
+.cosmic-stats-block-label {
+  font-size: 11px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+/* ── Board scoping tweaks for 10-column density ──────────────── */
+
+/* Spider runs on the same .cosmic-solitaire-board CSS; the stock indicator
+ * piles shouldn't show the usual card-face shadow (they're decorative).
+ * Fan spacing is driven by layout.js — no CSS overrides needed there.
+ */
+.cosmic-spider .cosmic-card.cosmic-spider-stock-pile {
+  /* Slight inset shadow so overlapping piles read as a stack, not duplicates. */
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}

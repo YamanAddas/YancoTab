@@ -227,6 +227,33 @@ const REGISTRY = {
         default: { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false, cardBack: 'nebula', timed: true },
         validate: (v) => v && typeof v === 'object',
     },
+    yancotab_spider_save: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: null,
+        validate: (v) => v === null || (v && typeof v === 'object'),
+    },
+    yancotab_spider_stats: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {
+            played: 0, won: 0,
+            bestTimeSec: { 1: null, 2: null, 4: null },
+            bestMoves:   { 1: null, 2: null, 4: null },
+            bestScore:   { 1: 0, 2: 0, 4: 0 },
+            currentStreak: 0, longestStreak: 0,
+        },
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_spider_settings: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: { difficulty: 1, fourColor: false, leftHanded: false, cardBack: 'nebula', timed: true },
+        validate: (v) => v && typeof v === 'object',
+    },
     yancotab_import_backup: {
         storageClass: 'volatile',
         syncPolicy: 'never',

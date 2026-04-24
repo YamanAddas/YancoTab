@@ -145,7 +145,7 @@ async function boot() {
     pm.registerLazy('tictactoe',        () => import('./apps/TicTacToeApp.js').then(m => m.TicTacToeApp));
     pm.registerLazy('minesweeper',      () => import('./apps/games/MinesweeperApp.js').then(m => m.MinesweeperApp));
     pm.registerLazy('solitaire',        () => import('./apps/games/solitaire/SolitaireApp.js').then(m => m.SolitaireApp));
-    pm.registerLazy('spider-solitaire', () => import('./apps/games/SpiderSolitaireApp.js').then(m => m.SpiderSolitaireApp));
+    pm.registerLazy('spider-solitaire', () => import('./apps/games/spider/SpiderSolitaireApp.js').then(m => m.SpiderSolitaireApp));
     pm.registerLazy('mahjong',          () => import('./apps/games/MahjongApp.js').then(m => m.MahjongApp));
     pm.registerLazy('tarneeb',          () => import('./apps/games/TarneebApp.js').then(m => m.TarneebApp));
     pm.registerLazy('trix',             () => import('./apps/games/TrixApp.js').then(m => m.TrixApp));
