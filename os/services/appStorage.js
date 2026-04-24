@@ -217,14 +217,14 @@ const REGISTRY = {
         storageClass: 'volatile',
         syncPolicy: 'sync',
         version: 1,
-        default: { played: 0, won: 0, bestTimeSec: null, bestMoves: null, bestScore: 0, currentStreak: 0, longestStreak: 0 },
+        default: { played: 0, won: 0, bestTimeSec: null, bestMoves: null, bestScore: 0, currentStreak: 0, longestStreak: 0, vegasBank: 0 },
         validate: (v) => v && typeof v === 'object',
     },
     yancotab_solitaire_settings: {
         storageClass: 'volatile',
         syncPolicy: 'sync',
         version: 1,
-        default: { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false, cardBack: 'nebula' },
+        default: { drawCount: 1, scoring: 'standard', fourColor: false, leftHanded: false, cardBack: 'nebula', timed: true },
         validate: (v) => v && typeof v === 'object',
     },
     yancotab_import_backup: {

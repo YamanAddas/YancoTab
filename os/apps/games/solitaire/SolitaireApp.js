@@ -27,6 +27,8 @@ import { showWinOverlay } from './ui/WinOverlay.js';
 import { showStuckPrompt } from './ui/StuckPrompt.js';
 import { showNewGameMenu } from './ui/NewGameMenu.js';
 import { playWinCascade } from './ui/winCascade.js';
+import { haptic } from './ui/haptics.js';
+import { mountPauseOverlay } from './ui/pause.js';
 
 export class SolitaireApp extends App {
   constructor(kernel, pid) {
@@ -115,6 +117,8 @@ export class SolitaireApp extends App {
     const autoBtn = mk('Auto-Finish');
     this._autoBtn = autoBtn;
     autoBtn.disabled = true;  // enabled only when board is solved-but-not-finished
+    const pauseBtn = mk('Pause');
+    this._pauseBtn = pauseBtn;
     const statsBtn = mk('Stats');
     const setBtn = mk('Settings');
 
@@ -123,15 +127,17 @@ export class SolitaireApp extends App {
     redoBtn.addEventListener('click', () => this._redo());
     hintBtn.addEventListener('click', () => this._showHint());
     autoBtn.addEventListener('click', () => this._autoFinish());
+    pauseBtn.addEventListener('click', () => this._togglePause());
     statsBtn.addEventListener('click', () => this._showStats());
     setBtn.addEventListener('click', () => this._showSettings());
-    right.append(hintBtn, undoBtn, redoBtn, autoBtn, statsBtn, setBtn, newBtn);
+    right.append(hintBtn, undoBtn, redoBtn, autoBtn, pauseBtn, statsBtn, setBtn, newBtn);
 
     tb.append(left, right);
     return tb;
   }
 
   _newGame(opts = {}) {
+    if (this._paused) this._resume();
     if (this.store) {
       const cur = this.store.getState();
       if (cur && !isWon(cur) && cur.moves > 0) this._recordResult({ won: false, state: cur });
@@ -168,10 +174,14 @@ export class SolitaireApp extends App {
     this._updateStats(s);
     this._startTs = Date.now() - (this.stats.time * 1000);
     if (this._timerId) clearInterval(this._timerId);
-    this._timerId = setInterval(() => {
-      this.stats.time = Math.floor((Date.now() - this._startTs) / 1000);
-      this._renderTime();
-    }, 500);
+    if (this.settings.timed) {
+      this._timerId = setInterval(() => {
+        if (this._paused) return;
+        this.stats.time = Math.floor((Date.now() - this._startTs) / 1000);
+        this._renderTime();
+      }, 500);
+    }
+    this._renderTime();
     sfx.play('tick');
   }
 
@@ -180,7 +190,9 @@ export class SolitaireApp extends App {
   _startTimer() {
     if (this._timerId) clearInterval(this._timerId);
     this._startTs = Date.now();
+    if (!this.settings.timed) { this._renderTime(); return; }
     this._timerId = setInterval(() => {
+      if (this._paused) return;
       this.stats.time = Math.floor((Date.now() - this._startTs) / 1000);
       this._renderTime();
     }, 500);
@@ -196,22 +208,58 @@ export class SolitaireApp extends App {
     if (this._autoBtn) this._autoBtn.disabled = !isAutoFinishReady(state);
   }
   _renderTime() {
+    if (!this.settings.timed) {
+      this.statTime.style.display = 'none';
+      return;
+    }
+    this.statTime.style.display = '';
     const s = this.stats.time;
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
     this.statTime.innerHTML = `Time <strong>${mm}:${ss}</strong>`;
   }
 
+  // Pause freezes the clock, overlays the board (no peeking in timed mode),
+  // and swallows dispatches. _pausedAt lets _resume shift _startTs forward
+  // by the paused duration so stats.time doesn't jump.
+  _togglePause() {
+    if (this._paused) return this._resume();
+    this._paused = true;
+    this._pausedAt = Date.now();
+    this._stopTimer();
+    if (this._pauseBtn) this._pauseBtn.textContent = 'Resume';
+    this._pauseOverlay = mountPauseOverlay(this.board?.boardEl, () => this._resume());
+  }
+  _resume() {
+    if (!this._paused) return;
+    this._paused = false;
+    if (this._pausedAt) this._startTs += (Date.now() - this._pausedAt);
+    this._pausedAt = 0;
+    if (this._pauseBtn) this._pauseBtn.textContent = 'Pause';
+    this._pauseOverlay?.remove();
+    this._pauseOverlay = null;
+    // Re-arm directly — calling _startTimer would reset _startTs.
+    if (this.settings.timed && !this._timerId) {
+      this._timerId = setInterval(() => {
+        if (this._paused) return;
+        this.stats.time = Math.floor((Date.now() - this._startTs) / 1000);
+        this._renderTime();
+      }, 500);
+    }
+  }
+
   _dispatch(action) {
     if (!this.store) return false;
+    if (this._paused) return false;
     const prev = this.store.getState();
     const out = this.store.dispatch(action);
     const illegal = out.events?.some((e) => e.type === 'illegal');
-    if (illegal) { sfx.play('fail'); return false; }
+    if (illegal) { sfx.play('fail'); haptic('invalid'); return false; }
     // Any new user action clears the redo future — symmetric with most editors.
     if (out.state !== prev) {
       this.history.push(prev);
       this.future.length = 0;
+      haptic('place');
     }
     return true;
   }
@@ -274,6 +322,7 @@ export class SolitaireApp extends App {
     if (isWon(state)) {
       this._stopTimer();
       sfx.play('win');
+      haptic('win');
       this._recordResult({ won: true, state });
       clearSave(this.kernel);
       playWinCascade(this.board?.boardEl);
@@ -304,6 +353,7 @@ export class SolitaireApp extends App {
     const stats = loadStats(this.kernel);
     const next = applyGameResult(stats, {
       won, timeSec: this.stats.time, moves: state.moves, score: state.score,
+      scoring: state.scoring,  // cumulative mode rolls score into the persistent bank
     });
     saveStats(this.kernel, next);
   }
@@ -329,6 +379,13 @@ export class SolitaireApp extends App {
       if (next.leftHanded !== prev.leftHanded) {
         this.board.setLayoutOpts({ leftHanded: next.leftHanded });
       }
+      if (next.timed !== prev.timed) {
+        // Toggling Relaxed on/off only changes the readout and whether the
+        // interval runs — never the engine state or the current elapsed time.
+        if (!next.timed) this._stopTimer();
+        else if (!this._timerId && !this._paused) this._startTimer();
+        this._renderTime();
+      }
       if (engineChanged && confirm('Draw or scoring changed. Start a new deal now?')) {
         this._newGame();
       }
@@ -342,8 +399,17 @@ export class SolitaireApp extends App {
       { label: 'Random Deal',     onClick: () => this._confirmAndNewGame() },
       { label: 'Winnable Random', onClick: () => this._startWinnable() },
       { label: 'Daily Deal',      onClick: () => this._startDailyDeal() },
+      { label: 'Replay This Deal',onClick: () => this._replayDeal() },
       { label: 'Custom Seed…',    onClick: () => this._startCustomSeed() },
     ]);
+  }
+
+  // Reuse the current deal's seed → identical card order, fresh move log.
+  // Useful when a promising line goes sideways and the player wants to try
+  // again from turn 1 with full knowledge of the deal.
+  _replayDeal() {
+    const s = this.store?.getState();
+    if (s && this._confirmAbandon()) this._newGame({ seed: s.seed });
   }
 
   _startWinnable() {
@@ -413,6 +479,8 @@ export class SolitaireApp extends App {
         case 'r': this._redo(); e.preventDefault(); break;
         case 'h': this._showHint(); e.preventDefault(); break;
         case 'a': this._autoFinish(); e.preventDefault(); break;
+        case 'p': this._togglePause(); e.preventDefault(); break;
+        case 'escape': if (this._paused) { this._resume(); e.preventDefault(); } break;
         case ' ': this._dispatch({ type: 'DRAW' }); e.preventDefault(); break;
       }
     };

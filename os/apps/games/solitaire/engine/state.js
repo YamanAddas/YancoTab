@@ -64,7 +64,9 @@ export function dealNewGame(shuffledDeck, opts = {}) {
     drawCount: opts.drawCount === 3 ? 3 : 1,
     scoring: opts.scoring || 'standard',
     moves: 0,
-    score: opts.scoring === 'vegas' ? -52 : 0,
+    // Vegas and Cumulative Vegas both charge a $52 buy-in at deal time.
+    // Cumulative carries the bank across hands (persisted in stats).
+    score: (opts.scoring === 'vegas' || opts.scoring === 'cumulative') ? -52 : 0,
     vegasBank: 0,
     startedAt: null,
     elapsedMs: 0,

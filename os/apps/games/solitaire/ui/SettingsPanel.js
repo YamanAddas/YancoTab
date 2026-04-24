@@ -51,6 +51,7 @@ export function showSettingsPanel(root, settings, onSave) {
     section('Display',
       check('sol-fourcolor', '4-color suits', !!settings.fourColor),
       check('sol-lefty', 'Left-handed layout', !!settings.leftHanded),
+      check('sol-timed', 'Show timer', settings.timed !== false),
     ),
     section('Card back',
       backSwatch('nebula', 'Nebula', (settings.cardBack || 'nebula') === 'nebula'),
@@ -74,6 +75,7 @@ export function showSettingsPanel(root, settings, onSave) {
       scoring: overlay.querySelector('input[name="scoring"]:checked')?.value || 'standard',
       fourColor: overlay.querySelector('#sol-fourcolor').checked,
       leftHanded: overlay.querySelector('#sol-lefty').checked,
+      timed: overlay.querySelector('#sol-timed').checked,
       cardBack: overlay.querySelector('input[name="cardBack"]:checked')?.value || 'nebula',
     };
     close();

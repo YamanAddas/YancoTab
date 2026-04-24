@@ -24,6 +24,9 @@ export function showStatsPanel(root, stats) {
       row('Best time',      fmtTime(stats.bestTimeSec)),
       row('Fewest moves',   stats.bestMoves == null ? '—' : String(stats.bestMoves)),
       row('Best score',     String(stats.bestScore || 0)),
+      // Cumulative Vegas bank persists across deals — only meaningful if the
+      // player has ever played a cumulative hand, so hide the row when zero.
+      ...(stats.vegasBank ? [row('Vegas bank', `$${stats.vegasBank}`)] : []),
     ]),
     el('button', { class: 'cosmic-btn', type: 'button', style: 'margin-top:16px;' }, 'Close'),
   ]);
