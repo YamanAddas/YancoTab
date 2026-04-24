@@ -10,6 +10,36 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [2.3.1] — 2026-04-24
+
+### Added
+- **Cosmic Klondike (Solitaire rewrite)** — complete replacement of the legacy blue Solitaire with a full Yanco-themed rebuild:
+  - Pure engine + view split under `os/apps/games/solitaire/` (state, rules, moves, scoring, hints, solver)
+  - Seeded Mulberry32 RNG for reproducible deals; Daily Deal keyed to UTC date
+  - Draw-1/Draw-3 modes, Standard/Vegas/Cumulative Vegas scoring, timed/relaxed toggle
+  - Winnable-only deals via bounded DFS solver; stuck detection when no legal moves remain
+  - Unlimited undo/redo, ranked hint engine, auto-finish when board is solved-but-not-done
+  - Tap-to-move and smart drag with 6px/150ms disambiguation; Pointer Events throughout
+  - Pause overlay with timer freeze; keyboard shortcuts (N/U/R/Space/H/A/P/Esc)
+  - Persistence through `kernel.storage` — game survives browser close; resume prompt on reopen
+  - Win 3.x-style card cascade on victory (physics fountain per suit, 80ms spawn, gravity + bounce damping); static gold-halo fallback on `prefers-reduced-motion`
+  - Haptics (`navigator.vibrate`) for pickup/place/invalid/win
+  - 4 card backs (Nebula/Hex/Warp/Aurora), 2-color + 4-color suit modes, left-handed mirror
+  - Stats panel with per-mode aggregates, Vegas bank tracking, streaks, best time/moves/score
+  - New stylesheet `css/cosmic/solitaire.css` — all colors resolve to tokens from `css/tokens.css`
+- `ui/haptics.js` and `ui/pause.js` helper modules to keep `SolitaireApp.js` under the 500-line cap
+
+### Changed
+- `os/boot.js` now lazy-registers `solitaire` to the new cosmic path; legacy `os/apps/games/SolitaireApp.js` and `cardEngine/` removed
+- AppStorage REGISTRY: `yancotab_solitaire_settings` gains `timed: true` default, `yancotab_solitaire_stats` gains `vegasBank: 0`
+- One-shot migration from legacy `yancotab_card_settings` localStorage key on first run
+- Service worker cache bumped to `yancotab-v2.3.1` to force eviction of stale blue Solitaire assets
+
+### Fixed
+- Version bumped to v2.3.1 across `manifest.json`, `package.json`, `os/version.js`, and `sw.js` — this bump is itself the fix for users seeing cached v2.3.0 assets (old blue Solitaire) after the mid-2.3.x rewrite
+
+---
+
 ## [2.3.0] — 2026-04-12
 
 ### Added
