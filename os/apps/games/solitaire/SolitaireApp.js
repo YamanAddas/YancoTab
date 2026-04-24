@@ -31,6 +31,12 @@ import {
   loadStats, saveStats, applyGameResult,
   loadSettings, saveSettings, defaultSettings,
 } from './persistence.js';
+import { showSettingsPanel } from './ui/SettingsPanel.js';
+import { showStatsPanel } from './ui/StatsPanel.js';
+import { showWinOverlay } from './ui/WinOverlay.js';
+import { showStuckPrompt } from './ui/StuckPrompt.js';
+import { showNewGameMenu } from './ui/NewGameMenu.js';
+import { playWinCascade } from './ui/winCascade.js';
 
 const DEFAULT_OPTS = { drawCount: 1, scoring: 'standard' };
 
@@ -285,7 +291,7 @@ export class SolitaireApp extends App {
       sfx.play('win');
       this._recordResult({ won: true, state });
       clearSave(this.kernel);
-      this._playWinCascade();
+      playWinCascade(this.board?.boardEl);
       this._showWin();
       return;
     }
@@ -323,134 +329,32 @@ export class SolitaireApp extends App {
   }
 
   _showSettings() {
-    // Dismiss any open settings modal first.
-    this.root.querySelector('.cosmic-settings-overlay')?.remove();
-
-    const s = this.settings;
-    const radio = (name, value, label, checked) => {
-      const id = `sol-${name}-${value}`;
-      const input = el('input', { type: 'radio', name, id, value });
-      if (checked) input.checked = true;
-      return el('label', { class: 'cosmic-radio', for: id }, [input, el('span', {}, label)]);
-    };
-    const check = (id, label, checked) => {
-      const input = el('input', { type: 'checkbox', id });
-      if (checked) input.checked = true;
-      return el('label', { class: 'cosmic-check', for: id }, [input, el('span', {}, label)]);
-    };
-    const section = (title, ...children) => el('div', { class: 'cosmic-settings-section' }, [
-      el('div', { class: 'cosmic-settings-label' }, title),
-      el('div', { class: 'cosmic-settings-group' }, children),
-    ]);
-
-    const card = el('div', { class: 'cosmic-win-card cosmic-settings-card' }, [
-      el('div', { class: 'cosmic-win-title' }, 'Settings'),
-      section('Draw',
-        radio('draw', '1', 'Draw 1', s.drawCount !== 3),
-        radio('draw', '3', 'Draw 3', s.drawCount === 3),
-      ),
-      section('Scoring',
-        radio('scoring', 'standard', 'Standard', s.scoring === 'standard'),
-        radio('scoring', 'vegas', 'Vegas', s.scoring === 'vegas'),
-        radio('scoring', 'cumulative', 'Cumulative Vegas', s.scoring === 'cumulative'),
-      ),
-      section('Display',
-        check('sol-fourcolor', '4-color suits', !!s.fourColor),
-        check('sol-lefty', 'Left-handed layout', !!s.leftHanded),
-      ),
-      el('div', { class: 'cosmic-settings-hint' },
-        'Draw and scoring apply on the next deal.'),
-      el('div', { class: 'cosmic-settings-actions' }, [
-        el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'cancel' }, 'Cancel'),
-        el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'save' }, 'Save'),
-      ]),
-    ]);
-    const overlay = el('div', { class: 'cosmic-win-overlay cosmic-settings-overlay' }, [card]);
-
-    const close = () => overlay.remove();
-    overlay.querySelector('[data-act="cancel"]').addEventListener('click', close);
-    overlay.querySelector('[data-act="save"]').addEventListener('click', () => {
-      const next = {
-        drawCount: overlay.querySelector('input[name="draw"]:checked')?.value === '3' ? 3 : 1,
-        scoring: overlay.querySelector('input[name="scoring"]:checked')?.value || 'standard',
-        fourColor: overlay.querySelector('#sol-fourcolor').checked,
-        leftHanded: overlay.querySelector('#sol-lefty').checked,
-      };
-      const engineChanged = next.drawCount !== s.drawCount || next.scoring !== s.scoring;
+    const prev = this.settings;
+    showSettingsPanel(this.root, prev, (next) => {
+      const engineChanged = next.drawCount !== prev.drawCount || next.scoring !== prev.scoring;
       this.settings = next;
       saveSettings(this.kernel, next);
-      // Visual settings apply live.
       this._applyVisualSettings();
-      if (next.leftHanded !== s.leftHanded) {
+      if (next.leftHanded !== prev.leftHanded) {
         this.board.setLayoutOpts({ leftHanded: next.leftHanded });
       }
-      close();
-      if (engineChanged) {
-        // Prompt whether to start a new deal to pick up the rule change.
-        if (confirm('Draw or scoring changed. Start a new deal now?')) {
-          this._newGame();
-        }
+      if (engineChanged && confirm('Draw or scoring changed. Start a new deal now?')) {
+        this._newGame();
       }
     });
-
-    this.root.append(overlay);
-    setTimeout(() => overlay.classList.add('visible'), 20);
   }
 
   _showStats() {
-    const stats = loadStats(this.kernel);
-    const winPct = stats.played ? Math.round((stats.won / stats.played) * 100) : 0;
-    const fmtTime = (s) => s == null ? '—' : `${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
-
-    const row = (label, val) => el('div', { class: 'cosmic-stat-row' }, [el('span', {}, label), el('strong', {}, val)]);
-    const overlay = el('div', { class: 'cosmic-win-overlay' }, [
-      el('div', { class: 'cosmic-win-card' }, [
-        el('div', { class: 'cosmic-win-title' }, 'Statistics'),
-        el('div', { class: 'cosmic-stats-grid' }, [
-          row('Played',         String(stats.played)),
-          row('Won',            String(stats.won)),
-          row('Win %',          `${winPct}%`),
-          row('Current streak', String(stats.currentStreak || 0)),
-          row('Longest streak', String(stats.longestStreak || 0)),
-          row('Best time',      fmtTime(stats.bestTimeSec)),
-          row('Fewest moves',   stats.bestMoves == null ? '—' : String(stats.bestMoves)),
-          row('Best score',     String(stats.bestScore || 0)),
-        ]),
-        el('button', { class: 'cosmic-btn', type: 'button', style: 'margin-top:16px;' }, 'Close'),
-      ]),
-    ]);
-    overlay.querySelector('button').addEventListener('click', () => overlay.remove());
-    this.root.append(overlay);
-    setTimeout(() => overlay.classList.add('visible'), 20);
+    showStatsPanel(this.root, loadStats(this.kernel));
   }
 
   _showNewGameMenu(anchor) {
-    // Dismiss any existing menu.
-    this.root.querySelector('.cosmic-menu')?.remove();
-    const mk = (label, onClick) => {
-      const b = el('button', { class: 'cosmic-menu-item', type: 'button' }, label);
-      b.addEventListener('click', () => { menu.remove(); onClick(); });
-      return b;
-    };
-    const menu = el('div', { class: 'cosmic-menu' }, [
-      mk('Random Deal', () => this._confirmAndNewGame()),
-      mk('Winnable Random', () => this._startWinnable()),
-      mk('Daily Deal', () => this._startDailyDeal()),
-      mk('Custom Seed…', () => this._startCustomSeed()),
+    showNewGameMenu(this.root, anchor, [
+      { label: 'Random Deal',     onClick: () => this._confirmAndNewGame() },
+      { label: 'Winnable Random', onClick: () => this._startWinnable() },
+      { label: 'Daily Deal',      onClick: () => this._startDailyDeal() },
+      { label: 'Custom Seed…',    onClick: () => this._startCustomSeed() },
     ]);
-    // Position above the toolbar anchor.
-    const rect = anchor.getBoundingClientRect();
-    const frameRect = this.root.getBoundingClientRect();
-    menu.style.position = 'absolute';
-    menu.style.right = `${Math.max(12, frameRect.right - rect.right)}px`;
-    menu.style.bottom = `${frameRect.bottom - rect.top + 8}px`;
-    this.root.append(menu);
-    const dismiss = (e) => {
-      if (menu.contains(e.target) || anchor.contains(e.target)) return;
-      menu.remove();
-      document.removeEventListener('pointerdown', dismiss, true);
-    };
-    setTimeout(() => document.addEventListener('pointerdown', dismiss, true), 0);
   }
 
   _startWinnable() {
@@ -497,86 +401,19 @@ export class SolitaireApp extends App {
 
   _showStuckPrompt() {
     this._stuckPromptOpen = true;
-    const overlay = el('div', { class: 'cosmic-win-overlay' }, [
-      el('div', { class: 'cosmic-win-card' }, [
-        el('div', { class: 'cosmic-win-title' }, 'No moves left'),
-        el('div', { class: 'cosmic-win-sub' }, 'The board is stuck. Undo the last move or start a new deal.'),
-        el('div', { class: 'cosmic-stuck-actions', style: 'display:flex; gap:10px; justify-content:center; margin-top:16px;' }, [
-          el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'undo' }, 'Undo'),
-          el('button', { class: 'cosmic-btn', type: 'button', 'data-act': 'new' }, 'New Deal'),
-        ]),
-      ]),
-    ]);
-    const close = () => { overlay.remove(); this._stuckPromptOpen = false; };
-    overlay.querySelector('[data-act="undo"]').addEventListener('click', () => { close(); this._undo(); });
-    overlay.querySelector('[data-act="new"]').addEventListener('click', () => { close(); this._newGame(); });
-    this.root.append(overlay);
-    setTimeout(() => overlay.classList.add('visible'), 20);
-  }
-
-  _playWinCascade() {
-    const host = this.board?.boardEl;
-    if (!host) return;
-    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-    const rect = host.getBoundingClientRect();
-    const canvas = document.createElement('canvas');
-    canvas.width = rect.width;
-    canvas.height = rect.height;
-    canvas.style.cssText = `position:absolute;left:0;top:0;pointer-events:none;z-index:9999;`;
-    host.append(canvas);
-    const ctx = canvas.getContext('2d');
-    const colors = ['#00e5c1', '#6b5cff', '#ffd166', '#ff4757', '#ffffff'];
-    const parts = [];
-    for (let i = 0; i < 140; i++) {
-      parts.push({
-        x: rect.width * (0.2 + Math.random() * 0.6),
-        y: -10 - Math.random() * 40,
-        vx: (Math.random() - 0.5) * 3,
-        vy: 2 + Math.random() * 3,
-        r: 3 + Math.random() * 4,
-        a: Math.random() * Math.PI * 2,
-        va: (Math.random() - 0.5) * 0.3,
-        c: colors[i % colors.length],
-      });
-    }
-    const start = performance.now();
-    const DURATION = 3500;
-    const tick = (now) => {
-      const t = now - start;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      for (const p of parts) {
-        p.vy += 0.08;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.a += p.va;
-        ctx.save();
-        ctx.translate(p.x, p.y);
-        ctx.rotate(p.a);
-        ctx.fillStyle = p.c;
-        ctx.globalAlpha = Math.max(0, 1 - t / DURATION);
-        ctx.fillRect(-p.r, -p.r * 0.4, p.r * 2, p.r * 0.8);
-        ctx.restore();
-      }
-      if (t < DURATION) requestAnimationFrame(tick);
-      else canvas.remove();
-    };
-    requestAnimationFrame(tick);
+    showStuckPrompt(this.root, {
+      onUndo: () => this._undo(),
+      onNew: () => this._newGame(),
+      onClose: () => { this._stuckPromptOpen = false; },
+    });
   }
 
   _showWin() {
-    const overlay = el('div', { class: 'cosmic-win-overlay' }, [
-      el('div', { class: 'cosmic-win-card' }, [
-        el('div', { class: 'cosmic-win-title' }, 'Victory'),
-        el('div', { class: 'cosmic-win-sub' }, `Score ${this.stats.score} · Moves ${this.stats.moves} · Time ${this.statTime.textContent.replace('Time ', '')}`),
-        el('button', { class: 'cosmic-btn', type: 'button', style: 'margin-top: 16px;' }, 'New Game'),
-      ]),
-    ]);
-    overlay.querySelector('button').addEventListener('click', () => {
-      overlay.remove();
-      this._newGame();
-    });
-    this.root.append(overlay);
-    setTimeout(() => overlay.classList.add('visible'), 20);
+    showWinOverlay(this.root, {
+      score: this.stats.score,
+      moves: this.stats.moves,
+      time: this.statTime.textContent.replace('Time ', ''),
+    }, () => this._newGame());
   }
 
   // ── Intent handler — Board click/dblclick → engine moves ──────
