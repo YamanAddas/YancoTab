@@ -481,3 +481,69 @@
     padding: 12px 14px max(20px, env(safe-area-inset-bottom, 0px) + 16px);
   }
 }
+
+/* ── Games tab: color dots ── */
+
+.ys-color-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ys-color-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  padding: 0;
+}
+
+.ys-color-dot:hover {
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.ys-color-dot.selected {
+  border-color: var(--accent, #00e5c1);
+  box-shadow: 0 0 8px var(--accent, #00e5c1);
+}
+
+/* ── Games tab: pill picker / pill group ── */
+
+.ys-pill-group {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.ys-pill {
+  padding: 5px 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.ys-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.ys-pill.selected {
+  background: var(--accent, #00e5c1);
+  color: #060b14;
+  border-color: var(--accent, #00e5c1);
+  font-weight: 600;
+}
+
+/* ── Games tab: divider ── */
+
+.ys-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 4px 0;
+}

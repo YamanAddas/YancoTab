@@ -80,6 +80,7 @@ const PRECACHE = [
     './os/apps/MemoryApp.js',
     './os/apps/NotesApp.js',
     './os/apps/SettingsApp.js',
+    './os/apps/settings/GamesSettings.js',
     './os/apps/SnakeApp.js',
     './os/apps/TicTacToeApp.js',
     './os/apps/TodoApp.js',

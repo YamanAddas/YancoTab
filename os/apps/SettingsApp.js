@@ -3,6 +3,7 @@ import { el } from '../utils/dom.js';
 import { VERSION, BUILD } from '../version.js';
 import { getThemeMode, applyThemeMode } from '../theme/theme.js';
 import { THEMES, applyColorTheme, applyWallpaper, getSavedTheme } from '../theme/themes.js';
+import { renderGames } from './settings/GamesSettings.js';
 
 const WALLPAPER_KEY = 'yancotab_wallpaper';
 const GRID_STORAGE_KEY = 'yancotab_mobile_grid_v8';
@@ -80,6 +81,7 @@ export class SettingsApp extends App {
     this.categories = [
       { id: 'appearance', label: 'Appearance', icon: '🎨' },
       { id: 'homescreen', label: 'Home', icon: '📱' },
+      { id: 'games', label: 'Games', icon: '🎮' },
       { id: 'browser', label: 'Browser', icon: '🌐' },
       { id: 'about', label: 'About', icon: 'ℹ️' },
     ];
@@ -120,6 +122,7 @@ export class SettingsApp extends App {
     const titles = {
       appearance: 'Appearance',
       homescreen: 'Home Screen',
+      games: 'Games',
       browser: 'Browser',
       about: 'About',
     };
@@ -132,6 +135,7 @@ export class SettingsApp extends App {
     switch (this.state.activeCategory) {
       case 'appearance': this._renderAppearance(scroll); break;
       case 'homescreen': this._renderHomeScreen(scroll); break;
+      case 'games': this._renderGames(scroll); break;
       case 'browser': this._renderBrowser(scroll); break;
       case 'about': this._renderAbout(scroll); break;
       default: this._renderAppearance(scroll);
@@ -233,6 +237,10 @@ export class SettingsApp extends App {
     ]));
   }
 
+  _renderGames(scroll) {
+    renderGames(scroll, this);
+  }
+
   _renderHomeScreen(container) {
     container.appendChild(this._group('Icon Layout', [
       this._actionRow('Reset Icon Positions', 'Restore default layout sorted by type and name', () => {
@@ -306,15 +314,9 @@ export class SettingsApp extends App {
   }
 
   _renderAbout(container) {
-    const ua = navigator.userAgent;
-    const isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
-    const browserName = /Firefox/i.test(ua) ? 'Firefox'
-      : /Edg/i.test(ua) ? 'Edge'
-      : /Chrome/i.test(ua) ? 'Chrome'
-      : /Safari/i.test(ua) ? 'Safari' : 'Browser';
-    const platform = isMobile
-      ? (/iPhone|iPad/i.test(ua) ? 'iOS/iPadOS' : 'Android')
-      : (/Mac/i.test(ua) ? 'macOS' : /Win/i.test(ua) ? 'Windows' : /Linux/i.test(ua) ? 'Linux' : 'Desktop');
+    const ua = navigator.userAgent, isMobile = /Mobile|Android|iPhone|iPad/i.test(ua);
+    const browserName = /Firefox/i.test(ua) ? 'Firefox' : /Edg/i.test(ua) ? 'Edge' : /Chrome/i.test(ua) ? 'Chrome' : /Safari/i.test(ua) ? 'Safari' : 'Browser';
+    const platform = isMobile ? (/iPhone|iPad/i.test(ua) ? 'iOS/iPadOS' : 'Android') : (/Mac/i.test(ua) ? 'macOS' : /Win/i.test(ua) ? 'Windows' : /Linux/i.test(ua) ? 'Linux' : 'Desktop');
 
     container.appendChild(el('div', { class: 'ys-about-hero' }, [
       el('img', { class: 'ys-about-logo', src: './assets/icons/icon-128.png', alt: 'YancoTab' }),
@@ -329,12 +331,7 @@ export class SettingsApp extends App {
     ]));
 
     let totalKeys = 0, totalSize = 0;
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (!key || !key.startsWith('yancotab')) continue;
-      totalKeys += 1;
-      totalSize += (localStorage.getItem(key) || '').length * 2;
-    }
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k?.startsWith('yancotab')) { totalKeys++; totalSize += (localStorage.getItem(k) || '').length * 2; } }
     container.appendChild(this._group('Storage', [
       this._aboutRow('YancoTab Data', `${(totalSize / 1024).toFixed(1)} KB · ${totalKeys} keys`),
     ]));
