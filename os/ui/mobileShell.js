@@ -142,8 +142,18 @@ export class MobileShell {
       this.components.grid.dotsContainer,
     );
 
+    // Ko-fi support badge — upper-left, mirrors status bar position
+    const kofiBadge = el('div', {
+      class: 'kofi-badge',
+      onclick: () => this._openKofiModal(),
+    }, [
+      el('span', { class: 'kofi-heart' }, '❤'),
+      el('span', { class: 'kofi-text' }, 'Support'),
+    ]);
+
     this.dom.wrapper.append(
       this.dom.statusBarLayer,
+      kofiBadge,
       this.dom.mainContent,
       this.components.navBar.render(),
       this.dom.appLayer,
@@ -675,6 +685,42 @@ export class MobileShell {
       // Ignore and keep full effects.
     }
     return false;
+  }
+
+  // ─── Ko-fi Modal ────────────────────────────────────────────
+
+  _openKofiModal() {
+    // Prevent duplicates
+    if (document.querySelector('.kofi-modal-backdrop')) return;
+
+    const close = () => {
+      backdrop.classList.add('is-closing');
+      setTimeout(() => backdrop.remove(), 250);
+    };
+
+    const closeBtn = el('button', {
+      class: 'kofi-modal-close',
+      type: 'button',
+      'aria-label': 'Close',
+      onclick: close,
+    }, '×');
+
+    const iframe = el('iframe', {
+      src: 'https://ko-fi.com/yamanaddas/?hidefeed=true&widget=true&embed=true',
+      class: 'kofi-modal-iframe',
+      title: 'Support YancoTab on Ko-fi',
+      frameborder: '0',
+    });
+
+    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, iframe]);
+    const backdrop = el('div', {
+      class: 'kofi-modal-backdrop',
+      onclick: (e) => { if (e.target === backdrop) close(); },
+    }, [card]);
+
+    document.body.appendChild(backdrop);
+    // Trigger entrance animation on next frame
+    requestAnimationFrame(() => backdrop.classList.add('is-visible'));
   }
 
   // ─── Alarm Overlay ──────────────────────────────────────────
