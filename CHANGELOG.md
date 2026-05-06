@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Added — Phase 3 (LAUNCH) closeout
+- **Promotional tile generator** (`promo-tile-generator.html`) — open in browser, click Download, get a 440×280 PNG ready for the Chrome Web Store listing's small tile slot. Uses the YancoTab logo on the left over a deep-space gradient with subtle starfield, accent glow, and "Your desktop, in every new tab." tagline. Required for CWS submission.
+- **Phase 3 verification:** i18n complete (`_locales/en/messages.json` + manifest `__MSG_*__` references), privacy.html shipped (covers data/permissions/external services/storage/contact), 5 store screenshots at 1280×800, manifest CSP and permissions clean (`storage` only), all 4 icon sizes present, version synced across manifest/package/version.js/sw.js, extension payload ~9MB (under 10MB limit).
+- **Remaining manual steps** before CWS submission: (1) generate the promo tile from the HTML page; (2) host `privacy.html` at a public URL and link in the CWS listing; (3) zip the extension and upload.
+
 ### Added — Phase 2 (DELIGHT) closeout
 - **`Ctrl+N`** — creates a new note when the Notes app is the active window. Calls `NotesApp._createDocument()` which writes a blank note to the filesystem and opens it in a new editor window.
 - **`Ctrl+Enter`** in SmartSearch — quick-capture as a note. Prepends `!` to whatever the user typed (existing quick-capture syntax) and triggers Enter, so the typed text becomes a new note title.
