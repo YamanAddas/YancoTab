@@ -390,6 +390,94 @@ body.in-app .kofi-badge {
   text-transform: uppercase;
 }
 
+/* ── Activity feed widget ─────────────────────────────────── */
+.widget-feed {
+  padding: 14px 16px 12px;
+  min-height: 156px;
+  text-align: left;
+  align-items: stretch;
+  cursor: default;
+}
+
+.widget-feed .w-feed-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.widget-feed .w-feed-head b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.widget-feed .w-feed-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.widget-feed .w-feed-item {
+  display: flex;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  align-items: baseline;
+}
+
+.widget-feed .w-feed-item:last-child {
+  border-bottom: 0;
+}
+
+.widget-feed .w-feed-ts {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  width: 36px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+.widget-feed .w-feed-txt {
+  font-size: 12px;
+  color: var(--text-bright);
+  line-height: 1.4;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-feed .w-feed-txt em {
+  font-style: normal;
+  color: var(--text);
+}
+
+.widget-feed .w-feed-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  padding: 16px 0;
+}
+
+body.theme-light .widget-feed .w-feed-item {
+  border-bottom-color: rgba(0, 0, 0, 0.05);
+}
+
+body.theme-light .widget-feed .w-feed-txt em {
+  color: var(--text-dim);
+}
+
 /* Active focus: subtle pulse on the ring */
 @keyframes pomoPulse {
   0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.6)); }

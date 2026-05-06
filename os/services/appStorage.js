@@ -90,7 +90,7 @@ const REGISTRY = {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
-        default: { clock: false, weather: true, todo: true, pomodoro: true },
+        default: { clock: false, weather: true, todo: true, pomodoro: true, activity: true },
         validate: (v) => v && typeof v === 'object',
     },
     yancotab_pomodoro_v1: {
@@ -99,6 +99,13 @@ const REGISTRY = {
         version: 1,
         default: { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: 0, dayKey: '' },
         validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
+    },
+    yancotab_activity_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { events: [] },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.events),
     },
     yancotab_quick_links: {
         storageClass: 'user-data',

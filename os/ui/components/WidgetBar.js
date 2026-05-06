@@ -9,14 +9,17 @@ import { kernel } from '../../kernel.js';
 import { WeatherWidget } from './widgets/WeatherWidget.js';
 import { TodoWidget } from './widgets/TodoWidget.js';
 import { PomodoroWidget } from './widgets/PomodoroWidget.js';
+import { ActivityWidget } from './widgets/ActivityWidget.js';
 
 // Clock widget intentionally excluded — the hero already shows the time at
 // 96px size, so a second clock widget in the Today bar is redundant. The
 // ClockWidget module stays around in case the design changes again.
+// Order matches the design's 1.2/1/1/1.2 row: Weather | Pomodoro | Todo | Activity.
 const WIDGET_CLASSES = {
     weather: WeatherWidget,
     pomodoro: PomodoroWidget,
     todo: TodoWidget,
+    activity: ActivityWidget,
 };
 
 export class WidgetBar {

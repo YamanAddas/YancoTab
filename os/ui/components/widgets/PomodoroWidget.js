@@ -163,10 +163,12 @@ export class PomodoroWidget {
                     s.phase = 'idle';
                     s.startedAt = null;
                     kernel.emit?.('toast', { message: `Pomodoro cycle complete · ${SESSIONS_PER_CYCLE} sessions`, type: 'success' });
+                    this._emitActivity(`Pomodoro cycle complete · ${SESSIONS_PER_CYCLE} sessions`);
                 } else {
                     s.phase = 'break';
                     s.startedAt = Date.now();
                     kernel.emit?.('toast', { message: 'Focus complete · take a 5 minute break', type: 'success' });
+                    this._emitActivity(`Pomodoro · session ${s.sessionsToday} complete`);
                 }
             } else if (s.phase === 'break') {
                 s.phase = 'idle';
@@ -211,6 +213,14 @@ export class PomodoroWidget {
         this.root.classList.toggle('is-focus', s.phase === 'focus' && !s.paused);
         this.root.classList.toggle('is-break', s.phase === 'break');
         this.root.classList.toggle('is-paused', !!s.paused);
+    }
+
+    _emitActivity(label) {
+        try {
+            window.dispatchEvent(new CustomEvent('yancotab:activity', {
+                detail: { type: 'pomodoro', label },
+            }));
+        } catch { /* ignore */ }
     }
 
     destroy() {
