@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Changed — Unified icon system closeout
+- **Built-in app icons** — all 11 standard apps and 9 games now resolve through the central icon registry (`os/ui/icons/AppIcons.js` → `PHOSPHOR_ICONS` / `GAME_ICONS`). Emoji values (`'🔢'`, `'⚙️'`, `'📝'`…) and game-prefix strings (`'game:mahjong'`…) removed from `mobileShell.js`'s apps array. User-added shortcuts still use their own `icon` (favicon URL or picked emoji) via the static-fallback path.
+- **Hex container background** — single source of truth via `getCategoryColor(appId)` (productivity blue / media purple / utilities teal / games red / external orange). Per-app gradient block deleted from `shell.css` — it was fighting the inline category color and making the icons inconsistent in light mode.
+- **Dead code removal** — `SmartIcon.js` lost 9 unreachable render methods (renderPhotos, renderMaps, renderSettings, renderBrowser, renderWeather, renderNotes, renderFolder, renderFiles, renderCalculator) — they were shadowed by the registry dispatch and never fired. 412 → 250 lines.
+
 ### Added — Light theme completion
 - **`Auto` theme mode** — third option alongside Dark/Light. New users default to Auto and follow their OS `prefers-color-scheme` setting. Runtime listener flips the theme when the user changes their OS theme without needing a tab reload.
 - **Theme settings UI** — replaces the binary Dark Mode toggle with a Dark / Light / Auto segmented control.

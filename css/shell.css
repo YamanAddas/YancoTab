@@ -396,19 +396,10 @@ body.in-app .main-content {
   object-fit: cover;
 }
 
-/* ── Hex App-Specific Backgrounds ── */
-.app-icon-settings .hex-icon-content { background: linear-gradient(145deg, #1a2a4a, #0d1b36); }
-.app-icon-browser .hex-icon-content { background: linear-gradient(145deg, #0a1e3d, #061430); }
-.app-icon-weather .hex-icon-content { background: linear-gradient(to top, #0a3d6b, #1a6fa0); }
-.app-icon-notes .hex-icon-content { background: linear-gradient(145deg, #3d2e1a, #261c0f); }
-.app-icon-files .hex-icon-content,
-.app-icon-folder .hex-icon-content { background: linear-gradient(145deg, #0d2240, #061830); }
-.app-icon-calculator .hex-icon-content { background: linear-gradient(145deg, #1a1a2e, #0a0a14); }
-.app-icon-photos .hex-icon-content { background: linear-gradient(145deg, #1a2040, #0d1428); }
-.app-icon-maps .hex-icon-content { background: linear-gradient(145deg, #0d3328, #081e18); }
-.app-icon-clock .hex-icon-content { background: radial-gradient(circle, #111e36, #0a1020); }
-.app-icon-calendar .hex-icon-content,
-.app-icon-date .hex-icon-content { background: linear-gradient(145deg, #0c1628, #081321); }
+/* Per-app hex container backgrounds are now category-tinted via inline style
+   from SmartIcon → getCategoryColor() (single source of truth in AppIcons.js).
+   Game-specific accent overlays (used by .game-tint inside the SVG render)
+   stay below — they're a different concern (overlay tone, not base color). */
 
 /* Game hex backgrounds */
 .app-icon-snake .hex-icon-content { --game-accent: rgba(40, 255, 170, 0.35); }

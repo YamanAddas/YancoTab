@@ -63,28 +63,31 @@ export class MobileShell {
     this.mount();
     this.bindEvents();
 
-    // App definitions (alphabetical, games last — they get grouped into a folder)
+    // App definitions (alphabetical, games last — they get grouped into a folder).
+    // Built-in apps have no `icon` field — SmartIcon resolves them via the
+    // PHOSPHOR_ICONS / GAME_ICONS registry by appId. Only user-added shortcuts
+    // ever set their own icon string.
     const apps = [
-      { id: 'browser',  name: 'Browser',    icon: 'assets/browser-icon.png', url: 'https://google.com' },
-      { id: 'calculator', name: 'Calculator', icon: '🔢' },
-      { id: 'clock',    name: 'Clock',      icon: '🕒' },
-      { id: 'files',    name: 'Files',      icon: '📁' },
-      { id: 'maps',     name: 'Maps',       icon: '🗺️' },
-      { id: 'notes',    name: 'Notes',      icon: '📝' },
-      { id: 'pdf-reader', name: 'PDF Reader', icon: '📕' },
-      { id: 'photos',   name: 'Photos',     icon: '🖼️' },
-      { id: 'settings', name: 'Settings',   icon: '⚙️' },
-      { id: 'todo',     name: 'Todo',       icon: '✅' },
-      { id: 'weather',  name: 'Weather',    icon: '⛅' },
-      { id: 'mahjong',        name: 'Mahjong',    icon: 'game:mahjong' },
-      { id: 'memory',         name: 'Memory',     icon: 'game:memory' },
-      { id: 'minesweeper',    name: 'Minesweeper',icon: 'game:minesweeper' },
-      { id: 'snake',          name: 'Snake',      icon: 'game:snake' },
-      { id: 'solitaire',      name: 'Solitaire',  icon: 'game:solitaire' },
-      { id: 'spider-solitaire', name: 'Spider',   icon: 'game:spider' },
-      { id: 'tarneeb',        name: 'Tarneeb',    icon: 'game:tarneeb' },
-      { id: 'tictactoe',      name: 'Tic-Tac-Toe',icon: 'game:tictactoe' },
-      { id: 'trix',           name: 'Trix',       icon: 'game:trix' },
+      { id: 'browser',          name: 'Browser',    url: 'https://google.com' },
+      { id: 'calculator',       name: 'Calculator' },
+      { id: 'clock',            name: 'Clock' },
+      { id: 'files',            name: 'Files' },
+      { id: 'maps',             name: 'Maps' },
+      { id: 'notes',            name: 'Notes' },
+      { id: 'pdf-reader',       name: 'PDF Reader' },
+      { id: 'photos',           name: 'Photos' },
+      { id: 'settings',         name: 'Settings' },
+      { id: 'todo',             name: 'Todo' },
+      { id: 'weather',          name: 'Weather' },
+      { id: 'mahjong',          name: 'Mahjong' },
+      { id: 'memory',           name: 'Memory' },
+      { id: 'minesweeper',      name: 'Minesweeper' },
+      { id: 'snake',            name: 'Snake' },
+      { id: 'solitaire',        name: 'Solitaire' },
+      { id: 'spider-solitaire', name: 'Spider' },
+      { id: 'tarneeb',          name: 'Tarneeb' },
+      { id: 'tictactoe',        name: 'Tic-Tac-Toe' },
+      { id: 'trix',             name: 'Trix' },
     ];
 
     this.components.grid.setApps(apps);
