@@ -4102,7 +4102,7 @@ body.is-mobile .m-app-layer>.app-window.app-calculator {
   min-height: 0;
   width: 100%;
   display: grid;
-  grid-template-rows: minmax(60px, 1fr) minmax(0, 2.5fr);
+  grid-template-rows: minmax(60px, 1fr) auto minmax(0, 2.5fr);
   gap: var(--calc-gap);
   padding: var(--calc-pad-top) var(--calc-pad-right) var(--calc-pad-bottom) var(--calc-pad-left);
   background: #000;
@@ -4121,6 +4121,7 @@ body.is-mobile .m-app-layer>.app-window.app-calculator {
   overflow: hidden;
   user-select: text;
   min-height: 0;
+  position: relative;
 }
 
 .calc-expression {
@@ -4265,6 +4266,87 @@ body.is-mobile .m-app-layer>.app-window.app-calculator {
   padding-left: clamp(24px, 7vw, 36px);
 }
 
+/* ── Display action buttons (copy, history) ── */
+.calc-display-actions {
+  display: flex;
+  gap: 8px;
+  position: absolute;
+  top: 6px;
+  right: 10px;
+  z-index: 2;
+}
+
+.calc-copy-btn,
+.calc-hist-btn {
+  appearance: none;
+  border: none;
+  outline: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.calc-copy-btn:hover,
+.calc-hist-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+/* ── History panel ── */
+.calc-history-panel {
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 0 clamp(16px, 3vw, 24px) 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.calc-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  gap: 12px;
+}
+
+.calc-history-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.calc-history-expr {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.45);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calc-history-result {
+  font-size: 14px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.calc-history-empty {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  padding: 8px;
+}
+
 /* ── Landscape — scientific mode ── */
 @media (orientation: landscape) {
   .app-calculator {
@@ -4276,7 +4358,7 @@ body.is-mobile .m-app-layer>.app-window.app-calculator {
   }
 
   .app-calculator .calc-shell {
-    grid-template-rows: minmax(50px, 0.5fr) minmax(0, 1fr);
+    grid-template-rows: minmax(50px, 0.5fr) auto minmax(0, 1fr);
     overflow: hidden;
   }
 

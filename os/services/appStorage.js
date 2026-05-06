@@ -414,6 +414,15 @@ const REGISTRY = {
         validate: (v) => Array.isArray(v),
     },
 
+    // ── Calculator ──
+    yancotab_calculator: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: { angleMode: 'rad', history: [] },
+        validate: (v) => v && typeof v === 'object' && (v.angleMode === 'rad' || v.angleMode === 'deg') && Array.isArray(v.history),
+    },
+
     // ── PDF Reader ──
     yancotab_pdf_recent: {
         storageClass: 'volatile',
