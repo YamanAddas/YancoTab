@@ -179,7 +179,8 @@
             YancoTab does not collect, transmit, or sell any personal data. There are
             no accounts, no analytics, no tracking, and no servers operated by us.
             Everything you create stays in your browser. The only outbound network
-            requests are to public, keyless APIs for weather and website favicons.
+            requests are to public APIs for weather, map navigation, and website
+            favicons.
         </p>
     </section>
 
@@ -233,9 +234,13 @@
     </ul>
     <p>
         We do <strong>not</strong> request access to your browsing history, open
-        tabs, bookmarks, cookies, downloads, clipboard, microphone, camera, location,
-        or the content of any web page. YancoTab injects no content scripts and runs
-        no background service worker that observes your browsing.
+        tabs, bookmarks, cookies, downloads, clipboard, microphone, or camera.
+        YancoTab injects no content scripts and runs no persistent background
+        service worker that observes your browsing (the <code>sw.js</code> file in
+        the source code is a standalone web-app cache worker and is not registered
+        by the extension manifest). The Maps app's "Nearby" button requests your
+        browser's current location — this prompts the standard browser location
+        dialog and is described in §5 below.
     </p>
 
     <h2>5. External services contacted by your browser</h2>
@@ -271,6 +276,17 @@
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>.
         </li>
         <li>
+            <strong>Maps app — Google Maps</strong>
+            (<code>www.google.com/maps</code>) — the Maps app opens Google Maps
+            in a new browser tab for searches, directions, and map views. When you
+            tap "Nearby", the app requests your browser's current location via the
+            standard browser geolocation dialog; if you grant it, your coordinates
+            are passed directly to Google Maps in the URL of the new tab. We do not
+            receive or store your location. See
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>
+            for how Google handles location and map data.
+        </li>
+        <li>
             <strong>Browser app web requests</strong> — when you use the in-tab
             Browser app to navigate to a URL, your browser contacts that URL the
             same way it would in a normal tab. YancoTab is not in the middle of that
@@ -280,9 +296,9 @@
     <p>
         Each of these third parties may log your IP address as part of normal web
         traffic. We have no control over their logs and receive no copy of them.
-        If this is a concern, the affected features (Weather, Browser app,
-        bookmark favicons) can be left unused without affecting the rest of the
-        extension.
+        If this is a concern, the affected features (Weather, Maps app, Browser
+        app, bookmark favicons) can be left unused without affecting the rest of
+        the extension.
     </p>
 
     <h2>6. Cookies and tracking</h2>
