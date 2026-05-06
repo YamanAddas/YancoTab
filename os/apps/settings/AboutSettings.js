@@ -6,6 +6,7 @@
  */
 
 import { el } from '../../utils/dom.js';
+import { showConfirm } from '../../ui/components/YancoModal.js';
 import { VERSION, BUILD } from '../../version.js';
 
 /**
@@ -94,14 +95,14 @@ function _dataActions(container, app, storage) {
         const file = input.files[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
+        reader.onload = async () => {
           try {
             const json = JSON.parse(reader.result);
             if (storage && json.exportVersion) {
               const result = storage.importAll(json);
               app.kernel.emit('toast', { message: `Imported ${result.imported.length} keys`, type: 'success' });
             } else {
-              if (!confirm('Import legacy settings file? This will overwrite current data.')) return;
+              if (!await showConfirm('Import Data', 'This will overwrite current data. Continue?')) return;
               for (const [key, value] of Object.entries(json)) {
                 if (typeof key === 'string' && key.startsWith('yancotab')) {
                   localStorage.setItem(key, typeof value === 'string' ? value : JSON.stringify(value));
@@ -118,9 +119,9 @@ function _dataActions(container, app, storage) {
       };
       input.click();
     }),
-    app._actionRow('Reset YancoTab', 'Erase all settings and app data', () => {
-      if (!confirm('This will delete all YancoTab data. Continue?')) return;
-      if (!confirm('Are you absolutely sure? This cannot be undone.')) return;
+    app._actionRow('Reset YancoTab', 'Erase all settings and app data', async () => {
+      if (!await showConfirm('Reset YancoTab', 'This will delete all settings and app data.', { danger: true })) return;
+      if (!await showConfirm('Are you sure?', 'This cannot be undone.', { danger: true })) return;
       const prefixes = ['yancotab', 'desktop_', 'dock_'];
       const toRemove = [];
       for (let i = 0; i < localStorage.length; i++) {

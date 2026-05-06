@@ -6,6 +6,7 @@
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
+import { showConfirm, showPrompt } from './YancoModal.js';
 
 const MAX_VISIBLE = 8;
 const FAVICON_URL = (domain) => `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=64`;
@@ -51,8 +52,8 @@ export class QuickLinks {
 
             let pressTimer;
             item.addEventListener('pointerdown', () => {
-                pressTimer = setTimeout(() => {
-                    if (confirm(`Remove "${link.label || domain}" from quick links?`)) {
+                pressTimer = setTimeout(async () => {
+                    if (await showConfirm('Remove Link', `Remove "${link.label || domain}" from quick links?`)) {
                         const all = kernel.storage?.load('yancotab_quick_links') || [];
                         const filtered = all.filter(l => l.url !== link.url);
                         kernel.storage?.save('yancotab_quick_links', filtered);
@@ -85,8 +86,8 @@ export class QuickLinks {
         }
     }
 
-    _addLink() {
-        const url = prompt('Enter URL (e.g. https://example.com):');
+    async _addLink() {
+        const url = await showPrompt('Add Link', 'Enter URL:', 'https://', { placeholder: 'https://example.com' });
         if (!url) return;
         try {
             const parsed = new URL(url);
@@ -94,7 +95,8 @@ export class QuickLinks {
                 kernel.emit('toast', { message: 'Only https/http URLs allowed', type: 'error' });
                 return;
             }
-            const label = prompt('Label (optional):', parsed.hostname.replace('www.', '')) || parsed.hostname.replace('www.', '');
+            const defaultLabel = parsed.hostname.replace('www.', '');
+            const label = await showPrompt('Link Label', 'Display name:', defaultLabel) || defaultLabel;
             const links = kernel.storage?.load('yancotab_quick_links') || [];
             links.push({ label, url: parsed.href });
             kernel.storage?.save('yancotab_quick_links', links);

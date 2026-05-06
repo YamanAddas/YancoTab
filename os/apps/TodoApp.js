@@ -1,5 +1,6 @@
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
+import { showConfirm, showPrompt, showAlert } from '../ui/components/YancoModal.js';
 
 const STORAGE_KEY = 'yancotab_todo_v1';
 const SAVE_DEBOUNCE_MS = 260;
@@ -329,17 +330,17 @@ export class TodoApp extends App {
         this.render();
     }
 
-    _clearDone(list) {
+    async _clearDone(list) {
         const count = list.tasks.filter((t) => t.done).length;
         if (!count) return;
-        if (!confirm(`Clear ${count} completed task${count > 1 ? 's' : ''}?`)) return;
+        if (!await showConfirm('Clear Completed', `Remove ${count} completed task${count > 1 ? 's' : ''}?`)) return;
         list.tasks = list.tasks.filter((t) => !t.done);
         this._save();
         this.render();
     }
 
-    _addList() {
-        const name = prompt('List name:');
+    async _addList() {
+        const name = await showPrompt('New List', 'List name:');
         if (!name || !name.trim()) return;
         const newList = {
             id: this._id(),
@@ -352,30 +353,28 @@ export class TodoApp extends App {
         this.render();
     }
 
-    _listContextMenu(list) {
-        const action = prompt(`"${list.name}"\n\nType 'rename' to rename or 'delete' to delete:`);
-        if (!action) return;
-
-        if (action.toLowerCase() === 'rename') {
-            const newName = prompt('New name:', list.name);
-            if (newName && newName.trim()) {
-                list.name = newName.trim().slice(0, 30);
-                this._save();
-                this.render();
-            }
-        } else if (action.toLowerCase() === 'delete') {
-            if (this.data.lists.length <= 1) {
-                alert('Cannot delete the last list.');
-                return;
-            }
-            if (!confirm(`Delete "${list.name}" and all its tasks?`)) return;
-            this.data.lists = this.data.lists.filter((l) => l.id !== list.id);
-            if (this.activeListId === list.id) {
-                this.activeListId = this.data.lists[0]?.id;
-            }
+    async _listContextMenu(list) {
+        const newName = await showPrompt('Rename List', 'Enter new name:', list.name);
+        if (newName === null) return;
+        if (newName.trim()) {
+            list.name = newName.trim().slice(0, 30);
             this._save();
             this.render();
         }
+    }
+
+    async _deleteList(list) {
+        if (this.data.lists.length <= 1) {
+            await showAlert('Cannot Delete', 'You must keep at least one list.');
+            return;
+        }
+        if (!await showConfirm('Delete List', `Delete "${list.name}" and all its tasks?`, { danger: true })) return;
+        this.data.lists = this.data.lists.filter((l) => l.id !== list.id);
+        if (this.activeListId === list.id) {
+            this.activeListId = this.data.lists[0]?.id;
+        }
+        this._save();
+        this.render();
     }
 
     // ─── Helpers ─────────────────────────────────────────────

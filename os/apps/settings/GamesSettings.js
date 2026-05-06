@@ -6,6 +6,7 @@
  */
 
 import { el } from '../../utils/dom.js';
+import { showConfirm } from '../../ui/components/YancoModal.js';
 
 /* ── Storage keys ── */
 
@@ -227,8 +228,8 @@ function _statsAndReset(container, storage, app, toast) {
   container.appendChild(app._group('Stats', statLines));
 
   container.appendChild(app._group('Data', [
-    app._actionRow('Reset All Game Stats', 'Clear stats for every game', () => {
-      if (!confirm('Reset all game statistics? This cannot be undone.')) return;
+    app._actionRow('Reset All Game Stats', 'Clear stats for every game', async () => {
+      if (!await showConfirm('Reset Stats', 'Clear stats for every game? This cannot be undone.', { danger: true })) return;
       // Solitaire + Spider stats
       storage.save(SOL_STATS, { played: 0, won: 0, bestTimeSec: null, bestMoves: null, bestScore: 0, currentStreak: 0, longestStreak: 0, vegasBank: 0 });
       storage.save(SPIDER_STATS, { played: 0, won: 0, bestTimeSec: { 1: null, 2: null, 4: null }, bestMoves: { 1: null, 2: null, 4: null }, bestScore: { 1: 0, 2: 0, 4: 0 }, currentStreak: 0, longestStreak: 0 });

@@ -5,6 +5,8 @@
  * and privacy actions (clear history, clear bookmarks).
  */
 
+import { showConfirm } from '../../ui/components/YancoModal.js';
+
 const BROWSER_PREFS_KEY = 'yancotab_browser_prefs';
 const BROWSER_STATE_KEY = 'yancotab_browser_v1';
 const LEGACY_BOOKMARKS_KEY = 'yancotab_bookmarks';
@@ -84,15 +86,15 @@ export function renderBrowser(container, app) {
   ]));
 
   container.appendChild(app._group('Privacy & Data', [
-    app._actionRow('Clear Browsing History', 'Remove saved recent links', () => {
-      if (!confirm('Clear browsing history?')) return;
+    app._actionRow('Clear Browsing History', 'Remove saved recent links', async () => {
+      if (!await showConfirm('Clear History', 'Remove all saved recent links?', { danger: true })) return;
       const state = readJson(BROWSER_STATE_KEY, {}, storage);
       state.history = [];
       storage.save(BROWSER_STATE_KEY, state);
       app.kernel.emit('toast', { message: 'History cleared', type: 'success' });
     }, true),
-    app._actionRow('Clear Bookmarks', 'Remove saved bookmarks', () => {
-      if (!confirm('Clear saved bookmarks?')) return;
+    app._actionRow('Clear Bookmarks', 'Remove saved bookmarks', async () => {
+      if (!await showConfirm('Clear Bookmarks', 'Remove all saved bookmarks?', { danger: true })) return;
       const state = readJson(BROWSER_STATE_KEY, {}, storage);
       state.bookmarks = [];
       storage.save(BROWSER_STATE_KEY, state);

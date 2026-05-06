@@ -25,6 +25,7 @@ const PRECACHE = [
     './css/trix.css',
     './css/mahjong.css',
     './css/settings.css',
+    './css/modal.css',
     './css/todo.css',
     './css/maps.css',
     './os/ui/bubbly.css',
@@ -71,6 +72,7 @@ const PRECACHE = [
     './os/ui/components/widgets/WeatherWidget.js',
     './os/ui/components/widgets/TodoWidget.js',
     './os/ui/components/Toast.js',
+    './os/ui/components/YancoModal.js',
     './os/ui/components/Onboarding.js',
     './os/ui/components/QuickLinks.js',
     // Apps

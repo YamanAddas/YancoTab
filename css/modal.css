@@ -1,0 +1,148 @@
+/* ============================================================
+   YancoTab — Modal Styles (YancoModal)
+   Glass-effect confirm / prompt / alert dialogs
+   ============================================================ */
+
+.ym-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  padding: 20px;
+}
+
+.ym-backdrop.ym-visible {
+  opacity: 1;
+}
+
+.ym-card {
+  width: 100%;
+  max-width: 340px;
+  background: var(--glass-surface-2, rgba(14, 18, 28, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow:
+    0 24px 48px rgba(0, 0, 0, 0.4),
+    inset 0 0 0 1px rgba(var(--accent-rgb, 0,229,193), 0.08);
+  transform: scale(0.95) translateY(8px);
+  transition: transform 0.2s ease;
+}
+
+.ym-visible .ym-card {
+  transform: scale(1) translateY(0);
+}
+
+.ym-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--surface-text, #e0e4ec);
+}
+
+.ym-body {
+  margin: 0 0 20px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #8f9198;
+}
+
+.ym-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: var(--glass-surface-3, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  color: var(--surface-text, #e0e4ec);
+  font-size: 14px;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.ym-input:focus {
+  border-color: rgba(var(--accent-rgb, 0,229,193), 0.4);
+}
+
+.ym-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.ym-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 80px;
+  text-align: center;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.ym-btn:active {
+  transform: scale(0.96);
+}
+
+.ym-btn--cancel {
+  background: rgba(255, 255, 255, 0.06);
+  color: #8f9198;
+}
+
+.ym-btn--cancel:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--surface-text, #e0e4ec);
+}
+
+.ym-btn--confirm {
+  background: var(--accent, #00e5c1);
+  color: var(--accent-contrast, #0a0f1a);
+  box-shadow: 0 2px 12px rgba(var(--accent-rgb, 0,229,193), 0.25);
+}
+
+.ym-btn--confirm:hover {
+  box-shadow: 0 4px 20px rgba(var(--accent-rgb, 0,229,193), 0.35);
+}
+
+.ym-btn--danger {
+  background: #ff453a;
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(255, 69, 58, 0.25);
+}
+
+.ym-btn--danger:hover {
+  box-shadow: 0 4px 20px rgba(255, 69, 58, 0.35);
+}
+
+/* ── Light mode ── */
+.light-mode .ym-card,
+[data-theme="light"] .ym-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.light-mode .ym-title,
+[data-theme="light"] .ym-title { color: #1a1a2e; }
+
+.light-mode .ym-body,
+[data-theme="light"] .ym-body { color: #555; }
+
+.light-mode .ym-input,
+[data-theme="light"] .ym-input {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.1);
+  color: #1a1a2e;
+}
