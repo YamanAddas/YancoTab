@@ -73,6 +73,7 @@ export class TarneebApp extends App {
     this._animTimer = null;
     this._layoutFrame = null;
     this._setupDiff = 'moderate';
+    this._stats = { gamesPlayed: 0, gamesWon: 0 };
   }
 
   async init() {
@@ -97,6 +98,7 @@ export class TarneebApp extends App {
       window.visualViewport?.removeEventListener?.('scroll', onResize);
     };
 
+    this._loadPrefs();
     this.store = createStore(tarneebReducer, initTarneebMatch());
     this._prevState = this.store.getState();
     this._unsub = this.store.subscribe((state, events = []) => {
@@ -127,6 +129,29 @@ export class TarneebApp extends App {
     return null;
   }
 
+  /* ── Persistence ── */
+
+  _loadPrefs() {
+    try {
+      const d = this.kernel.storage.load('yancotab_tarneeb') || {};
+      if (d.difficulty && ['easy','moderate','hard'].includes(d.difficulty)) this._setupDiff = d.difficulty;
+      this._stats = {
+        gamesPlayed: d.gamesPlayed || 0,
+        gamesWon: d.gamesWon || 0,
+      };
+    } catch {}
+  }
+
+  _savePrefs() {
+    try {
+      this.kernel.storage.save('yancotab_tarneeb', {
+        difficulty: this._setupDiff,
+        gamesPlayed: this._stats.gamesPlayed,
+        gamesWon: this._stats.gamesWon,
+      });
+    } catch {}
+  }
+
   _playerName(seat) { return SEAT_NAMES[seat] || seat; }
   _suitSymbol(suit) { return SUIT_SYMBOLS[suit] || '🃏'; }
   _rankLabel(rank) {
@@ -146,7 +171,7 @@ export class TarneebApp extends App {
   _setupScreen() {
     const db = (d, label) => el('button', {
       class: 'trix-setup-btn tar-setup-btn' + (this._setupDiff === d ? ' is-active' : ''),
-      onclick: () => { this._setupDiff = d; this.render(this.store.getState()); },
+      onclick: () => { this._setupDiff = d; this._savePrefs(); this.render(this.store.getState()); },
     }, label);
 
     return el('div', { class: 'trix-setup tar-setup' }, [
@@ -581,6 +606,9 @@ export class TarneebApp extends App {
         this.setStatus('Round scored');
       } else if (ev.type === 'game:end') {
         this.setStatus(`${ev.winnerTeam} wins the match`);
+        this._stats.gamesPlayed++;
+        if (ev.winnerTeam === 'NS') this._stats.gamesWon++;
+        this._savePrefs();
       } else if (ev.type === 'match:reset') {
         this.setStatus('Match reset');
       } else if (ev.type === 'error') {

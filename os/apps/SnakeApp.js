@@ -60,7 +60,7 @@ export class SnakeApp extends App {
         this.canvas.tabIndex = 0;
         this.root.appendChild(this.canvas);
 
-        this.game = new NeonSerpent(this.canvas, () => this._checkResize());
+        this.game = new NeonSerpent(this.kernel, this.canvas, () => this._checkResize());
 
         /* Poll until root is in the DOM and visible, then start the game loop.
            ResizeObserver doesn't fire for elements not yet in the document. */
@@ -110,7 +110,8 @@ export class SnakeApp extends App {
    NeonSerpent — Core game engine
    ════════════════════════════════════════════════════════════════ */
 class NeonSerpent {
-    constructor(canvas, onFrame) {
+    constructor(kernel, canvas, onFrame) {
+        this.kernel = kernel;
         this.cv = canvas;
         this.ctx = canvas.getContext('2d');
         this._onFrame = onFrame;       // called every frame for resize check

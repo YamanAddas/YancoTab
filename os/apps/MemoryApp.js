@@ -60,7 +60,7 @@ export class MemoryApp extends App {
         });
         this.root.appendChild(this.canvas);
 
-        this.game = new NeonRecall(this.canvas, () => this._checkResize());
+        this.game = new NeonRecall(this.kernel, this.canvas, () => this._checkResize());
         this._pollStart();
     }
 
@@ -105,7 +105,8 @@ export class MemoryApp extends App {
    NeonRecall — Core game engine
    ════════════════════════════════════════════════════════════════ */
 class NeonRecall {
-    constructor(canvas, onFrame) {
+    constructor(kernel, canvas, onFrame) {
+        this.kernel = kernel;
         this.cv = canvas;
         this.ctx = canvas.getContext('2d');
         this._onFrame = onFrame;

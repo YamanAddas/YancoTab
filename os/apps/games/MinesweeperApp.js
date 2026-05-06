@@ -67,7 +67,7 @@ export class MinesweeperApp extends App {
         });
         this.root.appendChild(this.canvas);
 
-        this.game = new NeonMines(this.canvas, () => this._checkResize());
+        this.game = new NeonMines(this.kernel, this.canvas, () => this._checkResize());
         this._pollStart();
     }
 
@@ -112,7 +112,8 @@ export class MinesweeperApp extends App {
    NeonMines — Core game engine
    ════════════════════════════════════════════════════════════════ */
 class NeonMines {
-    constructor(canvas, onFrame) {
+    constructor(kernel, canvas, onFrame) {
+        this.kernel = kernel;
         this.cv = canvas;
         this.ctx = canvas.getContext('2d');
         this._onFrame = onFrame;

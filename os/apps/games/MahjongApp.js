@@ -77,27 +77,30 @@ function shuffle(arr) {
 function turtleLayout() {
   const positions = [];
 
-  // Layer 0 — main base (12 cols × 8 rows with notches) — 86 tiles
+  // Layer 0 — base — 109 tiles (108 grid + 1 tail wing)
+  // Symmetric diamond centered at col 11, row 7
   const L0 = [
-    //          col  row
-    // Row 0: 12 tiles
-    ...[...Array(12)].map((_,i) => [i*2, 0]),
-    // Row 1: 8 tiles (inset)
-    ...[...Array(8)].map((_,i) => [i*2+4, 2]),
-    // Row 2: 10 tiles
-    ...[...Array(10)].map((_,i) => [i*2+2, 4]),
-    // Row 3: 12 + 2 wings = 14 tiles
-    [0, 6], ...[...Array(12)].map((_,i) => [i*2+2, 6]), [26, 6],
-    // Row 4: 12 + 2 wings = 14 tiles  
-    [0, 8], ...[...Array(12)].map((_,i) => [i*2+2, 8]), [26, 8],
-    // Row 5: 10 tiles
-    ...[...Array(10)].map((_,i) => [i*2+2, 10]),
-    // Row 6: 8 tiles (inset)
-    ...[...Array(8)].map((_,i) => [i*2+4, 12]),
-    // Row 7: 12 tiles
-    ...[...Array(12)].map((_,i) => [i*2, 14]),
+    // Row 0: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 0]),
+    // Row 1: 12 tiles  (cols 0 to 22, inset)
+    ...[...Array(12)].map((_,i) => [i*2, 2]),
+    // Row 2: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 4]),
+    // Row 3: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 6]),
+    // Row 4: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 8]),
+    // Row 5: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 10]),
+    // Row 6: 12 tiles  (cols 0 to 22, inset)
+    ...[...Array(12)].map((_,i) => [i*2, 12]),
+    // Row 7: 14 tiles  (cols -2 to 24)
+    ...[...Array(14)].map((_,i) => [i*2 - 2, 14]),
   ];
   L0.forEach(([c,r]) => positions.push({ col: c, row: r, layer: 0 }));
+  // Tail wing — single right extension
+  positions.push({ col: 26, row: 14, layer: 0 });
+  // L0 total: 109
 
   // Layer 1 — 6×4 centered — 24 tiles
   for (let r = 0; r < 4; r++) {
@@ -117,29 +120,15 @@ function turtleLayout() {
   positions.push({ col: 10, row: 7, layer: 3 });
   positions.push({ col: 12, row: 7, layer: 3 });
 
-  // Extra wings for layer 0 — left and right single extensions
-  // Left wing (col -2, row 7)
-  positions.push({ col: -2, row: 7, layer: 0 });
-  // Right wing sticks out further
-  positions.push({ col: 28, row: 7, layer: 0 });
-
-  // Cap tile (layer 4)
+  // Cap tile (layer 4) — 1 tile
   positions.push({ col: 11, row: 7, layer: 4 });
 
+  // Total: 109 + 24 + 8 + 2 + 1 = 144
   return positions;
 }
 
-// Trim/normalise to exactly 144 positions.
-// The turtle layout above yields ~146; we trim from the densest L0 rows.
 function getLayout() {
-  let pos = turtleLayout();
-  // We generated slightly more than 144 for visual completeness; trim extras from end of L0
-  if (pos.length > 144) pos = pos.slice(0, 144);
-  // If under 144, pad with extra layer-0 positions
-  while (pos.length < 144) {
-    pos.push({ col: 0, row: 0, layer: 0 });
-  }
-  return pos;
+  return turtleLayout();
 }
 
 /* ─── Game Logic ─── */
@@ -312,7 +301,25 @@ export class MahjongApp extends App {
     this.resizeObserver = new ResizeObserver(() => this.fitBoard());
     this.resizeObserver.observe(this.boardEl);
 
+    this._loadStats();
     this.newGame();
+  }
+
+  /* ── Persistence ── */
+
+  _loadStats() {
+    try {
+      const d = this.kernel.storage.load('yancotab_mahjong') || {};
+      this.stats = {
+        gamesPlayed: d.gamesPlayed || 0,
+        gamesWon: d.gamesWon || 0,
+        bestTime: d.bestTime || null,
+      };
+    } catch { this.stats = { gamesPlayed: 0, gamesWon: 0, bestTime: null }; }
+  }
+
+  _saveStats() {
+    try { this.kernel.storage.save('yancotab_mahjong', this.stats); } catch {}
   }
 
   /* ── Game lifecycle ── */
@@ -327,6 +334,8 @@ export class MahjongApp extends App {
       this.game.shuffleRemaining();
       this.game.shufflesUsed = 0;
     }
+
+    if (this.stats) { this.stats.gamesPlayed++; this._saveStats(); }
 
     this.startTimer();
     this.renderBoard();
@@ -570,10 +579,21 @@ export class MahjongApp extends App {
     const m = Math.floor(s / 60);
     const timeStr = `${m}:${(s%60).toString().padStart(2,'0')}`;
 
+    if (this.stats) {
+      this.stats.gamesWon++;
+      if (this.stats.bestTime === null || s < this.stats.bestTime) this.stats.bestTime = s;
+      this._saveStats();
+    }
+
+    const bestStr = this.stats?.bestTime != null
+      ? `Best: ${Math.floor(this.stats.bestTime / 60)}:${(this.stats.bestTime % 60).toString().padStart(2, '0')}`
+      : '';
+
     const overlay = el('div', { class: 'mj-overlay' }, [
       el('div', { class: 'mj-overlay-title win' }, '🎉 You Win!'),
       el('div', { class: 'mj-overlay-sub' },
-        `Moves: ${this.game.moves}  •  Time: ${timeStr}\nHints: ${this.game.hintsUsed}  •  Shuffles: ${this.game.shufflesUsed}`),
+        `Moves: ${this.game.moves}  •  Time: ${timeStr}\nHints: ${this.game.hintsUsed}  •  Shuffles: ${this.game.shufflesUsed}`
+        + (bestStr ? `\n${bestStr}` : '')),
       el('button', { class: 'mj-overlay-btn', onclick: () => this.newGame() }, '▶ Play Again'),
     ]);
     this.root.appendChild(overlay);

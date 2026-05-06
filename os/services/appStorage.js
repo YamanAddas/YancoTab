@@ -371,6 +371,33 @@ const REGISTRY = {
         validate: (v) => v && typeof v === 'object',
     },
 
+    // ── Mahjong ──
+    yancotab_mahjong: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+
+    // ── Tarneeb ──
+    yancotab_tarneeb: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+
+    // ── Trix ──
+    yancotab_trix: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+
     // ── Maps ──
     yancotab_maps_recents: {
         storageClass: 'volatile',

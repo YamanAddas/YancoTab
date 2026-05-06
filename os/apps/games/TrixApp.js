@@ -42,6 +42,7 @@ export class TrixApp extends App {
     this._setupMode = 'single'; this._setupDiff = 'moderate'; this._setupRules = 'classic';
     this._scoreCompact = false;
     this._scorePrefLocked = false;
+    this._stats = { gamesPlayed: 0, gamesWon: 0 };
   }
 
   async init() {
@@ -65,6 +66,7 @@ export class TrixApp extends App {
       window.visualViewport?.removeEventListener?.('scroll', onR);
     };
 
+    this._loadPrefs();
     this.store = createStore(trixReducer, initMatch());
     this._prevState = this.store.getState();
     this._unsub = this.store.subscribe((state, events = []) => {
@@ -89,6 +91,34 @@ export class TrixApp extends App {
   }
 
   dispatch(action) { try { return this.store.dispatch(action); } catch (e) { console.error(e); } }
+
+  /* ── Persistence ── */
+
+  _loadPrefs() {
+    try {
+      const d = this.kernel.storage.load('yancotab_trix') || {};
+      if (d.mode && ['single','partners'].includes(d.mode)) this._setupMode = d.mode;
+      if (d.difficulty && ['easy','moderate','hard'].includes(d.difficulty)) this._setupDiff = d.difficulty;
+      if (d.rules && ['classic','jawaker2025'].includes(d.rules)) this._setupRules = d.rules;
+      this._stats = {
+        gamesPlayed: d.gamesPlayed || 0,
+        gamesWon: d.gamesWon || 0,
+      };
+    } catch {}
+  }
+
+  _savePrefs() {
+    try {
+      this.kernel.storage.save('yancotab_trix', {
+        mode: this._setupMode,
+        difficulty: this._setupDiff,
+        rules: this._setupRules,
+        gamesPlayed: this._stats.gamesPlayed,
+        gamesWon: this._stats.gamesWon,
+      });
+    } catch {}
+  }
+
   _contractHint(id, state = null) {
     const meta = CONTRACT_META[id] || { icon: '🃏', title: '', goal: '', score: '' };
     const profile = state?.ruleProfile || this._setupRules || 'classic';
@@ -133,17 +163,17 @@ export class TrixApp extends App {
   _setupScreen() {
     const mb = (m, label) => el('button', {
       class: 'trix-setup-btn' + (this._setupMode === m ? ' is-active' : ''),
-      onclick: () => { this._setupMode = m; this.render(this.store.getState()); }
+      onclick: () => { this._setupMode = m; this._savePrefs(); this.render(this.store.getState()); }
     }, label);
 
     const db = (d, label) => el('button', {
       class: 'trix-setup-btn' + (this._setupDiff === d ? ' is-active' : ''),
-      onclick: () => { this._setupDiff = d; this.render(this.store.getState()); }
+      onclick: () => { this._setupDiff = d; this._savePrefs(); this.render(this.store.getState()); }
     }, label);
 
     const rb = (r, label) => el('button', {
       class: 'trix-setup-btn' + (this._setupRules === r ? ' is-active' : ''),
-      onclick: () => { this._setupRules = r; this.render(this.store.getState()); },
+      onclick: () => { this._setupRules = r; this._savePrefs(); this.render(this.store.getState()); },
     }, label);
 
     const teamInfo = this._setupMode === 'partners'
@@ -666,6 +696,17 @@ export class TrixApp extends App {
         this._syncAdaptivePrefs({ force: true });
         this.setStatus('Match reset');
       }
+    }
+    // Detect phase transition to GAME_END
+    if (next.phase === 'GAME_END' && prev.phase !== 'GAME_END') {
+      this._stats.gamesPlayed++;
+      if (next.mode === 'partners') {
+        if ((next.teamScores?.A ?? 0) > (next.teamScores?.B ?? 0)) this._stats.gamesWon++;
+      } else {
+        const sorted = ['south','east','north','west'].sort((a,b) => (next.scores[b]||0) - (next.scores[a]||0));
+        if (sorted[0] === 'south') this._stats.gamesWon++;
+      }
+      this._savePrefs();
     }
   }
 
