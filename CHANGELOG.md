@@ -10,6 +10,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Added — V1 completion polish
+- **YancoModal system** — async modal dialogs (`showConfirm`, `showPrompt`, `showAlert`) with glass backdrop, Enter/Escape/click-outside support. Replaces native `confirm()`/`prompt()` in Settings, Todo, QuickLinks (14 call sites). CSS in `css/modal.css`.
+- **Mahjong undo** — single-level undo restores the last matched pair. Undo button in header, disabled until a match is made.
+- **Mahjong hover highlighting** — free tiles glow with teal outline on hover.
+- **Card play animations** — CSS keyframes for `is-place-anim` in Tarneeb and Trix (was dead code with no CSS). Cards slide up and scale in when played to trick table.
+- **Haptic feedback** — vibrate on card play (15ms) and trick win (10-30-10ms) in Tarneeb and Trix.
+- **Calculator parentheses** — expression stack enables `(2+3)*4=20`. Was broken (returned early).
+- **Calculator keyboard input** — digits, operators, Enter, Escape, Backspace all work from physical keyboard.
+- **Calculator history** — last 20 calculations shown in toggleable panel, tappable to reuse result.
+- **Calculator copy-to-clipboard** — button in display copies current value.
+- **Calculator persistence** — angle mode and history saved via `kernel.storage`.
+
+### Changed — V1 completion refactors
+- **SettingsApp extraction** — 6 tab modules extracted to `os/apps/settings/` (Appearance, Home, Games, Apps, Browser, About). Shell reduced from 499 to 154 lines.
+- **TodoApp CSS extraction** — inline styles moved to `css/todo.css` (381 lines). App reduced from 791 to 408 lines.
+- **MapsApp CSS extraction** — inline styles moved to `css/maps.css` (413 lines). App reduced from 681 to 263 lines. Fixed duplicate style injection on every render.
+- **TarneebApp view extraction** — UI builders moved to `tarneeb/tarneebView.js` (367 lines). App reduced from 707 to 396 lines.
+- **TrixApp view extraction** — UI builders moved to `trix/trixView.js` (465 lines). App reduced from 789 to 314 lines.
+- **CalculatorApp compaction** — `KEY_ROWS` constant and `SCI_UNARY` lookup table replace verbose methods. Reduced from 520 to 422 lines.
+- **Shared game modules** — `haptics.js`, `overlay.js`, `hash.js` deduplicated from Solitaire/Spider into `os/apps/games/shared/`. 4 duplicate files deleted.
+
+### Removed
+- `css/minesweeper.css` — dead file (Minesweeper is a canvas game, never used external CSS).
+- `os/apps/games/solitaire/ui/pause.js` — never imported.
+- Duplicate `haptics.js` and `overlay.js` from Solitaire and Spider `ui/` directories.
+
 ### Added
 - **`privacy.html`** — full public privacy policy page (12 sections: data collection, storage, permissions, third-party APIs, COPPA, security, contact). Matches landing.html visual system, self-contained, indexable. Linked from landing.html footer.
 - **`_locales/en/messages.json`** — i18n message catalog with `appName`, `appShortName`, `appDescription`. Required for the `__MSG_*__` placeholders in the manifest and as the foundation for future locale additions.
