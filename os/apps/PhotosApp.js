@@ -14,8 +14,6 @@ import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
 import { ocrService } from '../services/ocrService.js';
 
-const VIEW_KEY = 'yancotab_photos_view';
-const SORT_KEY = 'yancotab_photos_sort';
 const PHOTOS_DIR = '/home/photos';
 const LEGACY_GALLERY_KEY = 'yancotab_photos_gallery';
 const MIGRATION_FLAG = 'yancotab_photos_migrated_v1';
@@ -26,8 +24,8 @@ export class PhotosApp extends App {
         this.metadata = { name: 'Photos', id: 'photos', icon: '\uD83D\uDDBC\uFE0F' };
 
         this.mode = 'gallery'; // gallery | editor | wallpaper
-        this.viewMode = localStorage.getItem(VIEW_KEY) || 'grid';
-        this.sortMode = localStorage.getItem(SORT_KEY) || 'date';
+        this.viewMode = kernel.storage.load('yancotab_photos_view') || 'grid';
+        this.sortMode = kernel.storage.load('yancotab_photos_sort') || 'date';
         this.gallery = [];
         this.selectedIds = new Set();
         this.editor = null;
@@ -140,6 +138,7 @@ export class PhotosApp extends App {
         }
     }
 
+    // Intentional direct localStorage: one-shot pre-v2 migration, never written back.
     _migrateLegacyGallery() {
         if (localStorage.getItem(MIGRATION_FLAG)) return;
         if (!this.fs) return;
@@ -268,7 +267,7 @@ export class PhotosApp extends App {
     _buildGalleryToolbar() {
         const sortSelect = el('select', {
             class: 'photos-toolbar__select',
-            onchange: (e) => { this.sortMode = e.target.value; localStorage.setItem(SORT_KEY, this.sortMode); this._refreshGallery(); },
+            onchange: (e) => { this.sortMode = e.target.value; this.kernel.storage.save('yancotab_photos_sort', this.sortMode); this._refreshGallery(); },
         }, [
             el('option', { value: 'date' }, 'Newest First'),
             el('option', { value: 'date-old' }, 'Oldest First'),
@@ -280,12 +279,12 @@ export class PhotosApp extends App {
         const viewToggle = el('div', { class: 'photos-toolbar__view-toggle' }, [
             el('button', {
                 class: `photos-toolbar__view-btn${this.viewMode === 'grid' ? ' is-active' : ''}`,
-                onclick: () => { this.viewMode = 'grid'; localStorage.setItem(VIEW_KEY, 'grid'); this._refreshGallery(); },
+                onclick: () => { this.viewMode = 'grid'; this.kernel.storage.save('yancotab_photos_view', 'grid'); this._refreshGallery(); },
                 title: 'Grid view',
             }, '\u25A6'),
             el('button', {
                 class: `photos-toolbar__view-btn${this.viewMode === 'list' ? ' is-active' : ''}`,
-                onclick: () => { this.viewMode = 'list'; localStorage.setItem(VIEW_KEY, 'list'); this._refreshGallery(); },
+                onclick: () => { this.viewMode = 'list'; this.kernel.storage.save('yancotab_photos_view', 'list'); this._refreshGallery(); },
                 title: 'List view',
             }, '\u2630'),
         ]);
@@ -599,8 +598,8 @@ export class PhotosApp extends App {
 
     _setAsWallpaper(item) {
         try {
-            localStorage.setItem('yancotab_wallpaper_custom', item.dataUrl);
-            localStorage.setItem('yancotab_wallpaper', 'custom');
+            this.kernel.storage.save('yancotab_wallpaper_custom', item.dataUrl);
+            this.kernel.storage.save('yancotab_wallpaper', 'custom');
             const shell = document.getElementById('app-shell');
             if (shell) {
                 shell.style.backgroundImage = `url(${item.dataUrl})`;

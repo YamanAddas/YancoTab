@@ -317,6 +317,29 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
+
+    // ── Photos app ──
+    yancotab_photos_view: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'grid',
+        validate: (v) => v === 'grid' || v === 'list',
+    },
+    yancotab_photos_sort: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'date',
+        validate: (v) => typeof v === 'string',
+    },
+    yancotab_wallpaper_custom: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',     // data URLs are too large for sync
+        version: 1,
+        default: null,
+        validate: (v) => v === null || typeof v === 'string',
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────
