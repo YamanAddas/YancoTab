@@ -567,6 +567,24 @@ export class MobileShell {
   _bindSystemEvents() {
     const scope = () => document.querySelector('.mobile-shell') || document;
 
+    // App import / init failures → user-visible toast
+    kernel.on('system:app-error', ({ appId, stage, message }) => {
+      const meta = kernel.getApps().find(a => a.id === appId);
+      const name = meta?.name || appId;
+      const verb = stage === 'import' ? "Couldn't load" : "Couldn't open";
+      kernel.emit('toast', { message: `${verb} ${name}`, type: 'error' });
+      console.warn(`[MobileShell] app-error ${appId}/${stage}: ${message}`);
+    });
+
+    // Service worker version skew → reload prompt
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('message', (e) => {
+        if (e.data?.type === 'sw-updated') {
+          this._showReloadBanner(e.data.version);
+        }
+      });
+    }
+
     scope().addEventListener('contextmenu', (e) => {
       const t = e.target;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
@@ -724,6 +742,26 @@ export class MobileShell {
     document.body.appendChild(backdrop);
     // Trigger entrance animation on next frame
     requestAnimationFrame(() => backdrop.classList.add('is-visible'));
+  }
+
+  // ─── Service Worker Reload Banner ──────────────────────────
+
+  _showReloadBanner(version) {
+    if (document.querySelector('.sw-reload-banner')) return; // dedup
+
+    const reloadBtn = el('button', {
+      class: 'sw-reload-btn',
+      type: 'button',
+      onclick: () => window.location.reload(),
+    }, 'Reload');
+
+    const text = el('span', { class: 'sw-reload-text' },
+      version ? `New version available (${version})` : 'New version available'
+    );
+
+    const banner = el('div', { class: 'sw-reload-banner', role: 'alert' }, [text, reloadBtn]);
+    document.body.appendChild(banner);
+    requestAnimationFrame(() => banner.classList.add('is-visible'));
   }
 
   // ─── Alarm Overlay ──────────────────────────────────────────

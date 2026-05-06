@@ -1,10 +1,23 @@
-
 /**
- * YancoTab v2.0 Process Manager
+ * YancoTab v1.1 Process Manager
  * Handles application lifecycle, isolation, and resource cleanup.
+ *
+ * Lazy-load contract:
+ *   - register(id, AppClass)  — eager. Class is already imported.
+ *   - registerLazy(id, ()=>import(...))  — lazy. Loader thunk; module
+ *     is fetched on first spawn and cached.
+ *   - _resolve(id) caches the in-flight import promise; on rejection,
+ *     the cache is cleared so the next spawn retries cleanly.
+ *
+ * Spawn dedup:
+ *   - Empty-config spawn (icon tap, dock tap, search result) — deduped
+ *     by appId. Two simultaneous taps share one pid.
+ *   - Config-bearing spawn (FilesApp opening different files) — always
+ *     allocates a fresh pid + instance so each file gets its own window.
  */
 
 const SAFE_SCHEMES = ['https:', 'http:', 'tel:', 'mailto:', 'sms:'];
+const IMPORT_TIMEOUT_MS = 15_000;
 
 function isValidUrl(url) {
     try {
@@ -26,13 +39,22 @@ function isValidScheme(scheme) {
     }
 }
 
+function isEmptyConfig(config) {
+    if (!config) return true;
+    if (typeof config !== 'object') return false;
+    for (const _ in config) return false; // eslint-disable-line no-unused-vars
+    return true;
+}
+
 export class ProcessManager {
     constructor(kernel) {
         this.kernel = kernel;
-        this.processes = new Map(); // pid -> process
-        this.registry = new Map(); // appId -> AppClass or lazy loader
+        this.processes = new Map(); // pid -> process record
+        this.registry = new Map();  // appId -> { resolved, appClass?, loader?, loading? }
         this.nextPid = 1000;
-        this._spawning = new Set(); // spawn lock per appId
+        // Empty-config spawns are deduped — second tap shares first tap's pid promise.
+        // Config-bearing spawns are NOT deduped — each FilesApp file open gets its own pid.
+        this._inflightNoConfig = new Map(); // appId -> Promise<pid>
 
         // Listen for launch requests from UI
         this.kernel.on('app:open', (appId) => this.spawn(appId));
@@ -44,38 +66,95 @@ export class ProcessManager {
     }
 
     registerLazy(appId, loaderFn) {
-        this.registry.set(appId, { resolved: false, loader: loaderFn, appClass: null });
+        this.registry.set(appId, {
+            resolved: false,
+            loader: loaderFn,
+            appClass: null,
+            loading: null,
+        });
     }
 
     isRegistered(appId) {
         return this.registry.has(appId);
     }
 
+    /** Test/hot-reload helper. */
+    unregister(appId) {
+        this.registry.delete(appId);
+    }
+
     async _resolve(appId) {
         const entry = this.registry.get(appId);
         if (!entry) return null;
         if (entry.resolved) return entry.appClass;
-        // Lazy: load the module, cache the class
-        const AppClass = await entry.loader();
-        entry.appClass = AppClass;
-        entry.resolved = true;
-        return AppClass;
+
+        // Cache the in-flight import promise. Concurrent _resolve calls
+        // share it. On rejection the cache is cleared so retries can
+        // re-attempt the import cleanly.
+        if (!entry.loading) {
+            const timeout = new Promise((_, reject) => {
+                setTimeout(
+                    () => reject(new Error(`Import timeout after ${IMPORT_TIMEOUT_MS}ms: ${appId}`)),
+                    IMPORT_TIMEOUT_MS,
+                );
+            });
+            entry.loading = Promise.race([entry.loader(), timeout]).then(
+                (AppClass) => {
+                    entry.appClass = AppClass;
+                    entry.resolved = true;
+                    entry.loading = null;
+                    return AppClass;
+                },
+                (err) => {
+                    entry.loading = null;
+                    throw err;
+                },
+            );
+        }
+        return entry.loading;
     }
 
     async spawn(appId, config = {}) {
-        // Spawn lock: prevent double-tap duplicate instances
-        if (this._spawning.has(appId)) {
-            console.warn(`[ProcessManager] Already spawning: ${appId}`);
+        // Dedup empty-config spawns (icon taps): two simultaneous taps
+        // share one pid. Config-bearing spawns (FilesApp open file)
+        // skip the dedup so each file gets a fresh window.
+        if (isEmptyConfig(config) && this._inflightNoConfig.has(appId)) {
+            return this._inflightNoConfig.get(appId);
+        }
+
+        const promise = this._doSpawn(appId, config);
+
+        if (isEmptyConfig(config)) {
+            this._inflightNoConfig.set(appId, promise);
+            promise.finally(() => {
+                if (this._inflightNoConfig.get(appId) === promise) {
+                    this._inflightNoConfig.delete(appId);
+                }
+            });
+        }
+
+        return promise;
+    }
+
+    async _doSpawn(appId, config) {
+        console.log(`[ProcessManager] Request to spawn: ${appId}`);
+
+        // A. Internal App (OS Process) — try the registry first.
+        let AppClass;
+        try {
+            AppClass = await this._resolve(appId);
+        } catch (e) {
+            // Import failed (network, parse error, timeout). Surface to UI.
+            console.error(`[ProcessManager] Import failed for ${appId}:`, e?.message || e);
+            this.kernel.emit('system:app-error', {
+                appId,
+                stage: 'import',
+                message: e?.message || String(e),
+            });
             return -1;
         }
 
-        console.log(`[ProcessManager] Request to spawn: ${appId}`);
-
-        // A. Internal App (OS Process) - PRIORITY
-        const AppClass = await this._resolve(appId);
-
         if (AppClass) {
-            this._spawning.add(appId);
             const pid = this.nextPid++;
             console.log(`[ProcessManager] Spawning Internal ${appId} (PID: ${pid})`);
 
@@ -84,7 +163,7 @@ export class ProcessManager {
                 name: appId,
                 instance: null,
                 state: 'starting',
-                startTime: Date.now()
+                startTime: Date.now(),
             };
 
             try {
@@ -95,7 +174,6 @@ export class ProcessManager {
 
                 // Check if killed during init
                 if (!this.processes.has(pid)) {
-                    this._spawning.delete(appId);
                     return -1;
                 }
 
@@ -105,11 +183,13 @@ export class ProcessManager {
 
             } catch (e) {
                 console.error(`[ProcessManager] Failed to spawn ${appId}:`, e?.message || e);
-                this.kernel.emit('system:app-error', { appId, message: e?.message || String(e) });
+                this.kernel.emit('system:app-error', {
+                    appId,
+                    stage: 'init',
+                    message: e?.message || String(e),
+                });
                 this.processes.delete(pid);
                 return -1;
-            } finally {
-                this._spawning.delete(appId);
             }
         }
 

@@ -573,3 +573,49 @@ body.theme-light .sb-time {
   border: none;
   background: transparent;
 }
+
+/* ── Service Worker Reload Banner ── */
+.sw-reload-banner {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 16px;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+  border-top: none;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  font-size: 13px;
+  color: var(--text-bright);
+  transform: translate(-50%, -100%);
+  transition: transform 0.3s var(--ease-out);
+}
+.sw-reload-banner.is-visible {
+  transform: translate(-50%, 0);
+}
+
+.sw-reload-text {
+  letter-spacing: 0.02em;
+}
+
+.sw-reload-btn {
+  padding: 4px 12px;
+  border: 1px solid rgba(var(--accent-rgb), 0.4);
+  border-radius: var(--radius-xs);
+  background: rgba(var(--accent-rgb), 0.12);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.sw-reload-btn:hover {
+  background: rgba(var(--accent-rgb), 0.2);
+  border-color: rgba(var(--accent-rgb), 0.6);
+}

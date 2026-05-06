@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together
-const CACHE_NAME = 'yancotab-v1.0.0';
+const CACHE_NAME = 'yancotab-v1.1.0';
 
 const PRECACHE = [
     './',
@@ -183,10 +183,25 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys()
-            .then((keys) => Promise.all(
-                keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-            ))
-            .then(() => self.clients.claim())
+            .then((keys) => {
+                // Detect whether any older cache existed — if so, a real
+                // version bump just happened and open clients should reload.
+                const hadOld = keys.some((k) => k !== CACHE_NAME && k.startsWith('yancotab-'));
+                return Promise.all(
+                    keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
+                ).then(() => ({ hadOld }));
+            })
+            .then(({ hadOld }) => self.clients.claim().then(() => ({ hadOld })))
+            .then(({ hadOld }) => {
+                if (!hadOld) return;
+                // Notify any open tabs that a new version is live.
+                // They'll show a non-dismissible reload banner so users
+                // don't end up mixing v1.0.0 and v1.1.0 modules mid-session.
+                return self.clients.matchAll({ type: 'window' }).then((clients) => {
+                    const version = CACHE_NAME.replace(/^yancotab-/, '');
+                    clients.forEach((c) => c.postMessage({ type: 'sw-updated', version }));
+                });
+            })
     );
 });
 

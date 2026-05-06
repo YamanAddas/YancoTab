@@ -6,6 +6,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.1.0] — 2026-05-06
+
+Performance phase. App boot is leaner; spawn pipeline is correct under concurrency.
+
+### Performance
+- **Lazy-load apps** — boot no longer eagerly imports all 20 app classes. Each app's JS is fetched on first launch and cached on the registry entry. Boot script graph drops from ~70 modules to ~25; mid-tier-Android boot saves ~60–250ms of parse time. The service-worker precache list is unchanged so offline-first still holds — the win is JS parse cost, not bytes downloaded.
+
+### Fixed
+- **Spawn double-tap regression (high)** — rapid double-tap on an icon previously dropped the second tap silently (returned pid `-1`). Empty-config spawns are now deduped properly: two simultaneous taps share one pid, one window. Single-window-per-icon-tap behavior preserved.
+- **Multi-file open from FilesApp** — `spawn('notes', {path:A})` and `spawn('notes', {path:B})` now correctly produce two separate pids and two windows. Previously the second call could collide with the first via the spawn lock and silently fail.
+- **Import failure UX** — failed lazy `import()` (network glitch, deleted file, parse error, 15s timeout) emits `system:app-error`; MobileShell shows a "Couldn't load X" toast. Previously failed silently, leaving the user staring at the icon.
+- **Import retry** — a rejected loader now clears its cached promise so the next spawn re-attempts. Previously the rejected promise would be reused forever.
+- **Service-worker version skew** — when SW activates with a fresh `CACHE_NAME` over an existing tab, all open clients get a `sw-updated` postMessage. MobileShell shows a non-dismissible "New version available — Reload" banner so users don't end up mixing old- and new-version modules in one session.
+
+### Added
+- **`tests/process-manager.test.js`** — 16 cases covering register/registerLazy, concurrent spawn dedup, config-bearing spawn isolation, import failure + retry, init failure cleanup, kill-during-init, URL/scheme guards, and lifecycle event order.
+- **`tests/_helpers/fakeKernel.js`** — minimal kernel double for testing kernel-coupled subsystems. Sets the convention for future test helpers.
+
+### Internal
+- **`processManager.js`** — `_spawning: Set` removed; replaced with `_inflightNoConfig: Map<id, Promise<pid>>` keyed only by empty-config spawns. Config-bearing spawns bypass the dedup. `_resolve()` caches the in-flight import promise on the registry entry; rejection clears it. 15s timeout on `import()` so hung loaders don't permanently lock the entry. 188 → 268 lines.
+- **`sw.js`** — `CACHE_NAME` bumped to `yancotab-v1.1.0`. Activate handler now broadcasts `{type:'sw-updated', version}` to clients when an older cache existed (only on real version bumps, not first install).
+- **Version bump** across `manifest.json`, `package.json`, `os/version.js` (BUILD `20260506b`), `sw.js`.
+
+---
+
 ## [1.0.0] — 2026-05-06
 
 First public release on Chrome Web Store.
