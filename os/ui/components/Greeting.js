@@ -55,6 +55,9 @@ export class Greeting {
         this._update();
         // Refresh every 30s — keeps time display current without per-second overhead
         this._interval = setInterval(() => this._update(), 30000);
+        // Instant refresh when name is changed in Settings
+        this._onNameChanged = () => this._update();
+        window.addEventListener('yancotab:name_changed', this._onNameChanged);
         return this.root;
     }
 
@@ -79,6 +82,7 @@ export class Greeting {
 
     destroy() {
         if (this._interval) clearInterval(this._interval);
+        if (this._onNameChanged) window.removeEventListener('yancotab:name_changed', this._onNameChanged);
         if (this.root) this.root.remove();
     }
 }

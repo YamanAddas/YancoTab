@@ -25,6 +25,7 @@ const PRECACHE = [
     './css/tarneeb.css',
     './css/trix.css',
     './css/mahjong.css',
+    './css/settings.css',
     './os/ui/bubbly.css',
     // Core JS
     './os/boot-init.js',
