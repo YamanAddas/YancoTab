@@ -1,14 +1,22 @@
 // YancoTab Theme Service (v1.0.0)
 // Single source of truth for light/dark mode.
+// Three modes: 'dark', 'light', 'auto' (follows OS prefers-color-scheme).
 // Applies a body class and sets color-scheme so built-in controls render correctly.
 
 const THEME_MODE_KEY = 'yancotab_theme_mode';
 const LEGACY_THEME_KEY = 'yancotab_theme';
 const LEGACY_THEME_DARK_KEY = 'yancotab_theme_dark';
+export const THEME_CHANGE_EVENT = 'yancotab:theme_change';
 
-export function getThemeMode() {
+let _osMql = null;
+
+/**
+ * Returns the user's stored preference: 'light' | 'dark' | 'auto' | null.
+ * Distinguishes "auto" (follow OS) from "no choice yet" (legacy migration).
+ */
+export function getStoredMode() {
   const mode = localStorage.getItem(THEME_MODE_KEY);
-  if (mode === 'light' || mode === 'dark') return mode;
+  if (mode === 'light' || mode === 'dark' || mode === 'auto') return mode;
 
   const legacy = localStorage.getItem(LEGACY_THEME_KEY);
   if (legacy === 'light' || legacy === 'dark') return legacy;
@@ -17,30 +25,86 @@ export function getThemeMode() {
   if (legacyDark === 'true') return 'dark';
   if (legacyDark === 'false') return 'light';
 
-  // No explicit choice — follow OS preference
-  if (window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
-  return 'dark';
+  return null;
 }
 
-export function applyThemeMode(mode) {
-  const next = mode === 'light' ? 'light' : 'dark';
-  const isLight = next === 'light';
+/**
+ * Returns the concrete mode to apply: 'light' | 'dark'.
+ * Resolves 'auto' (and missing) to OS preference.
+ */
+export function getThemeMode() {
+  const stored = getStoredMode();
+  if (stored === 'light' || stored === 'dark') return stored;
+  return prefersLight() ? 'light' : 'dark';
+}
 
+function prefersLight() {
+  try {
+    return window.matchMedia('(prefers-color-scheme: light)').matches;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Apply the given mode. Accepts 'light' | 'dark' | 'auto'.
+ * Persists the user's choice. 'auto' follows OS until they pick a fixed mode.
+ */
+export function applyThemeMode(mode) {
+  let effective;
+  if (mode === 'auto') {
+    localStorage.setItem(THEME_MODE_KEY, 'auto');
+    effective = prefersLight() ? 'light' : 'dark';
+  } else {
+    effective = mode === 'light' ? 'light' : 'dark';
+    localStorage.setItem(THEME_MODE_KEY, effective);
+    localStorage.setItem(LEGACY_THEME_KEY, effective);
+    localStorage.setItem(LEGACY_THEME_DARK_KEY, String(effective === 'dark'));
+  }
+
+  const isLight = effective === 'light';
   document.body.classList.toggle('theme-light', isLight);
-  // Helps form controls / scrollbars match mode
   document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
 
-  // Persist in both new + legacy keys for backwards compatibility
-  localStorage.setItem(THEME_MODE_KEY, next);
-  localStorage.setItem(LEGACY_THEME_KEY, next);
-  localStorage.setItem(LEGACY_THEME_DARK_KEY, String(!isLight));
+  // Re-apply current color theme so accent picks up light-mode override
+  // (themes.js writes inline :root accents which beat body.theme-light cascade)
+  import('./themes.js').then(({ applyColorTheme, getSavedTheme }) => {
+    applyColorTheme(getSavedTheme());
+  }).catch(() => { /* themes.js optional */ });
+
+  try {
+    window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, {
+      detail: { mode: effective, stored: mode },
+    }));
+  } catch { /* CustomEvent unsupported in some contexts (tests) */ }
 }
 
 export function initTheme() {
   try {
-    applyThemeMode(getThemeMode());
+    applyThemeMode(getStoredMode() || 'auto');
+
+    // Subscribe to OS theme changes; only honor when user is on 'auto'
+    _osMql = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = (e) => {
+      const stored = getStoredMode();
+      if (stored !== 'auto' && stored !== null) return;
+      const isLight = e.matches;
+      document.body.classList.toggle('theme-light', isLight);
+      document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
+      // Re-pin accent for light-mode override
+      import('./themes.js').then(({ applyColorTheme, getSavedTheme }) => {
+        applyColorTheme(getSavedTheme());
+      }).catch(() => {});
+      try {
+        window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, {
+          detail: { mode: isLight ? 'light' : 'dark', stored },
+        }));
+      } catch {}
+    };
+    if (_osMql.addEventListener) _osMql.addEventListener('change', onChange);
+    else if (_osMql.addListener) _osMql.addListener(onChange); // Safari ≤14
   } catch {
-    // If localStorage is blocked, fall back to dark
+    // If localStorage / matchMedia is blocked, fall back to dark
     document.body.classList.remove('theme-light');
     document.documentElement.style.colorScheme = 'dark';
   }

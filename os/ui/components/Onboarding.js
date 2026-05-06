@@ -100,13 +100,9 @@ export class Onboarding {
         if (this._name) {
             kernel.storage?.save('yancotab_user_name', this._name);
         }
-        if (this._theme === 'auto') {
-            localStorage.removeItem('yancotab_theme_mode');
-            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            applyThemeMode(prefersDark ? 'dark' : 'light');
-        } else {
-            applyThemeMode(this._theme);
-        }
+        // applyThemeMode handles 'auto' natively now (persists 'auto', resolves
+        // to OS preference, and subscribes to system theme changes via initTheme).
+        applyThemeMode(this._theme);
         kernel.storage?.save('yancotabSearchEngine', this._engine);
     }
 

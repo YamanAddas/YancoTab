@@ -6,7 +6,7 @@
  */
 
 import { el } from '../../utils/dom.js';
-import { getThemeMode, applyThemeMode } from '../../theme/theme.js';
+import { getStoredMode, applyThemeMode } from '../../theme/theme.js';
 import { THEMES, applyColorTheme, applyWallpaper, getSavedTheme } from '../../theme/themes.js';
 
 const WALLPAPER_KEY = 'yancotab_wallpaper';
@@ -58,14 +58,46 @@ function _profile(container, app, storage) {
   ]));
 }
 
-/* ── Dark Mode ── */
+/* ── Theme Mode (3-state: Dark / Light / Auto) ── */
 
 function _darkMode(container, app) {
-  const isDark = getThemeMode() !== 'light';
+  const current = getStoredMode() || 'auto';
+  const segGroup = el('div', { class: 'ys-seg-group', role: 'radiogroup', 'aria-label': 'Theme mode' });
+
+  const opts = [
+    { id: 'dark',  label: 'Dark' },
+    { id: 'light', label: 'Light' },
+    { id: 'auto',  label: 'Auto' },
+  ];
+
+  opts.forEach(({ id, label }) => {
+    const btn = el('button', {
+      type: 'button',
+      class: 'ys-seg' + (current === id ? ' is-active' : ''),
+      role: 'radio',
+      'aria-checked': String(current === id),
+      'data-mode': id,
+    }, label);
+    btn.onclick = () => {
+      segGroup.querySelectorAll('.ys-seg').forEach((b) => {
+        b.classList.remove('is-active');
+        b.setAttribute('aria-checked', 'false');
+      });
+      btn.classList.add('is-active');
+      btn.setAttribute('aria-checked', 'true');
+      applyThemeMode(id);
+    };
+    segGroup.appendChild(btn);
+  });
+
   container.appendChild(app._group('Appearance', [
-    app._toggleRow('Dark Mode', 'Use dark interface colors', isDark, (next) => {
-      applyThemeMode(next ? 'dark' : 'light');
-    }),
+    el('div', { class: 'ys-row' }, [
+      el('div', { class: 'ys-info' }, [
+        el('div', { class: 'ys-label' }, 'Theme'),
+        el('div', { class: 'ys-desc' }, 'Auto follows your system theme'),
+      ]),
+      segGroup,
+    ]),
   ]));
 }
 

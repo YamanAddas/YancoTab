@@ -93,27 +93,49 @@ function contrastText(accentRgbStr) {
 /**
  * Apply a color theme by ID. Sets CSS custom properties on :root
  * and persists the choice.
+ *
+ * Light-mode override: inline :root styles beat body.theme-light cascade,
+ * so we pin the accent to system blue (#007AFF) when the user is in light
+ * mode regardless of which color theme they picked. Color themes resume
+ * their selected accent in dark mode.
  */
 export function applyColorTheme(themeId) {
   const theme = THEMES[themeId] || THEMES[DEFAULT_THEME];
   const root = document.documentElement;
+  const isLight = typeof document !== 'undefined'
+    && document.body
+    && document.body.classList.contains('theme-light');
 
-  root.style.setProperty('--accent', theme.accent);
-  root.style.setProperty('--accent-rgb', theme.accentRgb);
-  root.style.setProperty('--accent-bright', theme.accentBright);
-  root.style.setProperty('--accent-contrast', contrastText(theme.accentRgb));
-  root.style.setProperty('--accent-dim', `rgba(${theme.accentRgb}, 0.25)`);
-  root.style.setProperty('--accent-glow', `rgba(${theme.accentRgb}, 0.35)`);
-  root.style.setProperty('--accent-bg', `rgba(${theme.accentRgb}, 0.08)`);
-  root.style.setProperty('--accent-subtle', `rgba(${theme.accentRgb}, 0.04)`);
+  // Light mode pins accent to blue for WCAG-AA contrast on white surfaces.
+  // Dark mode uses the picked theme's accent (which is tuned for dark bg).
+  const accent       = isLight ? '#007AFF' : theme.accent;
+  const accentRgb    = isLight ? '0, 122, 255' : theme.accentRgb;
+  const accentBright = isLight ? '#0A84FF' : theme.accentBright;
 
-  // Glow overrides
-  root.style.setProperty('--glow-sm', `0 0 15px rgba(${theme.accentRgb}, 0.15), 0 0 30px rgba(${theme.accentRgb}, 0.05)`);
-  root.style.setProperty('--glow-md', `0 0 30px rgba(${theme.accentRgb}, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4)`);
+  root.style.setProperty('--accent', accent);
+  root.style.setProperty('--accent-rgb', accentRgb);
+  root.style.setProperty('--accent-bright', accentBright);
+  root.style.setProperty('--accent-contrast', contrastText(accentRgb));
+  root.style.setProperty('--accent-dim', `rgba(${accentRgb}, 0.25)`);
+  root.style.setProperty('--accent-glow', `rgba(${accentRgb}, 0.35)`);
+  root.style.setProperty('--accent-bg', `rgba(${accentRgb}, 0.08)`);
+  root.style.setProperty('--accent-subtle', `rgba(${accentRgb}, 0.04)`);
+
+  // Glow overrides — softer in light mode
+  if (isLight) {
+    root.style.setProperty('--glow-sm', `0 0 15px rgba(${accentRgb}, 0.10), 0 2px 8px rgba(0, 0, 0, 0.06)`);
+    root.style.setProperty('--glow-md', `0 0 24px rgba(${accentRgb}, 0.10), 0 4px 12px rgba(0, 0, 0, 0.08)`);
+  } else {
+    root.style.setProperty('--glow-sm', `0 0 15px rgba(${accentRgb}, 0.15), 0 0 30px rgba(${accentRgb}, 0.05)`);
+    root.style.setProperty('--glow-md', `0 0 30px rgba(${accentRgb}, 0.12), 0 8px 32px rgba(0, 0, 0, 0.4)`);
+  }
 
   // Border accent
-  root.style.setProperty('--border-accent', `rgba(${theme.accentRgb}, 0.08)`);
+  root.style.setProperty('--border-accent', `rgba(${accentRgb}, 0.08)`);
 
+  // The user's color-theme choice is always persisted (even though light mode
+  // overrides the visible accent). When they flip back to dark, the chosen
+  // color theme reasserts itself.
   localStorage.setItem(THEME_KEY, themeId);
 }
 

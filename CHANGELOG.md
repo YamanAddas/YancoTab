@@ -10,7 +10,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
-### Added — Performance + spawn pipeline polish
+### Added — Light theme completion
+- **`Auto` theme mode** — third option alongside Dark/Light. New users default to Auto and follow their OS `prefers-color-scheme` setting. Runtime listener flips the theme when the user changes their OS theme without needing a tab reload.
+- **Theme settings UI** — replaces the binary Dark Mode toggle with a Dark / Light / Auto segmented control.
+- **Light-mode token completeness** — `--accent-contrast`, `--depth-1..5`, `--aurora-1..3`, `--aurora-bg`, `--particle-dim`, `--particle-bright`, `--specular` all defined under `body.theme-light`. Previously these fell through to dark values, leaking dark glows + shadows into a light UI.
+- **Light-mode accent pinning** — color themes (Emerald, Crimson, Amethyst…) keep their accent in dark mode but pin to system blue `#007AFF` in light mode. Reason: teal `#00e5c1` on white is 1.46:1 contrast (fails WCAG); blue is 4.51:1 (passes AA exactly). Color-theme choice is preserved — switching back to dark restores the picked accent.
+- **Starfield off in light mode** — twinkling teal/white dots over a light gradient look like noise, not stars. Subscribes to `yancotab:theme_change` to start/stop on the fly.
+- **`tests/theme-mode.test.js`** — 16 cases covering `getStoredMode` + `getThemeMode` resolution across explicit/legacy/auto/null storage states × OS-light/OS-dark.
+
+
 - **Lazy-load apps** — boot no longer eagerly imports all 20 app classes. Each app's JS is fetched on first launch and cached on the registry entry. Boot script graph drops from ~70 modules to ~25; mid-tier-Android boot saves ~60–250ms of parse time. The service-worker precache list is unchanged so offline-first still holds — the win is JS parse cost, not bytes downloaded.
 - **Spawn double-tap fix** — rapid double-tap on an icon previously dropped the second tap silently (returned pid `-1`). Empty-config spawns are now deduped: two simultaneous taps share one pid, one window. Single-window-per-icon-tap behavior preserved.
 - **Multi-file open from FilesApp** — `spawn('notes', {path:A})` and `spawn('notes', {path:B})` now correctly produce two separate pids and two windows. Previously the second call could collide with the first via the spawn lock and silently fail.

@@ -260,6 +260,44 @@
   transform: translateX(20px);
 }
 
+/* ── Segmented Control (Dark / Light / Auto) ── */
+.ys-seg-group {
+  display: inline-flex;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  border-radius: var(--radius-sm, 6px);
+  padding: 2px;
+  flex-shrink: 0;
+}
+body.theme-light .ys-seg-group {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: var(--border);
+}
+
+.ys-seg {
+  border: 0;
+  padding: 6px 12px;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: var(--font-sans);
+}
+.ys-seg:hover {
+  color: var(--text-bright);
+}
+.ys-seg.is-active {
+  background: var(--accent);
+  color: var(--accent-contrast);
+}
+body.theme-light .ys-seg.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
 /* ── Choice & Action Rows ── */
 .ys-choice,
 .ys-action {

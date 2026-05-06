@@ -195,14 +195,15 @@ body.theme-light {
   --bg-surface:  #ffffff;
   --bg-elevated: #f0f0f2;
 
-  /* ── Accent (Blue for light mode contrast) ── */
-  --accent:        #007AFF;
-  --accent-rgb:    0, 122, 255;
-  --accent-dim:    rgba(0, 122, 255, 0.15);
-  --accent-glow:   rgba(0, 122, 255, 0.25);
-  --accent-bright: #0A84FF;
-  --accent-bg:     rgba(0, 122, 255, 0.06);
-  --accent-subtle: rgba(0, 122, 255, 0.03);
+  /* ── Accent (Blue for light mode contrast — passes WCAG AA) ── */
+  --accent:          #007AFF;
+  --accent-rgb:      0, 122, 255;
+  --accent-contrast: #ffffff;
+  --accent-dim:      rgba(0, 122, 255, 0.15);
+  --accent-glow:     rgba(0, 122, 255, 0.25);
+  --accent-bright:   #0A84FF;
+  --accent-bg:       rgba(0, 122, 255, 0.06);
+  --accent-subtle:   rgba(0, 122, 255, 0.03);
 
   /* ── UI Text (dark text for light backgrounds) ── */
   --ui-text-rgb: 60, 60, 67;
@@ -250,6 +251,29 @@ body.theme-light {
   --yv-platform: radial-gradient(ellipse, rgba(0, 0, 0, 0.06), transparent 70%);
   --yv-platform-hover: radial-gradient(ellipse, rgba(0, 0, 0, 0.1), transparent 70%);
   --inner-glow: inset 0 0.5px 0 rgba(255, 255, 255, 0.5);
+
+  /* ── Aurora (muted in light mode — over light backgrounds) ── */
+  --aurora-1: rgba(0, 122, 255, 0.10);
+  --aurora-2: rgba(107,  92, 255, 0.06);
+  --aurora-3: rgba(255, 255, 255, 0.00);
+  --aurora-bg:
+    radial-gradient(1200px 700px at 15% 20%, var(--aurora-1), transparent 60%),
+    radial-gradient( 900px 600px at 85% 80%, var(--aurora-2), transparent 60%),
+    radial-gradient( 600px 400px at 50% 50%, rgba(0, 122, 255, 0.03), transparent 70%);
+
+  /* ── Particles (unused in light, but defined to avoid dark-mode bleed) ── */
+  --particle-dim:    rgba(var(--accent-rgb), 0.20);
+  --particle-bright: rgba(var(--accent-rgb), 0.60);
+
+  /* ── Depth system (5 tiers, lighter shadows for light background) ── */
+  --depth-1: 0 1px 2px rgba(0, 0, 0, 0.06), inset 0 0.5px 0 rgba(255, 255, 255, 0.50);
+  --depth-2: 0 2px 6px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.04), inset 0 0.5px 0 rgba(255, 255, 255, 0.60);
+  --depth-3: 0 6px 18px rgba(0, 0, 0, 0.10), 0 0 0 1px rgba(var(--accent-rgb), 0.10), inset 0 0.5px 0 rgba(255, 255, 255, 0.70);
+  --depth-4: 0 12px 40px rgba(0, 0, 0, 0.14), 0 0 0 1px rgba(var(--accent-rgb), 0.14), inset 0 0.5px 0 rgba(255, 255, 255, 0.80), 0 0 40px rgba(var(--accent-rgb), 0.10);
+  --depth-5: 0 24px 80px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(var(--accent-rgb), 0.20), inset 0 0.5px 0 rgba(255, 255, 255, 0.90), 0 0 80px rgba(var(--accent-rgb), 0.18);
+
+  /* ── Specular (lighter virtual highlight on light surfaces) ── */
+  --specular: linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.20) 35%, transparent 60%);
 
   /* ── Legacy aliases ── */
   --glow-blue: #007AFF;

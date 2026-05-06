@@ -37,8 +37,14 @@ export function initStarfield() {
     } catch { return false; }
   }
 
+  // Hide starfield in light mode — twinkling teal/white dots over a
+  // light-blue gradient looks like noise, not stars. Save the CPU.
+  function isLightMode() {
+    return document.body.classList.contains('theme-light');
+  }
+
   function shouldSkip() {
-    return hasImageWallpaper() || isDisabledInSettings();
+    return hasImageWallpaper() || isDisabledInSettings() || isLightMode();
   }
 
   function resize() {
@@ -136,6 +142,16 @@ export function initStarfield() {
     if (!running) return;
     resize();
     createStars();
+  });
+
+  // React to light/dark theme changes — start or stop accordingly.
+  window.addEventListener('yancotab:theme_change', () => {
+    if (shouldSkip()) {
+      stop();
+      canvas.style.display = 'none';
+    } else if (!running) {
+      start();
+    }
   });
 
   // Respect reduced motion — render one static frame, no animation loop
