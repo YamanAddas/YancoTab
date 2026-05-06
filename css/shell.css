@@ -141,13 +141,13 @@ div.boot-screen .boot-text {
   z-index: var(--z-window);
 }
 
-/* ── Status Bar (time top-right) ── */
+/* ── Status Bar (full-width top tray) ── */
 .status-bar {
   position: absolute;
   top: 0;
+  left: 0;
   right: 0;
-  left: auto;
-  padding: calc(var(--safe-top, 0px) + 18px) 24px 0 0;
+  padding: calc(var(--safe-top, 0px) + 14px) 24px 0 24px;
   z-index: var(--z-statusbar);
   pointer-events: none;
 }
@@ -628,9 +628,9 @@ body.in-app .main-content {
 /* ── Smart Search (v3 teal glass pill) ── */
 .m-search-container {
   position: relative;
-  width: 480px;
+  width: 620px;
   max-width: 90vw;
-  height: 46px;
+  height: 56px;
   z-index: var(--z-search, 1150);
 }
 

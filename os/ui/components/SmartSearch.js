@@ -43,10 +43,16 @@ function getSearchUrl(query) {
 
 export class SmartSearch {
     constructor() {
-        this.root = el('div', {
+        // Outer wrap holds the input bar + scope tabs in a column.
+        // .root is the wrap so mobileShell's opacity/pointer-events toggles
+        // dim the whole search block (input + scopes) together.
+        this.root = el('div', { class: 'm-search-wrap' });
+
+        this.bar = el('div', {
             id: 'smart-search-bar',
             class: 'm-search-container'
         });
+
         this.input = el('input', {
             class: 'm-search-input',
             type: 'text',
@@ -63,13 +69,58 @@ export class SmartSearch {
             backdrop-filter:var(--glass-blur);
         `;
 
-        this.root.style.position = 'relative';
-        this.root.appendChild(this.input);
-        this.root.appendChild(this.dropdown);
+        this.bar.style.position = 'relative';
+        this.bar.appendChild(this.input);
+        this.bar.appendChild(this.dropdown);
+        this.root.appendChild(this.bar);
+
+        // Scope tabs — design's All/Apps/Files/Notes/Web row below the input.
+        // Active scope filters which result types appear in the dropdown.
+        this._scope = 'all';
+        this.scopes = this._buildScopes();
+        this.root.appendChild(this.scopes);
 
         this._selectedIndex = -1;
         this._results = [];
         this.bindEvents();
+    }
+
+    _buildScopes() {
+        const wrap = el('div', { class: 'scopes' });
+        const items = [
+            { id: 'all', label: 'All' },
+            { id: 'apps', label: 'Apps' },
+            { id: 'files', label: 'Files' },
+            { id: 'notes', label: 'Notes' },
+            { id: 'web', label: 'Web' },
+        ];
+        for (const s of items) {
+            const node = el('span', {
+                class: `scope${s.id === this._scope ? ' active' : ''}`,
+                'data-scope': s.id,
+                role: 'tab',
+                tabindex: '0',
+            }, s.label);
+            const set = () => this._setScope(s.id);
+            node.addEventListener('click', set);
+            node.addEventListener('keydown', e => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set(); }
+            });
+            wrap.appendChild(node);
+        }
+        return wrap;
+    }
+
+    _setScope(id) {
+        if (id === this._scope) return;
+        this._scope = id;
+        this.scopes.querySelectorAll('.scope').forEach(n => {
+            n.classList.toggle('active', n.dataset.scope === id);
+        });
+        // Re-run filter with the new scope (or hide if empty)
+        if (this.input.value.trim()) {
+            this._onInput();
+        }
     }
 
     bindEvents() {
@@ -128,28 +179,60 @@ export class SmartSearch {
             return;
         }
 
-        // Normal search mode
+        // Normal search mode — honor the active scope tab
         const query = raw;
-        const apps = kernel.getApps();
-        const scored = apps
-            .map(a => ({ app: a, score: scoreMatch(a.name, query) }))
-            .filter(s => s.score > 0)
-            .sort((a, b) => b.score - a.score)
-            .slice(0, MAX_RESULTS);
+        const scope = this._scope;
+        this._results = [];
 
-        this._results = scored.map(s => ({ type: 'app', app: s.app, score: s.score }));
-
-        // File search results
-        const fs = kernel.getService('fs');
-        if (fs && this._results.length < MAX_RESULTS) {
-            const files = fs.search(query);
-            for (const f of files.slice(0, MAX_RESULTS - this._results.length)) {
-                this._results.push({ type: 'file', file: f });
+        // Apps — included for All + Apps scopes
+        if (scope === 'all' || scope === 'apps') {
+            const apps = kernel.getApps();
+            const scored = apps
+                .map(a => ({ app: a, score: scoreMatch(a.name, query) }))
+                .filter(s => s.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .slice(0, MAX_RESULTS);
+            for (const s of scored) {
+                this._results.push({ type: 'app', app: s.app, score: s.score });
             }
         }
 
-        // Web search fallback is always last
-        this._results.push({ type: 'web', query });
+        // Files — included for All + Files scopes (uses FileSystemService)
+        if ((scope === 'all' || scope === 'files') && this._results.length < MAX_RESULTS) {
+            const fs = kernel.getService('fs');
+            if (fs?.search) {
+                const files = fs.search(query);
+                for (const f of files.slice(0, MAX_RESULTS - this._results.length)) {
+                    this._results.push({ type: 'file', file: f });
+                }
+            }
+        }
+
+        // Notes — included for Notes scope only. We filter file results to those
+        // under /home/documents (where Notes lives) and rebrand them as notes.
+        if (scope === 'notes' && this._results.length < MAX_RESULTS) {
+            const fs = kernel.getService('fs');
+            if (fs?.search) {
+                const files = fs.search(query)
+                    .filter(f => (f.path || '').includes('/documents/'));
+                for (const f of files.slice(0, MAX_RESULTS - this._results.length)) {
+                    this._results.push({ type: 'file', file: f });
+                }
+            }
+        }
+
+        // Web fallback — always present in All / Web scopes, never in Apps / Files / Notes.
+        if (scope === 'all' || scope === 'web') {
+            this._results.push({ type: 'web', query });
+        }
+
+        // If a scoped search returns nothing, show a single empty-state hint
+        if (this._results.length === 0) {
+            this._results.push({
+                type: 'empty',
+                label: `No ${scope === 'all' ? 'matches' : scope} for "${query}"`,
+            });
+        }
 
         this._selectedIndex = -1;
         this._renderDropdown();
@@ -219,6 +302,11 @@ export class SmartSearch {
                     style: 'margin-left:auto;font-size:11px;color:var(--text-dim);padding:2px 6px;background:var(--accent-bg);border-radius:4px;'
                 }, 'Note');
                 row.append(icon, name, badge);
+            } else if (result.type === 'empty') {
+                row.style.cursor = 'default';
+                row.style.color = 'var(--text-dim)';
+                const name = el('span', { style: 'margin: 0 auto;' }, result.label);
+                row.append(name);
             } else {
                 const icon = el('span', { style: 'font-size:20px;flex-shrink:0;width:24px;text-align:center;' }, '');
                 const engineName = kernel.storage?.load('yancotabSearchEngine') || 'google';
@@ -266,6 +354,7 @@ export class SmartSearch {
     }
 
     _activateResult(result) {
+        if (result.type === 'empty') return; // empty-state row is not actionable
         if (result.type === 'app') {
             kernel.emit('app:open', result.app.id);
         } else if (result.type === 'file') {

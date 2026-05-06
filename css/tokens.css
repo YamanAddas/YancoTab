@@ -157,6 +157,42 @@
   /* Specular highlight — simulates a virtual light at top-left */
   --specular: linear-gradient(135deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0.04) 35%, transparent 60%);
 
+  /* ── Liquid Glass Recipe (premium polish pass) ──
+     Composable layers — combine via background: var(--lg-tint), var(--lg-sheen);
+     Every "polished" surface uses the same vocabulary. */
+  --lg-tint-deep:    rgba(8, 20, 36, 0.55);   /* hex icon body */
+  --lg-tint-card:    rgba(8, 18, 32, 0.55);   /* widget card body */
+  --lg-tint-pill:    rgba(6, 14, 24, 0.50);   /* search, toast, dock */
+  --lg-tint-modal:   rgba(10, 18, 32, 0.78);  /* modal cards */
+
+  /* Top-light gradient — "wet glass" sheen */
+  --lg-sheen:        linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.32) 60%, rgba(2, 8, 16, 0.48) 100%);
+  --lg-sheen-soft:   linear-gradient(165deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 30%, transparent 55%);
+  --lg-spotlight:    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(var(--accent-rgb), 0.14), transparent 60%);
+
+  /* Edge — top inner highlight + bottom inner shadow */
+  --lg-edge:         inset 0 1.5px 0 rgba(255,255,255,0.30), inset 0 -1.5px 0 rgba(0,0,0,0.42);
+  --lg-edge-soft:    inset 0 1px 0 rgba(255,255,255,0.18), inset 0 -1px 0 rgba(0,0,0,0.18);
+  --lg-ring-accent:  inset 0 0 0 1px rgba(var(--accent-rgb), 0.22);
+  --lg-ring-glow:    inset 0 0 24px rgba(var(--accent-rgb), 0.10);
+
+  /* Cast halo — the under-glow under a floating surface */
+  --lg-cast:         radial-gradient(ellipse, rgba(var(--accent-rgb), 0.45), rgba(var(--accent-rgb), 0.10) 45%, transparent 75%);
+  --lg-cast-deep:    radial-gradient(ellipse, rgba(var(--accent-rgb), 0.60), rgba(var(--accent-rgb), 0.15) 45%, transparent 75%);
+
+  /* Backdrop blur with saturation */
+  --lg-blur:         blur(8px) saturate(1.4);
+  --lg-blur-card:    blur(20px) saturate(1.3);
+  --lg-blur-modal:   blur(32px) saturate(1.5);
+
+  /* Specular sweep — animated translateX gradient */
+  --lg-sweep:        linear-gradient(115deg, transparent 30%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 58%, transparent 70%);
+
+  /* ── Motion Vocabulary (canonical names) ── */
+  --motion-snappy:    120ms cubic-bezier(0.4, 0, 0.2, 1);
+  --motion-cinematic: 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
+  --motion-spring:    550ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
   /* ── Legacy Aliases (v1.0 compat) ── */
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
@@ -274,6 +310,26 @@ body.theme-light {
 
   /* ── Specular (lighter virtual highlight on light surfaces) ── */
   --specular: linear-gradient(135deg, rgba(255, 255, 255, 0.70) 0%, rgba(255, 255, 255, 0.20) 35%, transparent 60%);
+
+  /* ── Liquid Glass — light mode (inverted highlight, warm cast) ── */
+  --lg-tint-deep:    rgba(255, 255, 255, 0.62);
+  --lg-tint-card:    rgba(255, 255, 255, 0.65);
+  --lg-tint-pill:    rgba(255, 255, 255, 0.58);
+  --lg-tint-modal:   rgba(255, 255, 255, 0.92);
+
+  --lg-sheen:        linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.15) 22%, rgba(0, 0, 0, 0.02) 60%, rgba(0, 0, 0, 0.04) 100%);
+  --lg-sheen-soft:   linear-gradient(165deg, rgba(255,255,255,0.50) 0%, rgba(255,255,255,0.15) 30%, transparent 55%);
+  --lg-spotlight:    radial-gradient(ellipse 90% 60% at 50% -10%, rgba(var(--accent-rgb), 0.08), transparent 60%);
+
+  --lg-edge:         inset 0 1.5px 0 rgba(255,255,255,0.85), inset 0 -1.5px 0 rgba(0,0,0,0.08);
+  --lg-edge-soft:    inset 0 1px 0 rgba(255,255,255,0.60), inset 0 -1px 0 rgba(0,0,0,0.05);
+  --lg-ring-accent:  inset 0 0 0 1px rgba(var(--accent-rgb), 0.20);
+  --lg-ring-glow:    inset 0 0 24px rgba(var(--accent-rgb), 0.05);
+
+  --lg-cast:         radial-gradient(ellipse, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.05) 45%, transparent 75%);
+  --lg-cast-deep:    radial-gradient(ellipse, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.08) 45%, transparent 75%);
+
+  --lg-sweep:        linear-gradient(115deg, transparent 30%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 58%, transparent 70%);
 
   /* ── Legacy aliases ── */
   --glow-blue: #007AFF;

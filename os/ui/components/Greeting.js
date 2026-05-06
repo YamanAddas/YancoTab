@@ -1,83 +1,83 @@
 /**
- * Greeting.js — Personalized time-of-day greeting
- * Shows greeting, date, and optional weather summary.
+ * Greeting.js — Hero block: small mono greet line + giant live clock + day-of-year date.
+ *
+ * Mirrors the design's "Liquid Glass" hero where the clock is the focal point
+ * and the greeting/date are mono-spaced support text.
+ *
+ * Tick cadence:
+ *   • 1s — updates HH:MM·SS in the clock and the greet line (handles the
+ *     midnight-rollover and afternoon-to-evening transitions cleanly).
+ *   • Re-renders fully when the user changes their name in Settings via the
+ *     existing `yancotab:name_changed` event.
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
 
-function getGreetingText() {
-    const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return 'Good morning';
-    if (hour >= 12 && hour < 17) return 'Good afternoon';
-    return 'Good evening'; // 17:00 through 4:59
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function getPartOfDay(hour) {
+    if (hour < 5)  return 'Late night';
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    if (hour < 21) return 'Good evening';
+    return 'Late evening';
 }
 
-function getDateString() {
-    const now = new Date();
-    return now.toLocaleDateString(undefined, {
-        weekday: 'long', month: 'long', day: 'numeric'
-    });
-}
-
-function getTimeString() {
-    const now = new Date();
-    return now.toLocaleTimeString(undefined, {
-        hour: 'numeric', minute: '2-digit', hour12: true
-    });
-}
-
-function getWeatherSummary() {
-    try {
-        const ws = kernel.getService('weather');
-        if (!ws) return null;
-        const state = ws.getState();
-        if (!state?.currentLocation) return null;
-        const query = state.currentLocation.query;
-        const forecast = ws.getCache(query, 1000 * 60 * 60); // 1h tolerance for display
-        if (!forecast?.current) return null;
-        const temp = Math.round(forecast.current.temperature_2m ?? forecast.current.temp ?? 0);
-        const unit = state.unit === 'f' ? 'F' : 'C';
-        const city = state.currentLocation.label || '';
-        return `${temp}°${unit} ${city}`;
-    } catch {
-        return null;
-    }
+function getDayOfYear(d) {
+    return Math.floor((d - new Date(d.getFullYear(), 0, 0)) / 86400000);
 }
 
 export class Greeting {
     constructor() {
         this.root = null;
+        this.elements = {};
         this._interval = null;
+        this._onNameChanged = null;
     }
 
     render() {
         this.root = el('div', { class: 'greeting-bar' });
-        this._update();
-        // Refresh every 30s — keeps time display current without per-second overhead
-        this._interval = setInterval(() => this._update(), 30000);
-        // Instant refresh when name is changed in Settings
-        this._onNameChanged = () => this._update();
+
+        this.elements.greet = el('div', { class: 'greeting-greet' });
+        this.elements.clock = el('div', { class: 'greeting-clock' });
+        this.elements.date = el('div', { class: 'greeting-date' });
+
+        this.root.append(this.elements.greet, this.elements.clock, this.elements.date);
+
+        this._tick();
+        this._interval = setInterval(() => this._tick(), 1000);
+
+        this._onNameChanged = () => this._tick();
         window.addEventListener('yancotab:name_changed', this._onNameChanged);
+
         return this.root;
     }
 
-    _update() {
+    _tick() {
         if (!this.root) return;
 
+        const d = new Date();
+        const h = pad(d.getHours());
+        const m = pad(d.getMinutes());
+        const s = pad(d.getSeconds());
+
+        // Clock: HH:MM in big numerals, ·SS in accent color
+        this.elements.clock.innerHTML = `${h}:${m}<span class="greeting-sec">·${s}</span>`;
+
+        // Greet line: "Wednesday · Good afternoon, Yaman"
         const name = kernel.storage?.load('yancotab_user_name') || '';
-        const greeting = getGreetingText();
-        const greetingFull = name ? `${greeting}, ${name}` : greeting;
-        const dateStr = getDateString();
-        const weather = getWeatherSummary();
+        const partOfDay = getPartOfDay(d.getHours());
+        const greetText = name ? `${partOfDay}, ${name}` : partOfDay;
+        this.elements.greet.textContent = `${DAYS[d.getDay()]} · ${greetText}`;
 
-        const timeStr = getTimeString();
-
-        this.root.innerHTML = '';
-        this.root.append(
-            el('div', { class: 'greeting-text' }, greetingFull),
-            el('div', { class: 'greeting-sub' }, weather ? `${dateStr}  ·  ${weather}` : dateStr),
-            el('div', { class: 'greeting-time' }, timeStr),
-        );
+        // Date line: "May 06 · Week 19 · Day 126 of 365"
+        const dayOfYear = getDayOfYear(d);
+        const week = Math.ceil(dayOfYear / 7);
+        const yearLength = ((d.getFullYear() % 4 === 0 && d.getFullYear() % 100 !== 0) || d.getFullYear() % 400 === 0) ? 366 : 365;
+        this.elements.date.textContent = `${MONTHS[d.getMonth()]} ${pad(d.getDate())} · Week ${week} · Day ${dayOfYear} of ${yearLength}`;
     }
 
     destroy() {

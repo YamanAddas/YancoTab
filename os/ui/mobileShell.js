@@ -25,6 +25,7 @@ import { StatusBar } from './components/StatusBar.js';
 import { HomeBar } from './components/HomeBar.js';
 import { MobileContextMenu } from './components/MobileContextMenu.js';
 import { Greeting } from './components/Greeting.js';
+import { WidgetBar } from './components/WidgetBar.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
 import { WindowChrome } from './components/WindowChrome.js';
@@ -41,6 +42,7 @@ export class MobileShell {
       homeBar: new HomeBar(() => this.goHome()),
       contextMenu: new MobileContextMenu(this),
       greeting: new Greeting(),
+      widgetBar: new WidgetBar(),
     };
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
@@ -133,14 +135,29 @@ export class MobileShell {
       alarmOverlay: this.renderAlarmOverlay(),
     };
 
+    // Section heading helper — uppercase title + gradient rule + meta tag.
+    // (No leading "01" / "02" numbering — Yaman prefers the title to lead.)
+    const secHead = (title, meta) => el('div', { class: 'sec-head' }, [
+      el('h2', { class: 'sec-title' }, title),
+      el('span', { class: 'sec-rule' }),
+      el('span', { class: 'sec-meta' }, meta),
+    ]);
+
     this.dom.homeTop.append(
       this.components.greeting.render(),
       this.components.search.render(),
+      secHead('Today', 'live'),
+      this.components.widgetBar.render(),
     );
 
-    // Main content: greeting + search + grid + dots (vertically centered by CSS)
+    // Section heading above the app grid
+    const appsHead = secHead('All Apps', 'drag to rearrange');
+    appsHead.classList.add('sec-head-apps');
+
+    // Main content: greeting + search + widgets + section heading + grid + dots
     this.dom.mainContent.append(
       this.dom.homeTop,
+      appsHead,
       this.components.grid.root,
       this.components.grid.dotsContainer,
     );
@@ -154,6 +171,14 @@ export class MobileShell {
       el('span', { class: 'kofi-text' }, 'Support'),
     ]);
 
+    // Signature pill (bottom-right) — version + status (design's signature element)
+    const signature = el('div', { class: 'sb-signature' }, [
+      el('span', { class: 'sb-pill sb-signature-pill' }, [
+        el('span', { class: 'sb-dot' }),
+        el('span', {}, `${VERSION} · all systems nominal`),
+      ]),
+    ]);
+
     this.dom.wrapper.append(
       this.dom.statusBarLayer,
       kofiBadge,
@@ -162,6 +187,7 @@ export class MobileShell {
       this.dom.appLayer,
       this.dom.homeBarLayer,
       this.dom.alarmOverlay,
+      signature,
       this.dom.spacer,
     );
 

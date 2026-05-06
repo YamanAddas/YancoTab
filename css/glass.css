@@ -1,0 +1,895 @@
+/* ============================================================
+   YancoTab — Liquid Glass Polish Pass
+   Loads LAST. Wins specificity over per-component CSS without !important.
+
+   Surfaces upgraded:
+     1. Hex app icons   — chromed ring + bezel + body sheen + animated specular sweep
+     2. Search bar      — accent-tinted border + layered top-light shadow
+     3. Widget cards    — top-light gradient + accent ring-glow
+     4. Modal cards     — backdrop blur tier-up
+     5. Motion vocab    — spring on launchers, cinematic on cards
+
+   No JS changes. No structural HTML changes. Token-only base + selector overrides.
+   ============================================================ */
+
+/* ── 1. Hex app icons ──────────────────────────────────────── */
+
+/* Repurpose ::before from outer bloom → animated specular sweep.
+   Sweeps left→right across the hex on hover. CSS-only, no JS listener. */
+.hex-icon::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: var(--lg-sweep);
+  opacity: 0;
+  transform: translateX(-30%);
+  transition:
+    opacity var(--motion-cinematic),
+    transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+  mix-blend-mode: screen;
+  z-index: 5;
+  /* override the old outer-bloom recipe */
+  filter: none;
+  inset: 0;
+}
+
+.app-icon:hover .hex-icon::before,
+.m-app-item:hover .hex-icon::before,
+.hex-icon:focus-visible::before {
+  opacity: 1;
+  transform: translateX(30%);
+}
+
+/* Repurpose ::after from soft glass-reflection → "wet glass" top sheen.
+   Uses the lg-sheen-soft + spotlight composite. */
+.hex-icon::after {
+  background-image:
+    var(--lg-sheen-soft),
+    var(--lg-spotlight);
+  /* keeps existing inset:0 / clip-path / z-index:4 / pointer-events:none */
+}
+
+/* Outer ring: was pure-accent gradient → chromed accent→dark→accent.
+   Reads as a metallic frame, not a glow. */
+.hex-ring {
+  background: linear-gradient(160deg,
+    rgba(var(--accent-rgb), 0.95) 0%,
+    rgba(var(--accent-rgb), 0.55) 18%,
+    rgba(40, 90, 105, 0.85) 45%,
+    rgba(8, 24, 38, 0.95) 70%,
+    rgba(var(--accent-rgb), 0.90) 100%);
+}
+
+.hex-icon:hover .hex-ring {
+  background: linear-gradient(160deg,
+    rgba(var(--accent-rgb), 1.00) 0%,
+    rgba(var(--accent-rgb), 0.70) 18%,
+    rgba(50, 110, 130, 0.95) 45%,
+    rgba(10, 30, 48, 0.95) 70%,
+    rgba(var(--accent-rgb), 1.00) 100%);
+}
+
+/* Body: layer the wet-glass sheen and spotlight on top of the inline category tint
+   set by SmartIcon. The inline background-color wins over `background-color:` here,
+   but we use `background-image:` (a separate longhand) so both compose cleanly. */
+.hex-icon-content {
+  background-image:
+    var(--lg-sheen),
+    var(--lg-spotlight);
+  box-shadow:
+    var(--lg-edge),
+    var(--lg-ring-accent),
+    var(--lg-ring-glow),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.4),
+    inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+/* Backdrop blur — desktop only, gated to avoid 18× paint cost on mobile/low-end */
+@media (hover: hover) and (pointer: fine) {
+  body:not(.reduced-effects) .hex-icon-content {
+    -webkit-backdrop-filter: var(--lg-blur);
+    backdrop-filter: var(--lg-blur);
+  }
+}
+
+/* Floor cast — richer accent halo. Replaces the legacy --yv-platform recipe. */
+.hex-platform {
+  background: var(--lg-cast);
+  filter: blur(11px);
+  width: 80%;
+  height: 22px;
+  bottom: -14px;
+}
+
+.app-icon:hover .hex-platform,
+.m-app-item:hover .hex-platform,
+.hex-icon:hover ~ .hex-platform {
+  background: var(--lg-cast-deep);
+  width: 92%;
+  height: 26px;
+  bottom: -18px;
+}
+
+/* Spring motion — soft lift on hover, snappy press */
+.app-icon,
+.m-app-item {
+  transition: transform var(--motion-spring);
+}
+
+.app-icon:hover,
+.m-app-item:hover {
+  transform: translateY(-4px) scale(1.05);
+}
+
+.app-icon:active,
+.m-app-item:active {
+  transform: translateY(-1px) scale(1.01);
+  transition: transform var(--motion-snappy);
+}
+
+/* ── 2. Search bar ─────────────────────────────────────────── */
+
+/* The search input is a single <input> with stacked inset shadows.
+   We upgrade it to the design's "Liquid Glass" recipe: accent-tinted border,
+   layered top-light glass + drop shadow + accent under-glow. */
+.m-search-input {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.65), rgba(4, 12, 24, 0.85));
+  -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.22),
+    0 14px 40px -10px rgba(var(--accent-rgb), 0.30),
+    0 18px 50px rgba(0, 0, 0, 0.55);
+  transition: box-shadow var(--motion-cinematic), background var(--motion-cinematic);
+}
+
+.m-search-input:hover {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.7), rgba(4, 12, 24, 0.88));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.40),
+    0 16px 44px -10px rgba(var(--accent-rgb), 0.40),
+    0 20px 56px rgba(0, 0, 0, 0.58);
+}
+
+.m-search-input:focus {
+  -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  backdrop-filter: blur(24px) saturate(1.7);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.55),
+    0 18px 50px -8px rgba(var(--accent-rgb), 0.50),
+    0 22px 60px rgba(0, 0, 0, 0.60);
+}
+
+/* Light-mode search — invert the wet-glass for white surfaces */
+body.theme-light .m-search-input {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.18),
+    0 8px 24px -10px rgba(var(--accent-rgb), 0.18),
+    0 12px 32px rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .m-search-input:focus {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.90),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.40),
+    0 12px 32px -10px rgba(var(--accent-rgb), 0.30),
+    0 16px 40px rgba(0, 0, 0, 0.10);
+}
+
+/* Search container under-cast — replace --yv-platform with --lg-cast */
+.m-search-container::after {
+  background: var(--lg-cast);
+  filter: blur(11px);
+  width: 70%;
+  height: 14px;
+  bottom: -10px;
+}
+
+.m-search-container:focus-within::after {
+  background: var(--lg-cast-deep);
+}
+
+/* ── 3. Widget cards ──────────────────────────────────────── */
+
+.widget-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.65), rgba(4, 12, 24, 0.85));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  backdrop-filter: blur(20px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.10),
+    0 12px 28px -10px rgba(var(--accent-rgb), 0.20),
+    0 16px 36px rgba(0, 0, 0, 0.50);
+  transition: transform var(--motion-cinematic), box-shadow var(--motion-cinematic);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Top spotlight (accent halo from above the card) */
+.widget-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(var(--accent-rgb), 0.14), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+
+/* Make sure widget content sits above the spotlight overlay */
+.widget-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+.widget-card:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.18),
+    0 18px 40px -10px rgba(var(--accent-rgb), 0.40),
+    0 22px 44px rgba(0, 0, 0, 0.55);
+}
+
+/* Floor halo — replace --yv-platform with --lg-cast */
+.widget-card::after {
+  background: var(--lg-cast);
+  filter: blur(10px);
+  width: 70%;
+  height: 8px;
+  bottom: -10px;
+}
+
+.widget-card:hover::after {
+  background: var(--lg-cast-deep);
+  width: 80%;
+  height: 10px;
+  bottom: -14px;
+}
+
+/* Light-mode widget — light glass over white */
+body.theme-light .widget-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.10),
+    0 8px 20px -10px rgba(var(--accent-rgb), 0.15),
+    0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .widget-card::before {
+  background: radial-gradient(ellipse 90% 60% at 50% -10%, rgba(var(--accent-rgb), 0.06), transparent 60%);
+}
+
+/* ── 4. Status bar (full-width top tray) ──────────────────── */
+
+/* 3-column flex bar: brand-left, status-mid, controls-right.
+   Children re-enable pointer-events; the wrapper itself stays click-through
+   so the area between sections doesn't capture clicks. */
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  animation: greetFadeDown 0.8s var(--ease-out) 0.2s both;
+}
+
+/* Each section gets its own pointer events so buttons / pills are clickable */
+.sb-brand,
+.sb-mid,
+.sb-right {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+}
+
+/* ── Brand mark (left) ──────────────────────────────── */
+.sb-brand {
+  gap: 10px;
+  /* Push past the kofi badge that sits at fixed top-left (~88px wide + margins) */
+  margin-left: 88px;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.sb-brand-mark {
+  width: 18px;
+  height: 18px;
+  clip-path: var(--hex-clip);
+  background: linear-gradient(160deg, var(--accent-bright), #00b89b);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.65);
+  flex-shrink: 0;
+}
+
+.sb-brand-name {
+  color: var(--text-bright);
+  letter-spacing: 0.12em;
+}
+
+.sb-brand-tag {
+  color: var(--text-dim);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+
+/* ── Mid section (system status) ─────────────────────── */
+.sb-mid {
+  gap: 22px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+}
+
+.sb-mid-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sb-mid-item b {
+  color: var(--accent);
+  font-weight: 500;
+  margin-right: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.sb-net-offline .sb-net-text {
+  color: var(--danger);
+}
+
+/* ── Right section (controls) ────────────────────────── */
+.sb-right {
+  gap: 10px;
+  /* Pin to the right edge regardless of whether brand/mid are visible */
+  margin-left: auto;
+}
+
+/* All status-bar sections stay visible at desktop widths.
+   At very narrow widths (< 540px) the brand tag + mid pills hide so the
+   right-side controls don't collide with the kofi badge. */
+@media (max-width: 539px) {
+  .sb-brand-tag,
+  .sb-mid {
+    display: none;
+  }
+}
+
+@media (max-width: 419px) {
+  .sb-brand {
+    display: none;
+  }
+}
+
+.sb-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-bright);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+  transition: border-color var(--motion-cinematic), background var(--motion-cinematic);
+  white-space: nowrap;
+}
+
+.sb-pill:hover {
+  border-color: rgba(var(--accent-rgb), 0.30);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+.sb-pill-hidden {
+  display: none;
+}
+
+/* Activity pulse dot — accent dot that breathes */
+.sb-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.7);
+  animation: sbPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes sbPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+.sb-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-bright);
+}
+
+/* Icon buttons — theme + settings */
+.sb-icon-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-light);
+  color: var(--text);
+  cursor: pointer;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  transition: color var(--motion-cinematic), border-color var(--motion-cinematic), background var(--motion-cinematic), transform var(--motion-snappy);
+  padding: 0;
+}
+
+.sb-icon-btn:hover {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.40);
+  background: rgba(var(--accent-rgb), 0.06);
+  transform: translateY(-1px);
+}
+
+.sb-icon-btn:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* Hide the status-bar tray once an app is open — it would float over the window chrome */
+body.in-app .status-bar {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-cinematic);
+}
+
+/* Light-mode treatment */
+body.theme-light .sb-pill {
+  background: rgba(255, 255, 255, 0.65);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+}
+
+body.theme-light .sb-icon-btn {
+  background: rgba(255, 255, 255, 0.65);
+}
+
+/* ── 5. Bottom dock (NavBar restyled as a glass dock) ──────── */
+
+/* The container becomes the design's floating glass pill — wet-glass top-light
+   sheen, accent inset ring, accent under-cast halo, deeper drop shadow. */
+.nav-bar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.78) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.7), rgba(4, 12, 24, 0.88));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.50),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.14),
+    0 24px 60px -10px rgba(var(--accent-rgb), 0.30),
+    0 24px 60px rgba(0, 0, 0, 0.60);
+  border-radius: 22px;
+  padding: 8px 12px;
+  gap: 4px;
+  position: relative;
+  overflow: visible;
+}
+
+/* Accent under-cast halo — the dock looks like it's floating above the grid */
+.nav-bar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -14px;
+  transform: translateX(-50%);
+  width: 75%;
+  height: 18px;
+  background: var(--lg-cast);
+  filter: blur(11px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Each nav button gets the inner-bezel + accent inset look without going
+   full hexagonal — preserves the icon+label affordance while matching the
+   design's dock-tile recipe. */
+.nav-item {
+  border-radius: 12px;
+  padding: 7px 12px;
+  background: transparent;
+  transition: transform var(--motion-spring), background var(--motion-cinematic), color var(--motion-cinematic), box-shadow var(--motion-cinematic);
+  position: relative;
+}
+
+.nav-item:hover {
+  transform: translateY(-3px);
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.30),
+    0 6px 16px -8px rgba(var(--accent-rgb), 0.40);
+}
+
+.nav-item:active {
+  transform: translateY(-1px) scale(0.97);
+  transition: transform var(--motion-snappy);
+}
+
+.nav-item.active {
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.18) 0%, rgba(var(--accent-rgb), 0.06) 60%, transparent 100%);
+  color: var(--accent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.30),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.45),
+    inset 0 0 18px rgba(var(--accent-rgb), 0.12),
+    0 6px 18px -8px rgba(var(--accent-rgb), 0.40);
+}
+
+/* Replace the underline indicator with a "running app" dot below the active item */
+.nav-item.active::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.80);
+  transform: translateX(-50%);
+  animation: navDot 1.6s ease-in-out infinite;
+}
+
+@keyframes navDot {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
+}
+
+/* Light-mode dock — light glass over white */
+body.theme-light .nav-bar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.10),
+    0 12px 32px -10px rgba(var(--accent-rgb), 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+body.theme-light .nav-item.active {
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.10) 0%, rgba(var(--accent-rgb), 0.04) 60%, transparent 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.80),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.30),
+    0 6px 18px -8px rgba(var(--accent-rgb), 0.20);
+}
+
+/* ── 6. Cosmic stage — horizon glow + perspective grid floor ──── */
+
+/* Two fixed pseudo-elements on <body> add the design's "cosmic stage" depth:
+   accent horizon glow + a perspective-rotated grid floor that fades into space.
+   Both sit above the wallpaper but below the starfield canvas + everything else. */
+
+body::before {
+  /* Horizon glow — accent gradient rising from the bottom */
+  content: '';
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 320px;
+  background: linear-gradient(to top, rgba(var(--accent-rgb), 0.10), transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+
+body::after {
+  /* Perspective grid floor — fades from solid at the bottom to transparent
+     above the horizon. Works on top of the wallpaper. Hidden when the user
+     has picked an image wallpaper (they already provide the visual). */
+  content: '';
+  position: fixed;
+  left: -10%;
+  right: -10%;
+  bottom: -120px;
+  height: 320px;
+  background-image:
+    linear-gradient(to right, rgba(var(--accent-rgb), 0.18) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--accent-rgb), 0.12) 1px, transparent 1px);
+  background-size: 80px 60px;
+  transform: perspective(600px) rotateX(60deg);
+  -webkit-mask-image: linear-gradient(to top, #000 5%, transparent 80%);
+          mask-image: linear-gradient(to top, #000 5%, transparent 80%);
+  opacity: 0.40;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* When an image wallpaper is set, dial back both layers — the wallpaper carries
+   the visual weight and we don't want grid lines fighting through it. */
+body.has-wallpaper-image::before { opacity: 0.45; }
+body.has-wallpaper-image::after  { opacity: 0.18; }
+
+/* Light theme — replace the cosmic feel with a soft horizon, no neon grid */
+body.theme-light::before {
+  background: linear-gradient(to top, rgba(var(--accent-rgb), 0.06), transparent 70%);
+}
+
+body.theme-light::after {
+  background-image:
+    linear-gradient(to right, rgba(var(--accent-rgb), 0.10) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(var(--accent-rgb), 0.07) 1px, transparent 1px);
+  opacity: 0.20;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::after {
+    /* Keep the floor static — already static, but explicit for clarity */
+    transform: perspective(600px) rotateX(60deg);
+  }
+}
+
+/* ── 6.5. Search wrap + scope tabs ────────────────────────── */
+
+/* Wrapper holds the input bar and the scope tabs row in a column. */
+.m-search-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 620px;
+  max-width: 90vw;
+}
+
+/* Scope tabs — All / Apps / Files / Notes / Web below the input.
+   Active scope filters which result types appear in the dropdown. */
+.scopes {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.scope {
+  padding: 4px 12px;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  color: var(--text-dim);
+  border: 1px solid transparent;
+  transition: color var(--motion-cinematic), border-color var(--motion-cinematic), background var(--motion-cinematic);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.scope:hover {
+  color: var(--text-bright);
+}
+
+.scope.active {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.30);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+
+body.theme-light .scope.active {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.25);
+  background: rgba(var(--accent-rgb), 0.05);
+}
+
+/* While in-app, dim the entire search wrap (handled via search.root opacity by
+   mobileShell). The wrap is the new .root, so the existing toggles apply. */
+
+/* ── 7. Search bar ⌘K hint ────────────────────────────────── */
+
+/* Small "⌘K" badge inside the search bar's right edge — mirrors the design's
+   keyboard-shortcut affordance. CSS-only, hidden on touch devices and when
+   the input has focus or content. */
+.m-search-container::before {
+  content: '\2318 K';
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border-light);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  pointer-events: none;
+  transition: opacity var(--motion-cinematic);
+  z-index: 1;
+}
+
+.m-search-container:focus-within::before,
+.m-search-container.is-active::before {
+  opacity: 0;
+}
+
+/* Hide on coarse-pointer devices — touch users don't have ⌘K */
+@media (hover: none) and (pointer: coarse) {
+  .m-search-container::before {
+    display: none;
+  }
+}
+
+body.theme-light .m-search-container::before {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+/* ── 8. Section headings ──────────────────────────────────── */
+
+/* "01 / Today / live"  +  "02 / All Apps / drag to rearrange"
+   Numbered uppercase header with a 1px gradient rule and a mono meta tag. */
+.sec-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 18px auto 12px;
+  width: 100%;
+  max-width: 1200px;
+  padding: 0 4px;
+}
+
+@media (max-width: 1023px) {
+  .sec-head { max-width: 680px; }
+}
+
+.sec-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.sec-rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, var(--border), transparent);
+}
+
+.sec-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+/* The "All Apps" heading sits in main-content, not home-top — give it the same
+   centered max-width treatment so it lines up with the grid. */
+.sec-head-apps {
+  margin: 28px auto 14px;
+  max-width: 1200px;
+}
+
+@media (max-width: 1023px) {
+  .sec-head-apps { max-width: 680px; }
+}
+
+/* Hide section headings while inside an app */
+body.in-app .sec-head {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-cinematic);
+}
+
+/* ── 9. Signature pill (bottom-right) ─────────────────────── */
+
+/* The design's signature element — fixed bottom-right, version + status.
+   Sits above the dock-cast halo so it remains visible. */
+.sb-signature {
+  position: fixed;
+  right: 22px;
+  bottom: 28px;
+  z-index: 60;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  animation: greetFadeDown 0.8s var(--ease-out) 0.4s both;
+}
+
+.sb-signature-pill {
+  pointer-events: auto;
+}
+
+/* Hide signature pill while in-app — the dock and window chrome take over */
+body.in-app .sb-signature {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-cinematic);
+}
+
+/* Hide signature pill on phone-narrow viewports where it would crowd the dock */
+@media (max-width: 539px) {
+  .sb-signature {
+    display: none;
+  }
+}
+
+/* ── 10. Reduced-effects fallback ─────────────────────────── */
+
+body.reduced-effects .hex-icon::before,
+body.reduced-effects .hex-icon::after {
+  transition: opacity 0.15s ease-out;
+}
+
+body.reduced-effects .hex-icon-content {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+body.reduced-effects .widget-card,
+body.reduced-effects .m-search-input {
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hex-icon::before,
+  .app-icon,
+  .m-app-item,
+  .widget-card,
+  .m-search-input {
+    transition-duration: 0.01ms !important;
+  }
+}

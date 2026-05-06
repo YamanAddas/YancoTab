@@ -67,12 +67,39 @@ export class MobileGridState {
 
     if (storedItems && storedItems.length > 0) {
       this._mergeItems(storedItems, rawApps);
+      // If stored positions don't match the current cols (e.g. user resized
+      // the browser between sessions, or boots at a wider viewport than
+      // last time), repack items into the current grid. Without this, items
+      // saved at cols=4/6 would render in only the leftmost 4/6 columns of
+      // a cols=9 desktop grid.
+      if (this._hasStalePositions()) {
+        this._reflowItems();
+      }
     } else {
       this._layoutSequentially(rawApps);
     }
 
     this._save();
     this.notify();
+  }
+
+  _hasStalePositions() {
+    if (!this.layout?.metrics) return false;
+    const cols = this.layout.metrics.cols;
+    if (!cols) return false;
+    let maxCol = 0;
+    let placedCount = 0;
+    for (const item of this.items.values()) {
+      if (item.parent || item.hidden) continue;
+      if (item.col >= 0) {
+        placedCount++;
+        if (item.col > maxCol) maxCol = item.col;
+      }
+    }
+    if (placedCount === 0) return false;
+    // Stale if every placed item fits in fewer columns than the current layout
+    // provides — i.e. the layout would be visibly squished to one side.
+    return maxCol < cols - 2;
   }
 
   // ─── Layout Updates ─────────────────────────────────────────

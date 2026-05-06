@@ -28,6 +28,12 @@
   padding: 0;
   gap: 0;
   transition: opacity var(--transition-normal);
+  /* Span the available main-content width so children (widget bar, section
+     headings) can expand to their own max-widths rather than being pinned
+     to the narrow search-bar width. */
+  width: 100%;
+  max-width: 1320px;
+  margin: 0 auto;
 }
 
 body.in-app .home-top {
@@ -35,40 +41,62 @@ body.in-app .home-top {
   pointer-events: none;
 }
 
-/* ── Greeting (Concept A style) ── */
+/* ── Greeting hero — Liquid Glass design ── */
+/* Small mono greet line → giant live clock (HH:MM with teal ·SS) → mono day-of-year date.
+   The hero IS the clock — greeting and date are mono support text above and below.
+   Top padding clears the absolute-positioned status-bar tray + kofi badge. */
 .greeting-bar {
   text-align: center;
-  padding: 0 0 12px;
+  padding: 56px 0 18px;
   animation: greetFadeDown 0.6s var(--ease-out) both;
 }
 
-.greeting-text {
-  font-family: 'Playfair Display', 'Didot', 'Bodoni MT', 'Palatino Linotype', Georgia, serif;
-  font-style: italic;
-  font-size: 32px;
-  font-weight: 400;
-  color: #e0ecf5;
-  line-height: 1.25;
-  letter-spacing: 0.01em;
+.greeting-greet {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.30);
 }
 
-.greeting-sub {
-  font-family: 'Playfair Display', 'Didot', 'Bodoni MT', 'Palatino Linotype', Georgia, serif;
-  font-size: 14px;
-  font-weight: 400;
-  color: rgba(200, 220, 240, 0.45);
-  margin-top: 8px;
-  letter-spacing: 0.04em;
-}
-
-.greeting-time {
-  font-family: var(--font-sans);
-  font-size: 13px;
+.greeting-clock {
+  font-family: var(--font-mono);
+  font-size: clamp(56px, 12vw, 96px);
   font-weight: 300;
-  color: rgba(200, 220, 240, 0.35);
-  margin-top: 4px;
-  letter-spacing: 0.08em;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--text-bright);
+  text-shadow: 0 0 30px rgba(var(--accent-rgb), 0.25);
   font-variant-numeric: tabular-nums;
+}
+
+.greeting-sec {
+  color: var(--accent);
+  font-size: 0.46em;
+  font-weight: 400;
+  vertical-align: 0.32em;
+  margin-left: 10px;
+  text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.40);
+}
+
+.greeting-date {
+  margin-top: 10px;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Legacy aliases — older saved DOM may still reference these. Hide them so
+   nothing renders twice; new structure uses .greeting-greet / -clock / -date. */
+.greeting-text:empty,
+.greeting-sub:empty,
+.greeting-time:empty {
+  display: none;
 }
 
 @keyframes greetFadeDown {
@@ -165,16 +193,16 @@ body.in-app .kofi-badge {
 }
 
 /* ── Widget Bar ── */
+/* Desktop: auto-fit grid that adapts to whatever widgets are enabled.
+   Each widget gets a min-width of 220px and grows up to ~280px so the row
+   feels balanced whether 2, 3, or 4 widgets are showing. */
 .widget-bar {
-  display: flex;
-  gap: 12px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
-  justify-content: center;
-  flex-wrap: nowrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
   width: 100%;
-  max-width: 680px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .widget-bar::-webkit-scrollbar { display: none; }
@@ -242,7 +270,36 @@ body.in-app .kofi-badge {
 }
 
 .widget-medium {
-  min-width: 260px;
+  min-width: 200px;
+  flex: 1.6 1 200px;
+}
+
+/* In the 4-up grid, default cards take 1 column, medium takes 1 column too
+   (the column-template provides the 1.2/1/1/1.2 sizing already). */
+.widget-card {
+  min-width: 0;
+}
+
+/* Tablet (480-1023px): 2-column grid, todo spans both rows */
+@media (max-width: 1023px) {
+  .widget-bar {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    max-width: 680px;
+  }
+  .widget-medium {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Phone (< 480px): tighter gap, hide Clock since the hero already shows time */
+@media (max-width: 479px) {
+  .widget-bar {
+    gap: 10px;
+  }
+  .widget-clock {
+    display: none;
+  }
 }
 
 /* Widget typography */

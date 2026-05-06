@@ -6,12 +6,13 @@
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
-import { ClockWidget } from './widgets/ClockWidget.js';
 import { WeatherWidget } from './widgets/WeatherWidget.js';
 import { TodoWidget } from './widgets/TodoWidget.js';
 
+// Clock widget intentionally excluded — the hero already shows the time at
+// 96px size, so a second clock widget in the Today bar is redundant. The
+// ClockWidget module stays around in case the design changes again.
 const WIDGET_CLASSES = {
-    clock: ClockWidget,
     weather: WeatherWidget,
     todo: TodoWidget,
 };
@@ -35,7 +36,10 @@ export class WidgetBar {
         this._widgets = [];
         this.root.innerHTML = '';
 
-        const config = kernel.storage?.load('yancotab_widgets') || { clock: false, weather: false, todo: false };
+        // Fallback matches the AppStorage REGISTRY default for yancotab_widgets
+        // (appStorage.js:93). When storage isn't ready yet (rare race) default to
+        // showing the widgets — that's the design's intent for the home page.
+        const config = kernel.storage?.load('yancotab_widgets') || { clock: true, weather: true, todo: true };
 
         for (const [key, WidgetClass] of Object.entries(WIDGET_CLASSES)) {
             if (!config[key]) continue;
