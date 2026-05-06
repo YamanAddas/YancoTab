@@ -27,7 +27,7 @@ import { showWinOverlay } from './ui/WinOverlay.js';
 import { showStuckPrompt } from './ui/StuckPrompt.js';
 import { showNewGameMenu } from './ui/NewGameMenu.js';
 import { playWinCascade } from './ui/winCascade.js';
-import { haptic } from './ui/haptics.js';
+import { haptic } from '../shared/haptics.js';
 import { showStartScreen } from './ui/StartScreen.js';
 import { bindSolitaireKeys } from './ui/keyboard.js';
 

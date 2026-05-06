@@ -1,7 +1,7 @@
 // WinOverlay.js — Spider victory modal. Pure view.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 const DIFF_LABEL = { 1: '1 Suit', 2: '2 Suits', 4: '4 Suits' };
 

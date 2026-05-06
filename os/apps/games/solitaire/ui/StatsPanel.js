@@ -1,7 +1,7 @@
 // StatsPanel.js — Solitaire stats modal. Pure view.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 function fmtTime(s) {
   if (s == null) return '—';

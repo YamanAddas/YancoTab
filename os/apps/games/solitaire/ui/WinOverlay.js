@@ -1,7 +1,7 @@
 // WinOverlay.js — Victory modal. Pure view.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 export function showWinOverlay(root, { score, moves, time }, onNewGame) {
   const card = el('div', { class: 'cosmic-win-card' }, [

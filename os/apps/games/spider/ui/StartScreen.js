@@ -5,7 +5,7 @@
 // exactly the game they want — no mid-deal difficulty switch required.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 // Same arabesque flourish as Solitaire's StartScreen. Inline SVG is trusted
 // (no scripts, no external refs) so innerHTML is safe here.

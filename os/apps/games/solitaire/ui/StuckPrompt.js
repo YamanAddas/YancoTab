@@ -1,7 +1,7 @@
 // StuckPrompt.js — "No moves left" modal. Pure view.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 export function showStuckPrompt(root, { onUndo, onNew, onClose }) {
   const card = el('div', { class: 'cosmic-win-card' }, [

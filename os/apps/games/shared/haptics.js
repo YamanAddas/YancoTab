@@ -1,5 +1,6 @@
-// haptics.js — navigator.vibrate wrapper, same patterns as Solitaire.
-// No-op when the API is missing (desktop, most Safari, user preference).
+// haptics.js — thin wrapper around navigator.vibrate. Patterns tuned to feel
+// in-game: pickup is a tap, place is a firmer tap, invalid is a double-bounce,
+// win is a short celebratory burst. No-op when the API is missing.
 
 export function haptic(kind) {
   if (typeof navigator === 'undefined' || !navigator.vibrate) return;

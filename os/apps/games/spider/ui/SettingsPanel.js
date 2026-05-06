@@ -4,7 +4,7 @@
 // the user changes it from the in-game Settings button.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 export function showSettingsPanel(root, settings, onSave) {
   root.querySelector('.cosmic-settings-overlay')?.remove();

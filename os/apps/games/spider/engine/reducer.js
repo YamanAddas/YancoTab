@@ -4,6 +4,7 @@
 // app shell can play a fail SFX without polluting history.
 
 import { moveTableauToTableau, dealRow } from './moves.js';
+import { hashString } from '../../shared/hash.js';
 
 export const DEFAULT_OPTS = { difficulty: 1 };
 
@@ -25,15 +26,5 @@ export function reducer(state, action) {
   }
 }
 
-// FNV-1a — shared with solitaire. Turns a text seed ("DAILY-20260424") into
-// a 32-bit integer for seededMulberry32. Duplicated here instead of imported
-// so spider/ has zero hard dependency on solitaire/ (the games are cousins,
-// not parent-child).
-export function hashString(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
+// Re-export so any import from this module keeps working.
+export { hashString };

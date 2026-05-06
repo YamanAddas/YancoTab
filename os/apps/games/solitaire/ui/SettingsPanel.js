@@ -3,7 +3,7 @@
 // to do with the new settings (apply live vs prompt for new deal).
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 export function showSettingsPanel(root, settings, onSave) {
   // Dismiss any existing settings overlay first.

@@ -12,6 +12,7 @@ import {
   moveTableauToTableau,
   autoCollect,
 } from './moves.js';
+import { hashString } from '../../shared/hash.js';
 
 export const DEFAULT_OPTS = { drawCount: 1, scoring: 'standard' };
 
@@ -38,12 +39,5 @@ export function reducer(state, action) {
   }
 }
 
-// FNV-1a hash — used to turn a text seed into a 32-bit integer for dealFromSeed.
-export function hashString(str) {
-  let h = 2166136261 >>> 0;
-  for (let i = 0; i < str.length; i++) {
-    h ^= str.charCodeAt(i);
-    h = Math.imul(h, 16777619) >>> 0;
-  }
-  return h >>> 0;
-}
+// Re-export so existing `import { hashString } from './engine/reducer.js'` keeps working.
+export { hashString };

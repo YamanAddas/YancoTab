@@ -2,7 +2,7 @@
 // suits play like different games and conflating them hides real progress.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 function fmtTime(s) {
   if (s == null) return '—';

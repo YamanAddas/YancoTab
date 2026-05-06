@@ -9,7 +9,7 @@
 // and below — see .cosmic-start-title / .cosmic-start-ornament in the CSS.
 
 import { el } from '../../../../utils/dom.js';
-import { mountOverlay } from './overlay.js';
+import { mountOverlay } from '../../shared/overlay.js';
 
 // Inline arabesque flourish: dashed side-rules, two small dots, and a
 // centered diamond-in-diamond. All strokes use currentColor so the CSS

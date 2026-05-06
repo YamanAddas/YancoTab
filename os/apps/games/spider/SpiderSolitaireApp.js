@@ -25,7 +25,7 @@ import { showStatsPanel } from './ui/StatsPanel.js';
 import { showWinOverlay } from './ui/WinOverlay.js';
 import { showStuckPrompt } from './ui/StuckPrompt.js';
 import { showStartScreen } from './ui/StartScreen.js';
-import { haptic } from './ui/haptics.js';
+import { haptic } from '../shared/haptics.js';
 import { bindSpiderKeys } from './ui/keyboard.js';
 
 export class SpiderSolitaireApp extends App {
