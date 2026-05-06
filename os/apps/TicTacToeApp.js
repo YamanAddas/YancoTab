@@ -154,7 +154,7 @@ class NeonTactics {
     /* ── Save / Load ── */
     _loadSave() {
         try {
-            const d = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+            const d = this.kernel.storage.load(LS_KEY) || {};
             this.theme = COLORS[d.theme] ? d.theme : 'cyan';
             if (d.difficulty && ['easy', 'medium', 'hard'].includes(d.difficulty)) {
                 this.difficulty = d.difficulty;
@@ -170,7 +170,7 @@ class NeonTactics {
     }
     _save() {
         try {
-            localStorage.setItem(LS_KEY, JSON.stringify({
+            this.kernel.storage.save(LS_KEY, {
                 theme: this.theme,
                 difficulty: this.difficulty,
                 playerWins: this.playerWins,
@@ -178,7 +178,7 @@ class NeonTactics {
                 draws: this.draws,
                 streak: this.streak,
                 bestStreak: this.bestStreak,
-            }));
+            });
         } catch { /* ignore */ }
     }
 

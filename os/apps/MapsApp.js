@@ -50,12 +50,12 @@ export class MapsApp extends App {
     /* ── Data ── */
 
     _loadData() {
-        try { this._recents = JSON.parse(localStorage.getItem(RECENTS_KEY)) || []; } catch { this._recents = []; }
-        try { this._favorites = JSON.parse(localStorage.getItem(FAVORITES_KEY)) || []; } catch { this._favorites = []; }
+        try { this._recents = this.kernel.storage.load(RECENTS_KEY) || []; } catch { this._recents = []; }
+        try { this._favorites = this.kernel.storage.load(FAVORITES_KEY) || []; } catch { this._favorites = []; }
     }
 
-    _saveRecents() { localStorage.setItem(RECENTS_KEY, JSON.stringify(this._recents.slice(0, MAX_RECENTS))); }
-    _saveFavorites() { localStorage.setItem(FAVORITES_KEY, JSON.stringify(this._favorites.slice(0, MAX_FAVORITES))); }
+    _saveRecents() { this.kernel.storage.save(RECENTS_KEY, this._recents.slice(0, MAX_RECENTS)); }
+    _saveFavorites() { this.kernel.storage.save(FAVORITES_KEY, this._favorites.slice(0, MAX_FAVORITES)); }
 
     _addRecent(query) {
         const q = query.trim();

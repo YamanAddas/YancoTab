@@ -170,7 +170,7 @@ class NeonMines {
     /* ── Save / Load ── */
     _loadSave() {
         try {
-            const d = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+            const d = this.kernel.storage.load(LS_KEY) || {};
             this.theme = COLORS[d.theme] ? d.theme : 'cyan';
             this.bestTimes = d.bestTimes || {};
             this.gamesPlayed = d.gamesPlayed || 0;
@@ -185,13 +185,13 @@ class NeonMines {
     }
     _save() {
         try {
-            localStorage.setItem(LS_KEY, JSON.stringify({
+            this.kernel.storage.save(LS_KEY, {
                 theme: this.theme,
                 bestTimes: this.bestTimes,
                 gamesPlayed: this.gamesPlayed,
                 gamesWon: this.gamesWon,
                 difficulty: this.difficulty,
-            }));
+            });
         } catch { /* ignore */ }
     }
 

@@ -340,6 +340,61 @@ const REGISTRY = {
         default: null,
         validate: (v) => v === null || typeof v === 'string',
     },
+
+    // ── Games ──
+    yancotab_neon_mines: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_neon_recall: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_neon_serpent: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_neon_tactics: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
+
+    // ── Maps ──
+    yancotab_maps_recents: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v),
+    },
+    yancotab_maps_favorites: {
+        storageClass: 'volatile',
+        syncPolicy: 'sync',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v),
+    },
+
+    // ── PDF Reader ──
+    yancotab_pdf_recent: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v),
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────

@@ -172,7 +172,7 @@ class NeonSerpent {
     /* ── Save / Load ── */
     _loadSave() {
         try {
-            const d = JSON.parse(localStorage.getItem(LS_KEY) || '{}');
+            const d = this.kernel.storage.load(LS_KEY) || {};
             this.best       = d.best       || 0;
             this.bestCombo  = d.bestCombo  || 0;
             this.gamesPlayed = d.gamesPlayed || 0;
@@ -185,11 +185,11 @@ class NeonSerpent {
     }
     _save() {
         try {
-            localStorage.setItem(LS_KEY, JSON.stringify({
+            this.kernel.storage.save(LS_KEY, {
                 best: this.best, bestCombo: this.bestCombo,
                 gamesPlayed: this.gamesPlayed,
                 theme: this.theme, wallMode: this.wallMode,
-            }));
+            });
         } catch { /* ignore */ }
     }
 

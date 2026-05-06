@@ -290,17 +290,16 @@ export class PdfReaderApp extends App {
     _addToRecents(name, path) {
         if (!name || !path) return;
         try {
-            const raw = localStorage.getItem(RECENT_KEY);
-            const recents = raw ? JSON.parse(raw) : [];
+            const recents = this.kernel.storage.load(RECENT_KEY) || [];
             const filtered = recents.filter(r => r.path !== path);
             filtered.unshift({ name, path, openedAt: Date.now() });
-            localStorage.setItem(RECENT_KEY, JSON.stringify(filtered.slice(0, MAX_RECENTS)));
+            this.kernel.storage.save(RECENT_KEY, filtered.slice(0, MAX_RECENTS));
         } catch { /* ignore */ }
     }
 
     _getRecents() {
         try {
-            return JSON.parse(localStorage.getItem(RECENT_KEY) || '[]');
+            return this.kernel.storage.load(RECENT_KEY) || [];
         } catch { return []; }
     }
 
