@@ -1,9 +1,14 @@
 {
     "manifest_version": 3,
-    "name": "YancoTab",
-    "short_name": "YancoTab",
+    "name": "__MSG_appName__",
+    "short_name": "__MSG_appShortName__",
     "version": "2.3.3",
-    "description": "Your personal desktop in every new tab. Apps, games, notes, weather — all running locally, no accounts, no tracking.",
+    "description": "__MSG_appDescription__",
+    "default_locale": "en",
+    "offline_enabled": true,
+    "content_security_policy": {
+        "extension_pages": "script-src 'self'; object-src 'self'"
+    },
     "chrome_url_overrides": {
         "newtab": "index.html"
     },

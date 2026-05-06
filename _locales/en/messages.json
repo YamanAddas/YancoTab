@@ -1,0 +1,14 @@
+{
+  "appName": {
+    "message": "YancoTab",
+    "description": "Extension name shown in the browser toolbar and Chrome Web Store listing."
+  },
+  "appShortName": {
+    "message": "YancoTab",
+    "description": "Short name used in constrained UI such as the apps menu."
+  },
+  "appDescription": {
+    "message": "Your personal desktop in every new tab. Apps, games, notes, weather — all running locally, no accounts, no tracking.",
+    "description": "Extension description shown in the Chrome Web Store and in chrome://extensions."
+  }
+}

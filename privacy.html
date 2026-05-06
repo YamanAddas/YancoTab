@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Privacy Policy — YancoTab</title>
+    <meta name="description" content="YancoTab privacy policy. We collect no personal data, run no analytics, and store everything locally in your browser."/>
+    <meta name="theme-color" content="#060b14"/>
+    <meta name="robots" content="index,follow"/>
+    <link rel="icon" href="./favicon.ico"/>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #060b14;
+            --bg-card: rgba(8, 18, 32, 0.85);
+            --accent: #00e5c1;
+            --accent-dim: rgba(0, 229, 193, 0.15);
+            --text: #c8d6e5;
+            --text-bright: #f1f6fb;
+            --text-dim: #5a6a7e;
+            --border: rgba(255, 255, 255, 0.06);
+            --radius: 16px;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.7;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        a { color: var(--accent); text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        .container {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 64px 24px 40px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 48px;
+            position: relative;
+        }
+
+        .header::before {
+            content: '';
+            position: absolute;
+            top: -40px; left: 50%;
+            transform: translateX(-50%);
+            width: 320px;
+            height: 320px;
+            background: radial-gradient(circle, rgba(0,229,193,0.08) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .header img {
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 32px rgba(0,229,193,0.18);
+        }
+
+        h1 {
+            font-size: clamp(28px, 5vw, 40px);
+            font-weight: 700;
+            color: var(--text-bright);
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text-bright);
+            margin: 40px 0 12px;
+            letter-spacing: -0.2px;
+        }
+
+        h2:first-of-type { margin-top: 0; }
+
+        h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-bright);
+            margin: 20px 0 8px;
+        }
+
+        p {
+            margin-bottom: 14px;
+            font-size: 15px;
+        }
+
+        ul {
+            margin: 8px 0 16px 0;
+            padding-left: 22px;
+        }
+
+        li {
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+
+        strong { color: var(--text-bright); font-weight: 600; }
+
+        code {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 6px;
+            font-family: 'SF Mono', 'JetBrains Mono', Consolas, Monaco, monospace;
+            font-size: 13px;
+            color: var(--accent);
+        }
+
+        .summary-card {
+            background: var(--bg-card);
+            border: 1px solid var(--accent-dim);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin: 0 0 40px;
+        }
+
+        .summary-card h2 {
+            margin-top: 0;
+            color: var(--accent);
+            font-size: 18px;
+        }
+
+        .summary-card p { margin-bottom: 0; }
+
+        .footer {
+            margin-top: 56px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-dim);
+            font-size: 13px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 40px 18px 32px; }
+            h2 { font-size: 19px; }
+            h3 { font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header class="header">
+        <img src="./assets/icons/icon-128.png" alt="YancoTab"/>
+        <h1>Privacy Policy</h1>
+        <p class="subtitle">Effective 5 May 2026 · Last reviewed 5 May 2026</p>
+    </header>
+
+    <section class="summary-card">
+        <h2>The short version</h2>
+        <p>
+            YancoTab does not collect, transmit, or sell any personal data. There are
+            no accounts, no analytics, no tracking, and no servers operated by us.
+            Everything you create stays in your browser. The only outbound network
+            requests are to public, keyless APIs for weather and website favicons.
+        </p>
+    </section>
+
+    <h2>1. Who this policy applies to</h2>
+    <p>
+        This policy covers the YancoTab browser extension (Chrome, Edge) and the
+        YancoTab web app at the addresses listed in the Chrome Web Store and on our
+        landing page. YancoTab is a single-developer open-source project maintained
+        by Yaman Addas.
+    </p>
+
+    <h2>2. Data we collect</h2>
+    <p>
+        <strong>None.</strong> YancoTab has no backend, no analytics SDK, no telemetry,
+        and no event reporting. We never see your notes, todos, search queries,
+        bookmarks, files, settings, or any other content you create or save in the
+        extension.
+    </p>
+
+    <h2>3. Data stored on your device</h2>
+    <p>
+        Everything you create is saved locally in your browser using two web platform
+        storage mechanisms:
+    </p>
+    <ul>
+        <li>
+            <strong>localStorage</strong> — used by individual apps for their content
+            (notes, todos, files, game state, etc.). Cleared if you uninstall the
+            extension or clear site data.
+        </li>
+        <li>
+            <strong><code>chrome.storage.sync</code></strong> — used to replicate a
+            small subset of preferences (theme, wallpaper, dock layout) across the
+            Chrome browsers you are signed into. This data is encrypted in transit
+            and at rest by Google as part of Chrome Sync. We do not have access to
+            it. See
+            <a href="https://www.google.com/policies/privacy/" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>
+            for details on Chrome Sync.
+        </li>
+    </ul>
+
+    <h2>4. Permissions we request</h2>
+    <p>
+        YancoTab declares exactly one permission in its manifest:
+    </p>
+    <ul>
+        <li>
+            <code>storage</code> — required to read and write your settings and app
+            data via the two storage mechanisms above.
+        </li>
+    </ul>
+    <p>
+        We do <strong>not</strong> request access to your browsing history, open
+        tabs, bookmarks, cookies, downloads, clipboard, microphone, camera, location,
+        or the content of any web page. YancoTab injects no content scripts and runs
+        no background service worker that observes your browsing.
+    </p>
+
+    <h2>5. External services contacted by your browser</h2>
+    <p>
+        A small number of features rely on third-party APIs. Requests are made
+        directly from your browser — they do not pass through any server we operate.
+        No request includes any account identifier or personal data; the parameters
+        sent are limited to what is needed to fulfil the request.
+    </p>
+    <ul>
+        <li>
+            <strong>Open-Meteo</strong> (<code>api.open-meteo.com</code>,
+            <code>geocoding-api.open-meteo.com</code>) — weather forecasts and city
+            search. Sends: city name or geographic coordinates. No API key required.
+            See <a href="https://open-meteo.com/en/terms" target="_blank" rel="noopener noreferrer">Open-Meteo terms</a>.
+        </li>
+        <li>
+            <strong>OpenStreetMap Nominatim</strong>
+            (<code>nominatim.openstreetmap.org</code>) — reverse geocoding when you
+            opt in to "use my location". Sends: latitude/longitude. See
+            <a href="https://operations.osmfoundation.org/policies/nominatim/" target="_blank" rel="noopener noreferrer">Nominatim usage policy</a>.
+        </li>
+        <li>
+            <strong>National Weather Service</strong>
+            (<code>api.weather.gov</code>) — US weather alerts. Sends:
+            latitude/longitude. Public-domain US government API.
+        </li>
+        <li>
+            <strong>Google Favicon Service</strong>
+            (<code>www.google.com/s2/favicons</code>) — fetches website icons for
+            bookmark tiles you create. Sends: the domain of the site whose icon you
+            chose to display. See
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's privacy policy</a>.
+        </li>
+        <li>
+            <strong>Browser app web requests</strong> — when you use the in-tab
+            Browser app to navigate to a URL, your browser contacts that URL the
+            same way it would in a normal tab. YancoTab is not in the middle of that
+            request.
+        </li>
+    </ul>
+    <p>
+        Each of these third parties may log your IP address as part of normal web
+        traffic. We have no control over their logs and receive no copy of them.
+        If this is a concern, the affected features (Weather, Browser app,
+        bookmark favicons) can be left unused without affecting the rest of the
+        extension.
+    </p>
+
+    <h2>6. Cookies and tracking</h2>
+    <p>
+        YancoTab itself sets no cookies and embeds no trackers, pixels, or
+        third-party scripts. The Content Security Policy enforced by the extension
+        forbids loading remote code, inline scripts, and <code>eval</code>.
+    </p>
+
+    <h2>7. Data sharing and selling</h2>
+    <p>
+        We do not sell, rent, trade, or share any user data. We do not have any
+        user data to share.
+    </p>
+
+    <h2>8. Children's privacy</h2>
+    <p>
+        YancoTab is suitable for general audiences and does not knowingly collect
+        information from anyone, including children under 13. Because no data is
+        collected at all, no parental consent or COPPA disclosure obligation
+        applies.
+    </p>
+
+    <h2>9. Your rights and how to exercise them</h2>
+    <p>
+        Because we hold no data about you, there is nothing to request, port, or
+        delete on our side. To remove all YancoTab data from your device:
+    </p>
+    <ul>
+        <li>Uninstall the extension from <code>chrome://extensions</code>, or</li>
+        <li>
+            Open Settings inside YancoTab and use <strong>Export</strong> to back up
+            your data, then <strong>Reset all data</strong> to wipe local storage.
+        </li>
+    </ul>
+
+    <h2>10. Security</h2>
+    <p>
+        YancoTab follows Manifest V3 best practices: a strict Content Security
+        Policy, no inline scripts, no remote code, validated URL schemes, and no
+        host permissions. The full source is published under the MIT licence on
+        GitHub for independent audit. To report a vulnerability, please open a
+        private security advisory on the
+        <a href="https://github.com/YamanAddas/YancoTab/security/advisories/new" target="_blank" rel="noopener noreferrer">GitHub Security tab</a>.
+    </p>
+
+    <h2>11. Changes to this policy</h2>
+    <p>
+        If this policy changes, the updated version will be published at this URL
+        and the "Last reviewed" date at the top will be updated. Material changes
+        will also be noted in the project
+        <a href="https://github.com/YamanAddas/YancoTab/blob/main/CHANGELOG.md" target="_blank" rel="noopener noreferrer">CHANGELOG</a>.
+    </p>
+
+    <h2>12. Contact</h2>
+    <p>
+        Questions or concerns can be sent to
+        <a href="mailto:yamanaddas@gmail.com">yamanaddas@gmail.com</a>
+        or filed as a public issue on
+        <a href="https://github.com/YamanAddas/YancoTab/issues" target="_blank" rel="noopener noreferrer">GitHub</a>.
+    </p>
+
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="./landing.html">Home</a>
+            <a href="https://github.com/YamanAddas/YancoTab" target="_blank" rel="noopener noreferrer">GitHub</a>
+            <a href="https://github.com/YamanAddas/YancoTab/blob/main/SECURITY.md" target="_blank" rel="noopener noreferrer">Security</a>
+            <a href="https://ko-fi.com/yamanaddas" target="_blank" rel="noopener noreferrer">Ko-fi</a>
+        </div>
+        <p>&copy; 2026 Yaman Addas · MIT licensed</p>
+    </footer>
+
+</div>
+
+</body>
+</html>

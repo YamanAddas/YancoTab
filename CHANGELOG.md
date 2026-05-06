@@ -8,6 +8,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added — Chrome Web Store launch prep (toward v2.4.0)
+- **`privacy.html`** — full public privacy policy page (12 sections: data collection, storage, permissions, third-party APIs, COPPA, security, contact). Matches landing.html visual system, self-contained, indexable. Linked from landing.html footer.
+- **`_locales/en/messages.json`** — i18n message catalog with `appName`, `appShortName`, `appDescription`. Required for the `__MSG_*__` placeholders in the manifest and as the foundation for future locale additions.
+
+### Changed
+- **`manifest.json`** — added the three CWS-required fields the audit flagged as missing:
+  - `default_locale: "en"` (mandatory once `__MSG_*__` placeholders are used)
+  - `offline_enabled: true` (extension works fully offline; declared explicitly so the store badge renders)
+  - `content_security_policy.extension_pages: "script-src 'self'; object-src 'self'"` (codifies the existing MV3 default; documents intent for store reviewers and matches what `SECURITY.md` already promises)
+  - `name` and `description` switched to `__MSG_appName__` / `__MSG_appDescription__`; `short_name` switched to `__MSG_appShortName__`
+- **`landing.html`** — footer gains a Privacy link as the first item.
+
+### Notes
+- Version intentionally **not** bumped. Per the project contract, `manifest.json` / `package.json` / `CHANGELOG.md` move together at release time. These commits land under `[Unreleased]` until the v2.4.0 cut.
+
 ---
 
 ## [2.3.3] — 2026-04-24
