@@ -19,32 +19,51 @@ export class MobileContextMenu {
     if (saved) this.applySavedWallpaper(saved);
   }
 
+  // Source of truth: the 8 theme wallpapers shipped under assets/wallpapers/.
+  // Mirrors the keys in os/theme/themes.js THEMES.
   wallpapers = [
-    'assets/wallpaper.webp',
-    'assets/wallpapers/deep-blue.webp',
-    'assets/wallpapers/black.webp',
-    'assets/wallpapers/dark.webp',
-    'assets/wallpapers/violet.webp',
-    'assets/wallpapers/pink.webp',
-    'assets/wallpapers/sky.webp',
-    'assets/wallpapers/mint.webp',
+    'assets/wallpapers/emerald.webp',
+    'assets/wallpapers/obsidian.webp',
+    'assets/wallpapers/sapphire.webp',
+    'assets/wallpapers/amethyst.webp',
+    'assets/wallpapers/rose.webp',
+    'assets/wallpapers/arctic.webp',
+    'assets/wallpapers/sunset.webp',
+    'assets/wallpapers/crimson.webp',
   ];
 
+  // Migrate v1 inline-gradient and old-name image references to the closest
+  // current theme wallpaper. Saved values that don't match this map fall
+  // through to normalizeWallpaper's url(...) regex.
   legacyWallpaperMap = {
-    'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f35 100%)': 'assets/wallpapers/deep-blue.webp',
-    '#000000': 'assets/wallpapers/black.webp',
-    'linear-gradient(45deg, #121212, #2a2a2a)': 'assets/wallpapers/dark.webp',
-    'linear-gradient(135deg, #667eea, #764ba2)': 'assets/wallpapers/violet.webp',
-    'linear-gradient(135deg, #f093fb, #f5576c)': 'assets/wallpapers/pink.webp',
-    'linear-gradient(135deg, #4facfe, #00f2fe)': 'assets/wallpapers/sky.webp',
-    'linear-gradient(135deg, #43e97b, #38f9d7)': 'assets/wallpapers/mint.webp',
+    'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f35 100%)': 'assets/wallpapers/sapphire.webp',
+    '#000000':                                                          'assets/wallpapers/obsidian.webp',
+    'linear-gradient(45deg, #121212, #2a2a2a)':                         'assets/wallpapers/obsidian.webp',
+    'linear-gradient(135deg, #667eea, #764ba2)':                        'assets/wallpapers/amethyst.webp',
+    'linear-gradient(135deg, #f093fb, #f5576c)':                        'assets/wallpapers/rose.webp',
+    'linear-gradient(135deg, #4facfe, #00f2fe)':                        'assets/wallpapers/arctic.webp',
+    'linear-gradient(135deg, #43e97b, #38f9d7)':                        'assets/wallpapers/emerald.webp',
+    // Old image-path references (pre-v1 themed wallpapers)
+    'assets/wallpaper.webp':                                            'assets/wallpapers/emerald.webp',
+    'assets/wallpapers/deep-blue.webp':                                 'assets/wallpapers/sapphire.webp',
+    'assets/wallpapers/black.webp':                                     'assets/wallpapers/obsidian.webp',
+    'assets/wallpapers/dark.webp':                                      'assets/wallpapers/obsidian.webp',
+    'assets/wallpapers/violet.webp':                                    'assets/wallpapers/amethyst.webp',
+    'assets/wallpapers/pink.webp':                                      'assets/wallpapers/rose.webp',
+    'assets/wallpapers/sky.webp':                                       'assets/wallpapers/arctic.webp',
+    'assets/wallpapers/mint.webp':                                      'assets/wallpapers/emerald.webp',
   };
 
   normalizeWallpaper(saved) {
     if (!saved) return this.wallpapers[0];
     if (saved in this.legacyWallpaperMap) return this.legacyWallpaperMap[saved];
     const match = saved.match(/^url\(["']?(.+?)["']?\)$/);
-    return match ? match[1] : saved;
+    const extracted = match ? match[1] : saved;
+    // Check legacy map a second time with the extracted URL — saved values
+    // like url("assets/wallpapers/deep-blue.webp") (a dead pre-v1 path)
+    // get migrated to the closest current theme wallpaper.
+    if (extracted in this.legacyWallpaperMap) return this.legacyWallpaperMap[extracted];
+    return extracted;
   }
 
   applySavedWallpaper(saved) {

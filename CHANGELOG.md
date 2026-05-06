@@ -10,6 +10,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Fixed — Wallpaper precache + dead-path cleanup (Phase 1.7 closeout)
+- **Service worker precache** was referencing 7 wallpapers + 1 root `wallpaper.webp` that no longer exist (`black`, `dark`, `deep-blue`, `mint`, `pink`, `sky`, `violet` — replaced months ago by 8 themed wallpapers `emerald`, `obsidian`, `sapphire`, `amethyst`, `rose`, `arctic`, `sunset`, `crimson`). The dead refs caused `cache.addAll()` to reject on first SW install, silently disabling offline support. Replaced with the 8 real wallpapers.
+- **MobileContextMenu wallpaper picker** referenced the same dead 7-list. Updated to the 8 themed wallpapers and added migration entries for old gradient strings + old image paths so users with stale `yancotab_wallpaper` values (`url("assets/wallpapers/deep-blue.webp")`, hex colors, etc.) auto-migrate to the closest current theme.
+- **`scripts/take-screenshots.mjs`** updated to reference `sapphire.webp` instead of dead `deep-blue.webp`.
+
 ### Changed — Storage consistency (Phase 1.5 closeout, Tier 1)
 - **NotesApp** — `view` and `sort` UI prefs migrated from raw `localStorage` to `kernel.storage` (with new REGISTRY entries `yancotab_notes_view` and `yancotab_notes_sort`).
 - **StatusBar** — removed legacy `yancotab_clock_v2` fallback. Now reads only the canonical `yancotab_clock_state_v3` via `kernel.storage`.

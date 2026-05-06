@@ -162,14 +162,15 @@ const PRECACHE = [
     './vendor/tesseract/eng.traineddata',
     // Assets
     './assets/browser-icon.png',
-    './assets/wallpaper.webp',
-    './assets/wallpapers/black.webp',
-    './assets/wallpapers/dark.webp',
-    './assets/wallpapers/deep-blue.webp',
-    './assets/wallpapers/mint.webp',
-    './assets/wallpapers/pink.webp',
-    './assets/wallpapers/sky.webp',
-    './assets/wallpapers/violet.webp',
+    // Theme wallpapers — referenced by themes.js and MobileContextMenu.js
+    './assets/wallpapers/amethyst.webp',
+    './assets/wallpapers/arctic.webp',
+    './assets/wallpapers/crimson.webp',
+    './assets/wallpapers/emerald.webp',
+    './assets/wallpapers/obsidian.webp',
+    './assets/wallpapers/rose.webp',
+    './assets/wallpapers/sapphire.webp',
+    './assets/wallpapers/sunset.webp',
 ];
 
 self.addEventListener('install', (event) => {

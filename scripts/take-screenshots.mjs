@@ -29,7 +29,7 @@ async function seedData(page) {
     // ── User & prefs ──
     localStorage.setItem('yancotab_user_name', e('Yaman'));
     localStorage.setItem('yancotab_onboarding_done', e(true));
-    localStorage.setItem('yancotab_wallpaper', 'url("assets/wallpapers/deep-blue.webp")');
+    localStorage.setItem('yancotab_wallpaper', 'url("assets/wallpapers/sapphire.webp")');
     localStorage.setItem('yancotab_theme_mode', e('dark'));
     localStorage.setItem('yancotab_starfield_enabled', e(true));
 
