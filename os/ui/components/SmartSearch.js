@@ -7,7 +7,7 @@ import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
 
 const SAFE_SCHEMES = ['https:', 'http:', 'tel:', 'mailto:', 'sms:'];
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 7;
 
 function scoreMatch(appName, query) {
     const name = appName.toLowerCase();

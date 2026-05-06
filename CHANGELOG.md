@@ -10,6 +10,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Added — Phase 2 (DELIGHT) closeout
+- **`Ctrl+N`** — creates a new note when the Notes app is the active window. Calls `NotesApp._createDocument()` which writes a blank note to the filesystem and opens it in a new editor window.
+- **`Ctrl+Enter`** in SmartSearch — quick-capture as a note. Prepends `!` to whatever the user typed (existing quick-capture syntax) and triggers Enter, so the typed text becomes a new note title.
+- **SmartSearch result limit raised 5 → 7** to match the production plan spec.
+- **Phase 2 audit summary:** Greeting, Toast, Onboarding, Quick Links all verified DONE. Widget bar ships 3/4 widgets — Pomodoro widget deferred (no Pomodoro app exists yet; building the app is out of v1 scope). Command palette `> focus` mode also deferred — depends on Focus Mode (Phase 4 feature).
+
 ### Added — Error boundary safety net (Phase 1.9 closeout)
 - **MobileShell `process:started` handler** — already wrapped app-mount in try/catch with a "App crashed" + Restart card (verified working). Extended to ALSO wrap `WindowChrome` instantiation so a fundamental DOM-construction failure in window chrome can't take down the entire shell. On WindowChrome failure: console.error + error toast, app.close() called, home grid stays usable.
 

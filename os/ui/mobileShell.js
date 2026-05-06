@@ -638,7 +638,25 @@ export class MobileShell {
         return;
       }
 
-      // Don't override shortcuts when typing in inputs (except Escape above)
+      // Ctrl+Enter inside the search input — quick-capture as a note via the
+      // existing `! prefix` path. Stays inside the isInput branch since the
+      // user is actively typing in the search box.
+      if (isInput && ctrl && e.key === 'Enter') {
+        const searchInput = this.components.search.input;
+        if (e.target === searchInput && searchInput.value.trim()) {
+          e.preventDefault();
+          // Prepend '!' to trigger SmartSearch's quick-capture branch, then
+          // simulate an Enter keypress on the search input
+          if (!searchInput.value.startsWith('!')) {
+            searchInput.value = '! ' + searchInput.value;
+          }
+          searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+          return;
+        }
+      }
+
+      // Don't override shortcuts when typing in inputs (except Escape and
+      // the Ctrl+Enter quick-capture above)
       if (isInput) return;
 
       // Ctrl+K / Cmd+K — focus SmartSearch
@@ -652,6 +670,16 @@ export class MobileShell {
       if (ctrl && e.key === ',') {
         e.preventDefault();
         kernel.emit('app:open', 'settings');
+        return;
+      }
+
+      // Ctrl+N — new note (when Notes app is the active window)
+      if (ctrl && e.key === 'n') {
+        const proc = kernel.processManager.processes.get(this.state.activePid);
+        if (proc?.name === 'notes' && typeof proc.instance?._createDocument === 'function') {
+          e.preventDefault();
+          proc.instance._createDocument();
+        }
         return;
       }
     });
