@@ -558,6 +558,14 @@ body.theme-light .sb-time {
   color: var(--text-bright);
 }
 
+.kofi-modal-loading {
+  text-align: center;
+  padding: 48px 16px;
+  font-size: 14px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+}
+
 .kofi-modal-iframe {
   display: block;
   width: 100%;

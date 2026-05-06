@@ -705,14 +705,17 @@ export class MobileShell {
       onclick: close,
     }, '×');
 
+    const spinner = el('div', { class: 'kofi-modal-loading' }, 'Loading Ko-fi…');
+
     const iframe = el('iframe', {
-      src: 'https://ko-fi.com/yamanaddas/?hidefeed=true&widget=true&embed=true',
+      src: `https://ko-fi.com/yamanaddas/?hidefeed=true&widget=true&embed=true&_=${Date.now()}`,
       class: 'kofi-modal-iframe',
       title: 'Support YancoTab on Ko-fi',
       frameborder: '0',
     });
+    iframe.addEventListener('load', () => spinner.remove(), { once: true });
 
-    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, iframe]);
+    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, spinner, iframe]);
     const backdrop = el('div', {
       class: 'kofi-modal-backdrop',
       onclick: (e) => { if (e.target === backdrop) close(); },
