@@ -209,6 +209,7 @@ class MahjongGame {
 
     if (this.canMatch(this.selected, tile)) {
       const pair = [this.selected, tile];
+      this._lastMatch = pair;
       pair.forEach(t => t.removed = true);
       this.selected = null;
       this.moves++;
@@ -224,6 +225,15 @@ class MahjongGame {
     const prev = this.selected;
     this.selected = tile;
     return { type: 'switch', prev, tile };
+  }
+
+  undo() {
+    if (!this._lastMatch || this.gameOver) return null;
+    const pair = this._lastMatch;
+    pair.forEach(t => t.removed = false);
+    this._lastMatch = null;
+    this.moves = Math.max(0, this.moves - 1);
+    return pair;
   }
 
   findHint() {
@@ -275,12 +285,13 @@ export class MahjongApp extends App {
     this.root.appendChild(link);
 
     // Header
+    this.undoBtn = el('button', { class: 'mj-hdr-btn disabled', onclick: () => this.doUndo() }, 'Undo');
     this.hintBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.doHint() }, 'Hint');
     this.shuffleBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.doShuffle() }, 'Shuffle');
     const newBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.newGame() }, 'New');
 
     const header = el('div', { class: 'mj-header' }, [
-      el('div', { class: 'mj-header-left' }, [this.hintBtn, this.shuffleBtn, newBtn]),
+      el('div', { class: 'mj-header-left' }, [this.undoBtn, this.hintBtn, this.shuffleBtn, newBtn]),
       el('div', { class: 'mj-title' }, 'Mahjong'),
       el('button', { class: 'mj-close', onclick: () => this.close() }, '×'),
     ]);
@@ -337,6 +348,7 @@ export class MahjongApp extends App {
 
     if (this.stats) { this.stats.gamesPlayed++; this._saveStats(); }
 
+    this.undoBtn?.classList.add('disabled');
     this.startTimer();
     this.renderBoard();
     this.updateStats();
@@ -509,10 +521,12 @@ export class MahjongApp extends App {
 
       case 'match':
         this.animateRemove(result.pair);
+        this.undoBtn.classList.remove('disabled');
         break;
 
       case 'win':
         this.animateRemove(result.pair);
+        this.undoBtn.classList.add('disabled');
         this.stopTimer();
         setTimeout(() => this.showWin(), 400);
         break;
@@ -565,6 +579,14 @@ export class MahjongApp extends App {
     this.game.shuffleRemaining();
     this.renderBoard();
     this.updateStats();
+  }
+
+  doUndo() {
+    const pair = this.game.undo();
+    if (!pair) return;
+    this.renderBoard();
+    this.updateStats();
+    this.undoBtn.classList.add('disabled');
   }
 
   /* ── Overlays ── */

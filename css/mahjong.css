@@ -230,6 +230,17 @@
 
 /* ── Tile states ── */
 .mj-tile.free { cursor: pointer; }
+.mj-tile.free:hover {
+  transform: translateY(-2px) scale(1.04);
+  z-index: 1000;
+  transition: transform 0.15s ease, z-index 0s;
+}
+.mj-tile.free:hover .mj-tile-body {
+  box-shadow:
+    0 0 0 2px rgba(68, 255, 255, 0.35),
+    0 0 14px rgba(68, 255, 255, 0.2),
+    4px 5px 0 rgba(0, 0, 0, 0.45);
+}
 .mj-tile.blocked {
   cursor: not-allowed;
   pointer-events: none;
