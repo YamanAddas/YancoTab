@@ -33,11 +33,19 @@ STAGE=$(mktemp -d)
 trap 'rm -rf "$STAGE"' EXIT
 
 EXCLUDES=(
-  '.git' '.github' '.claude' 'node_modules' 'tests' 'scripts'
+  '.git' '.github' '.claude' 'node_modules' 'tests' 'scripts' 'concepts'
   'CLAUDE.md' 'CONTRIBUTING.md' 'PRODUCTION_PLAN.md' 'SECURITY.md'
-  'CHANGELOG.md' 'README.md' 'LICENSE' '.gitignore' '.gitattributes'
+  'CHANGELOG.md' 'README.md' 'LICENSE' 'STORE_LISTING.md'
+  '.gitignore' '.gitattributes'
   'package.json' 'package-lock.json' 'landing.html' 'sw.js'
   'manifest.webmanifest' '.DS_Store' 'Thumbs.db'
+  # Dev artifacts at repo root that aren't part of the extension
+  'kofi-logo-generator.html' 'promo-tile-generator.html' 'icon-concepts.html'
+  'yancotab.png' 'yancotab-clean.png'
+  'V1_COMPLETION_PLAN.md'
+  # CWS listing assets — uploaded separately to the developer dashboard,
+  # not part of the extension payload itself
+  'assets/store'
 )
 
 if command -v rsync &>/dev/null; then
