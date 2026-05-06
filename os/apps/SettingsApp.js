@@ -4,6 +4,7 @@ import { VERSION, BUILD } from '../version.js';
 import { getThemeMode, applyThemeMode } from '../theme/theme.js';
 import { THEMES, applyColorTheme, applyWallpaper, getSavedTheme } from '../theme/themes.js';
 import { renderGames } from './settings/GamesSettings.js';
+import { renderApps } from './settings/AppsSettings.js';
 
 const WALLPAPER_KEY = 'yancotab_wallpaper';
 const GRID_STORAGE_KEY = 'yancotab_mobile_grid_v8';
@@ -82,6 +83,7 @@ export class SettingsApp extends App {
       { id: 'appearance', label: 'Appearance', icon: '🎨' },
       { id: 'homescreen', label: 'Home', icon: '📱' },
       { id: 'games', label: 'Games', icon: '🎮' },
+      { id: 'apps', label: 'Apps', icon: '📦' },
       { id: 'browser', label: 'Browser', icon: '🌐' },
       { id: 'about', label: 'About', icon: 'ℹ️' },
     ];
@@ -123,6 +125,7 @@ export class SettingsApp extends App {
       appearance: 'Appearance',
       homescreen: 'Home Screen',
       games: 'Games',
+      apps: 'Apps',
       browser: 'Browser',
       about: 'About',
     };
@@ -136,6 +139,7 @@ export class SettingsApp extends App {
       case 'appearance': this._renderAppearance(scroll); break;
       case 'homescreen': this._renderHomeScreen(scroll); break;
       case 'games': this._renderGames(scroll); break;
+      case 'apps': this._renderApps(scroll); break;
       case 'browser': this._renderBrowser(scroll); break;
       case 'about': this._renderAbout(scroll); break;
       default: this._renderAppearance(scroll);
@@ -237,9 +241,8 @@ export class SettingsApp extends App {
     ]));
   }
 
-  _renderGames(scroll) {
-    renderGames(scroll, this);
-  }
+  _renderGames(scroll) { renderGames(scroll, this); }
+  _renderApps(scroll) { renderApps(scroll, this); }
 
   _renderHomeScreen(container) {
     container.appendChild(this._group('Icon Layout', [
