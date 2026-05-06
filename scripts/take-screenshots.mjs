@@ -128,8 +128,10 @@ async function setupPage(page) {
   await page.evaluate(() => {
     const gt = document.querySelector('.greeting-text');
     const gs = document.querySelector('.greeting-sub');
+    const gtime = document.querySelector('.greeting-time');
     if (gt) gt.textContent = 'Good afternoon, Yaman';
     if (gs) gs.textContent = 'Monday, May 5';
+    if (gtime) gtime.textContent = '2:34 PM';
     document.body.style.backgroundColor = '#060b14';
     document.documentElement.style.backgroundColor = '#060b14';
     const shell = document.getElementById('app-shell');

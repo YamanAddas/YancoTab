@@ -62,6 +62,8 @@ const PRECACHE = [
     './os/ui/desktop/SmartIcon.js',
     './os/ui/icons/AppIcons.js',
     './os/ui/components/Greeting.js',
+    './assets/fonts/playfair-display-latin-400.woff2',
+    './assets/fonts/playfair-display-latin-400i.woff2',
     './os/ui/components/WidgetBar.js',
     './os/ui/components/widgets/ClockWidget.js',
     './os/ui/components/widgets/WeatherWidget.js',

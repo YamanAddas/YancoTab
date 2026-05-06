@@ -9,14 +9,20 @@ function getGreetingText() {
     const hour = new Date().getHours();
     if (hour >= 5 && hour < 12) return 'Good morning';
     if (hour >= 12 && hour < 17) return 'Good afternoon';
-    if (hour >= 17 && hour < 21) return 'Good evening';
-    return 'Good night';
+    return 'Good evening'; // 17:00 through 4:59
 }
 
 function getDateString() {
     const now = new Date();
     return now.toLocaleDateString(undefined, {
         weekday: 'long', month: 'long', day: 'numeric'
+    });
+}
+
+function getTimeString() {
+    const now = new Date();
+    return now.toLocaleTimeString(undefined, {
+        hour: 'numeric', minute: '2-digit', hour12: true
     });
 }
 
@@ -47,7 +53,8 @@ export class Greeting {
     render() {
         this.root = el('div', { class: 'greeting-bar' });
         this._update();
-        this._interval = setInterval(() => this._update(), 60000);
+        // Refresh every 30s — keeps time display current without per-second overhead
+        this._interval = setInterval(() => this._update(), 30000);
         return this.root;
     }
 
@@ -60,10 +67,13 @@ export class Greeting {
         const dateStr = getDateString();
         const weather = getWeatherSummary();
 
+        const timeStr = getTimeString();
+
         this.root.innerHTML = '';
         this.root.append(
             el('div', { class: 'greeting-text' }, greetingFull),
             el('div', { class: 'greeting-sub' }, weather ? `${dateStr}  ·  ${weather}` : dateStr),
+            el('div', { class: 'greeting-time' }, timeStr),
         );
     }
 
