@@ -100,9 +100,11 @@ export class OcrTool {
                 class: 'pe-ocr-text',
                 readonly: true,
                 rows: 8,
-                value: this._fullText,
                 onclick: (e) => e.target.select(),
             });
+            // Set .value as DOM property — setAttribute('value') doesn't
+            // populate the visible content for <textarea> elements.
+            this._textArea.value = this._fullText;
             panel.appendChild(el('div', { class: 'pe-panel__subtitle' }, 'Recognized Text'));
             panel.appendChild(this._textArea);
 
