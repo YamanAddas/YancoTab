@@ -494,7 +494,106 @@ body.theme-light .sb-icon-btn {
   background: rgba(255, 255, 255, 0.65);
 }
 
-/* ── 5. Bottom dock (NavBar restyled as a glass dock) ──────── */
+/* ── 5. Bottom dock — hex tiles for actual apps ──────────── */
+
+/* The .app-dock subclass switches from the old labeled-nav style to
+   a horizontal row of hex tiles. The .nav-bar class stays on the root
+   so the in-app slide-out animation still applies. */
+.app-dock {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+/* Each tile reuses the grid's hex visual (chromed ring + glass body +
+   spec sweep on hover), just at a smaller size. SmartIcon rendered the
+   .hex-icon stack inside the tile; we override --hex-size locally. */
+.app-dock-tile {
+  --hex-size: 44px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  outline: none;
+  transition: transform var(--motion-spring);
+}
+
+.app-dock-tile:hover {
+  transform: translateY(-6px) scale(1.08);
+}
+
+.app-dock-tile:active {
+  transform: translateY(-2px) scale(1.02);
+  transition: transform var(--motion-snappy);
+}
+
+.app-dock-tile:focus-visible {
+  outline: 2px solid rgba(var(--accent-rgb), 0.5);
+  outline-offset: 4px;
+  border-radius: 12px;
+}
+
+/* The SVG icons inside dock tiles render smaller too — clamp them */
+.app-dock-tile .hex-icon {
+  width: 44px;
+  height: 44px;
+}
+
+.app-dock-tile .game-svg,
+.app-dock-tile .phosphor-wrap svg {
+  /* iconSize for dock SmartIcons. The grid uses 32px icons in a 62px hex;
+     we scale proportionally for the 44px dock hex. */
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* Running-app dot under the tile */
+.app-dock-dot {
+  position: absolute;
+  left: 50%;
+  bottom: -2px;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.80);
+  opacity: 0;
+  transition: opacity var(--motion-cinematic);
+  pointer-events: none;
+}
+
+.app-dock-tile.is-running .app-dock-dot {
+  opacity: 1;
+  animation: navDot 1.6s ease-in-out infinite;
+}
+
+/* Separators between category groups */
+.app-dock-sep {
+  width: 1px;
+  height: 28px;
+  background: var(--border-light);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+/* When AppDock replaces NavBar, drop the old .nav-item active-tab styles
+   since the dock doesn't use that pattern. They wouldn't match anyway
+   (no .nav-item elements rendered) — explicit reset keeps debugging easy. */
+.app-dock .nav-item { display: none; }
+
+/* Light-mode separators */
+body.theme-light .app-dock-sep {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* ── 5b. Legacy NavBar styles (kept for any non-AppDock callers) ── */
 
 /* The container becomes the design's floating glass pill — wet-glass top-light
    sheen, accent inset ring, accent under-cast halo, deeper drop shadow. */

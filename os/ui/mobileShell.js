@@ -19,7 +19,7 @@ import { kernel } from '../kernel.js';
 import { el } from '../utils/dom.js';
 import { VERSION } from '../version.js';
 import { AppGrid } from './components/AppGrid.js';
-import { NavBar } from './components/NavBar.js';
+import { AppDock } from './components/AppDock.js';
 import { SmartSearch } from './components/SmartSearch.js';
 import { StatusBar } from './components/StatusBar.js';
 import { HomeBar } from './components/HomeBar.js';
@@ -37,7 +37,7 @@ export class MobileShell {
     this.root = root;
     this.components = {
       grid: new AppGrid(),
-      navBar: new NavBar(),
+      navBar: new AppDock(),
       search: new SmartSearch(),
       statusBar: new StatusBar(kernel),
       homeBar: new HomeBar(() => this.goHome()),
