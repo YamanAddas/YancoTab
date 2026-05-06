@@ -29,6 +29,7 @@ export function renderAppearance(container, app) {
   _profile(container, app, storage);
   _darkMode(container, app);
   _themeGrid(container, app, storage);
+  _motion(container, app);
   _regionFormat(container, app, storage);
 }
 
@@ -154,6 +155,28 @@ function _themeGrid(container, app, storage) {
   });
 
   container.appendChild(app._group('Theme', [grid]));
+}
+
+/* ── Motion (background animation toggle) ── */
+
+function _motion(container, app) {
+  const isOn = (() => {
+    try {
+      const raw = localStorage.getItem('yancotab_starfield_enabled');
+      return raw === null ? true : raw !== 'false';
+    } catch { return true; }
+  })();
+
+  container.appendChild(app._group('Motion', [
+    app._toggleRow('Background Animation', 'Twinkling stars on solid wallpapers', isOn, (next) => {
+      try { localStorage.setItem('yancotab_starfield_enabled', String(next)); } catch {}
+      // Dispatch a theme_change event — starfield already listens and will
+      // start/stop accordingly without double-registering listeners.
+      window.dispatchEvent(new CustomEvent('yancotab:theme_change', {
+        detail: { reason: 'starfield-toggle' },
+      }));
+    }),
+  ]));
 }
 
 /* ── Region & Format ── */

@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Added — Starfield motion toggle (Phase 1.2 closeout)
+- **Settings → Appearance → Motion → Background Animation** — toggle for the starfield. Storage key `yancotab_starfield_enabled` was already wired up in `starfield.js` but no UI exposed it. Toggling reuses the `yancotab:theme_change` event so the starfield starts/stops live without needing a page reload (and without registering duplicate listeners).
+- The other §1.2 plan items (80-star count, image-wallpaper skip, prefers-reduced-motion, FPS cap when blurred) were already shipped — confirmed in the audit.
+
 ### Changed — Unified icon system closeout
 - **Built-in app icons** — all 11 standard apps and 9 games now resolve through the central icon registry (`os/ui/icons/AppIcons.js` → `PHOSPHOR_ICONS` / `GAME_ICONS`). Emoji values (`'🔢'`, `'⚙️'`, `'📝'`…) and game-prefix strings (`'game:mahjong'`…) removed from `mobileShell.js`'s apps array. User-added shortcuts still use their own `icon` (favicon URL or picked emoji) via the static-fallback path.
 - **Hex container background** — single source of truth via `getCategoryColor(appId)` (productivity blue / media purple / utilities teal / games red / external orange). Per-app gradient block deleted from `shell.css` — it was fighting the inline category color and making the icons inconsistent in light mode.
