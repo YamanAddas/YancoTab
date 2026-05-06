@@ -36,7 +36,7 @@ No user data is sent in any of these requests. Only coordinates and city names.
 ### Content Security Policy
 YancoTab enforces a strict CSP via Manifest V3:
 - No inline scripts
-- No `eval()` or dynamic code execution
+- No `eval()` or dynamic code execution — the one exception is `'wasm-unsafe-eval'`, which permits `WebAssembly.compile()` for the vendored tesseract-wasm OCR engine (see `vendor/tesseract/PROVENANCE.md`). This directive does **not** enable `eval()` or `Function()` (see [Chrome MV3 CSP docs](https://developer.chrome.com/docs/extensions/develop/migrate/improve-security#remove-execution-of-strings))
 - No remote script loading
 - All JavaScript loaded from the extension package only
 

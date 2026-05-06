@@ -17,6 +17,7 @@
  *  - Keyboard shortcuts for every tool
  */
 import { el } from '../../utils/dom.js';
+import { OcrTool } from './OcrTool.js';
 
 // ─── Undo / Redo Stack ──────────────────────────────────
 class UndoStack {
@@ -175,6 +176,12 @@ export class PhotoEditor {
         this._boundKeyup = this._onKeyup.bind(this);
 
         this._build();
+
+        // OCR tool (lazy — OcrTool module handles the heavy lifting)
+        this._ocrTool = new OcrTool(this._canvasWrap, () => ({
+            img: this._img,
+            imgRect: this._imgRect,
+        }));
     }
 
     // ═════════════════════════════════════════════════════
@@ -252,6 +259,7 @@ export class PhotoEditor {
             { id: 'filters', icon: '\u2728', label: 'Filters' },
             { id: 'draw', icon: '\u270F', label: 'Draw' },
             { id: 'color', icon: '\uD83C\uDFA8', label: 'Colors' },
+            { id: 'ocr', icon: 'Aa', label: 'Text' },
             { id: 'export', icon: '\uD83D\uDCBE', label: 'Export' },
         ];
         this._sidebar.innerHTML = '';
@@ -311,6 +319,7 @@ export class PhotoEditor {
             case 'filters':   this._buildFilterPanel(); break;
             case 'draw':      this._buildDrawPanel(); break;
             case 'color':     this._buildColorPanel(); break;
+            case 'ocr':       this._ocrTool.buildPanel(this._toolPanel); break;
             case 'export':    this._showExportPanel(); break;
         }
         this._updateCursor();
@@ -1048,6 +1057,9 @@ export class PhotoEditor {
         if (this._selectedAnn) {
             this._drawSelectionHandles(ctx);
         }
+
+        // Sync OCR overlay position with viewport transform
+        if (this._ocrTool) this._ocrTool.syncOverlay();
 
         // Update status bar
         this._updateStatusBar();
@@ -1816,6 +1828,7 @@ export class PhotoEditor {
                 case 'f': this._selectTool('filters'); return;
                 case 'd': this._selectTool('draw'); return;
                 case 'e': this._selectTool('export'); return;
+                case 'o': this._selectTool('ocr'); return;
                 case 't': this._selectTool('draw'); this._drawTool = 'text'; this._buildDrawPanel(); return;
             }
         }
@@ -1866,7 +1879,7 @@ export class PhotoEditor {
         }
 
         if (this._statusTool) {
-            const names = { move: 'Move', crop: 'Crop', transform: 'Transform', adjust: 'Adjust', filters: 'Filters', draw: 'Draw', color: 'Colors', export: 'Export' };
+            const names = { move: 'Move', crop: 'Crop', transform: 'Transform', adjust: 'Adjust', filters: 'Filters', draw: 'Draw', color: 'Colors', ocr: 'OCR', export: 'Export' };
             let txt = names[this._sidebarTool] || '';
             if (this._sidebarTool === 'draw') {
                 const sub = { pen: 'Pen', arrow: 'Arrow', line: 'Line', rect: 'Rect', ellipse: 'Ellipse', text: 'Text', highlight: 'Highlight', 'blur-region': 'Blur', step: 'Step' };
@@ -1960,6 +1973,7 @@ export class PhotoEditor {
         document.removeEventListener('keyup', this._boundKeyup);
         this._resizeObs?.disconnect();
         if (this._textInput) this._textInput.remove();
+        if (this._ocrTool) { this._ocrTool.destroy(); this._ocrTool = null; }
         this._undo.clear();
         this._img = null;
     }

@@ -138,6 +138,13 @@ const PRECACHE = [
     './os/apps/games/trix/trixReducer.js',
     './os/apps/games/trix/trixRules.js',
     './os/apps/games/trix/trixState.js',
+    // OCR
+    './os/services/ocrService.js',
+    './os/apps/photos/OcrTool.js',
+    './vendor/tesseract/lib.js',
+    './vendor/tesseract/tesseract-worker.js',
+    './vendor/tesseract/tesseract-core.wasm',
+    './vendor/tesseract/eng.traineddata',
     // Assets
     './assets/browser-icon.png',
     './assets/wallpaper.webp',

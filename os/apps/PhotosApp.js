@@ -12,6 +12,7 @@ import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
+import { ocrService } from '../services/ocrService.js';
 
 const VIEW_KEY = 'yancotab_photos_view';
 const SORT_KEY = 'yancotab_photos_sort';
@@ -70,6 +71,8 @@ export class PhotosApp extends App {
             this.editor.destroy();
             this.editor = null;
         }
+        // Eagerly kill OCR worker instead of waiting for idle timeout
+        ocrService.destroy();
         super.destroy();
     }
 

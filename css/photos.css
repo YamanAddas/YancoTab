@@ -1437,3 +1437,98 @@
         grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     }
 }
+
+/* ═══════════════════════════════════════════════════════
+   OCR Tool — overlay + panel
+   ═══════════════════════════════════════════════════════ */
+
+/* Overlay: positioned over the canvas image area */
+.pe-ocr-overlay {
+    position: absolute;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.pe-ocr-box {
+    position: absolute;
+    border: 1.5px solid rgba(var(--accent-rgb), 0.5);
+    border-radius: 2px;
+    background: rgba(var(--accent-rgb), 0.06);
+    pointer-events: auto;
+    cursor: pointer;
+    transition: background 120ms ease-out, border-color 120ms ease-out;
+}
+
+.pe-ocr-box:hover {
+    background: rgba(var(--accent-rgb), 0.15);
+    border-color: rgba(var(--accent-rgb), 0.8);
+}
+
+.pe-ocr-box.is-selected {
+    background: rgba(var(--accent-rgb), 0.22);
+    border-color: var(--accent);
+    box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.3);
+}
+
+/* Panel styles */
+.pe-ocr-panel {
+    gap: 8px;
+}
+
+.pe-ocr-progress {
+    height: 4px;
+    background: var(--bg-elevated);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.pe-ocr-progress__fill {
+    height: 100%;
+    width: 0;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 200ms ease-out;
+}
+
+.pe-ocr-status {
+    font-size: var(--font-sm);
+    color: var(--text);
+    min-height: 18px;
+}
+
+.pe-ocr-text {
+    width: 100%;
+    min-height: 100px;
+    padding: 8px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-bright);
+    font-size: var(--font-sm);
+    font-family: var(--font-mono, monospace);
+    line-height: 1.5;
+    resize: vertical;
+    cursor: text;
+}
+
+.pe-ocr-text:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.pe-ocr-meta {
+    font-size: var(--font-xs);
+    color: var(--text-dim);
+}
+
+.pe-ocr-error {
+    font-size: var(--font-sm);
+    color: var(--danger);
+    padding: 6px 8px;
+    background: rgba(255, 69, 58, 0.08);
+    border-radius: var(--radius-xs);
+}
+
+.pe-ocr-actions {
+    flex-wrap: wrap;
+}
