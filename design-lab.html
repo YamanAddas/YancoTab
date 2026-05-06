@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>YancoTab — Design Lab</title>
+<style>
+:root {
+  --bg:          #060b14;
+  --bg-card:     rgba(8, 18, 32, 0.85);
+  --accent:      #00e5c1;
+  --accent-rgb:  0, 229, 193;
+  --text-bright: #c8d6e5;
+  --text:        #8a9bb0;
+  --text-dim:    #3d4f63;
+  --hex-clip:    polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text-bright); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; }
+body {
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(0, 229, 193, 0.08), transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(107, 92, 255, 0.06), transparent 50%),
+    var(--bg);
+  min-height: 100vh;
+  padding: 40px 20px 100px;
+}
+header { max-width: 1200px; margin: 0 auto 40px; text-align: center; }
+header h1 {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 36px;
+  color: #e0ecf5;
+  margin-bottom: 8px;
+}
+header p { color: var(--text); font-size: 14px; }
+
+main { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 56px; }
+section { padding: 32px; border-radius: 16px; background: rgba(8, 18, 32, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.05); }
+section h2 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+section h3 {
+  font-size: 22px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+section .desc {
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 28px;
+  max-width: 600px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 16px 20px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.04);
+  transition: border-color 0.2s;
+}
+.swatch:hover { border-color: rgba(var(--accent-rgb), 0.3); }
+.swatch.is-current::before {
+  content: 'CURRENT';
+  position: absolute;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: var(--text-dim);
+  margin-top: -4px;
+}
+.swatch-label { font-size: 13px; font-weight: 600; color: var(--text-bright); }
+.swatch-sub { font-size: 11px; color: var(--text); text-align: center; line-height: 1.4; }
+
+/* ============================================================
+   HEX ICON FRAMES — 4 variants
+   ============================================================ */
+.hex {
+  width: 96px;
+  height: 96px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+}
+.hex-content {
+  width: 100%;
+  height: 100%;
+  clip-path: var(--hex-clip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Variant A — Current (baseline) */
+.hex-A .hex-content {
+  background: rgba(0, 229, 193, 0.12);
+  box-shadow: inset 0 0 0 1.5px rgba(var(--accent-rgb), 0.3);
+}
+
+/* Variant B — Polished glass tile (heavier inner glow + bottom shadow) */
+.hex-B .hex-content {
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 45%, transparent 60%),
+    rgba(0, 229, 193, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(0,0,0,0.30),
+    inset 0 0 0 1.2px rgba(var(--accent-rgb), 0.45);
+}
+.hex-B::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 65%;
+  height: 8px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.3), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+
+/* Variant C — Crystal facet (angular gradient, multi-edge highlights) */
+.hex-C .hex-content {
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0.04) 40%, transparent 55%),
+    linear-gradient(45deg, rgba(var(--accent-rgb), 0.22), rgba(107, 92, 255, 0.08)),
+    rgba(8, 16, 28, 0.6);
+  box-shadow:
+    inset 0 2px 0 rgba(255,255,255,0.30),
+    inset 0 -2px 0 rgba(0,0,0,0.40),
+    inset 1px 0 0 rgba(255,255,255,0.10),
+    inset -1px 0 0 rgba(0,0,0,0.20),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.5);
+}
+.hex-C::after {
+  content: '';
+  position: absolute;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 72%;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.45), transparent 70%);
+  filter: blur(8px);
+  pointer-events: none;
+}
+
+/* Variant D — Liquid glass (specular sweep + soft refraction edge) */
+.hex-D .hex-content {
+  background:
+    linear-gradient(165deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 25%, transparent 45%),
+    radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.18), transparent 50%),
+    rgba(8, 20, 36, 0.55);
+  backdrop-filter: blur(8px) saturate(1.4);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255,255,255,0.42),
+    inset 0 -1.5px 0 rgba(0,0,0,0.32),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.55),
+    inset 0 0 24px rgba(var(--accent-rgb), 0.10);
+}
+.hex-D::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
+  clip-path: var(--hex-clip);
+  opacity: 0;
+  transition: opacity 0.5s, transform 0.6s;
+  pointer-events: none;
+}
+.hex-D:hover::before {
+  opacity: 1;
+  transform: translateX(20%);
+}
+.hex-D::after {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.6), transparent 70%);
+  filter: blur(10px);
+  pointer-events: none;
+}
+
+/* All hexes — base hover lift */
+.hex { transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.hex:hover { transform: translateY(-4px) scale(1.04); }
+.hex:active { transform: scale(0.96); }
+
+/* ============================================================
+   GAME ICONS — Solitaire 3 styles
+   ============================================================ */
+.game-current {
+  font-size: 32px;
+  filter: grayscale(0.2);
+}
+.solitaire-cartoon {
+  /* Approximation of current cartoony game icon */
+  background: linear-gradient(145deg, #2a1a4a, #0a1a2e);
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 28px;
+  color: #ff6b9d;
+}
+
+/* Realistic card stack — what we'd ship */
+.solitaire-cards {
+  position: relative;
+  width: 70px;
+  height: 90px;
+}
+.solitaire-cards .card {
+  position: absolute;
+  width: 50px;
+  height: 70px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.5), inset 0 0 0 0.5px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+}
+.solitaire-cards .card .rank { font-size: 12px; line-height: 1; }
+.solitaire-cards .card .suit { font-size: 16px; line-height: 1; margin-top: 1px; }
+.solitaire-cards .card.spade { color: #1a1a1a; }
+.solitaire-cards .card.heart { color: #d8233a; }
+.solitaire-cards .card.club { color: #1a1a1a; }
+.solitaire-cards .card.c1 { left: 0; top: 16px; transform: rotate(-12deg); }
+.solitaire-cards .card.c2 { left: 12px; top: 8px; transform: rotate(-3deg); }
+.solitaire-cards .card.c3 { left: 22px; top: 0; transform: rotate(8deg); z-index: 2; }
+
+/* Premium photoreal — heavier shadows, gradient bg */
+.solitaire-photo {
+  position: relative;
+  width: 70px;
+  height: 90px;
+}
+.solitaire-photo .card {
+  position: absolute;
+  width: 52px;
+  height: 74px;
+  background: linear-gradient(180deg, #ffffff, #f4f4f4);
+  border-radius: 7px;
+  box-shadow:
+    0 4px 12px rgba(0,0,0,0.55),
+    0 1px 0 rgba(255,255,255,0.5) inset,
+    0 0 0 0.5px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+  padding: 5px 7px;
+  font-family: 'Georgia', serif;
+  font-weight: bold;
+}
+.solitaire-photo .card .rank { font-size: 14px; line-height: 1; }
+.solitaire-photo .card .suit { font-size: 22px; line-height: 1; margin-top: 1px; text-shadow: 0 1px 0 rgba(0,0,0,0.05); }
+.solitaire-photo .card.spade { color: #0c0c0c; }
+.solitaire-photo .card.heart { color: #c5152e; }
+.solitaire-photo .card.c1 { left: 0; top: 14px; transform: rotate(-14deg); }
+.solitaire-photo .card.c2 { left: 12px; top: 6px; transform: rotate(-2deg); }
+.solitaire-photo .card.c3 { left: 22px; top: -2px; transform: rotate(10deg); z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
+
+/* ============================================================
+   BUTTONS
+   ============================================================ */
+.btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.btn-current { background: var(--accent); color: #060b14; }
+.btn-polished {
+  background: linear-gradient(180deg, #00ffd4 0%, var(--accent) 50%, #00b89a 100%);
+  color: #060b14;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.45),
+    inset 0 -1px 0 rgba(0,0,0,0.20),
+    0 4px 12px rgba(var(--accent-rgb), 0.30),
+    0 1px 3px rgba(0,0,0,0.20);
+  transition: transform 0.15s, box-shadow 0.2s;
+}
+.btn-polished:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.55),
+    inset 0 -1px 0 rgba(0,0,0,0.20),
+    0 6px 18px rgba(var(--accent-rgb), 0.40),
+    0 2px 4px rgba(0,0,0,0.25);
+}
+.btn-polished:active {
+  transform: translateY(1px);
+  box-shadow:
+    inset 0 2px 4px rgba(0,0,0,0.30),
+    0 1px 2px rgba(0,0,0,0.20);
+}
+
+/* ============================================================
+   CARDS / WIDGETS
+   ============================================================ */
+.widget {
+  width: 200px;
+  height: 110px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.widget-current {
+  background: rgba(8, 18, 32, 0.85);
+  backdrop-filter: blur(20px);
+  border: 1.5px solid rgba(var(--accent-rgb), 0.30);
+}
+.widget-polished {
+  background:
+    linear-gradient(155deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 45%, transparent 60%),
+    rgba(8, 18, 32, 0.55);
+  backdrop-filter: blur(24px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.20),
+    0 8px 32px rgba(0,0,0,0.40),
+    0 1px 0 rgba(255,255,255,0.04);
+  position: relative;
+}
+.widget-polished::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 12%;
+  right: 12%;
+  height: 12px;
+  background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.20), transparent 70%);
+  filter: blur(6px);
+  pointer-events: none;
+}
+.widget .v { font-size: 28px; font-weight: 200; line-height: 1; }
+.widget .l { font-size: 12px; color: var(--text); margin-top: 6px; }
+
+/* ============================================================
+   MOTION SAMPLES
+   ============================================================ */
+.motion-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+.motion-card {
+  width: 80px;
+  height: 80px;
+  border-radius: 16px;
+  background: rgba(0, 229, 193, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  cursor: pointer;
+  border: 1px solid rgba(var(--accent-rgb), 0.3);
+}
+.motion-snappy { transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1); }
+.motion-snappy:hover { transform: scale(1.08); }
+.motion-snappy:active { transform: scale(0.95); }
+
+.motion-cinematic { transition: transform 380ms cubic-bezier(0.22, 1.20, 0.36, 1.00); }
+.motion-cinematic:hover { transform: translateY(-6px) scale(1.05); }
+.motion-cinematic:active { transform: scale(0.96); }
+
+.motion-spring { transition: transform 550ms cubic-bezier(0.34, 1.56, 0.64, 1); }
+.motion-spring:hover { transform: translateY(-8px) rotate(-3deg) scale(1.06); }
+.motion-spring:active { transform: scale(0.92); }
+
+/* ============================================================
+   Pick chip
+   ============================================================ */
+.pick {
+  margin-top: 24px;
+  padding: 12px 18px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px dashed rgba(var(--accent-rgb), 0.25);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--text);
+}
+.pick strong { color: var(--accent); font-weight: 600; }
+
+@media (max-width: 600px) {
+  .hex { width: 80px; height: 80px; font-size: 30px; }
+  section { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>YancoTab — Design Lab</h1>
+  <p>Hover and click each variant. Tell me which letter / style you pick per section.</p>
+</header>
+
+<main>
+
+<!-- ============================================================
+     SECTION 1 — HEX ICON FRAMES
+     ============================================================ -->
+<section>
+  <h2>Section 1</h2>
+  <h3>Hex Icon Frames</h3>
+  <p class="desc">All four use the same hex shape — the difference is depth, light, and edge treatment. Hover to feel the lift.</p>
+
+  <div class="row">
+    <div class="swatch"><div class="hex hex-A"><div class="hex-content">⚙️</div></div><div class="swatch-label">A — Current</div><div class="swatch-sub">Flat tint, single inner border. What ships today.</div></div>
+    <div class="swatch"><div class="hex hex-B"><div class="hex-content">⚙️</div></div><div class="swatch-label">B — Polished glass</div><div class="swatch-sub">Top highlight, bottom shadow, soft cast shadow underneath.</div></div>
+    <div class="swatch"><div class="hex hex-C"><div class="hex-content">⚙️</div></div><div class="swatch-label">C — Crystal facet</div><div class="swatch-sub">Multi-edge highlights, dual gradient (teal + violet) suggests cut crystal.</div></div>
+    <div class="swatch"><div class="hex hex-D"><div class="hex-content">⚙️</div></div><div class="swatch-label">D — Liquid glass</div><div class="swatch-sub">Hover to see specular sweep. Backdrop blur. Most "VisionOS".</div></div>
+  </div>
+
+  <div class="pick">Pick one for the answer: <strong>A</strong> / <strong>B</strong> / <strong>C</strong> / <strong>D</strong></div>
+</section>
+
+<!-- ============================================================
+     SECTION 2 — GAME ICON STYLE (Solitaire as the example)
+     ============================================================ -->
+<section>
+  <h2>Section 2</h2>
+  <h3>Game Icons — Solitaire as the test case</h3>
+  <p class="desc">If we pick a style, all 9 games (Solitaire / Spider / Mahjong / Memory / Snake / Minesweeper / Tic-Tac-Toe / Tarneeb / Trix) get redrawn to match. Each will be its own real-game-icon, not cartoon.</p>
+
+  <div class="row">
+    <div class="swatch">
+      <div class="hex hex-A"><div class="hex-content"><div class="solitaire-cartoon">🃏</div></div></div>
+      <div class="swatch-label">A — Current (cartoony)</div>
+      <div class="swatch-sub">Single emoji card on flat color. What you said is "horrible".</div>
+    </div>
+    <div class="swatch">
+      <div class="hex hex-B"><div class="hex-content"><div class="solitaire-cards"><div class="card spade c1"><div class="rank">3</div><div class="suit">♠</div></div><div class="card heart c2"><div class="rank">2</div><div class="suit">♥</div></div><div class="card spade c3"><div class="rank">A</div><div class="suit">♠</div></div></div></div></div>
+      <div class="swatch-label">B — Stylized cards</div>
+      <div class="swatch-sub">Real card faces, stacked + rotated. Clean Georgia serif rank.</div>
+    </div>
+    <div class="swatch">
+      <div class="hex hex-D"><div class="hex-content"><div class="solitaire-photo"><div class="card spade c1"><div class="rank">3</div><div class="suit">♠</div></div><div class="card heart c2"><div class="rank">2</div><div class="suit">♥</div></div><div class="card spade c3"><div class="rank">A</div><div class="suit">♠</div></div></div></div></div>
+      <div class="swatch-label">C — Photoreal cards</div>
+      <div class="swatch-sub">Heavier shadows, gradient card bodies, drop-shadow on top card. Feels like real cards on a glass tile.</div>
+    </div>
+  </div>
+
+  <div class="pick">Pick one: <strong>A</strong> (keep) / <strong>B</strong> / <strong>C</strong> — recommendation: C</div>
+</section>
+
+<!-- ============================================================
+     SECTION 3 — BUTTON STYLES
+     ============================================================ -->
+<section>
+  <h2>Section 3</h2>
+  <h3>Buttons</h3>
+  <p class="desc">Hover and click each. Polished one has light catching the top edge, deeper press feel.</p>
+
+  <div class="row" style="grid-template-columns: 1fr 1fr;">
+    <div class="swatch">
+      <button class="btn btn-current">Click me</button>
+      <div class="swatch-label">Current</div>
+      <div class="swatch-sub">Flat fill, no depth, no light source.</div>
+    </div>
+    <div class="swatch">
+      <button class="btn btn-polished">Click me</button>
+      <div class="swatch-label">Polished</div>
+      <div class="swatch-sub">Vertical gradient, top inner highlight, bottom inner shadow, drop shadow grows on hover, presses inward on click.</div>
+    </div>
+  </div>
+
+  <div class="pick">Polished, yes/no?</div>
+</section>
+
+<!-- ============================================================
+     SECTION 4 — WIDGET / CARD SURFACES
+     ============================================================ -->
+<section>
+  <h2>Section 4</h2>
+  <h3>Widget Cards (Clock / Weather / Todo style)</h3>
+  <p class="desc">Same data, different surface treatment. Polished version has a top edge highlight, soft cast shadow, slight saturation boost on the blur.</p>
+
+  <div class="row" style="grid-template-columns: 1fr 1fr;">
+    <div class="swatch">
+      <div class="widget widget-current"><div class="v">14:32</div><div class="l">Wed, May 6</div></div>
+      <div class="swatch-label">Current</div>
+    </div>
+    <div class="swatch">
+      <div class="widget widget-polished"><div class="v">14:32</div><div class="l">Wed, May 6</div></div>
+      <div class="swatch-label">Polished</div>
+    </div>
+  </div>
+
+  <div class="pick">Polished, yes/no?</div>
+</section>
+
+<!-- ============================================================
+     SECTION 5 — MOTION FEEL
+     ============================================================ -->
+<section>
+  <h2>Section 5</h2>
+  <h3>Motion — Hover and click each tile</h3>
+  <p class="desc">Same hover gesture, three different curves and durations.</p>
+
+  <div class="motion-row">
+    <div style="text-align: center;">
+      <div class="motion-card motion-snappy">⚡</div>
+      <div class="swatch-label" style="margin-top: 8px;">Snappy</div>
+      <div class="swatch-sub" style="max-width: 120px;">120ms ease, simple scale. Utility apps feel fast.</div>
+    </div>
+    <div style="text-align: center;">
+      <div class="motion-card motion-cinematic">🎬</div>
+      <div class="swatch-label" style="margin-top: 8px;">Cinematic</div>
+      <div class="swatch-sub" style="max-width: 120px;">380ms ease-out, lift + scale. Premium / hero moments.</div>
+    </div>
+    <div style="text-align: center;">
+      <div class="motion-card motion-spring">🌀</div>
+      <div class="swatch-label" style="margin-top: 8px;">Spring</div>
+      <div class="swatch-sub" style="max-width: 120px;">550ms overshoot, lift + tilt + scale. Playful, app-launcher style.</div>
+    </div>
+  </div>
+
+  <div class="pick">Pick one as the system default: <strong>Snappy</strong> / <strong>Cinematic</strong> / <strong>Spring</strong> — or "mixed" (each surface gets its own).</div>
+</section>
+
+<!-- ============================================================
+     SECTION 6 — Side-by-side mini home grid preview
+     ============================================================ -->
+<section>
+  <h2>Section 6</h2>
+  <h3>Mini Home Grid Preview — current vs. polished</h3>
+  <p class="desc">If we picked B (polished glass) for hex frames + spring motion, here's what 6 icons in a row would feel like.</p>
+
+  <div style="display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; padding: 24px 0;">
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">🌐</div></div>
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">🔢</div></div>
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">🕒</div></div>
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">📁</div></div>
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">📝</div></div>
+    <div class="hex hex-B motion-spring" style="cursor: pointer;"><div class="hex-content">⚙️</div></div>
+  </div>
+
+  <p class="desc" style="margin-bottom: 0; margin-top: 16px;">Hover any icon. That's the proposed default feel.</p>
+</section>
+
+</main>
+
+</body>
+</html>
