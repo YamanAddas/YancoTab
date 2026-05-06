@@ -277,12 +277,23 @@ export class MobileShell {
         ]);
       }
 
-      // Floating window chrome (iPadOS Stage Manager style)
-      this._windowChrome = new WindowChrome(appName, appContent, () => app.close());
-      this.dom.appLayer.append(this._windowChrome.scrim, this._windowChrome.chrome);
-
-      this.state.activePid = pid;
-      this.setMode('app');
+      // Floating window chrome (iPadOS Stage Manager style).
+      // Belt-and-suspenders: if WindowChrome itself throws (very rare —
+      // would mean a fundamental DOM construction failure), surface the
+      // error rather than letting it kill the entire shell. The user gets
+      // a toast and the home grid stays usable.
+      try {
+        this._windowChrome = new WindowChrome(appName, appContent, () => app.close());
+        this.dom.appLayer.append(this._windowChrome.scrim, this._windowChrome.chrome);
+        this.state.activePid = pid;
+        this.setMode('app');
+      } catch (e) {
+        console.error(`[Shell] Failed to mount WindowChrome for ${appName}:`, e);
+        kernel.emit('toast', { message: `Couldn't open ${appName}`, type: 'error' });
+        try { app.close(); } catch { /* ignore */ }
+        this.dom.appLayer.innerHTML = '';
+        this._windowChrome = null;
+      }
     });
 
     kernel.on('process:stopped', ({ pid } = {}) => {
