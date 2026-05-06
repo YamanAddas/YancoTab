@@ -26,6 +26,7 @@ import { HomeBar } from './components/HomeBar.js';
 import { MobileContextMenu } from './components/MobileContextMenu.js';
 import { Greeting } from './components/Greeting.js';
 import { WidgetBar } from './components/WidgetBar.js';
+import { FolderRail } from './components/FolderRail.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
 import { WindowChrome } from './components/WindowChrome.js';
@@ -44,6 +45,9 @@ export class MobileShell {
       greeting: new Greeting(),
       widgetBar: new WidgetBar(),
     };
+    // Folder rail mirrors AppGrid's folders into a horizontal pill row below
+    // the grid. Constructed after grid so it can subscribe to grid.state.
+    this.components.folderRail = new FolderRail(this.components.grid.state);
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
     this.alarmUi = null;
@@ -154,12 +158,13 @@ export class MobileShell {
     const appsHead = secHead('All Apps', 'drag to rearrange');
     appsHead.classList.add('sec-head-apps');
 
-    // Main content: greeting + search + widgets + section heading + grid + dots
+    // Main content: greeting + search + widgets + section heading + grid + dots + folder rail
     this.dom.mainContent.append(
       this.dom.homeTop,
       appsHead,
       this.components.grid.root,
       this.components.grid.dotsContainer,
+      this.components.folderRail.render(),
     );
 
     // Ko-fi support badge — upper-left, mirrors status bar position
