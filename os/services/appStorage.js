@@ -90,8 +90,15 @@ const REGISTRY = {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
-        default: { clock: true, weather: true, todo: true },
+        default: { clock: false, weather: true, todo: true, pomodoro: true },
         validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_pomodoro_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: 0, dayKey: '' },
+        validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
     },
     yancotab_quick_links: {
         storageClass: 'user-data',

@@ -302,6 +302,113 @@ body.in-app .kofi-badge {
   }
 }
 
+/* ── Pomodoro widget ──────────────────────────────────────── */
+.widget-pomo {
+  text-align: center;
+  align-items: center;
+  padding-top: 14px;
+  padding-bottom: 12px;
+  min-height: 156px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.widget-pomo .w-pomo-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.widget-pomo .w-pomo-head b {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.widget-pomo .w-pomo-ring {
+  position: relative;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+}
+
+.widget-pomo .w-pomo-ring svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.widget-pomo .w-pomo-ring .track {
+  stroke: rgba(var(--accent-rgb), 0.10);
+}
+
+.widget-pomo .w-pomo-ring .fill {
+  stroke: var(--accent);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.6));
+  transition: stroke-dashoffset 0.6s var(--ease-out, ease-out);
+}
+
+/* Break phase: keep accent color but soften — visual cue we're resting */
+.widget-pomo .w-pomo-ring .fill.is-break {
+  stroke: var(--accent-bright);
+  filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.4));
+  opacity: 0.75;
+}
+
+/* Paused: dim the fill */
+.widget-pomo.is-paused .w-pomo-ring .fill {
+  opacity: 0.45;
+}
+
+.widget-pomo .w-pomo-time {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 18px;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.widget-pomo .w-pomo-label {
+  margin-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+
+/* Active focus: subtle pulse on the ring */
+@keyframes pomoPulse {
+  0%, 100% { filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), 0.6)); }
+  50%      { filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.9)); }
+}
+
+.widget-pomo.is-focus .w-pomo-ring .fill {
+  animation: pomoPulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .widget-pomo.is-focus .w-pomo-ring .fill {
+    animation: none;
+  }
+  .widget-pomo .w-pomo-ring .fill {
+    transition: none;
+  }
+}
+
 /* Widget typography */
 .widget-value {
   font-size: 28px;
