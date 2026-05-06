@@ -162,6 +162,27 @@ const REGISTRY = {
         default: [],
         validate: (v) => Array.isArray(v),
     },
+    yancotab_notes_view: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'grid',
+        validate: (v) => v === 'grid' || v === 'list',
+    },
+    yancotab_notes_sort: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'updated',
+        validate: (v) => ['updated', 'created', 'name'].includes(v),
+    },
+    yancotab_starfield_enabled: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: true,
+        validate: (v) => typeof v === 'boolean',
+    },
 
     // ── Volatile (syncPolicy: 'never') ──
     yancotab_mobile_grid_v8: {

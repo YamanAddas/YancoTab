@@ -30,8 +30,8 @@ export class NotesApp extends App {
         this.fs       = this.kernel.getService('fs');
         this.docsPath = '/home/documents';
 
-        this.viewMode    = localStorage.getItem(SK.VIEW) || 'grid';
-        this.sortMode    = localStorage.getItem(SK.SORT) || 'updated';
+        this.viewMode    = this.kernel?.storage?.load(SK.VIEW) || 'grid';
+        this.sortMode    = this.kernel?.storage?.load(SK.SORT) || 'updated';
         this.searchTerm  = '';
         this._ctxMenu    = null;
         this._editorWindows = new Map();
@@ -123,7 +123,7 @@ export class NotesApp extends App {
 
     _setView(mode) {
         this.viewMode = mode;
-        localStorage.setItem(SK.VIEW, mode);
+        this.kernel?.storage?.save(SK.VIEW, mode);
         this._gridContainer.classList.toggle('notes-bw-grid--list', mode === 'list');
         this._gridBtn.classList.toggle('is-active', mode === 'grid');
         this._listBtn.classList.toggle('is-active', mode === 'list');
@@ -145,7 +145,7 @@ export class NotesApp extends App {
                 type: 'button',
                 onclick: () => {
                     this.sortMode = opt.id;
-                    localStorage.setItem(SK.SORT, opt.id);
+                    this.kernel?.storage?.save(SK.SORT, opt.id);
                     this._sortBtn.textContent = opt.label;
                     this._refreshGrid();
                     this._hideContextMenu();

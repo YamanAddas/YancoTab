@@ -10,6 +10,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Changed — Storage consistency (Phase 1.5 closeout, Tier 1)
+- **NotesApp** — `view` and `sort` UI prefs migrated from raw `localStorage` to `kernel.storage` (with new REGISTRY entries `yancotab_notes_view` and `yancotab_notes_sort`).
+- **StatusBar** — removed legacy `yancotab_clock_v2` fallback. Now reads only the canonical `yancotab_clock_state_v3` via `kernel.storage`.
+- **AppearanceSettings** — Background Animation toggle now writes through `kernel.storage` instead of raw `localStorage` (registered new key `yancotab_starfield_enabled`).
+- **starfield.js** — envelope-aware: parses AppStorage's `{data, version, ts, ...}` wrapper as well as plain JSON / legacy strings. Required because starfield boots before kernel.storage is ready.
+- **WeatherService** confirmed compliant — already prefers `kernel.storage` when the service constructor receives it from kernel.js (always, in normal operation). Legacy localStorage reads at lines 122-152 are one-time migration paths reading deprecated keys, not violations.
+
 ### Added — Starfield motion toggle (Phase 1.2 closeout)
 - **Settings → Appearance → Motion → Background Animation** — toggle for the starfield. Storage key `yancotab_starfield_enabled` was already wired up in `starfield.js` but no UI exposed it. Toggling reuses the `yancotab:theme_change` event so the starfield starts/stops live without needing a page reload (and without registering duplicate listeners).
 - The other §1.2 plan items (80-star count, image-wallpaper skip, prefers-reduced-motion, FPS cap when blurred) were already shipped — confirmed in the audit.

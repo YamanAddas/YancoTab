@@ -160,16 +160,13 @@ function _themeGrid(container, app, storage) {
 /* ── Motion (background animation toggle) ── */
 
 function _motion(container, app) {
-  const isOn = (() => {
-    try {
-      const raw = localStorage.getItem('yancotab_starfield_enabled');
-      return raw === null ? true : raw !== 'false';
-    } catch { return true; }
-  })();
+  const storage = app.kernel.storage;
+  const stored = storage?.load('yancotab_starfield_enabled');
+  const isOn = stored === null || stored === undefined ? true : Boolean(stored);
 
   container.appendChild(app._group('Motion', [
     app._toggleRow('Background Animation', 'Twinkling stars on solid wallpapers', isOn, (next) => {
-      try { localStorage.setItem('yancotab_starfield_enabled', String(next)); } catch {}
+      storage?.save('yancotab_starfield_enabled', Boolean(next));
       // Dispatch a theme_change event — starfield already listens and will
       // start/stop accordingly without double-registering listeners.
       window.dispatchEvent(new CustomEvent('yancotab:theme_change', {

@@ -28,11 +28,21 @@ export function initStarfield() {
     return !solidWallpapers.includes(wp);
   }
 
-  // Check if starfield is disabled in settings
+  // Check if starfield is disabled in settings.
+  // Envelope-aware: AppStorage wraps values in {data, version, ts, ...};
+  // also handles plain JSON or legacy string fallback during first-paint
+  // (boot order: initStarfield runs before kernel.boot completes).
   function isDisabledInSettings() {
     try {
       const raw = localStorage.getItem('yancotab_starfield_enabled');
       if (raw === null) return false; // default: enabled
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && 'data' in parsed) {
+          return parsed.data === false;
+        }
+        if (typeof parsed === 'boolean') return parsed === false;
+      } catch { /* not JSON — fall through to legacy string check */ }
       return raw === 'false';
     } catch { return false; }
   }

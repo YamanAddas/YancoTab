@@ -26,8 +26,8 @@ export class StatusBar {
         try {
             const state = this.kernel?.storage?.load('yancotab_clock_state_v3');
             if (state && typeof state === 'object') return state.use24h || false;
-            return JSON.parse(localStorage.getItem('yancotab_clock_v2') || '{}').use24h || false;
-        } catch { return false; }
+        } catch { /* fall through to default */ }
+        return false;
     }
 
     startUpdates() {
