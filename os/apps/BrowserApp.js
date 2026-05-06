@@ -59,19 +59,13 @@ export class BrowserApp extends App {
 
     loadPrefs(override = null) {
         const defaults = {
-            searchEngine: localStorage.getItem('yancotabSearchEngine') || 'google',
+            searchEngine: this.kernel.storage.load('yancotabSearchEngine') || 'google',
             forceWebParam: true,
             historyLimit: 20,
             startTheme: 'aurora',
         };
 
-        let stored = {};
-        try {
-            stored = JSON.parse(localStorage.getItem(this.prefsKey) || '{}');
-        } catch {
-            stored = {};
-        }
-
+        const stored = this.kernel.storage.load(this.prefsKey) || {};
         const merged = { ...defaults, ...stored, ...(override && typeof override === 'object' ? override : {}) };
         const searchEngine = ['google', 'duck', 'bing'].includes(merged.searchEngine) ? merged.searchEngine : 'google';
         const forceWebParam = merged.forceWebParam !== false;
@@ -83,17 +77,12 @@ export class BrowserApp extends App {
     }
 
     savePrefs() {
-        localStorage.setItem(this.prefsKey, JSON.stringify(this.prefs));
-        localStorage.setItem('yancotabSearchEngine', this.prefs.searchEngine);
+        this.kernel.storage.save(this.prefsKey, this.prefs);
+        this.kernel.storage.save('yancotabSearchEngine', this.prefs.searchEngine);
     }
 
     loadState() {
-        let raw = {};
-        try {
-            raw = JSON.parse(localStorage.getItem(this.storeKey) || '{}');
-        } catch {
-            raw = {};
-        }
+        let raw = this.kernel.storage.load(this.storeKey) || {};
 
         let bookmarks = this._normalizeBookmarks(raw.bookmarks);
         if (!bookmarks.length) bookmarks = this._normalizeBookmarks(this._loadLegacyBookmarks());
@@ -107,15 +96,18 @@ export class BrowserApp extends App {
     }
 
     saveState() {
-        localStorage.setItem(this.storeKey, JSON.stringify({
+        this.kernel.storage.save(this.storeKey, {
             currentUrl: this.state.currentUrl,
             bookmarks: this.state.bookmarks,
             history: this.state.history,
             searchEngine: this.prefs.searchEngine,
             activeFolderId: 'all',
-        }));
+        });
     }
 
+    // One-time migration from the pre-v2 flat bookmark list stored under
+    // 'yancotabBookmarks'. Not a persistent write — read-once on first load
+    // if the new format has no bookmarks yet.
     _loadLegacyBookmarks() {
         try {
             const raw = JSON.parse(localStorage.getItem('yancotabBookmarks') || '[]');

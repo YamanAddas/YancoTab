@@ -940,18 +940,17 @@ export class ClockApp extends App {
     // ── State ────────────────────────────────────────────────
     loadState() {
         try {
-            const raw = localStorage.getItem(this.storeKey);
-            if (raw) {
-                const parsed = JSON.parse(raw);
-                parsed.mainClockStyle = parsed.mainClockStyle || 'digital';
+            const stored = this.kernel.storage.load('yancotab_clock_v3');
+            if (stored) {
+                stored.mainClockStyle = stored.mainClockStyle || 'digital';
                 // Normalize legacy skin values to digital/analog
-                if (!['digital', 'analog'].includes(parsed.mainClockStyle)) {
-                    parsed.mainClockStyle = parsed.mainClockStyle === 'digital' ? 'digital' : 'analog';
+                if (!['digital', 'analog'].includes(stored.mainClockStyle)) {
+                    stored.mainClockStyle = stored.mainClockStyle === 'digital' ? 'digital' : 'analog';
                 }
-                parsed.worldClocks = Array.isArray(parsed.worldClocks)
-                    ? parsed.worldClocks.map(w => this.normalizeWorldClock(w)).filter(Boolean) : [];
-                parsed.alarms = Array.isArray(parsed.alarms) ? parsed.alarms.map(a => this.normalizeAlarm(a)) : [];
-                return parsed;
+                stored.worldClocks = Array.isArray(stored.worldClocks)
+                    ? stored.worldClocks.map(w => this.normalizeWorldClock(w)).filter(Boolean) : [];
+                stored.alarms = Array.isArray(stored.alarms) ? stored.alarms.map(a => this.normalizeAlarm(a)) : [];
+                return stored;
             }
         } catch (_) { /* ignore */ }
         return {
@@ -969,7 +968,7 @@ export class ClockApp extends App {
     }
 
     saveState() {
-        try { localStorage.setItem(this.storeKey, JSON.stringify(this.state)); } catch (_) { /* ignore */ }
+        try { this.kernel.storage.save('yancotab_clock_v3', this.state); } catch (_) { /* ignore */ }
     }
 
     // ── World clock CRUD ─────────────────────────────────────

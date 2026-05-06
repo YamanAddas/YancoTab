@@ -261,6 +261,62 @@ const REGISTRY = {
         default: null,
         validate: () => true,
     },
+
+    // ── Clock ── (volatile: alarms/world clocks are device-local)
+    yancotab_clock_v3: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: null,
+        validate: (v) => v === null || (v && typeof v === 'object'),
+    },
+
+    // ── Browser app ──
+    yancotab_browser_prefs_v1: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: {
+            searchEngine: 'google',
+            forceWebParam: true,
+            historyLimit: 20,
+            startTheme: 'aurora',
+        },
+        validate: (v) =>
+            v && typeof v === 'object' &&
+            ['google', 'duck', 'bing'].includes(v.searchEngine) &&
+            typeof v.historyLimit === 'number',
+    },
+
+    // ── Files app ──
+    yancotab_files_sort: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'name',
+        validate: (v) => typeof v === 'string',
+    },
+    yancotab_files_view: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'grid',
+        validate: (v) => typeof v === 'string',
+    },
+    yancotab_files_favs: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v),
+    },
+    yancotab_files_order_v1: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object',
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────

@@ -40,8 +40,8 @@ export class FilesApp extends App {
         this.storageSummary = null;
         this.orderMap = this._loadOrderMap();
 
-        this.sortMode = localStorage.getItem(FILES_SORT_KEY) || 'name';
-        this.viewMode = localStorage.getItem(FILES_VIEW_KEY) || 'grid';
+        this.sortMode = this.kernel.storage.load(FILES_SORT_KEY);
+        this.viewMode = this.kernel.storage.load(FILES_VIEW_KEY);
         this.searchOpen = false;
         this.searchQuery = '';
         this.favorites = this._loadFavorites();
@@ -493,7 +493,7 @@ export class FilesApp extends App {
 
     setView(mode) {
         this.viewMode = mode;
-        localStorage.setItem(FILES_VIEW_KEY, mode);
+        this.kernel.storage.save(FILES_VIEW_KEY, mode);
         this.viewGridBtn.classList.toggle('is-active', mode === 'grid');
         this.viewListBtn.classList.toggle('is-active', mode === 'list');
         this.renderGrid();
@@ -537,7 +537,7 @@ export class FilesApp extends App {
             checked: this.sortMode === opt.key,
             action: () => {
                 this.sortMode = opt.key;
-                localStorage.setItem(FILES_SORT_KEY, opt.key);
+                this.kernel.storage.save(FILES_SORT_KEY, opt.key);
                 this.sortBtn.textContent = `Sort: ${this._sortLabel()}`;
                 this.renderGrid();
             },
@@ -594,16 +594,11 @@ export class FilesApp extends App {
     }
 
     _loadFavorites() {
-        try {
-            const raw = localStorage.getItem(FILES_FAVS_KEY);
-            return raw ? new Set(JSON.parse(raw)) : new Set();
-        } catch { return new Set(); }
+        return new Set(this.kernel.storage.load(FILES_FAVS_KEY));
     }
 
     _saveFavorites() {
-        try {
-            localStorage.setItem(FILES_FAVS_KEY, JSON.stringify([...this.favorites]));
-        } catch { /* ignore */ }
+        this.kernel.storage.save(FILES_FAVS_KEY, [...this.favorites]);
     }
 
     // ── Item Interactions ────────────────────────────────────────
@@ -1648,6 +1643,9 @@ export class FilesApp extends App {
         let fsBytes = 0;
         let itemCount = 0;
 
+        // Intentional: raw localStorage iteration to count total byte usage across
+        // ALL keys (including the virtual filesystem). kernel.storage.load() only
+        // reads individual registered keys, so it cannot serve this system-level purpose.
         for (let index = 0; index < localStorage.length; index += 1) {
             const key = localStorage.key(index) || '';
             const value = localStorage.getItem(key) || '';
@@ -1897,21 +1895,11 @@ export class FilesApp extends App {
     // ── Order Map ───────────────────────────────────────────────
 
     _loadOrderMap() {
-        try {
-            const raw = localStorage.getItem(FILES_ORDER_KEY);
-            const parsed = raw ? JSON.parse(raw) : {};
-            return parsed && typeof parsed === 'object' ? parsed : {};
-        } catch {
-            return {};
-        }
+        return this.kernel.storage.load(FILES_ORDER_KEY) || {};
     }
 
     _saveOrderMap() {
-        try {
-            localStorage.setItem(FILES_ORDER_KEY, JSON.stringify(this.orderMap));
-        } catch {
-            // ignore persistence errors
-        }
+        this.kernel.storage.save(FILES_ORDER_KEY, this.orderMap);
     }
 
     _getOrderedPathList(items, dirPath) {
