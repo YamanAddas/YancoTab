@@ -146,10 +146,12 @@ const PRECACHE = [
     './os/apps/games/tarneeb/tarneebReducer.js',
     './os/apps/games/tarneeb/tarneebRules.js',
     './os/apps/games/tarneeb/tarneebState.js',
+    './os/apps/games/tarneeb/tarneebView.js',
     './os/apps/games/trix/trixAI.js',
     './os/apps/games/trix/trixReducer.js',
     './os/apps/games/trix/trixRules.js',
     './os/apps/games/trix/trixState.js',
+    './os/apps/games/trix/trixView.js',
     // OCR
     './os/services/ocrService.js',
     './os/apps/photos/OcrTool.js',

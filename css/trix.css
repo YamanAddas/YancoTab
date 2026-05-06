@@ -1179,3 +1179,12 @@
 @media (orientation: landscape) and (min-width: 1300px) {
   .trix-screen{ grid-template-columns: minmax(0, 1fr) clamp(340px, 32vw, 520px); }
 }
+
+/* ── Card place animation ── */
+.trix-remake .is-place-anim {
+  animation: trixCardPlace 0.32s ease-out;
+}
+@keyframes trixCardPlace {
+  from { opacity: 0; transform: translateY(30px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}

@@ -589,6 +589,15 @@
   }
 }
 
+/* ── Card place animation ── */
+.tarneeb-remake .is-place-anim {
+  animation: tarCardPlace 0.32s ease-out;
+}
+@keyframes tarCardPlace {
+  from { opacity: 0; transform: translateY(30px) scale(0.85); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tarneeb-remake .trix-screen,
   .tarneeb-remake .trix-hud,
@@ -598,5 +607,8 @@
   .tarneeb-remake .trix-hand,
   .tarneeb-remake .trix-slot {
     transition: none;
+  }
+  .tarneeb-remake .is-place-anim {
+    animation: none;
   }
 }
