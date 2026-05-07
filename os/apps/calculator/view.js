@@ -9,6 +9,7 @@ import { el } from '../../utils/dom.js';
 import { labelFor, formatBaseRows } from './engine.js';
 import { buildSciPanel } from './scientific.js';
 import { buildProgPanel } from './programmer.js';
+import { buildDatePanel } from './date.js';
 
 // ─── Keypad layout (6 rows × 5 cols, 30 keys total) ───────────
 //
@@ -120,20 +121,29 @@ export function buildView(cfg) {
   ]);
   const progRefs = progBuild;
 
-  // Date-mode panel
-  const dateTodayEl   = el('span', { class: 'calc-date-today' });
-  const dateDeltaEl   = el('span', { class: 'calc-date-delta' });
-  const dateResultEl  = el('span', { class: 'calc-date-result' });
-  // Compact single-row layout: today  +  delta  =  result
+  // Date-mode panel — full form (From / To / Op / Δ + unit)
+  const dateBuild = buildDatePanel({
+    handlers: {
+      setFrom:    (iso) => handlers.setDateFrom(iso),
+      setTo:      (iso) => handlers.setDateTo(iso),
+      setDelta:   (n)   => handlers.setDateDelta(n),
+      setUnit:    (u)   => handlers.setDateUnit(u),
+      setOp:      (op)  => handlers.setDateOp(op),
+      useTodayFor: (which) => handlers.useTodayFor(which),
+      evalDate:   () => handlers.evalDate(),
+    },
+    state: {
+      dateFrom: cfg.dateFrom || 'today',
+      dateTo:   cfg.dateTo   || 'today',
+      dateDelta: cfg.dateDelta || 0,
+      dateDeltaUnit: cfg.dateDeltaUnit || 'd',
+      dateOp: cfg.dateOp || '+',
+    },
+  });
   const datePanel = el('div', { class: 'calc-mode-panel calc-mode-date' }, [
-    el('div', { class: 'calc-date-inline' }, [
-      dateTodayEl,
-      el('span', { class: 'calc-date-sep' }, ' '),
-      dateDeltaEl,
-      el('span', { class: 'calc-date-sep' }, '  =  '),
-      dateResultEl,
-    ]),
+    dateBuild.panelEl,
   ]);
+  const dateRefs = dateBuild.refs;
 
   // Scientific-mode panel — full extension with all 17 fns + Rad/Deg
   const sciBuild = buildSciPanel({
@@ -197,11 +207,14 @@ export function buildView(cfg) {
     }
   }
   const keypadWrap = el('div', { class: 'calc-keypad-wrap' }, [keypad]);
+  // Bottom row: extension panel (left column, only visible in non-
+  // Standard modes) + keypad. The column layout reclaims the
+  // vertical space that horizontal extension rows used to eat.
+  const padBottom = el('div', { class: 'calc-pad-bottom' }, [modePanels, keypadWrap]);
   const pad = el('div', { class: 'calc-pad' }, [
     display,
-    modePanels,
     modes,
-    keypadWrap,
+    padBottom,
   ]);
 
   // ── Tape side ──
@@ -232,7 +245,11 @@ export function buildView(cfg) {
       tapeEl, tapeCountEl, tapeHeadLabel, tapeHeadDay,
       varsRowEl,
       modePanels, baseRefs,
-      dateTodayEl, dateDeltaEl, dateResultEl,
+      dateFromInput: dateRefs.fromInput,
+      dateToInput:   dateRefs.toInput,
+      dateDeltaInput: dateRefs.deltaInput,
+      dateOpEls:     dateRefs.opEls,
+      dateUnitEls:   dateRefs.unitEls,
       sciSecondToggle, sciAngleToggle, sciPanelKeyEls,
       progHexKeys: progRefs.hexKeys,
       progBitOpEls: progRefs.bitOpEls,
@@ -366,15 +383,4 @@ export function renderDisplay(refs, cfg) {
   }
 }
 
-/**
- * Render the date-mode panel.
- *
- * @param {object} refs — view refs
- * @param {{today: string, sign: '+'|'-', delta: number, resultLabel: string}} d
- */
-export function renderDateMode(refs, d) {
-  refs.dateTodayEl.textContent = d.today;
-  const sym = d.sign === '-' ? '−' : '+';
-  refs.dateDeltaEl.textContent = `${sym} ${d.delta} day${d.delta === 1 ? '' : 's'}`;
-  refs.dateResultEl.textContent = d.resultLabel || '—';
-}
+// renderDateMode moved to calculator/date.js — _renderDate(ctx).

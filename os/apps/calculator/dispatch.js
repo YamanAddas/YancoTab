@@ -31,18 +31,36 @@ export function routeAction(ctx, action, value) {
   HANDLERS[action]?.(ctx, value);
 }
 
+/**
+ * Date mode is form-driven (date pickers + delta input + op pills),
+ * so the keypad's role is limited: digits feed the delta input,
+ * +/- toggle op direction, = evaluates. Anything else is a no-op
+ * to avoid surprising the user.
+ */
 function _routeDateAction(ctx, action, value) {
-  if (action === 'op' && (value === '+' || value === '-')) {
-    ctx._dateSign = value;
-    ctx._dateDelta = Math.abs(Number(ctx.state.current)) || 0;
+  if (action === 'eval') { ctx._evalDateMode(); return true; }
+  // Numeric input updates the delta input via the date.js helper
+  if (action === 'num') {
+    const cur = Number(ctx._refs.dateDeltaInput?.value || 0);
+    const next = cur * 10 + Number(value);
+    ctx._dateDelta = next;
+    if (ctx._refs.dateDeltaInput) ctx._refs.dateDeltaInput.value = String(next);
     ctx._renderDateMode();
     return true;
   }
-  if (action === 'eval') {
-    ctx._evalDateMode();
+  if (action === 'op' && (value === '+' || value === '-')) {
+    ctx._dateOp = value;
+    ctx._renderDateMode();
     return true;
   }
-  return false;
+  if (action === 'clear') {
+    ctx._dateDelta = 0;
+    if (ctx._refs.dateDeltaInput) ctx._refs.dateDeltaInput.value = '0';
+    ctx._renderDateMode();
+    return true;
+  }
+  // Other actions are no-ops in date mode
+  return action === 'sci' || action === 'mem' || action === 'paren' || action === 'percent' || action === 'negate' || action === 'dot';
 }
 
 /**

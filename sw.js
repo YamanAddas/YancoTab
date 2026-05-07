@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-calc-pr3';
+const CACHE_NAME = 'yancotab-v1.1.0-calc-pr4';
 
 const PRECACHE = [
     './',
@@ -92,6 +92,7 @@ const PRECACHE = [
     './os/apps/calculator/keyboard.js',
     './os/apps/calculator/scientific.js',
     './os/apps/calculator/programmer.js',
+    './os/apps/calculator/date.js',
     './os/apps/ClockApp.js',
     './os/apps/FilesApp.js',
     './os/apps/MemoryApp.js',

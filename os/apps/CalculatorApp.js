@@ -2,12 +2,12 @@
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import { buildView, renderTapeLines, renderVarsRow, relabelSciKeys,
-         renderDisplay, renderDateMode } from './calculator/view.js';
+         renderDisplay } from './calculator/view.js';
 import { copyTape, exportTapeCsv, saveTapeToNotes } from './calculator/tape.js';
 import { renderHistory } from './calculator/historyView.js';
 import { renderNotesExport } from './calculator/notesExportView.js';
 import { normalizeNumber, applyBinaryOp, fmtOp, SCI_FNS, NULLARY_SCI,
-         actionFor, addDaysToToday, formatDateLabel } from './calculator/engine.js';
+         actionFor } from './calculator/engine.js';
 import { toggleSecondMode, toggleAngleMode,
          appendExponentMarker } from './calculator/scientific.js';
 import { makeProgState,
@@ -27,6 +27,14 @@ import { loadCalculatorState, saveCalculatorState,
 import { actDefineVar as defineVarAction,
          actUseVar    as useVarAction,
          actDeleteVar as deleteVarAction } from './calculator/vars.js';
+import { actSetFrom    as dateSetFrom,
+         actSetTo      as dateSetTo,
+         actSetDelta   as dateSetDelta,
+         actSetUnit    as dateSetUnit,
+         actSetOp      as dateSetOp,
+         actUseTodayFor as dateUseTodayFor,
+         actEvalDate   as dateEvalDate,
+         _renderDate   as dateRender } from './calculator/date.js';
 import { routeAction } from './calculator/dispatch.js';
 import { bindKeyboard } from './calculator/keyboard.js';
 
@@ -51,8 +59,12 @@ export class CalculatorApp extends App {
     this._bitWidth = 32;
     this._prog = makeProgState();
     this._activeTab = 'tape';
-    this._dateDelta = 0;     // session-only — magnitude of days
-    this._dateSign = '+';    // '+' or '-' for date mode
+    // PR-4 date-mode state
+    this._dateFrom = 'today';
+    this._dateTo = 'today';
+    this._dateDelta = 0;
+    this._dateDeltaUnit = 'd';
+    this._dateOp = '+';
     this._dateResultLabel = '';
     this._styleLinks = [];
     this._onKeyDown = null;
@@ -83,6 +95,11 @@ export class CalculatorApp extends App {
       angleMode: this.state.angleMode,
       bitWidth: this._bitWidth,
       programmerBase: this._programmerBase,
+      dateFrom: this._dateFrom,
+      dateTo: this._dateTo,
+      dateDelta: this._dateDelta,
+      dateDeltaUnit: this._dateDeltaUnit,
+      dateOp: this._dateOp,
       handlers: {
         dispatch:    (action, value) => this._dispatch(action, value),
         setTab:      (id) => this._setActiveTab(id),
@@ -97,6 +114,13 @@ export class CalculatorApp extends App {
         appendHex:   (d) => this._progAppendHex(d),
         applyBitop:  (op) => this._progSetOp(op),
         applyNot:    () => this._progNot(),
+        setDateFrom: (iso) => dateSetFrom(this, iso),
+        setDateTo:   (iso) => dateSetTo(this, iso),
+        setDateDelta:(n)   => dateSetDelta(this, n),
+        setDateUnit: (u)   => dateSetUnit(this, u),
+        setDateOp:   (op)  => dateSetOp(this, op),
+        useTodayFor: (which) => dateUseTodayFor(this, which),
+        evalDate:    () => dateEvalDate(this),
         defineVar:   () => this._defineVar(),
         useVar:      (n) => this._useVar(n),
         deleteVar:   (n) => this._deleteVar(n),
@@ -128,22 +152,23 @@ export class CalculatorApp extends App {
     this._secondMode = s.secondMode;
     this._programmerBase = s.programmerBase;
     this._bitWidth = s.bitWidth;
-    // Restore the programmer value as a BigInt; persistence stores
-    // it as a decimal string so JSON survives chrome.storage.sync.
     try { this._prog.value = BigInt(s.programmerValue || '0'); }
     catch { this._prog.value = 0n; }
+    this._dateFrom = s.dateFrom;
+    this._dateTo = s.dateTo;
+    this._dateDelta = s.dateDelta;
+    this._dateDeltaUnit = s.dateDeltaUnit;
+    this._dateOp = s.dateOp;
   }
 
   _persist() {
     saveCalculatorState(this.kernel, {
-      angleMode: this.state.angleMode,
-      tape: this._tape,
-      vars: this._vars,
-      mode: this._mode,
-      secondMode: this._secondMode,
-      programmerBase: this._programmerBase,
-      bitWidth: this._bitWidth,
+      angleMode: this.state.angleMode, tape: this._tape, vars: this._vars,
+      mode: this._mode, secondMode: this._secondMode,
+      programmerBase: this._programmerBase, bitWidth: this._bitWidth,
       programmerValue: this._prog.value.toString(10),
+      dateFrom: this._dateFrom, dateTo: this._dateTo,
+      dateDelta: this._dateDelta, dateDeltaUnit: this._dateDeltaUnit, dateOp: this._dateOp,
     });
   }
 
@@ -204,10 +229,9 @@ export class CalculatorApp extends App {
     this._refs.modePanels.dataset.mode = this._mode;
     this.root.dataset.calcMode = this._mode;
   }
-
-  _toggleSecond()    { toggleSecondMode(this, relabelSciKeys); }
-  _toggleAngle()     { toggleAngleMode(this); }
-  _appendExponent()  { appendExponentMarker(this); }
+  _toggleSecond()   { toggleSecondMode(this, relabelSciKeys); }
+  _toggleAngle()    { toggleAngleMode(this); }
+  _appendExponent() { appendExponentMarker(this); }
 
   _setProgrammerBase(base) { progSetBase(this, base); }
   _setBitWidth(w)          { progSetWidth(this, w); }
@@ -221,15 +245,7 @@ export class CalculatorApp extends App {
   _progClear()             { progClear(this); }
   _progBackspace()         { progBackspace(this); }
 
-  _renderDateMode() {
-    if (this._mode !== 'date') return;
-    renderDateMode(this._refs, {
-      today: formatDateLabel(new Date()),
-      sign: this._dateSign,
-      delta: this._dateDelta,
-      resultLabel: this._dateResultLabel,
-    });
-  }
+  _renderDateMode() { dateRender(this); }
 
   _defineVar()       { return defineVarAction(this); }
   _useVar(name)      { useVarAction(this, name); }
@@ -258,10 +274,6 @@ export class CalculatorApp extends App {
     if (this.state.resetNext) { this.state.current = '0'; this.state.resetNext = false; }
     if (this.state.current === '0') this.state.current = num;
     else if (this.state.current.length < 20) this.state.current += num;
-    if (this._mode === 'date') {
-      this._dateDelta = Math.abs(Number(this.state.current)) || 0;
-      this._renderDateMode();
-    }
     this._renderDisplay();
   }
 
@@ -305,11 +317,6 @@ export class CalculatorApp extends App {
     this.state.operator = null;
     this.state.resetNext = false;
     this._parenStack = [];
-    if (this._mode === 'date') {
-      this._dateDelta = 0;
-      this._dateResultLabel = '';
-      this._renderDateMode();
-    }
     this._renderDisplay();
   }
 
@@ -339,15 +346,7 @@ export class CalculatorApp extends App {
     this._renderDisplay();
   }
 
-  _evalDateMode() {
-    const days = (this._dateSign === '-' ? -1 : 1) * this._dateDelta;
-    const r = addDaysToToday(days);
-    this._dateResultLabel = r.label;
-    const expr = `today ${this._dateSign === '-' ? '−' : '+'} ${this._dateDelta}d`;
-    this._appendTape({ ts: Date.now(), expr, result: r.label });
-    this._renderDateMode();
-    this._renderTape();
-  }
+  _evalDateMode() { dateEvalDate(this); }
 
   _openParen() {
     this._parenStack.push({
