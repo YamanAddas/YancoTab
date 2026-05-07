@@ -97,8 +97,33 @@ const REGISTRY = {
         storageClass: 'user-data',
         syncPolicy: 'conditional',
         version: 1,
-        default: { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: 0, dayKey: '' },
+        default: {
+            phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0,
+            sessionsToday: 0, dayKey: '',
+            // PomodoroApp additions (back-compat — widget still reads the originals):
+            presetId: 'classic', sessionIndex: 0, cycleStartedAt: null, manualSkyOverride: null,
+        },
         validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
+    },
+    yancotab_pomodoro_history_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { days: {} },
+        validate: (v) => v && typeof v === 'object' && v.days && typeof v.days === 'object',
+    },
+    yancotab_pomodoro_settings_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {
+            activePresetId: 'classic',
+            customPreset: null,
+            ambient: { drone: false, solarWind: false, autoMute: true, nightShell: true, endChime: false },
+            attachedAppId: null,
+            weekStart: 'mon',
+        },
+        validate: (v) => v && typeof v === 'object' && typeof v.activePresetId === 'string',
     },
     yancotab_activity_v1: {
         storageClass: 'user-data',
