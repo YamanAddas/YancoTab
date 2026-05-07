@@ -109,13 +109,18 @@ export class PagePanes {
     _collectFiles(fs) {
         const seen = new Set();
         const out = [];
+        // Skip these directories — trash is not "recent files", and we don't
+        // want to dump caches / system folders into the home page either.
+        const SKIP_DIRS = new Set(['/home/trash']);
         const visit = (dir, depth) => {
             if (depth > 1) return;
+            if (SKIP_DIRS.has(dir)) return;
             let listing = [];
             try { listing = fs.list(dir) || []; } catch { return; }
             for (const item of listing) {
                 if (!item || !item.path) continue;
                 if (seen.has(item.path)) continue;
+                if (SKIP_DIRS.has(item.path) || item.path.startsWith('/home/trash/')) continue;
                 seen.add(item.path);
                 if (item.type === 'file' || (item.type !== 'folder' && item.type !== 'directory')) {
                     out.push(item);
