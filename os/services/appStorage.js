@@ -105,6 +105,20 @@ const REGISTRY = {
         },
         validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
     },
+    yancotab_todo_v2: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 2,
+        default: {
+            missions: [{
+                id: 'm_default', name: 'My Tasks', color: 'accent', position: 1000, tasks: [],
+            }],
+            activeMissionId: 'm_default',
+            streakLog: {},
+            version: 2,
+        },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.missions),
+    },
     yancotab_pomodoro_history_v1: {
         storageClass: 'user-data',
         syncPolicy: 'conditional',
