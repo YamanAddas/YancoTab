@@ -896,6 +896,327 @@ body.theme-light .m-search-container::before {
   border-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ── 7.5. Page tabs (top-level home navigation) ─────────────── */
+
+/* [Apps] [Today] [Files] [Notes] [Web]  — sit between search and the
+   content area. Clicking a tab swaps which .page-pane is visible (driven
+   by body.tab-<id> classes set in PageTabs.js).
+
+   The tabs are deliberately bigger and more apparent than the previous
+   search-scope row: 36px tall, mono uppercase label, accent underline on
+   active. The whole bar uses the dock recipe so it visually pairs with
+   the dock at the bottom. */
+.page-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin: 18px auto 18px;
+  padding: 6px;
+  border-radius: 16px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.10),
+    0 8px 24px -10px rgba(var(--accent-rgb), 0.18),
+    0 12px 28px rgba(0, 0, 0, 0.40);
+  width: fit-content;
+  animation: greetFadeDown 0.6s var(--ease-out) 0.2s both;
+}
+
+.page-tab {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  min-width: 88px;
+  height: 36px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  outline: none;
+  transition: color var(--motion-cinematic), background var(--motion-cinematic), transform var(--motion-snappy);
+}
+
+.page-tab:hover {
+  color: var(--text-bright);
+  background: rgba(var(--accent-rgb), 0.05);
+}
+
+.page-tab:active {
+  transform: scale(0.97);
+}
+
+.page-tab:focus-visible {
+  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.5);
+}
+
+.page-tab.active {
+  color: var(--accent);
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.16) 0%, rgba(var(--accent-rgb), 0.04) 70%, transparent 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.30),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.40),
+    inset 0 0 16px rgba(var(--accent-rgb), 0.12);
+}
+
+.page-tab-label {
+  position: relative;
+  z-index: 2;
+}
+
+/* Underline indicator slides in on active */
+.page-tab-underline {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  transform: translateX(-50%) scaleX(0);
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.7);
+  transition: transform var(--motion-cinematic);
+  transform-origin: center;
+}
+
+.page-tab.active .page-tab-underline {
+  transform: translateX(-50%) scaleX(1);
+}
+
+/* While in-app, the page tabs slide down with the rest of home */
+body.in-app .page-tabs {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--motion-cinematic);
+}
+
+/* Light-mode mirror */
+body.theme-light .page-tabs {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  border-color: rgba(0, 0, 0, 0.06);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.04),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.10),
+    0 8px 20px -10px rgba(var(--accent-rgb), 0.10),
+    0 12px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ── 7.6. Page panes — show only the active tab's content ──── */
+
+/* All panes start hidden; the matching body.tab-<id> reveals one. */
+.page-pane {
+  display: none;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+}
+
+body.tab-apps  .page-pane[data-tab="apps"]  { display: flex; align-items: center; }
+body.tab-today .page-pane[data-tab="today"] { display: flex; align-items: stretch; }
+body.tab-files .page-pane[data-tab="files"] { display: flex; }
+body.tab-notes .page-pane[data-tab="notes"] { display: flex; }
+body.tab-web   .page-pane[data-tab="web"]   { display: flex; }
+
+/* The widget bar inside the Today pane wants its own grid. Override the
+   .page-pane flex column to flex row so the design's 1.2/1/1/1.2 grid
+   from home.css still works. */
+body.tab-today .page-pane[data-tab="today"] .widget-bar {
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Pane head — sits above the grid for Files/Notes/Web tabs */
+.page-pane-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 0 4px;
+}
+
+.page-pane-title {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-bright);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.page-pane-meta {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.page-pane-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 12px;
+  width: 100%;
+}
+
+.page-pane-grid-web {
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+}
+
+.page-pane-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 32px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+/* Cards in Files / Notes / Web panes — same Liquid Glass body recipe as
+   the widget cards, plus tap-friendly sizing. */
+.page-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.06),
+    0 6px 16px -8px rgba(var(--accent-rgb), 0.16),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--motion-cinematic), box-shadow var(--motion-cinematic);
+  min-height: 80px;
+  overflow: hidden;
+}
+
+.page-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.18),
+    0 10px 24px -8px rgba(var(--accent-rgb), 0.30),
+    0 12px 24px rgba(0, 0, 0, 0.40);
+}
+
+.page-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.10);
+  border: 1px solid rgba(var(--accent-rgb), 0.20);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+
+.page-card-favicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(var(--accent-rgb), 0.06);
+  border: 1px solid rgba(var(--accent-rgb), 0.15);
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-bottom: 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.page-card-favicon img {
+  width: 24px;
+  height: 24px;
+  display: block;
+}
+
+.page-card-favicon-fallback img { display: none; }
+
+.page-card-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-bright);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.page-card-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  margin-top: auto;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  width: 100%;
+}
+
+.page-card-preview {
+  font-size: 11px;
+  color: var(--text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+body.theme-light .page-card {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+
 /* ── 8. Section headings ──────────────────────────────────── */
 
 /* "01 / Today / live"  +  "02 / All Apps / drag to rearrange"

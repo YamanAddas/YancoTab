@@ -43,9 +43,9 @@ function getSearchUrl(query) {
 
 export class SmartSearch {
     constructor() {
-        // Outer wrap holds the input bar + scope tabs in a column.
-        // .root is the wrap so mobileShell's opacity/pointer-events toggles
-        // dim the whole search block (input + scopes) together.
+        // Outer wrap kept (some CSS targets .m-search-wrap). The internal
+        // scope tabs are gone — PageTabs at the page level now drives the
+        // search scope via the `page:tab-change` event.
         this.root = el('div', { class: 'm-search-wrap' });
 
         this.bar = el('div', {
@@ -74,53 +74,21 @@ export class SmartSearch {
         this.bar.appendChild(this.dropdown);
         this.root.appendChild(this.bar);
 
-        // Scope tabs — design's All/Apps/Files/Notes/Web row below the input.
-        // Active scope filters which result types appear in the dropdown.
+        // Scope is driven by the active page tab. Default to "all" so a
+        // search on the Apps tab still surfaces files + web.
         this._scope = 'all';
-        this.scopes = this._buildScopes();
-        this.root.appendChild(this.scopes);
+        this._tabHandler = (e) => {
+            const tab = e?.detail?.tab;
+            if (!tab) return;
+            // Apps + Today behave like "all" for search; the others scope.
+            this._scope = (tab === 'apps' || tab === 'today') ? 'all' : tab;
+            if (this.input.value.trim()) this._onInput();
+        };
+        window.addEventListener('page:tab-change', this._tabHandler);
 
         this._selectedIndex = -1;
         this._results = [];
         this.bindEvents();
-    }
-
-    _buildScopes() {
-        const wrap = el('div', { class: 'scopes' });
-        const items = [
-            { id: 'all', label: 'All' },
-            { id: 'apps', label: 'Apps' },
-            { id: 'files', label: 'Files' },
-            { id: 'notes', label: 'Notes' },
-            { id: 'web', label: 'Web' },
-        ];
-        for (const s of items) {
-            const node = el('span', {
-                class: `scope${s.id === this._scope ? ' active' : ''}`,
-                'data-scope': s.id,
-                role: 'tab',
-                tabindex: '0',
-            }, s.label);
-            const set = () => this._setScope(s.id);
-            node.addEventListener('click', set);
-            node.addEventListener('keydown', e => {
-                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); set(); }
-            });
-            wrap.appendChild(node);
-        }
-        return wrap;
-    }
-
-    _setScope(id) {
-        if (id === this._scope) return;
-        this._scope = id;
-        this.scopes.querySelectorAll('.scope').forEach(n => {
-            n.classList.toggle('active', n.dataset.scope === id);
-        });
-        // Re-run filter with the new scope (or hide if empty)
-        if (this.input.value.trim()) {
-            this._onInput();
-        }
     }
 
     bindEvents() {

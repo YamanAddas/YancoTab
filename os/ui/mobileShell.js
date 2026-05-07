@@ -27,6 +27,8 @@ import { MobileContextMenu } from './components/MobileContextMenu.js';
 import { Greeting } from './components/Greeting.js';
 import { WidgetBar } from './components/WidgetBar.js';
 import { FolderRail } from './components/FolderRail.js';
+import { PageTabs } from './components/PageTabs.js';
+import { PagePanes } from './components/PagePanes.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
 import { WindowChrome } from './components/WindowChrome.js';
@@ -48,6 +50,11 @@ export class MobileShell {
     // Folder rail mirrors AppGrid's folders into a horizontal pill row below
     // the grid. Constructed after grid so it can subscribe to grid.state.
     this.components.folderRail = new FolderRail(this.components.grid.state);
+    // PageTabs drives top-level home navigation (Apps / Today / Files /
+    // Notes / Web) via body classes; PagePanes renders the Files / Notes /
+    // Web tab content. Apps and Today reuse existing components.
+    this.components.pageTabs = new PageTabs();
+    this.components.pagePanes = new PagePanes();
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
     this.alarmUi = null;
@@ -139,31 +146,31 @@ export class MobileShell {
       alarmOverlay: this.renderAlarmOverlay(),
     };
 
-    // Section heading helper — uppercase title + gradient rule + meta tag.
-    // (No leading "01" / "02" numbering — Yaman prefers the title to lead.)
-    const secHead = (title, meta) => el('div', { class: 'sec-head' }, [
-      el('h2', { class: 'sec-title' }, title),
-      el('span', { class: 'sec-rule' }),
-      el('span', { class: 'sec-meta' }, meta),
-    ]);
-
+    // Top of home: greeting + search + page tabs.
     this.dom.homeTop.append(
       this.components.greeting.render(),
       this.components.search.render(),
-      secHead('Today', 'live'),
-      this.components.widgetBar.render(),
+      this.components.pageTabs.render(),
     );
 
-    // Section heading above the app grid
-    const appsHead = secHead('All Apps', 'drag to rearrange');
-    appsHead.classList.add('sec-head-apps');
-
-    // Main content: greeting + search + widgets + section heading + grid + dots + folder rail
-    this.dom.mainContent.append(
-      this.dom.homeTop,
-      appsHead,
+    // The widgets-only "Today" pane wraps WidgetBar so CSS body.tab-today
+    // shows it and other pages hide it. The app grid sits in its own pane
+    // marked tab="apps" (default).
+    const todayPane = el('section', { class: 'page-pane', 'data-tab': 'today' }, [
+      this.components.widgetBar.render(),
+    ]);
+    const appsPane = el('section', { class: 'page-pane', 'data-tab': 'apps' }, [
       this.components.grid.root,
       this.components.grid.dotsContainer,
+    ]);
+
+    // Main content: home-top + 5 panes (apps, today, files, notes, web) +
+    // folder rail. CSS shows the matching pane based on body.tab-<id>.
+    this.dom.mainContent.append(
+      this.dom.homeTop,
+      appsPane,
+      todayPane,
+      this.components.pagePanes.render(),  // owns the files/notes/web panes
       this.components.folderRail.render(),
     );
 
