@@ -334,8 +334,15 @@ export class BrowserApp extends App {
   }
 
   _openExternal(url) {
-    const popup = window.open(url, '_blank', 'noopener,noreferrer');
-    if (popup) return;
+    // CAREFUL: window.open(url, '_blank', 'noopener,noreferrer') ALWAYS
+    // returns null in Chrome — the noopener flag intentionally severs
+    // the cross-window reference. The earlier `if (popup) return;` +
+    // anchor-fallback combo therefore always took BOTH paths and
+    // opened the URL in two tabs (the recent-trail double-open bug).
+    //
+    // The anchor approach by itself is reliable inside a user-gesture
+    // chain (button click handlers count as gestures) and keeps the
+    // noopener/noreferrer security posture.
     const a = document.createElement('a');
     a.href = url;
     a.target = '_blank';

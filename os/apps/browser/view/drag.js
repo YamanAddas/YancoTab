@@ -36,7 +36,11 @@ export function attachDragHandlers(root, { getBookmarks, onMove, onMerge }) {
       origTop: portal.style.top,
       pointerId: e.pointerId,
     };
-    try { portal.setPointerCapture?.(e.pointerId); } catch { /* synthetic events can't capture */ }
+    // NOTE: do NOT call setPointerCapture. With event delegation on
+    // portalsLayer the capture isn't needed (events bubble naturally
+    // from wherever the cursor moves), and capturing prevents the
+    // synthesized click event from firing on the hex button — the
+    // exact bug "clicking a hex doesn't open the link".
   }
 
   function pointerMove(e) {
@@ -68,7 +72,7 @@ export function attachDragHandlers(root, { getBookmarks, onMove, onMerge }) {
     active = null;
     a.portal.classList.remove('is-dragging');
     root.querySelectorAll('.wh-portal.is-merge-target').forEach((p) => p.classList.remove('is-merge-target'));
-    try { a.portal.releasePointerCapture?.(e.pointerId); } catch { /* synthetic events can't capture */ }
+    // No releasePointerCapture — we never captured (see pointerDown).
 
     if (!a.moved) return; // Plain click — let onclick fire.
     e.preventDefault();
