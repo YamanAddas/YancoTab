@@ -1116,8 +1116,10 @@ body.theme-light .web-tile {
   font-style: italic;
 }
 
-/* Cards in Files / Notes / Web panes — same Liquid Glass body recipe as
-   the widget cards, plus tap-friendly sizing. */
+/* Cards in Files / Notes panes — same Liquid Glass body recipe as the
+   widget cards, plus tap-friendly sizing. Files and Notes are visually a
+   matched pair: same min-height, same icon slot, same typography. Web
+   tab uses .web-tile (square block tiles) which is a separate recipe. */
 .page-card {
   display: flex;
   flex-direction: column;
@@ -1143,7 +1145,7 @@ body.theme-light .web-tile {
   text-decoration: none;
   cursor: pointer;
   transition: transform var(--motion-cinematic), box-shadow var(--motion-cinematic);
-  min-height: 80px;
+  min-height: 116px;
   overflow: hidden;
 }
 
@@ -1161,8 +1163,8 @@ body.theme-light .web-tile {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 8px;
   background: rgba(var(--accent-rgb), 0.10);
   border: 1px solid rgba(var(--accent-rgb), 0.20);
@@ -1171,7 +1173,11 @@ body.theme-light .web-tile {
   letter-spacing: 0.08em;
   color: var(--accent);
   flex-shrink: 0;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+}
+
+.page-card-icon svg {
+  display: block;
 }
 
 .page-card-favicon {
