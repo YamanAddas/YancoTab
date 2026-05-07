@@ -12,6 +12,37 @@
  * physical-card-of-the-design package locks, not theme tokens.
  * ─────────────────────────────────────────────────────────── */
 
+/* ── Chrome size override (salon needs more room) ────────── */
+
+/* The salon has a 200px left rail + 1fr center + 240px right rail —
+   on a 1280×800 viewport the default 75%/84% window leaves ~520px
+   for the felt, which crowds the oval arena. Open salon apps wider
+   by default. User can still resize via WindowChrome edge handles;
+   the inline styles set during a manual resize override these. */
+.window-chrome:has(.tarneeb-remake),
+.window-chrome:has(.trix-remake) {
+  left: 5%;
+  top: 4%;
+  width: 90%;
+  height: 92%;
+}
+
+/* The pre-salon Tarneeb / Trix used `.trix-remake { height: 100vh }`
+   so the app filled the screen. Inside the salon shell that bursts
+   out of the window-chrome content area. When the salon mounts,
+   force the app-root to fill its windowed parent instead of the
+   viewport, and drop the safe-area padding (the chrome handles
+   inset already). The :has selector is what triggers the override
+   ONLY when the salon is in use, leaving any legacy mount path
+   untouched. */
+.app-window:has(.table-app-frame) {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+}
+
 /* ── Outer frame ─────────────────────────────────────────── */
 
 .table-app-frame {
@@ -107,7 +138,7 @@ body.theme-light .table-app-frame {
 .table-stage {
   flex: 1 1 auto;
   display: grid;
-  grid-template-columns: 220px 1fr 260px;
+  grid-template-columns: 200px 1fr 240px;
   min-height: 0;
 }
 
@@ -209,7 +240,7 @@ body.theme-light .table-preset:hover {
 .table-felt-slot {
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
 }
 .table-felt-slot[hidden],
 .table-history-slot[hidden] { display: none; }
@@ -376,6 +407,10 @@ body.theme-light .table-emote {
   width: 100%;
   max-width: 620px;
   aspect-ratio: 620 / 660;
+  /* Cap height to the slot so a short window shrinks the felt
+     uniformly instead of clipping. aspect-ratio + max-height:100%
+     keeps the oval shape; whichever constraint is smaller wins. */
+  max-height: 100%;
   margin: 0 auto;
   background:
     radial-gradient(ellipse 50% 45% at 50% 38%, rgba(45, 207, 106, 0.18), rgba(8, 18, 32, 0.6) 70%, rgba(2, 8, 16, 0.9));
@@ -409,7 +444,7 @@ body.theme-light .table-felt-arena {
 .table-felt-status {
   position: absolute;
   left: 50%;
-  bottom: 14px;
+  bottom: 2.1%;
   transform: translateX(-50%);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;
@@ -423,18 +458,21 @@ body.theme-light .table-felt-arena {
 
 /* ── Compass player positioning (inside the oval felt) ───── */
 
+/* Compass positions are percentage-based so the arena scales
+   uniformly when the window resizes. Values are derived from the
+   mock's px values divided by the 660px design-baseline height. */
 .table-player-north {
-  top: 14px;
+  top: 2.1%;       /* 14 / 660 */
   left: 50%;
   transform: translateX(-50%);
 }
 .table-player-east {
-  right: 12px;
+  right: 1.9%;     /* 12 / 620 */
   top: 35%;
   transform: translateY(-50%);
 }
 .table-player-south {
-  bottom: 200px;
+  bottom: 30.3%;   /* 200 / 660 */
   left: 50%;
   transform: translateX(-50%);
   flex-direction: row !important;
@@ -447,7 +485,7 @@ body.theme-light .table-felt-arena {
 .table-player-south .table-player-name { order: 2; }
 .table-player-south .table-player-bid { order: 3; }
 .table-player-west {
-  left: 12px;
+  left: 1.9%;
   top: 35%;
   transform: translateY(-50%);
 }
@@ -476,7 +514,7 @@ body.theme-light .table-felt-arena {
 
 .table-your-hand {
   position: absolute;
-  bottom: 60px;
+  bottom: 9.1%;     /* 60 / 660 */
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -491,7 +529,7 @@ body.theme-light .table-felt-arena {
 .table-bid-bar {
   position: absolute;
   left: 50%;
-  bottom: 174px;
+  bottom: 26.4%;    /* 174 / 660 */
   transform: translateX(-50%);
   display: flex;
   gap: 6px;
@@ -585,12 +623,12 @@ body.theme-light .table-side-action {
 }
 
 /* ── Mobile felt scaling ──────────────────────────────────── */
-
+/* All positions are percentage-based so the arena scales naturally
+   with size. Mobile only needs to relax the aspect ratio so the
+   felt becomes squarer (less letterboxed) on portrait phones. */
 @media (max-width: 720px) {
   .table-felt-arena { max-width: 100%; aspect-ratio: 1 / 1; }
-  .table-player-south { bottom: 110px; }
-  .table-your-hand { bottom: 30px; height: 90px; }
-  .table-bid-bar { bottom: 100px; }
+  .table-your-hand { height: 90px; }
 }
 
 /* ── Hex-compass player avatars (used by salon when felt mounts them) ─ */
