@@ -121,19 +121,14 @@ export class TableShell {
   // ── DOM builders ──
 
   _buildTitlebar() {
-    const traffic = el('div', { class: 'table-traffic' }, [
-      el('i', { class: 'table-traffic-r' }),
-      el('i', { class: 'table-traffic-y' }),
-      el('i', { class: 'table-traffic-g' }),
-    ]);
-    const name = el('div', { class: 'table-name' }, [
-      el('b', {}, 'the table'),
-      ' / ',
-      this.cfg.gameLabel || this.gameId,
-    ]);
+    // Title — just the game name in an elegant serif (Playfair Display
+    // italic, already self-hosted). The previous "the table / trix"
+    // breadcrumb + macOS traffic lights from the design mock have been
+    // dropped per Yaman — they were decorative-only and crowded the bar.
+    const name = el('div', { class: 'table-name' }, this.cfg.gameLabel || this.gameId);
     this.refs.tabsEl = el('div', { class: 'table-tabs' });
     this._renderTitlebarTabs();
-    return el('div', { class: 'table-titlebar' }, [traffic, name, this.refs.tabsEl]);
+    return el('div', { class: 'table-titlebar' }, [name, this.refs.tabsEl]);
   }
 
   _renderTitlebarTabs() {

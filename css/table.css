@@ -77,34 +77,25 @@ body.theme-light .table-app-frame {
 .table-titlebar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  gap: 16px;
+  padding: 12px 18px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
   flex-shrink: 0;
 }
 
-.table-traffic { display: flex; gap: 8px; }
-.table-traffic i {
-  display: block;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-.table-traffic-r { background: #ff5f57; }
-.table-traffic-y { background: #febc2e; }
-.table-traffic-g { background: #28c840; }
-
+/* Game title — elegant flowing serif. Playfair Display italic is
+   self-hosted in css/home.css; we reuse it here so no new font file
+   is needed. Letter-spacing + faint accent shadow give it a Levantine-
+   parlor feel that pairs with the green felt below. */
 .table-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  color: var(--text);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.table-name b {
-  color: var(--accent);
-  font-weight: 500;
+  font-family: 'Playfair Display', 'Amiri', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 24px;
+  letter-spacing: 0.04em;
+  color: var(--text-bright);
+  text-shadow: 0 0 16px rgba(var(--accent-rgb), 0.18);
 }
 
 .table-tabs {
