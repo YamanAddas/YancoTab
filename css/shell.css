@@ -630,11 +630,13 @@ body.in-app .main-content {
 }
 
 /* ── Smart Search (v3 teal glass pill) ── */
+/* Compact 44px height (was 56px) so the whole hero + search + tabs stack
+   fits within a 1280×720 viewport without scrolling. */
 .m-search-container {
   position: relative;
   width: 620px;
   max-width: 90vw;
-  height: 56px;
+  height: 44px;
   z-index: var(--z-search, 1150);
 }
 

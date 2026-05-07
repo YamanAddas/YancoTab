@@ -25,24 +25,11 @@ export class StatusBar {
     render() {
         this.root = el('div', { class: 'status-bar' });
 
-        // ── Brand (left) ─────────────────────────────────────
-        this.elements.brand = el('div', { class: 'sb-brand' }, [
-            el('span', { class: 'sb-brand-mark' }),
-            el('span', { class: 'sb-brand-name' }, 'YancoTab'),
-            el('span', { class: 'sb-brand-tag' }, '/ new tab'),
-        ]);
-
-        // ── Mid (system status) ──────────────────────────────
-        this.elements.mid = el('div', { class: 'sb-mid' });
-        this.elements.local = el('span', { class: 'sb-mid-item sb-local sb-pill-hidden' }, [
-            el('b', {}, 'local'),
-            el('span', { class: 'sb-local-text' }, ''),
-        ]);
-        this.elements.net = el('span', { class: 'sb-mid-item sb-net' }, [
-            el('b', {}, 'net'),
-            el('span', { class: 'sb-net-text' }, navigator.onLine ? 'online' : 'offline'),
-        ]);
-        this.elements.mid.append(this.elements.local, this.elements.net);
+        // Brand mark + "/ new tab" wordmark and the local/net mid pills were
+        // removed per Yaman's call — they cluttered the chrome without
+        // earning their pixels. Status bar now only carries the right-side
+        // controls (activity / clock / theme / settings). The .sb-right
+        // section keeps margin-left: auto in CSS so it stays pinned right.
 
         // ── Right (controls) ─────────────────────────────────
         this.elements.right = el('div', { class: 'sb-right' });
@@ -85,10 +72,9 @@ export class StatusBar {
             this.elements.settingsBtn,
         );
 
-        this.root.append(this.elements.brand, this.elements.mid, this.elements.right);
+        this.root.append(this.elements.right);
 
         this._refreshActivity();
-        this._refreshLocal();
         this.startUpdates();
         return this.root;
     }
@@ -124,24 +110,6 @@ export class StatusBar {
         }
     }
 
-    _refreshLocal() {
-        const summary = this._getWeatherSummary();
-        const text = this.elements.local.querySelector('.sb-local-text');
-        if (summary) {
-            text.textContent = summary;
-            this.elements.local.classList.remove('sb-pill-hidden');
-        } else {
-            this.elements.local.classList.add('sb-pill-hidden');
-        }
-    }
-
-    _refreshNet() {
-        const text = this.elements.net.querySelector('.sb-net-text');
-        if (!text) return;
-        text.textContent = navigator.onLine ? 'online' : 'offline';
-        this.elements.net.classList.toggle('sb-net-offline', !navigator.onLine);
-    }
-
     _getOpenTodoCount() {
         try {
             const data = this.kernel?.storage?.load('yancotab_todo_v1');
@@ -164,22 +132,6 @@ export class StatusBar {
         } catch { return 0; }
     }
 
-    _getWeatherSummary() {
-        try {
-            const ws = this.kernel?.getService?.('weather');
-            if (!ws) return null;
-            const state = ws.getState?.();
-            if (!state?.currentLocation) return null;
-            const query = state.currentLocation.query;
-            const forecast = ws.getCache?.(query, 1000 * 60 * 60); // 1h tolerance
-            if (!forecast?.current) return null;
-            const temp = Math.round(forecast.current.temperature_2m ?? forecast.current.temp ?? 0);
-            const unit = state.unit === 'f' ? 'f' : 'c';
-            const city = (state.currentLocation.label || '').split(',')[0].toLowerCase();
-            return `${city} · ${temp}°${unit}`;
-        } catch { return null; }
-    }
-
     _toggleTheme() {
         try {
             const isLight = document.body.classList.contains('theme-light');
@@ -199,16 +151,9 @@ export class StatusBar {
         window.addEventListener('yancotab:alarmringstate', this._alarmHandler);
 
         this._visibilityHandler = () => {
-            if (!document.hidden) {
-                this._refreshActivity();
-                this._refreshLocal();
-            }
+            if (!document.hidden) this._refreshActivity();
         };
         document.addEventListener('visibilitychange', this._visibilityHandler);
-
-        this._onlineHandler = () => this._refreshNet();
-        window.addEventListener('online', this._onlineHandler);
-        window.addEventListener('offline', this._onlineHandler);
 
         window.addEventListener('yancotab:clock_update', () => {
             if (this.elements.time) this.elements.time.textContent = this.getTime();
@@ -223,10 +168,6 @@ export class StatusBar {
         }
         if (this._visibilityHandler) {
             document.removeEventListener('visibilitychange', this._visibilityHandler);
-        }
-        if (this._onlineHandler) {
-            window.removeEventListener('online', this._onlineHandler);
-            window.removeEventListener('offline', this._onlineHandler);
         }
     }
 }

@@ -41,13 +41,14 @@ body.in-app .home-top {
   pointer-events: none;
 }
 
-/* ── Greeting hero — Liquid Glass design ── */
-/* Small mono greet line → giant live clock (HH:MM with teal ·SS) → mono day-of-year date.
-   The hero IS the clock — greeting and date are mono support text above and below.
-   Top padding clears the absolute-positioned status-bar tray + kofi badge. */
+/* ── Greeting hero — compact for no-scroll fit ── */
+/* Small mono greet line → live clock (HH:MM with teal ·SS) → mono date.
+   Adaptive sizing: clock is clamp(40-72px) using 6vh so tall viewports get a
+   bigger hero, short viewports get a compact one. The whole stack sits high
+   on the page so the grid + dock fit without scrolling on a 1280×720 laptop. */
 .greeting-bar {
   text-align: center;
-  padding: 56px 0 18px;
+  padding: 14px 0 8px;
   animation: greetFadeDown 0.6s var(--ease-out) both;
 }
 
@@ -57,13 +58,13 @@ body.in-app .home-top {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.30);
 }
 
 .greeting-clock {
   font-family: var(--font-mono);
-  font-size: clamp(56px, 12vw, 96px);
+  font-size: clamp(40px, 6vh, 72px);
   font-weight: 300;
   letter-spacing: -0.04em;
   line-height: 1;
@@ -82,10 +83,10 @@ body.in-app .home-top {
 }
 
 .greeting-date {
-  margin-top: 10px;
+  margin-top: 4px;
   color: var(--text);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.14em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
@@ -306,9 +307,9 @@ body.in-app .kofi-badge {
 .widget-pomo {
   text-align: center;
   align-items: center;
-  padding-top: 14px;
-  padding-bottom: 12px;
-  min-height: 156px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  min-height: 124px;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
@@ -392,8 +393,8 @@ body.in-app .kofi-badge {
 
 /* ── Activity feed widget ─────────────────────────────────── */
 .widget-feed {
-  padding: 14px 16px 12px;
-  min-height: 156px;
+  padding: 10px 14px;
+  min-height: 124px;
   text-align: left;
   align-items: stretch;
   cursor: default;

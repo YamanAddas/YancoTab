@@ -304,96 +304,14 @@ body.theme-light .widget-card::before {
   animation: greetFadeDown 0.8s var(--ease-out) 0.2s both;
 }
 
-/* Each section gets its own pointer events so buttons / pills are clickable */
-.sb-brand,
-.sb-mid,
+/* Right section gets its own pointer events so buttons / pills are clickable */
 .sb-right {
   pointer-events: auto;
   display: flex;
   align-items: center;
-}
-
-/* ── Brand mark (left) ──────────────────────────────── */
-.sb-brand {
   gap: 10px;
-  /* Push past the kofi badge that sits at fixed top-left (~88px wide + margins) */
-  margin-left: 88px;
-  color: var(--text-bright);
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-weight: 600;
-  font-size: 11px;
-}
-
-.sb-brand-mark {
-  width: 18px;
-  height: 18px;
-  clip-path: var(--hex-clip);
-  background: linear-gradient(160deg, var(--accent-bright), #00b89b);
-  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.65);
-  flex-shrink: 0;
-}
-
-.sb-brand-name {
-  color: var(--text-bright);
-  letter-spacing: 0.12em;
-}
-
-.sb-brand-tag {
-  color: var(--text-dim);
-  font-weight: 400;
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
-
-/* ── Mid section (system status) ─────────────────────── */
-.sb-mid {
-  gap: 22px;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--text);
-}
-
-.sb-mid-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.sb-mid-item b {
-  color: var(--accent);
-  font-weight: 500;
-  margin-right: 4px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.sb-net-offline .sb-net-text {
-  color: var(--danger);
-}
-
-/* ── Right section (controls) ────────────────────────── */
-.sb-right {
-  gap: 10px;
-  /* Pin to the right edge regardless of whether brand/mid are visible */
+  /* Pin to the right edge of the full-width status bar */
   margin-left: auto;
-}
-
-/* All status-bar sections stay visible at desktop widths.
-   At very narrow widths (< 540px) the brand tag + mid pills hide so the
-   right-side controls don't collide with the kofi badge. */
-@media (max-width: 539px) {
-  .sb-brand-tag,
-  .sb-mid {
-    display: none;
-  }
-}
-
-@media (max-width: 419px) {
-  .sb-brand {
-    display: none;
-  }
 }
 
 .sb-pill {
@@ -802,12 +720,14 @@ body.theme-light::after {
 
 /* ── 6.5. Search wrap + scope tabs ────────────────────────── */
 
-/* Wrapper holds the input bar and the scope tabs row in a column. */
+/* Wrapper holds the input bar (the in-search scope tabs were promoted to
+   PageTabs at the page level — see PageTabs.js). Gap kept small so the
+   input + page-tabs row don't push the grid below the fold. */
 .m-search-wrap {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   width: 620px;
   max-width: 90vw;
 }
@@ -910,9 +830,9 @@ body.theme-light .m-search-container::before {
   display: flex;
   align-items: stretch;
   gap: 4px;
-  margin: 18px auto 18px;
-  padding: 6px;
-  border-radius: 16px;
+  margin: 8px auto 12px;
+  padding: 5px;
+  border-radius: 14px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -935,11 +855,11 @@ body.theme-light .m-search-container::before {
   align-items: center;
   justify-content: center;
   gap: 0;
-  min-width: 88px;
-  height: 36px;
-  padding: 0 18px;
+  min-width: 84px;
+  height: 32px;
+  padding: 0 16px;
   border: 0;
-  border-radius: 11px;
+  border-radius: 10px;
   background: transparent;
   color: var(--text);
   font-family: var(--font-mono);

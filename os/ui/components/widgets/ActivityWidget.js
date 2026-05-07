@@ -20,7 +20,7 @@ import { kernel } from '../../../kernel.js';
 
 const STORAGE_KEY = 'yancotab_activity_v1';
 const MAX_EVENTS = 20;
-const VISIBLE_EVENTS = 4;
+const VISIBLE_EVENTS = 3;
 
 function loadBuffer() {
     try {
