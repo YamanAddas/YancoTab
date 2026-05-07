@@ -1,5 +1,7 @@
 import { el } from '../../../utils/dom.js';
 import { kernel } from '../../../kernel.js';
+import { getPreset } from '../../../apps/pomodoro/engine/presets.js';
+import { normalizeSettings } from '../../../apps/pomodoro/persistence.js';
 
 /**
  * PomodoroWidget — focus timer in the Today bar.
@@ -7,7 +9,7 @@ import { kernel } from '../../../kernel.js';
  * Layout (matches the design's w-pomo card):
  *   • Header label: "FOCUS · POMODORO" (uppercase mono)
  *   • SVG progress ring (88px) with the live MM:SS at the center
- *   • Footer label: "Session N of 4"  (focus mode)
+ *   • Footer label: "Session N of M"  (focus mode, M from active preset)
  *                  or "Take a break"   (break mode)
  *                  or "Tap to start"   (idle)
  *
@@ -20,12 +22,16 @@ import { kernel } from '../../../kernel.js';
  *
  * Persistence: state lives in `kernel.storage` so the timer survives reload
  * (we recompute remaining time from `startedAt` rather than ticking in storage).
+ *
+ * Preset awareness: durations + cycle length come from the active preset
+ * (yancotab_pomodoro_settings_v1 → activePresetId). PomodoroApp writes
+ * this when the user picks a preset; widget polls each tick to stay in
+ * sync. Long-break is treated like a regular break here — the widget
+ * doesn't visually distinguish, but the underlying state machine does.
  */
 
 const STORAGE_KEY = 'yancotab_pomodoro_v1';
-const FOCUS_MS = 25 * 60 * 1000;   // 25 minutes
-const BREAK_MS = 5 * 60 * 1000;    // 5 minutes
-const SESSIONS_PER_CYCLE = 4;
+const SETTINGS_KEY = 'yancotab_pomodoro_settings_v1';
 const RING_RADIUS = 42;
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS; // ≈ 263.9
 
@@ -45,11 +51,20 @@ function loadState() {
         const saved = kernel.storage?.load(STORAGE_KEY);
         if (saved && typeof saved === 'object') return saved;
     } catch { /* ignore */ }
-    return { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: 0, dayKey: todayKey() };
+    return { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: 0, dayKey: todayKey(), presetId: 'classic' };
 }
 
 function saveState(state) {
     try { kernel.storage?.save(STORAGE_KEY, state); } catch { /* ignore */ }
+}
+
+function loadActivePreset() {
+    try {
+        const raw = kernel.storage?.load(SETTINGS_KEY);
+        const settings = normalizeSettings(raw);
+        return getPreset(settings.activePresetId);
+    } catch { /* ignore */ }
+    return getPreset('classic');
 }
 
 export class PomodoroWidget {
@@ -57,6 +72,7 @@ export class PomodoroWidget {
         this.root = null;
         this._interval = null;
         this._state = loadState();
+        this._preset = loadActivePreset();
         // Reset session counter on day change
         if (this._state.dayKey !== todayKey()) {
             this._state.sessionsToday = 0;
@@ -104,11 +120,15 @@ export class PomodoroWidget {
     _toggle() {
         const s = this._state;
         if (s.phase === 'idle') {
-            // Start a focus session
+            // Start a focus session — anchor cycle metadata so the windowed
+            // app picks up the in-flight cycle correctly.
             s.phase = 'focus';
             s.startedAt = Date.now();
+            s.cycleStartedAt = Date.now();
+            s.sessionIndex = 0;
             s.paused = false;
             s.pausedRemainingMs = 0;
+            s.manualSkyOverride = null;
         } else if (s.paused) {
             // Resume — re-anchor startedAt so remaining matches what was paused
             s.startedAt = Date.now() - (this._duration() - s.pausedRemainingMs);
@@ -124,13 +144,21 @@ export class PomodoroWidget {
     }
 
     _reset() {
-        this._state = { phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0, sessionsToday: this._state.sessionsToday, dayKey: todayKey() };
+        this._state = {
+            phase: 'idle', startedAt: null, paused: false, pausedRemainingMs: 0,
+            sessionsToday: this._state.sessionsToday, dayKey: todayKey(),
+            presetId: this._state.presetId || 'classic',
+            sessionIndex: 0, cycleStartedAt: null, manualSkyOverride: null,
+        };
         saveState(this._state);
         this._update();
     }
 
     _duration() {
-        return this._state.phase === 'break' ? BREAK_MS : FOCUS_MS;
+        const p = this._preset;
+        if (this._state.phase === 'longBreak') return p.longBreakMs;
+        if (this._state.phase === 'break') return p.breakMs;
+        return p.focusMs;
     }
 
     _remainingMs() {
@@ -143,6 +171,15 @@ export class PomodoroWidget {
 
     _update() {
         if (!this.root) return;
+        // Re-read preset every tick so a preset switch in the app is picked
+        // up within ≤1s, with no cross-tab event plumbing.
+        this._preset = loadActivePreset();
+        const p = this._preset;
+
+        // Re-read state from storage so the app's writes (Start/Pause/etc)
+        // surface in the widget within ≤1s.
+        const fresh = loadState();
+        if (fresh) this._state = fresh;
         const s = this._state;
 
         // Day rollover
@@ -153,27 +190,39 @@ export class PomodoroWidget {
         }
 
         const remaining = this._remainingMs();
-        const total = this._duration();
 
-        // Phase transitions on hitting 0
+        // Phase transitions on hitting 0 — widget owns advance only when
+        // the app isn't (the app is also ticking; whoever runs first wins,
+        // but both compute the same next-state from the same preset).
         if (s.phase !== 'idle' && !s.paused && remaining <= 0) {
             if (s.phase === 'focus') {
                 s.sessionsToday = (s.sessionsToday || 0) + 1;
-                if (s.sessionsToday >= SESSIONS_PER_CYCLE) {
-                    s.phase = 'idle';
-                    s.startedAt = null;
-                    kernel.emit?.('toast', { message: `Pomodoro cycle complete · ${SESSIONS_PER_CYCLE} sessions`, type: 'success' });
-                    this._emitActivity(`Pomodoro cycle complete · ${SESSIONS_PER_CYCLE} sessions`);
+                const sessionIdx = (s.sessionIndex || 0) + 1;
+                s.sessionIndex = sessionIdx;
+                const isLast = sessionIdx >= p.sessions;
+                if (isLast) {
+                    s.phase = 'longBreak';
+                    s.startedAt = Date.now();
+                    kernel.emit?.('toast', { message: `Cycle complete · long break ${Math.round(p.longBreakMs / 60000)} min`, type: 'success' });
+                    this._emitActivity(`Pomodoro · cycle complete (${p.sessions} sessions)`);
                 } else {
                     s.phase = 'break';
                     s.startedAt = Date.now();
-                    kernel.emit?.('toast', { message: 'Focus complete · take a 5 minute break', type: 'success' });
-                    this._emitActivity(`Pomodoro · session ${s.sessionsToday} complete`);
+                    kernel.emit?.('toast', { message: `Focus complete · ${Math.round(p.breakMs / 60000)}-min break`, type: 'success' });
+                    this._emitActivity(`Pomodoro · session ${sessionIdx} complete`);
                 }
-            } else if (s.phase === 'break') {
-                s.phase = 'idle';
-                s.startedAt = null;
-                kernel.emit?.('toast', { message: 'Break over · ready when you are', type: 'info' });
+            } else if (s.phase === 'break' || s.phase === 'longBreak') {
+                if (s.phase === 'longBreak') {
+                    s.phase = 'idle';
+                    s.startedAt = null;
+                    s.sessionIndex = 0;
+                    s.cycleStartedAt = null;
+                    kernel.emit?.('toast', { message: 'Cycle complete · ready when you are', type: 'info' });
+                } else {
+                    s.phase = 'focus';
+                    s.startedAt = Date.now();
+                    kernel.emit?.('toast', { message: 'Break over · back to focus', type: 'info' });
+                }
             }
             saveState(s);
         }
@@ -187,7 +236,7 @@ export class PomodoroWidget {
         if (fill) {
             const offset = RING_CIRCUMFERENCE * (1 - progress);
             fill.setAttribute('stroke-dashoffset', offset.toFixed(2));
-            fill.classList.toggle('is-break', s.phase === 'break');
+            fill.classList.toggle('is-break', s.phase === 'break' || s.phase === 'longBreak');
         }
 
         // Time display
@@ -199,13 +248,16 @@ export class PomodoroWidget {
         if (labelEl) {
             if (s.phase === 'idle') {
                 labelEl.textContent = 'Tap to start';
+            } else if (s.phase === 'longBreak') {
+                labelEl.textContent = 'Long break';
             } else if (s.phase === 'break') {
                 labelEl.textContent = 'Take a break';
             } else if (s.paused) {
                 labelEl.textContent = 'Paused';
             } else {
-                const n = (s.sessionsToday || 0) + 1;
-                labelEl.textContent = `Session ${Math.min(n, SESSIONS_PER_CYCLE)} of ${SESSIONS_PER_CYCLE}`;
+                // Use sessionIndex (engine-managed) when present; fall back to legacy sessionsToday count.
+                const n = ((Number.isFinite(s.sessionIndex) ? s.sessionIndex : (s.sessionsToday || 0))) + 1;
+                labelEl.textContent = `Session ${Math.min(n, p.sessions)} of ${p.sessions}`;
             }
         }
 

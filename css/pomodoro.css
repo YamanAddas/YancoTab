@@ -437,6 +437,65 @@ body.theme-light .sol-app-frame {
   line-height: 1.5;
 }
 
+/* ── Week orbital-loop grid ──────────────────────────────── */
+
+.sol-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.18);
+}
+.sol-week-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.sol-week-letter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+.sol-week-day.is-today .sol-week-letter {
+  color: var(--accent, #00e5c1);
+}
+.sol-week-day.is-future {
+  opacity: 0.45;
+}
+.sol-week-loop {
+  --p: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: conic-gradient(
+    var(--accent, #00e5c1) calc(var(--p) * 1%),
+    rgba(255, 255, 255, 0.06) 0
+  );
+}
+.sol-week-loop::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 50%;
+  background: var(--bg-card, rgba(8, 18, 32, 0.85));
+}
+.sol-week-num {
+  position: relative;
+  z-index: 1;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 8.5px;
+  color: var(--text);
+  letter-spacing: 0.04em;
+}
+.sol-week-day.is-today .sol-week-num { color: var(--accent, #00e5c1); }
+
 /* ── Preset cards ────────────────────────────────────────── */
 
 .sol-preset-list { display: flex; flex-direction: column; gap: 5px; }
@@ -554,6 +613,160 @@ body.theme-light .sol-app-frame {
   font-size: 13px;
   line-height: 1.55;
   text-align: center;
+}
+
+/* ── Stats tab ───────────────────────────────────────────── */
+
+.sol-tab-panel { margin-top: 18px; }
+.sol-stats { display: flex; flex-direction: column; gap: 16px; }
+
+.sol-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.sol-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+}
+.sol-stat-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.sol-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 26px;
+  font-weight: 200;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.sol-stat-sub {
+  font-size: 11px;
+  color: var(--text);
+}
+
+.sol-stats-section { display: flex; flex-direction: column; gap: 8px; }
+.sol-stats-h {
+  margin: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+/* Today's session list */
+.sol-today-list {
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+  overflow: hidden;
+}
+.sol-today-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+  font-size: 12px;
+}
+.sol-today-row:last-child { border-bottom: none; }
+.sol-today-time {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent, #00e5c1);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+.sol-today-dur {
+  color: var(--text-bright);
+  font-family: 'JetBrains Mono', monospace;
+  font-variant-numeric: tabular-nums;
+}
+.sol-today-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  padding: 3px 8px;
+  border-radius: 99px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  text-transform: uppercase;
+}
+.sol-today-tag.is-ok {
+  color: var(--accent, #00e5c1);
+  border-color: rgba(var(--accent-rgb), 0.35);
+  background: rgba(var(--accent-rgb), 0.06);
+}
+.sol-today-tag.is-partial {
+  color: var(--text-dim);
+}
+.sol-empty {
+  margin: 0;
+  padding: 18px 14px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* 7-day bar chart */
+.sol-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  padding: 12px 12px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+}
+.sol-bar-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.sol-bar-track {
+  width: 18px;
+  height: 80px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  position: relative;
+  overflow: hidden;
+}
+.sol-bar-fill {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, var(--accent-bright, #33ffdd), var(--accent, #00e5c1));
+  border-radius: 4px 4px 0 0;
+}
+.sol-bar-cell.is-today .sol-bar-track {
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+}
+.sol-bar-cell.is-future {
+  opacity: 0.4;
+}
+.sol-bar-letter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+}
+.sol-bar-cell.is-today .sol-bar-letter {
+  color: var(--accent, #00e5c1);
+}
+.sol-bar-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Reduced-motion ──────────────────────────────────────── */

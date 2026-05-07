@@ -8,17 +8,16 @@
 
 import { el } from '../../../utils/dom.js';
 import { listPresets } from '../engine/presets.js';
+import { buildWeekGrid } from './weekGrid.js';
 
 export function buildPresetsRail({ onPickPreset }) {
   const root = el('aside', { class: 'sol-side' });
 
-  // ── Week placeholder ──
-  // PR-3 replaces this with the orbital-loop grid.
+  // ── This week — orbital loops ──
   const weekSec = el('section', { class: 'sol-side-section' });
   weekSec.appendChild(el('h4', { class: 'sol-side-h' }, 'THIS WEEK'));
-  const weekPlaceholder = el('div', { class: 'sol-week-placeholder' },
-    'Loops appear here once the next update lands.');
-  weekSec.appendChild(weekPlaceholder);
+  const weekGrid = buildWeekGrid();
+  weekSec.appendChild(weekGrid.root);
 
   // ── Presets section ──
   const presetsSec = el('section', { class: 'sol-side-section' });
@@ -70,7 +69,7 @@ export function buildPresetsRail({ onPickPreset }) {
 
   return {
     root,
-    update(state /* , settings */) {
+    update(state, history, settings = {}) {
       for (const [id, card] of presetCards) {
         card.classList.toggle('is-active', id === state.presetId);
         // Disable preset switch while running.
@@ -79,6 +78,8 @@ export function buildPresetsRail({ onPickPreset }) {
           ? 'End the current cycle to switch presets'
           : `Switch to ${id}`;
       }
+      // Repaint the week grid (cheap — 7 cells).
+      weekGrid.update(history, 4, settings.weekStart || 'mon');
     },
   };
 }

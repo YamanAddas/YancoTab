@@ -19,6 +19,7 @@ import { buildSky } from './pomodoro/view/sky.js';
 import { buildTimerRing } from './pomodoro/view/timerRing.js';
 import { buildTimerInfo } from './pomodoro/view/timerInfo.js';
 import { buildPresetsRail } from './pomodoro/view/presetsRail.js';
+import { buildStatsTab } from './pomodoro/view/statsTab.js';
 import * as intent from './pomodoro/intents.js';
 
 const TABS = ['Today', 'Season', 'Stats', 'Settings'];
@@ -108,13 +109,20 @@ export class PomodoroApp extends App {
       this._views.ring.root,
       this._views.info.root,
     ]);
+    this._views.todayBlock = el('div', { class: 'sol-today-block' }, [timerBlock]);
 
-    // Coming-soon notice for tabs other than Today.
+    // Stats tab content (built once, repainted on update).
+    this._views.stats = buildStatsTab();
+    this._views.stats.root.classList.add('sol-tab-panel', 'is-stats');
+    this._views.stats.root.style.display = 'none';
+
+    // Coming-soon notice for tabs other than Today/Stats (Season, Settings).
     this._views.placeholder = el('div', { class: 'sol-tab-placeholder' });
 
     const stage = el('div', { class: 'sol-stage' }, [
       this._views.sky.root,
-      timerBlock,
+      this._views.todayBlock,
+      this._views.stats.root,
       this._views.placeholder,
     ]);
     this._views.stage = stage;
@@ -219,7 +227,8 @@ export class PomodoroApp extends App {
 
     // Info + side
     this._views.info.update(this._state, preset, this._history);
-    this._views.side.update(this._state, this._settings);
+    this._views.side.update(this._state, this._history, this._settings);
+    this._views.stats.update(this._history, this._settings);
 
     // Stage night/day class for ambient tinting.
     const sky = effectiveSky(this._state);
@@ -234,18 +243,35 @@ export class PomodoroApp extends App {
     for (const t of tabEls) {
       t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-    // Placeholder content for non-Today tabs.
+    const today = this._views.todayBlock;
+    const stats = this._views.stats.root;
     const ph = this._views.placeholder;
-    if (!ph) return;
+    const sky = this._views.sky?.root;
+    if (!today || !stats || !ph) return;
+
+    // Hide all variants first.
+    today.style.display = 'none';
+    stats.style.display = 'none';
+    ph.style.display = 'none';
+    ph.textContent = '';
+
+    // Sky is a Today-only anchor; hiding it on other tabs frees ~180px
+    // of vertical room for the tab content (and reads cleaner anyway).
+    if (sky) sky.style.display = this._activeTab === 'Today' ? 'block' : 'none';
+
     if (this._activeTab === 'Today') {
-      ph.style.display = 'none';
-      ph.textContent = '';
+      today.style.display = 'block';
       return;
     }
-    ph.style.display = '';
+    if (this._activeTab === 'Stats') {
+      stats.style.display = 'flex';
+      return;
+    }
+    // Season + Settings — placeholder copy. Explicit 'block' overrides
+    // the CSS default of `display: none`.
+    ph.style.display = 'block';
     const blurbs = {
-      Season: 'Week-of orbital loops + month overview — landing in the next update.',
-      Stats: 'Lifetime focus minutes, completed sessions, streaks — landing in the next update.',
+      Season: 'Month overview + heatmap — landing in the next update.',
       Settings: 'Custom preset durations, ambient toggles, attached app — landing in the next update.',
     };
     ph.textContent = blurbs[this._activeTab] || '';
