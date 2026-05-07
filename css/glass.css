@@ -1447,37 +1447,61 @@ body.in-app .sb-signature {
 /* ── 9.5. App label readability ──────────────────────────── */
 
 /* App / folder labels (the text below each hex tile) must read against
-   ANY wallpaper — dark cosmic, light pastel, photographic. A single soft
-   text-shadow gets washed out on busy backgrounds. We layer four short
-   black shadows (a "stroke ring") plus one larger soft halo, which
-   produces a readable outline without aliasing artifacts.
+   ANY wallpaper — dark cosmic, light pastel, photographic. We force
+   pure white with a heavy multi-layer black halo so the glyphs look
+   solid and bright, not bluish-grey, on any backdrop.
 
-   The same treatment applies to folder pill labels and dock tile titles. */
+   `!important` is required because shell.css sets the base color
+   (`.app-label { color: rgba(var(--ui-text-rgb), 0.92) }`) and we want
+   the polish layer to win without rewriting the older rule. */
 .hex-icon-label,
 .app-label,
+.folder-pill-text,
 .folder-pill-text b,
 .app-dock-tile {
+  color: #ffffff !important;
+  font-weight: 600 !important;
   text-shadow:
-    0 0 1px rgba(0, 0, 0, 0.85),
-    0 1px 2px rgba(0, 0, 0, 0.85),
-    0 -1px 2px rgba(0, 0, 0, 0.55),
-    0 0 6px rgba(0, 0, 0, 0.65),
-    0 0 12px rgba(0, 0, 0, 0.45);
+    0 0 1px rgba(0, 0, 0, 0.95),
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    -1px 0 2px rgba(0, 0, 0, 0.85),
+    1px 0 2px rgba(0, 0, 0, 0.85),
+    0 -1px 2px rgba(0, 0, 0, 0.65),
+    0 0 8px rgba(0, 0, 0, 0.85),
+    0 0 16px rgba(0, 0, 0, 0.55) !important;
 }
 
-/* In light theme the wallpaper goes light, so flip the shadow direction:
-   halo around the text in white-ish, keeping it readable on dark icons
-   and on light wallpapers. Light-mode kofi badge label etc inherit. */
+/* Folder pills carry a count line ("9 apps") below the name — keep it
+   slightly dimmer than the name so the hierarchy is preserved. */
+.folder-pill-text {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+.folder-pill-text b {
+  color: #ffffff !important;
+}
+
+/* In light theme the wallpaper goes light, so we need DARK glyphs with
+   a white halo — opposite stack. */
 body.theme-light .hex-icon-label,
 body.theme-light .app-label,
+body.theme-light .folder-pill-text,
 body.theme-light .folder-pill-text b,
 body.theme-light .app-dock-tile {
+  color: #0a0f1a !important;
   text-shadow:
-    0 0 1px rgba(255, 255, 255, 0.95),
-    0 1px 2px rgba(255, 255, 255, 0.85),
-    0 -1px 2px rgba(255, 255, 255, 0.55),
-    0 0 6px rgba(255, 255, 255, 0.65),
-    0 0 12px rgba(0, 0, 0, 0.10);
+    0 0 1px rgba(255, 255, 255, 0.98),
+    0 1px 2px rgba(255, 255, 255, 0.95),
+    -1px 0 2px rgba(255, 255, 255, 0.85),
+    1px 0 2px rgba(255, 255, 255, 0.85),
+    0 -1px 2px rgba(255, 255, 255, 0.65),
+    0 0 8px rgba(255, 255, 255, 0.85),
+    0 0 16px rgba(255, 255, 255, 0.55) !important;
+}
+body.theme-light .folder-pill-text {
+  color: rgba(10, 15, 26, 0.72) !important;
+}
+body.theme-light .folder-pill-text b {
+  color: #0a0f1a !important;
 }
 
 /* ── 10. Reduced-effects fallback ─────────────────────────── */
