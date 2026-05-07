@@ -6,6 +6,144 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.1.0] — 2026-05-07
+
+The "Table salon" wave — Tarneeb and Trix share a new oval-felt
+salon shell with AI banter, Quick-start presets, hand history, and
+cross-game tab switching. TicTacToe rebuilt from canvas to DOM in
+the cosmic design language.
+
+### Added — Table salon (shared shell for Tarneeb + Trix)
+
+- **`os/apps/games/table/TableShell.js`** — layout component the two
+  card games mount. Owns the chrome (titlebar with elegant Playfair
+  Display italic title + cross-game tab pills Tarneeb/Trix/Hand history),
+  left rail with Quick-start preset cards, center felt slot, right rail
+  with scoresheet + side-actions slot + banter feed + emote row. Mobile
+  collapses to single column at ≤ 720px.
+- **`os/apps/games/table/banter.js`** — AI flavor-line dispatcher.
+  Subscribes to reducer events (`bid:total`, `trick:won`, `slam`,
+  `contract:picked`, `kingdom:end`, `game:end`, etc.), picks lines per
+  seat × trigger with non-repeat ring buffer + 1.5s cooldown +
+  per-trigger probability gates. One-way only — replaces the mock's
+  multiplayer chat (no input field, no networking).
+- **`os/apps/games/table/presets.js`** — generic preset registry; per-game
+  packs (Tarneeb: Hamra Salon casual / Damascus Diwan expert / Solo;
+  Trix: Bourj Trix / Saida Partners / Solo) provide the configs.
+- **`os/apps/games/table/handHistory.js`** — per-game persistence
+  (`yancotab_tarneeb_history_v1`, `yancotab_trix_history_v1`); newest-
+  first append with 50-entry trim. Hand-history tab in titlebar shows
+  last N rounds for the host game.
+- **`os/apps/games/table/avatars.js`** — hex-clip compass avatars for
+  N/E/S/W with role-based gradient (you / partner / opponent) and turn
+  glow.
+- **`os/apps/games/table/cardFace.js`** — bone-parchment Georgia-serif
+  card face for the trick area + hand fan; `#c5152e` red, `#0c0c0c`
+  black per the design package.
+
+### Added — Tarneeb on the salon
+
+- **`tarneebFeltView.js`** — oval green felt arena. Trump banner top-
+  right, 4 compass avatars (south = you, north = partner per actual
+  partnership), trick area in middle with cards rotated per seat,
+  glass bid-bar overlay (12 number buttons + PASS) during the BIDDING
+  phase, 7-position fan rotation map for the 13-card hand, status line
+  bottom-center.
+- **`tarneebSalonView.js`** — right-rail scoresheet (HAND/BID/US/THEM
+  with last 7 rounds + totals row + "First to 41" footer) and
+  per-round history-entry builder.
+- **`tarneebBanter.js`** — Levantine flavor pack across 9 triggers.
+- **`tarneebPresets.js`** — 3 quick-start configs.
+- **`tarneebReducer.js`** — emits `bid:total` event after bidding
+  completes (winner + top + total) for banter context.
+- **`TarneebApp.js`** — mounts TableShell, accepts `config.preset`
+  ride-along on spawn, modals (rules / scores) overlay on app root.
+
+### Added — Trix on the salon
+
+- **`trixFeltView.js`** — same compass + trick + hand pattern, but
+  trump banner becomes a contract banner (♚/♛/♦/✚/✦), bid bar becomes
+  a contract picker (5 pill buttons for remaining contracts) when
+  south is the kingdom owner, "X is picking…" wait pill otherwise,
+  trick area swaps to a 4-row layout board during the trix layout
+  contract, hand fan grows to 13-position rotation, layout PASS
+  button when no legal play is available.
+- **`trixSalonView.js`** — right-rail scoresheet (last 6 deals as
+  K# + contract glyph + your delta + total + per-seat tally; flips
+  to team scores in partners mode) and per-deal history-entry builder.
+- **`trixBanter.js`** — Levantine flavor pack across 9 triggers.
+- **`trixPresets.js`** — 3 quick-start configs.
+- **`trixReducer.js`** — `contract:picked`, `kingdom:end`, `game:end`
+  events; `advanceAfterDeal` now takes events to push from inside.
+- **`TrixApp.js`** — mounts TableShell with the same pattern as Tarneeb.
+
+### Added — TicTacToe DOM rebuild (Cosmic redesign)
+
+- **`os/apps/tictactoe/engine.js`** — pure FSM. Reducer over PLACE /
+  RESET / RESET_STATS / SET_MODE / SET_DIFFICULTY / HYDRATE; whitelist
+  on hydration so junk in storage can't poison state.
+- **`os/apps/tictactoe/ai.js`** — minimax with smart-chance gating
+  (easy 15% / medium 60% / hard 100% optimal); injectable RNG for
+  test determinism.
+- **`os/apps/tictactoe/view.js`** — DOM builder for the entire app
+  frame: titlebar with vs AI / Single / Stats tabs, oval board with
+  3×3 squircle grid, hex-clip corner bezels matching the dock-tile
+  motif, status pulse, score chips, action row with difficulty
+  chooser. Stats panel with 6 stat blocks + Reset.
+- **`os/apps/tictactoe/winLine.js`** — animated SVG comet streak
+  for the winning line (glow + main paths, CSS keyframe
+  stroke-dashoffset reveal).
+- **`TicTacToeApp.js`** — replaced wholesale (1201 → 211 lines).
+  Reads new `yancotab_tictactoe_v1` storage key; one-shot migrates
+  from legacy `yancotab_neon_tactics`. Keyboard: arrows/WASD cursor,
+  Enter/Space place, R reset, 1/2/3 difficulty, Esc close.
+- **`css/tictactoe.css`** — replaced wholesale; all colors from
+  `css/tokens.css`. Mobile (≤ 720px) collapses stats grid to 2-col.
+  Reduced-motion drops every animation to instant.
+
+### Changed
+
+- **Salon titlebar simplified** — dropped the macOS-style traffic-light
+  dots and the "the table / X" breadcrumb (decorative-only). Title is
+  just the game name in Playfair Display italic 24px with a faint
+  accent glow.
+- **Salon sizing override** — `:has()` selector opens Tarneeb / Trix
+  windows at 90%×92% of viewport (vs the default 75%×84%) so the 200/
+  1fr/240 stage fits the oval felt comfortably. WindowChrome edge-
+  handle resize still works — manual inline styles override the
+  default.
+- **Salon app-root override** — `.trix-remake { height: 100vh }` was
+  bursting out of the chrome content area. New `:has(.table-app-frame)`
+  rule forces the root to fill its windowed parent.
+- **Felt positions percentage-based** — north top / east-west / south /
+  hand / bid-bar / status all expressed as % of the 660px design
+  baseline so the oval scales gracefully on resize.
+- **Process manager** — `kernel.on('app:open', ...)` now forwards the
+  optional `config` arg (`spawn(appId, config)`) so future home-screen
+  / search launches can pass `{preset: 'damascus'}` directly. Existing
+  single-arg callers unaffected.
+
+### Storage
+
+- New REGISTRY entries: `yancotab_tarneeb_history_v1`,
+  `yancotab_trix_history_v1` (user-data, conditional sync, 50-cap),
+  `yancotab_table_banter_seed` (volatile, never sync),
+  `yancotab_tictactoe_v1` (user-data, conditional sync, replaces the
+  legacy `yancotab_neon_tactics` shape via one-shot migration).
+
+### Tests
+
+- 502 total (was 471, +31 new). Covers TableShell presets/banter/
+  hand-history (Wave 1) plus the TicTacToe engine + AI (Wave 3).
+
+### Service worker
+
+- Cache name `yancotab-v1.1.0-table-ttt` to evict pre-rebuild assets.
+- Precache list gains the 7 table modules + 4 trix salon files +
+  4 tictactoe modules + `css/table.css`.
+
+---
+
 ## [1.0.0] — 2026-05-06
 
 First public release on Chrome Web Store.
