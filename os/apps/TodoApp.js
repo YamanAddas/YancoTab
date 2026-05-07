@@ -1,406 +1,302 @@
+/**
+ * TodoApp — Mission Control redesign.
+ *
+ * 3-column layout: side rail (missions + recurring + streaks) | stage
+ * (4 launchpad pads + intraday timeline) | review rail (mission %,
+ * week stats, blurb). Title bar tabs (Launchpad/Today/Week/Review)
+ * are wired in PR-2 only for Launchpad — the rest become real later.
+ */
+
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import { showConfirm, showPrompt, showAlert } from '../ui/components/YancoModal.js';
+import { loadState, saveState, subscribe } from './todo/persistence.js';
+import { getActiveMission, COLORS } from './todo/engine/state.js';
+import * as intent from './todo/intents.js';
+import { buildSideRail } from './todo/view/sideRail.js';
+import { buildLaunchpad } from './todo/view/launchpad.js';
+import { buildReviewRail } from './todo/view/reviewRail.js';
 
-const STORAGE_KEY = 'yancotab_todo_v1';
-const SAVE_DEBOUNCE_MS = 260;
+const TABS = ['Launchpad', 'Today', 'Week', 'Review'];
+
+function css(href) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  return link;
+}
+
+function colorVar(color) {
+  switch (color) {
+    case 'cool':   return 'var(--cool, #5aa8ff)';
+    case 'warm':   return 'var(--warm, #ffb84a)';
+    case 'violet': return 'var(--violet, #9b7bff)';
+    case 'rose':   return 'var(--rose, #ff6f8b)';
+    case 'green':  return 'var(--green, #2dcf6a)';
+    default:       return 'var(--accent, #00e5c1)';
+  }
+}
 
 export class TodoApp extends App {
-    constructor(kernel, pid) {
-        super(kernel, pid);
-        this.metadata = { name: 'Todo', id: 'todo', icon: '✅' };
-        this._saveTimer = null;
-        this._unsubscribe = null;
-        this.data = null;
-        this.activeListId = null;
-        this.editingTaskId = null;
+  constructor(kernel, pid) {
+    super(kernel, pid);
+    this.metadata = { name: 'Todo', id: 'todo', icon: '✅' };
+    this._state = null;
+    this._unsubscribe = null;
+    this._activeTab = 'Launchpad';
+    this._views = {};
+    this._styleLinks = [];
+    this._tickHandle = null;
+  }
+
+  async init() {
+    this._styleLinks = [css('css/todo.css')];
+    this._styleLinks.forEach((l) => document.head.appendChild(l));
+
+    this._state = loadState(this.kernel);
+    this._unsubscribe = subscribe(this.kernel, (s) => {
+      this._state = s;
+      this._renderAll();
+    });
+
+    this.root = el('div', { class: 'app-window app-todo', tabindex: '0' });
+    this.root.appendChild(this._buildFrame());
+    this._renderAll();
+
+    // 1-minute tick refreshes the relative time labels (in 14m → in 13m, etc).
+    this._tickHandle = setInterval(() => this._renderAll(), 60_000);
+  }
+
+  _buildFrame() {
+    // Title bar
+    const titlebar = el('div', { class: 'mc-titlebar' });
+    titlebar.appendChild(el('div', { class: 'mc-traffic' }, [
+      el('i', { class: 'mc-light is-red' }),
+      el('i', { class: 'mc-light is-amber' }),
+      el('i', { class: 'mc-light is-green' }),
+    ]));
+    titlebar.appendChild(el('div', { class: 'mc-name' }, [
+      el('b', {}, 'todo'),
+      document.createTextNode(' / mission control'),
+    ]));
+    const tabs = el('div', { class: 'mc-tabs' });
+    for (const name of TABS) {
+      const tab = el('button', {
+        type: 'button',
+        class: `mc-tab${name === this._activeTab ? ' is-active' : ''}`,
+        'data-tab': name,
+      }, name);
+      tab.addEventListener('click', () => this._setTab(name));
+      tabs.appendChild(tab);
     }
+    titlebar.appendChild(tabs);
 
-    async init() {
-        this.root = el('div', { class: 'app-window app-todo' });
-        this.data = this._load();
-        this.activeListId = this.data.lists[0]?.id || null;
+    // Side rail
+    this._views.side = buildSideRail({
+      onPickMission: (id) => this._setActiveMission(id),
+      onAddMission: () => this._addMission(),
+      onMissionContextMenu: (id) => this._missionContextMenu(id),
+    });
 
-        // Subscribe for cross-device sync updates
-        if (this.kernel.storage) {
-            this._unsubscribe = this.kernel.storage.subscribe(STORAGE_KEY, (e) => {
-                if (e.source === 'remote') {
-                    this.data = e.newValue;
-                    this.render();
-                }
-            });
-        }
+    // Launchpad (stage)
+    this._views.launchpad = buildLaunchpad({
+      onAddTask: (padId, text) => this._addTaskToPad(padId, text),
+      onDropTask: (taskId, padId) => this._dropTaskOnPad(taskId, padId),
+      onToggle: (taskId) => this._toggleTask(taskId),
+      onDelete: (taskId) => this._deleteTask(taskId),
+      onOpenEditor: (taskId) => this._openEditor(taskId),
+    });
 
-        this.render();
+    // Review rail
+    this._views.review = buildReviewRail();
+
+    // Tab placeholder (Today/Week/Review wait for PR-3).
+    this._views.placeholder = el('div', { class: 'mc-tab-placeholder' });
+    this._views.placeholder.style.display = 'none';
+
+    const stage = el('div', { class: 'mc-stage' }, [
+      this._views.launchpad.root,
+      this._views.placeholder,
+    ]);
+    this._views.stage = stage;
+
+    const layout = el('div', { class: 'mc-layout' }, [
+      this._views.side.root,
+      stage,
+      this._views.review.root,
+    ]);
+    return el('div', { class: 'mc-frame' }, [titlebar, layout]);
+  }
+
+  // ── Tab switching ────────────────────────────────────────
+
+  _setTab(name) {
+    if (this._activeTab === name) return;
+    this._activeTab = name;
+    this._renderTabState();
+  }
+
+  _renderTabState() {
+    for (const t of this.root.querySelectorAll('[data-tab]')) {
+      t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-
-    destroy() {
-        this._flushSave();
-        if (this._unsubscribe) this._unsubscribe();
-        super.destroy();
+    const lp = this._views.launchpad.root;
+    const ph = this._views.placeholder;
+    if (this._activeTab === 'Launchpad') {
+      lp.style.display = '';
+      ph.style.display = 'none';
+      ph.textContent = '';
+      return;
     }
+    lp.style.display = 'none';
+    ph.style.display = 'block';
+    const blurbs = {
+      Today: 'Today\'s timeline + filtered launchpad — landing in the next update.',
+      Week: 'Week-of view — landing in the next update.',
+      Review: 'Full review — landing in the next update.',
+    };
+    ph.textContent = blurbs[this._activeTab] || '';
+  }
 
-    // ─── Data ────────────────────────────────────────────────
+  // ── State + actions ──────────────────────────────────────
 
-    _load() {
-        if (this.kernel.storage) {
-            return this.kernel.storage.load(STORAGE_KEY);
-        }
-        try {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : this._defaultData();
-        } catch {
-            return this._defaultData();
-        }
+  _commit(nextState) {
+    if (nextState === this._state) return;
+    this._state = nextState;
+    saveState(this.kernel, nextState);
+    this._renderAll();
+  }
+
+  _setActiveMission(id) {
+    this._commit(intent.setActiveMission(this._state, id));
+  }
+
+  async _addMission() {
+    const name = await showPrompt('New Mission', 'Mission name:');
+    if (!name || !name.trim()) return;
+    // Pick the next color in rotation.
+    const used = this._state.missions.map((m) => m.color);
+    const color = COLORS.find((c) => !used.includes(c)) || COLORS[this._state.missions.length % COLORS.length];
+    this._commit(intent.addMission(this._state, { name, color }));
+  }
+
+  async _missionContextMenu(id) {
+    const m = this._state.missions.find((x) => x.id === id);
+    if (!m) return;
+    const newName = await showPrompt(`Rename "${m.name}"`, 'New name (or empty to delete):', m.name);
+    if (newName === null) return;
+    if (newName.trim() === '') {
+      if (this._state.missions.length <= 1) {
+        await showAlert('Cannot delete', 'You must keep at least one mission.');
+        return;
+      }
+      const ok = await showConfirm('Delete mission', `Delete "${m.name}" and ${m.tasks.length} task(s)?`, { danger: true });
+      if (!ok) return;
+      this._commit(intent.deleteMission(this._state, id));
+    } else {
+      this._commit(intent.renameMission(this._state, id, newName));
     }
+  }
 
-    _save() {
-        if (this._saveTimer) clearTimeout(this._saveTimer);
-        this._saveTimer = setTimeout(() => {
-            this._saveTimer = null;
-            this._renormalizePositions();
-            if (this.kernel.storage) {
-                this.kernel.storage.save(STORAGE_KEY, this.data);
-            } else {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-            }
-        }, SAVE_DEBOUNCE_MS);
+  _addTaskToPad(padId, text) {
+    const mission = getActiveMission(this._state);
+    if (!mission) return;
+    const patch = padDefaults(padId);
+    this._commit(intent.addTask(this._state, mission.id, { text, ...patch }));
+  }
+
+  _dropTaskOnPad(taskId, padId) {
+    const mission = getActiveMission(this._state);
+    if (!mission) return;
+    const patch = padDropPatch(padId);
+    if (!patch) return;
+    this._commit(intent.updateTask(this._state, mission.id, taskId, patch));
+  }
+
+  _toggleTask(taskId) {
+    const mission = getActiveMission(this._state);
+    if (!mission) return;
+    this._commit(intent.toggleDone(this._state, mission.id, taskId));
+  }
+
+  async _deleteTask(taskId) {
+    const mission = getActiveMission(this._state);
+    if (!mission) return;
+    this._commit(intent.deleteTask(this._state, mission.id, taskId));
+  }
+
+  async _openEditor(taskId) {
+    const mission = getActiveMission(this._state);
+    if (!mission) return;
+    const t = mission.tasks.find((x) => x.id === taskId);
+    if (!t) return;
+    const newText = await showPrompt('Edit task', 'Task text:', t.text);
+    if (newText === null) return;
+    if (newText.trim() === '') {
+      const ok = await showConfirm('Delete task', 'Empty text — delete this task?', { danger: true });
+      if (ok) this._commit(intent.deleteTask(this._state, mission.id, taskId));
+      return;
     }
+    this._commit(intent.setText(this._state, mission.id, taskId, newText));
+  }
 
-    _flushSave() {
-        if (this._saveTimer) {
-            clearTimeout(this._saveTimer);
-            this._saveTimer = null;
-            this._renormalizePositions();
-            if (this.kernel.storage) {
-                this.kernel.storage.save(STORAGE_KEY, this.data);
-            } else {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-            }
-        }
+  // ── Render ───────────────────────────────────────────────
+
+  _renderAll() {
+    if (!this.root || !this._state) return;
+    const mission = getActiveMission(this._state);
+    this._views.side.update(this._state);
+    this._views.launchpad.update(mission);
+    this._views.review.update(this._state);
+    this._renderTabState();
+    // Tint the active mission's color via a CSS variable on the frame.
+    if (mission) {
+      this.root.style.setProperty('--mc-mission-color', colorVar(mission.color));
     }
+  }
 
-    _defaultData() {
-        return {
-            lists: [{
-                id: this._id(),
-                name: 'My Tasks',
-                tasks: [],
-            }],
-        };
+  destroy() {
+    if (this._tickHandle) { clearInterval(this._tickHandle); this._tickHandle = null; }
+    if (this._unsubscribe) { this._unsubscribe(); this._unsubscribe = null; }
+    if (this._styleLinks) {
+      for (const l of this._styleLinks) l.remove();
+      this._styleLinks = [];
     }
+    super.destroy();
+  }
+}
 
-    _id() {
-        return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-    }
+// ── Pad-level intent helpers ───────────────────────────────
 
-    _getActiveList() {
-        return this.data.lists.find((l) => l.id === this.activeListId) || this.data.lists[0];
-    }
+function todayAt(hour) {
+  const d = new Date();
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString().slice(0, 16); // 'YYYY-MM-DDTHH:MM'
+}
 
-    _renormalizePositions() {
-        for (const list of this.data.lists) {
-            if (!list.tasks.length) continue;
-            list.tasks.sort((a, b) => a.position - b.position);
-            // Check if any adjacent positions are too close
-            let needsReindex = false;
-            for (let i = 1; i < list.tasks.length; i++) {
-                if (Math.abs(list.tasks[i].position - list.tasks[i - 1].position) < 1) {
-                    needsReindex = true;
-                    break;
-                }
-            }
-            if (needsReindex) {
-                list.tasks.forEach((t, i) => { t.position = (i + 1) * 1000; });
-            }
-        }
-    }
+function tomorrowAt(hour) {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(hour, 0, 0, 0);
+  return d.toISOString().slice(0, 16);
+}
 
-    // ─── Render ──────────────────────────────────────────────
+function padDefaults(padId) {
+  switch (padId) {
+    case 'today':     return { dueAt: todayAt(17), priority: 'normal' };
+    case 'launching': return { dueAt: todayAt(17), priority: 'high' };
+    case 'queue':     return { dueAt: tomorrowAt(17), priority: 'normal' };
+    case 'hangar':
+    default:          return { dueAt: null, priority: 'normal' };
+  }
+}
 
-    render() {
-        this.root.innerHTML = '';
-
-        const list = this._getActiveList();
-        if (!list) return;
-
-        const sidebar = this._buildSidebar();
-        const main = this._buildMain(list);
-
-        const layout = el('div', { class: 'todo-layout' }, [sidebar, main]);
-        this.root.appendChild(layout);
-    }
-
-    _buildSidebar() {
-        const items = this.data.lists.map((list) => {
-            const count = list.tasks.filter((t) => !t.done).length;
-            const btn = el('button', {
-                class: `todo-list-btn ${list.id === this.activeListId ? 'is-active' : ''}`,
-                type: 'button',
-                onclick: () => {
-                    this.activeListId = list.id;
-                    this.editingTaskId = null;
-                    this.render();
-                },
-            }, [
-                el('span', { class: 'todo-list-name' }, list.name),
-                count > 0 ? el('span', { class: 'todo-list-count' }, String(count)) : null,
-            ].filter(Boolean));
-
-            // Long press to rename/delete
-            let lpTimer = null;
-            btn.addEventListener('pointerdown', () => {
-                lpTimer = setTimeout(() => this._listContextMenu(list), 500);
-            });
-            btn.addEventListener('pointerup', () => clearTimeout(lpTimer));
-            btn.addEventListener('pointerleave', () => clearTimeout(lpTimer));
-
-            return btn;
-        });
-
-        const addBtn = el('button', {
-            class: 'todo-add-list-btn',
-            type: 'button',
-            onclick: () => this._addList(),
-        }, '+ New List');
-
-        return el('div', { class: 'todo-sidebar' }, [...items, addBtn]);
-    }
-
-    _buildMain(list) {
-        const header = el('div', { class: 'todo-main-header' }, [
-            el('h2', { class: 'todo-list-title' }, list.name),
-            el('div', { class: 'todo-header-actions' }, [
-                el('button', {
-                    class: 'todo-clear-btn',
-                    type: 'button',
-                    onclick: () => this._clearDone(list),
-                    title: 'Clear completed',
-                }, 'Clear done'),
-            ]),
-        ]);
-
-        // Add task input
-        const input = el('input', {
-            class: 'todo-add-input',
-            type: 'text',
-            placeholder: 'Add a task...',
-            onkeydown: (e) => {
-                if (e.key === 'Enter' && e.target.value.trim()) {
-                    this._addTask(list, e.target.value.trim());
-                    e.target.value = '';
-                }
-            },
-        });
-
-        const addRow = el('div', { class: 'todo-add-row' }, [
-            el('span', { class: 'todo-add-icon' }, '+'),
-            input,
-        ]);
-
-        // Task list
-        const sorted = [...list.tasks].sort((a, b) => a.position - b.position);
-        const pending = sorted.filter((t) => !t.done);
-        const done = sorted.filter((t) => t.done);
-
-        const taskNodes = [];
-
-        pending.forEach((task) => taskNodes.push(this._buildTask(task, list)));
-
-        if (done.length) {
-            taskNodes.push(el('div', { class: 'todo-done-divider' }, [
-                el('span', {}, `Completed (${done.length})`),
-            ]));
-            done.forEach((task) => taskNodes.push(this._buildTask(task, list)));
-        }
-
-        const taskList = el('div', { class: 'todo-task-list' }, taskNodes);
-
-        if (!list.tasks.length) {
-            taskList.appendChild(el('div', { class: 'todo-empty' }, 'No tasks yet. Add one above.'));
-        }
-
-        return el('div', { class: 'todo-main' }, [header, addRow, taskList]);
-    }
-
-    _buildTask(task, list) {
-        const isEditing = this.editingTaskId === task.id;
-
-        const checkbox = el('button', {
-            class: `todo-checkbox ${task.done ? 'is-done' : ''}`,
-            type: 'button',
-            onclick: () => {
-                task.done = !task.done;
-                this._save();
-                this.render();
-            },
-        }, task.done ? '✓' : '');
-
-        let content;
-        if (isEditing) {
-            const editInput = el('input', {
-                class: 'todo-edit-input',
-                type: 'text',
-                value: task.text,
-                onkeydown: (e) => {
-                    if (e.key === 'Enter') {
-                        task.text = e.target.value.trim() || task.text;
-                        this.editingTaskId = null;
-                        this._save();
-                        this.render();
-                    }
-                    if (e.key === 'Escape') {
-                        this.editingTaskId = null;
-                        this.render();
-                    }
-                },
-                onblur: (e) => {
-                    task.text = e.target.value.trim() || task.text;
-                    this.editingTaskId = null;
-                    this._save();
-                    this.render();
-                },
-            });
-            content = editInput;
-            // Auto-focus after render
-            requestAnimationFrame(() => editInput.focus());
-        } else {
-            content = el('span', {
-                class: `todo-task-text ${task.done ? 'is-done' : ''}`,
-                onclick: () => {
-                    this.editingTaskId = task.id;
-                    this.render();
-                },
-            }, task.text);
-        }
-
-        const dueBadge = task.dueDate
-            ? el('span', {
-                class: `todo-due ${this._isPastDue(task.dueDate) && !task.done ? 'is-overdue' : ''}`,
-            }, this._formatDate(task.dueDate))
-            : null;
-
-        const dateInput = el('input', {
-            class: 'todo-date-input',
-            type: 'date',
-            value: task.dueDate || '',
-            onchange: (e) => {
-                task.dueDate = e.target.value || null;
-                this._save();
-                this.render();
-            },
-        });
-
-        const deleteBtn = el('button', {
-            class: 'todo-delete-btn',
-            type: 'button',
-            title: 'Delete',
-            onclick: () => {
-                list.tasks = list.tasks.filter((t) => t.id !== task.id);
-                this._save();
-                this.render();
-            },
-        }, '×');
-
-        return el('div', {
-            class: `todo-task ${task.done ? 'is-done' : ''}`,
-            'data-id': task.id,
-        }, [
-            checkbox,
-            el('div', { class: 'todo-task-body' }, [
-                content,
-                dueBadge,
-            ].filter(Boolean)),
-            el('div', { class: 'todo-task-actions' }, [dateInput, deleteBtn]),
-        ]);
-    }
-
-    // ─── Actions ─────────────────────────────────────────────
-
-    _addTask(list, text) {
-        const maxPos = list.tasks.reduce((m, t) => Math.max(m, t.position), 0);
-        list.tasks.push({
-            id: this._id(),
-            text,
-            done: false,
-            dueDate: null,
-            position: maxPos + 1000,
-        });
-        this._save();
-        this.render();
-    }
-
-    async _clearDone(list) {
-        const count = list.tasks.filter((t) => t.done).length;
-        if (!count) return;
-        if (!await showConfirm('Clear Completed', `Remove ${count} completed task${count > 1 ? 's' : ''}?`)) return;
-        list.tasks = list.tasks.filter((t) => !t.done);
-        this._save();
-        this.render();
-    }
-
-    async _addList() {
-        const name = await showPrompt('New List', 'List name:');
-        if (!name || !name.trim()) return;
-        const newList = {
-            id: this._id(),
-            name: name.trim().slice(0, 30),
-            tasks: [],
-        };
-        this.data.lists.push(newList);
-        this.activeListId = newList.id;
-        this._save();
-        this.render();
-    }
-
-    async _listContextMenu(list) {
-        const newName = await showPrompt('Rename List', 'Enter new name:', list.name);
-        if (newName === null) return;
-        if (newName.trim()) {
-            list.name = newName.trim().slice(0, 30);
-            this._save();
-            this.render();
-        }
-    }
-
-    async _deleteList(list) {
-        if (this.data.lists.length <= 1) {
-            await showAlert('Cannot Delete', 'You must keep at least one list.');
-            return;
-        }
-        if (!await showConfirm('Delete List', `Delete "${list.name}" and all its tasks?`, { danger: true })) return;
-        this.data.lists = this.data.lists.filter((l) => l.id !== list.id);
-        if (this.activeListId === list.id) {
-            this.activeListId = this.data.lists[0]?.id;
-        }
-        this._save();
-        this.render();
-    }
-
-    // ─── Helpers ─────────────────────────────────────────────
-
-    _isPastDue(dateStr) {
-        if (!dateStr) return false;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return new Date(dateStr + 'T00:00:00') < today;
-    }
-
-    _formatDate(dateStr) {
-        if (!dateStr) return '';
-        try {
-            const d = new Date(dateStr + 'T00:00:00');
-            const now = new Date();
-            now.setHours(0, 0, 0, 0);
-            const diff = Math.round((d - now) / 86400000);
-            if (diff === 0) return 'Today';
-            if (diff === 1) return 'Tomorrow';
-            if (diff === -1) return 'Yesterday';
-            return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-        } catch {
-            return dateStr;
-        }
-    }
-
-    // Styles moved to css/todo.css
+function padDropPatch(padId) {
+  switch (padId) {
+    case 'hangar':    return { priority: 'normal', dueAt: null };
+    case 'queue':     return { priority: 'normal', dueAt: tomorrowAt(17) };
+    case 'today':     return { priority: 'normal', dueAt: todayAt(17) };
+    case 'launching': return { priority: 'high' };
+    default:          return null;
+  }
 }
