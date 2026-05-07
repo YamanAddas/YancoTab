@@ -527,7 +527,10 @@ const REGISTRY = {
             && (v.angleMode === 'rad' || v.angleMode === 'deg')
             && Array.isArray(v.tape),
     },
-    // Canonical v3: adds vars, mode, secondMode, programmerBase.
+    // Legacy v3: superseded by v4 once full programmer/date features
+    // landed (PR-1 of the modes rework). Kept here for one-shot
+    // migration on first v4 load — never tightened to avoid wiping
+    // existing v3 saves in the wild.
     yancotab_calculator_v3: {
         storageClass: 'preferences',
         syncPolicy: 'always',
@@ -535,6 +538,29 @@ const REGISTRY = {
         default: {
             angleMode: 'rad', tape: [], vars: {},
             mode: 'standard', secondMode: false, programmerBase: 'dec',
+        },
+        validate: (v) => v && typeof v === 'object'
+            && (v.angleMode === 'rad' || v.angleMode === 'deg')
+            && Array.isArray(v.tape)
+            && v.vars && typeof v.vars === 'object'
+            && ['standard','scientific','programmer','date'].includes(v.mode)
+            && typeof v.secondMode === 'boolean'
+            && ['dec','hex','oct','bin'].includes(v.programmerBase),
+    },
+    // Canonical v4: adds programmer-mode (bitWidth, programmerValue)
+    // and date-mode (dateFrom/To, dateDelta, dateDeltaUnit, dateOp)
+    // fields. Validate stays loose — _normalize() in persistence.js
+    // is the single source of truth for shape correctness.
+    yancotab_calculator_v4: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 4,
+        default: {
+            angleMode: 'rad', tape: [], vars: {},
+            mode: 'standard', secondMode: false, programmerBase: 'dec',
+            bitWidth: 32, programmerValue: '0',
+            dateFrom: 'today', dateTo: 'today',
+            dateDelta: 0, dateDeltaUnit: 'd', dateOp: '+',
         },
         validate: (v) => v && typeof v === 'object'
             && (v.angleMode === 'rad' || v.angleMode === 'deg')

@@ -225,21 +225,167 @@ function fromRadians(v, ctx) { return ctx?.angleMode === 'deg' ? (v * 180) / Mat
 
 // ─── Operator helpers ───────────────────────────────────────────
 
-export const OP_SYMBOLS = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+export const OP_SYMBOLS = {
+  '+': '+', '-': '−', '*': '×', '/': '÷',
+  '^': '^', yroot: 'ʸ√', mod: 'mod',
+  and: 'AND', or: 'OR', xor: 'XOR',
+  lsh: '≪', rsh: '≫',
+};
 
 export function fmtOp(op) { return OP_SYMBOLS[op] || op; }
 
 /**
- * Pure binary op evaluator. Returns NaN on invalid (caller treats
- * NaN as Error).
+ * Pure binary op evaluator over Number. Returns NaN on invalid
+ * (caller treats NaN as Error).
+ *
+ * `^` is power, `yroot` is the y-th root (a^(1/b)), `mod` is the
+ * mathematical (Knuth) modulo so it returns sign-of-divisor for
+ * negative operands.
+ *
+ * Bitwise ops (and/or/xor/lsh/rsh) are NOT handled here — those
+ * route through applyBigIntOp() in programmer mode where word-size
+ * masking matters.
  */
 export function applyBinaryOp(op, a, b) {
   if (!Number.isFinite(a) || !Number.isFinite(b)) return NaN;
   switch (op) {
-    case '+': return a + b;
-    case '-': return a - b;
-    case '*': return a * b;
-    case '/': return b === 0 ? NaN : a / b;
-    default:  return NaN;
+    case '+':     return a + b;
+    case '-':     return a - b;
+    case '*':     return a * b;
+    case '/':     return b === 0 ? NaN : a / b;
+    case '^':     return Math.pow(a, b);
+    case 'yroot': return b === 0 ? NaN : Math.pow(a, 1 / b);
+    case 'mod':   return b === 0 ? NaN : a - Math.floor(a / b) * b;
+    default:      return NaN;
   }
+}
+
+// ─── Programmer mode (BigInt) ───────────────────────────────────
+
+/**
+ * Maximum length of a programmerValue string we'll accept from
+ * storage. 64 hex chars = 256 bits, comfortably above the 64-bit
+ * cap. Decimal can be longer; pick a uniform string-length limit
+ * to bound BigInt parse cost.
+ */
+export const MAX_PROGRAMMER_LENGTH = 80;
+
+const VALID_BIT_WIDTHS = new Set([8, 16, 32, 64]);
+
+export function isValidBitWidth(w) { return VALID_BIT_WIDTHS.has(w); }
+
+/**
+ * Mask a BigInt to the given word width as an UNSIGNED value. The
+ * shell uses this after every bitwise op so HEX/OCT/BIN display
+ * stays unsigned (two's-complement bit pattern).
+ */
+export function maskUnsigned(bigValue, width) {
+  if (!isValidBitWidth(width)) return bigValue;
+  return BigInt.asUintN(width, bigValue);
+}
+
+/**
+ * Pure BigInt op evaluator. All ops result in an unsigned value of
+ * the given width. Returns null on invalid input.
+ *
+ * @param {'and'|'or'|'xor'|'lsh'|'rsh'|'mod'|'+'|'-'|'*'|'/'} op
+ * @param {bigint} a
+ * @param {bigint} b
+ * @param {number} width  8 | 16 | 32 | 64
+ * @returns {bigint|null}
+ */
+export function applyBigIntOp(op, a, b, width) {
+  if (typeof a !== 'bigint' || typeof b !== 'bigint') return null;
+  if (!isValidBitWidth(width)) return null;
+  let r;
+  switch (op) {
+    case 'and': r = a & b; break;
+    case 'or':  r = a | b; break;
+    case 'xor': r = a ^ b; break;
+    case 'lsh': r = a << b; break;
+    case 'rsh': r = a >> b; break;
+    case 'mod': if (b === 0n) return null; r = a % b; break;
+    case '+':   r = a + b; break;
+    case '-':   r = a - b; break;
+    case '*':   r = a * b; break;
+    case '/':   if (b === 0n) return null; r = a / b; break;
+    default:    return null;
+  }
+  return maskUnsigned(r, width);
+}
+
+/**
+ * NOT for programmer mode — bitwise complement masked to width.
+ */
+export function applyBigIntNot(a, width) {
+  if (typeof a !== 'bigint' || !isValidBitWidth(width)) return null;
+  return maskUnsigned(~a, width);
+}
+
+/**
+ * Parse a string in the given base into a BigInt. Returns null on
+ * invalid input. Strips spaces and a leading `+`/`-` for DEC. The
+ * parser is bounded by MAX_PROGRAMMER_LENGTH so an attacker-supplied
+ * 1MB hex string can't hang us via O(n²) BigInt parse.
+ */
+export function parseBigIntInBase(str, base) {
+  if (typeof str !== 'string') return null;
+  const cleaned = str.replace(/\s+/g, '');
+  if (cleaned.length === 0 || cleaned.length > MAX_PROGRAMMER_LENGTH) return null;
+  try {
+    switch (base) {
+      case 'dec': {
+        if (!/^-?\d+$/.test(cleaned)) return null;
+        return BigInt(cleaned);
+      }
+      case 'hex': {
+        const m = cleaned.replace(/^0x/i, '');
+        if (!/^[0-9A-Fa-f]+$/.test(m)) return null;
+        return BigInt('0x' + m);
+      }
+      case 'oct': {
+        const m = cleaned.replace(/^0o/i, '');
+        if (!/^[0-7]+$/.test(m)) return null;
+        return BigInt('0o' + m);
+      }
+      case 'bin': {
+        const m = cleaned.replace(/^0b/i, '');
+        if (!/^[01]+$/.test(m)) return null;
+        return BigInt('0b' + m);
+      }
+      default: return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Format a BigInt in the given base (uppercase for hex). Width-
+ * masked first so negative values render as their unsigned two's-
+ * complement bit pattern in HEX/OCT/BIN. DEC keeps the sign.
+ */
+export function formatBigIntInBase(bigValue, base, width) {
+  if (typeof bigValue !== 'bigint') return '—';
+  if (base === 'dec') return bigValue.toString(10);
+  if (!isValidBitWidth(width)) return '—';
+  const masked = maskUnsigned(bigValue, width);
+  switch (base) {
+    case 'hex': return masked.toString(16).toUpperCase();
+    case 'oct': return masked.toString(8);
+    case 'bin': return masked.toString(2);
+    default:    return '—';
+  }
+}
+
+/**
+ * Sanitize a programmerValue string read from storage. Caps length
+ * and rejects anything that won't parse as a decimal BigInt.
+ */
+export function sanitizeProgrammerValue(str) {
+  if (typeof str !== 'string') return '0';
+  const trimmed = str.slice(0, MAX_PROGRAMMER_LENGTH);
+  const parsed = parseBigIntInBase(trimmed, 'dec');
+  if (parsed == null) return '0';
+  return parsed.toString(10);
 }

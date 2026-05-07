@@ -24,6 +24,8 @@ import {
   loadCalculatorState, saveCalculatorState, MAX_TAPE,
 } from './calculator/persistence.js';
 import { promptDefineVar } from './calculator/vars.js';
+import { routeAction } from './calculator/dispatch.js';
+import { bindKeyboard } from './calculator/keyboard.js';
 
 function css(href) {
   const l = document.createElement('link');
@@ -146,13 +148,22 @@ export class CalculatorApp extends App {
 
   _setMode(id) {
     if (this._mode === id) return;
+    // Mode switch always clears pending state to avoid mixing
+    // Number-mode and (PR-3) BigInt-mode arithmetic. Toast only if
+    // we're actually discarding work, not on a clean state.
+    const hadPending = this.state.previous !== null
+      || this.state.operator !== null
+      || this._parenStack.length > 0;
     this._mode = id;
+    this.clear();
+    if (hadPending) {
+      this.kernel.emit('toast', { message: 'Cleared on mode change', type: 'info' });
+    }
     for (const [mid, elx] of Object.entries(this._refs.modeEls)) {
       elx.classList.toggle('is-active', mid === id);
     }
     this._applyModeClass();
     if (id !== 'scientific' && this._secondMode) {
-      // Leaving scientific clears the 2nd flag for safety
       this._secondMode = false;
       relabelSciKeys(this._refs.keyEls, false);
       this._refs.sciSecondToggle?.classList.remove('is-active');
@@ -225,19 +236,7 @@ export class CalculatorApp extends App {
   }
 
   _bindKeyboard() {
-    this._onKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      const k = e.key;
-      if (k >= '0' && k <= '9') { this.appendNumber(k); e.preventDefault(); return; }
-      if (k === '.') { this.appendDot(); e.preventDefault(); }
-      else if (k === '+' || k === '-' || k === '*' || k === '/') { this.setOperator(k); e.preventDefault(); }
-      else if (k === 'Enter' || k === '=') { this.calculate(); e.preventDefault(); }
-      else if (k === 'Escape') { this.clear(); e.preventDefault(); }
-      else if (k === 'Backspace') { this._backspace(); e.preventDefault(); }
-      else if (k === '(') { this._openParen(); e.preventDefault(); }
-      else if (k === ')') { this._closeParen(); e.preventDefault(); }
-    };
-    this.root.addEventListener('keydown', this._onKeyDown);
+    this._onKeyDown = bindKeyboard(this.root, this);
   }
 
   _backspace() {
@@ -247,29 +246,12 @@ export class CalculatorApp extends App {
   }
 
   _dispatch(action, value) {
-    if (this.state.current === 'Error' && action !== 'clear') this.clear();
-    // Date mode reroutes +/− to direction setters and = to date math
-    if (this._mode === 'date') {
-      if (action === 'op' && (value === '+' || value === '-')) {
-        this._dateSign = value;
-        this._dateDelta = Math.abs(Number(this.state.current)) || 0;
-        this._renderDateMode();
-        return;
-      }
-      if (action === 'eval') { this._evalDateMode(); return; }
-    }
-    switch (action) {
-      case 'num':     this.appendNumber(value); break;
-      case 'dot':     this.appendDot(); break;
-      case 'op':      this.setOperator(value); break;
-      case 'eval':    this.calculate(); break;
-      case 'clear':   this.clear(); break;
-      case 'negate':  this.negate(); break;
-      case 'percent': this.percent(); break;
-      case 'paren':   value === '(' ? this._openParen() : this._closeParen(); break;
-      case 'sci':     this.handleScientific(actionFor(value, this._secondMode)); break;
-      case 'mem':     this.handleMemory(value); break;
-    }
+    routeAction(this, action, value);
+  }
+
+  /** Resolve a sci function id through the current 2nd-mode state. */
+  _resolveSciFunc(funcId) {
+    return actionFor(funcId, this._secondMode);
   }
 
   appendNumber(num) {
