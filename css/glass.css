@@ -1412,93 +1412,68 @@ body.theme-light .folder-pill:hover {
   border-color: rgba(var(--accent-rgb), 0.25);
 }
 
-/* ── 9. Signature pill (bottom-right) ─────────────────────── */
-
-/* The design's signature element — fixed bottom-right, version + status.
-   Sits above the dock-cast halo so it remains visible. */
-.sb-signature {
-  position: fixed;
-  right: 22px;
-  bottom: 28px;
-  z-index: 60;
-  pointer-events: none;
-  font-family: var(--font-mono);
-  animation: greetFadeDown 0.8s var(--ease-out) 0.4s both;
-}
-
-.sb-signature-pill {
-  pointer-events: auto;
-}
-
-/* Hide signature pill while in-app — the dock and window chrome take over */
-body.in-app .sb-signature {
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity var(--motion-cinematic);
-}
-
-/* Hide signature pill on phone-narrow viewports where it would crowd the dock */
-@media (max-width: 539px) {
-  .sb-signature {
-    display: none;
-  }
-}
-
 /* ── 9.5. App label readability ──────────────────────────── */
 
 /* App / folder labels (the text below each hex tile) must read against
-   ANY wallpaper — dark cosmic, light pastel, photographic. We force
-   pure white with a heavy multi-layer black halo so the glyphs look
-   solid and bright, not bluish-grey, on any backdrop.
+   ANY wallpaper — dark cosmic, light pastel, BRIGHT GREEN photographic.
+   Plain text-shadow halos get washed out on saturated mid-luminance
+   backgrounds (lime green, sky blue) where neither black nor white
+   provides enough contrast on its own.
+
+   The trick is to combine THREE things:
+   1. A real `-webkit-text-stroke` (1px black) — this is a hard outline
+      that doesn't blur with the background, unlike `text-shadow`.
+   2. A `paint-order: stroke fill` so the white fill sits ON TOP of the
+      black stroke (default order paints stroke last and crops glyphs).
+   3. The existing layered halo, kept for soft glow/depth.
 
    `!important` is required because shell.css sets the base color
-   (`.app-label { color: rgba(var(--ui-text-rgb), 0.92) }`) and we want
-   the polish layer to win without rewriting the older rule. */
+   (`rgba(var(--ui-text-rgb), 0.92)`) and we want the polish layer to
+   win without rewriting the older rule. */
 .hex-icon-label,
 .app-label,
 .folder-pill-text,
 .folder-pill-text b,
 .app-dock-tile {
   color: #ffffff !important;
-  font-weight: 600 !important;
+  font-weight: 700 !important;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.95) !important;
+  paint-order: stroke fill !important;
   text-shadow:
-    0 0 1px rgba(0, 0, 0, 0.95),
-    0 1px 2px rgba(0, 0, 0, 0.95),
-    -1px 0 2px rgba(0, 0, 0, 0.85),
-    1px 0 2px rgba(0, 0, 0, 0.85),
-    0 -1px 2px rgba(0, 0, 0, 0.65),
-    0 0 8px rgba(0, 0, 0, 0.85),
-    0 0 16px rgba(0, 0, 0, 0.55) !important;
+    0 0 2px rgba(0, 0, 0, 0.95),
+    0 1px 3px rgba(0, 0, 0, 0.95),
+    0 0 10px rgba(0, 0, 0, 0.75),
+    0 0 20px rgba(0, 0, 0, 0.55) !important;
+  letter-spacing: 0.4px !important;
 }
 
 /* Folder pills carry a count line ("9 apps") below the name — keep it
    slightly dimmer than the name so the hierarchy is preserved. */
 .folder-pill-text {
-  color: rgba(255, 255, 255, 0.78) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
 }
 .folder-pill-text b {
   color: #ffffff !important;
 }
 
 /* In light theme the wallpaper goes light, so we need DARK glyphs with
-   a white halo — opposite stack. */
+   a white outline + halo — opposite stack. */
 body.theme-light .hex-icon-label,
 body.theme-light .app-label,
 body.theme-light .folder-pill-text,
 body.theme-light .folder-pill-text b,
 body.theme-light .app-dock-tile {
   color: #0a0f1a !important;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.98) !important;
+  paint-order: stroke fill !important;
   text-shadow:
-    0 0 1px rgba(255, 255, 255, 0.98),
-    0 1px 2px rgba(255, 255, 255, 0.95),
-    -1px 0 2px rgba(255, 255, 255, 0.85),
-    1px 0 2px rgba(255, 255, 255, 0.85),
-    0 -1px 2px rgba(255, 255, 255, 0.65),
-    0 0 8px rgba(255, 255, 255, 0.85),
-    0 0 16px rgba(255, 255, 255, 0.55) !important;
+    0 0 2px rgba(255, 255, 255, 0.98),
+    0 1px 3px rgba(255, 255, 255, 0.95),
+    0 0 10px rgba(255, 255, 255, 0.75),
+    0 0 20px rgba(255, 255, 255, 0.55) !important;
 }
 body.theme-light .folder-pill-text {
-  color: rgba(10, 15, 26, 0.72) !important;
+  color: rgba(10, 15, 26, 0.78) !important;
 }
 body.theme-light .folder-pill-text b {
   color: #0a0f1a !important;

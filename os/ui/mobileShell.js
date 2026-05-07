@@ -183,14 +183,6 @@ export class MobileShell {
       el('span', { class: 'kofi-text' }, 'Support'),
     ]);
 
-    // Signature pill (bottom-right) — version + status (design's signature element)
-    const signature = el('div', { class: 'sb-signature' }, [
-      el('span', { class: 'sb-pill sb-signature-pill' }, [
-        el('span', { class: 'sb-dot' }),
-        el('span', {}, `${VERSION} · all systems nominal`),
-      ]),
-    ]);
-
     this.dom.wrapper.append(
       this.dom.statusBarLayer,
       kofiBadge,
@@ -199,7 +191,6 @@ export class MobileShell {
       this.dom.appLayer,
       this.dom.homeBarLayer,
       this.dom.alarmOverlay,
-      signature,
       this.dom.spacer,
     );
 
