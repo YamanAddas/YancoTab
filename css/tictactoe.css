@@ -51,6 +51,17 @@ body.theme-light .ttt-app-frame {
   overflow: hidden;
 }
 
+/* Open TicTacToe a bit larger than the default 75%×84% so the board +
+   chrome fit without internal scrolling on a 900px viewport. The
+   :has() selector only targets TicTacToe; manual resizes via the
+   WindowChrome edge handles still override. */
+.window-chrome:has(.app-tictactoe) {
+  left: 10%;
+  top: 6%;
+  width: 80%;
+  height: 88%;
+}
+
 /* ── Titlebar ────────────────────────────────────────────── */
 
 .ttt-titlebar {
@@ -97,16 +108,18 @@ body.theme-light .ttt-app-frame {
 }
 
 /* ── Play panel layout ───────────────────────────────────── */
-
+/* Flex column with min-height:0 + the board claiming flex:1 means the
+   board scales to whatever vertical space remains after the fixed-
+   height status / score / actions rows. No scroll — everything fits. */
 .ttt-play {
   flex: 1 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 18px;
-  padding: 24px 18px;
-  overflow: auto;
+  gap: 14px;
+  padding: 18px 18px 22px;
+  overflow: hidden;
 }
 
 /* ── Status line ─────────────────────────────────────────── */
@@ -140,9 +153,17 @@ body.theme-light .ttt-app-frame {
 
 /* ── Oval board ──────────────────────────────────────────── */
 
+/* Board oval: takes the flex-grow space and clamps to its aspect-ratio.
+   `flex: 1 1 0` + min-height:0 lets it shrink in tight viewports;
+   max-width keeps it from ballooning on huge windows. The
+   aspect-ratio + max-height pair lets the browser pick the smaller
+   dimension as the binding constraint, so the oval stays round. */
 .ttt-board-oval {
   position: relative;
-  width: min(480px, 90%);
+  flex: 1 1 0;
+  min-height: 0;
+  width: auto;
+  max-width: min(480px, 92%);
   aspect-ratio: 1.05 / 1;
   margin: 0 auto;
   background:
