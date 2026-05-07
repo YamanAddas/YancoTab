@@ -408,6 +408,21 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
+
+    // (yancotab_neon_recall above is now also the legacy Memory key —
+    // read once for migration on first run of the DOM-rebuild MemoryApp,
+    // then orphaned.)
+    yancotab_memory_v2: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {
+            difficulty: 'standard',
+            bestTimeMs: { easy: null, standard: null, hard: null },
+            bestComboStreak: 0,
+        },
+        validate: (v) => v && typeof v === 'object' && typeof v.difficulty === 'string',
+    },
     yancotab_tictactoe_v1: {
         storageClass: 'user-data',
         syncPolicy: 'conditional',

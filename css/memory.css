@@ -1,519 +1,537 @@
-/* Memory Game v2 — Arcade Glass Theme */
-.app-memory {
-    --memory-accent: #3ec8ff;
-    --memory-accent-strong: #4ef0d9;
-    --memory-accent-rgb: 62, 200, 255;
-    --memory-accent-strong-rgb: 78, 240, 217;
-    --memory-accent-glow: rgba(62, 200, 255, 0.35);
-    --memory-panel: rgba(6, 14, 28, 0.55);
-    --memory-card-back-a: rgba(50, 80, 120, 0.85);
-    --memory-card-back-b: rgba(25, 45, 75, 0.95);
+/* ────────────────────────────────────────────────────────────
+ * css/memory.css — Memory "Mirror" cosmic redesign (DOM rebuild).
+ *
+ * Mounted as `.app-window.app-memory > .mem-app-frame`. 3D-flip cards
+ * use transform-style: preserve-3d. All colors resolve to tokens.
+ * ─────────────────────────────────────────────────────────── */
 
-    /* Deep space base */
-    background-color: #050a14;
-
-    /* Arcade machine layering */
-    background-image:
-        /* Scanlines */
-        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-        /* Screen vignette (CRT curve effect) */
-        radial-gradient(circle at center, transparent 60%, rgba(0, 0, 0, 0.8) 100%),
-        /* Retro Grid Floor (bottom) */
-        linear-gradient(0deg, rgba(62, 200, 255, 0.1) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(62, 200, 255, 0.1) 1px, transparent 1px),
-        /* Cabinet glossy reflection */
-        linear-gradient(160deg, rgba(255, 255, 255, 0.03) 0%, transparent 40%),
-        /* Main cabinet gradient */
-        radial-gradient(circle at 50% 30%, #1a2c4e 0%, #081020 90%);
-
-    background-size:
-        100% 4px,
-        /* Scanlines */
-        100% 100%,
-        /* Vignette */
-        40px 40px,
-        /* Grid lines */
-        40px 40px,
-        /* Grid lines */
-        100% 100%,
-        /* Reflection */
-        100% 100%;
-    /* Base */
-
-    background-position:
-        0 0,
-        0 0,
-        center bottom,
-        /* Grid aligned to bottom */
-        center bottom,
-        0 0,
-        0 0;
-
-    background-repeat:
-        repeat,
-        no-repeat,
-        repeat,
-        repeat,
-        no-repeat,
-        no-repeat;
-
-    /* Screen glow bleed */
-    box-shadow: inset 0 0 60px rgba(62, 200, 255, 0.1);
-
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    color: #e6f1ff;
-    font-family: 'Courier New', Courier, monospace;
-    /* Arcade feel */
+.app-window.app-memory {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  outline: none;
 }
 
-.app-memory.memory-level-easy {
-    --memory-accent: #4ef0d9;
-    --memory-accent-strong: #7effcf;
-    --memory-accent-rgb: 78, 240, 217;
-    --memory-accent-strong-rgb: 126, 255, 207;
-    --memory-accent-glow: rgba(78, 240, 217, 0.35);
-    --memory-card-back-a: rgba(20, 92, 102, 0.84);
-    --memory-card-back-b: rgba(16, 56, 74, 0.95);
+/* Open Memory at 90%×88% so the 6-col grid + 260px side rail fit
+   comfortably on a 900px viewport. WindowChrome edge-handle resize
+   still wins via inline styles. */
+.window-chrome:has(.app-memory) {
+  left: 5%;
+  top: 6%;
+  width: 90%;
+  height: 88%;
 }
 
-.app-memory.memory-level-medium {
-    --memory-accent: #3ec8ff;
-    --memory-accent-strong: #9ca5ff;
-    --memory-accent-rgb: 62, 200, 255;
-    --memory-accent-strong-rgb: 156, 165, 255;
-    --memory-accent-glow: rgba(62, 200, 255, 0.35);
-    --memory-card-back-a: rgba(50, 80, 120, 0.85);
-    --memory-card-back-b: rgba(25, 45, 75, 0.95);
+/* ── Outer frame ─────────────────────────────────────────── */
+
+.mem-app-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.6) 60%, rgba(2, 8, 16, 0.78) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.7), rgba(4, 12, 24, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    0 18px 60px -10px rgba(155, 123, 255, 0.20),
+    0 30px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text-bright);
+}
+body.theme-light .mem-app-frame {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(255,255,255,0.02) 22%, rgba(245, 247, 250, 0.92) 60%, rgba(238, 240, 244, 0.95) 100%),
+    linear-gradient(160deg, rgba(220, 230, 240, 0.7), rgba(240, 244, 250, 0.9));
 }
 
-.app-memory.memory-level-hard {
-    --memory-accent: #ff6b9d;
-    --memory-accent-strong: #ffb05c;
-    --memory-accent-rgb: 255, 107, 157;
-    --memory-accent-strong-rgb: 255, 176, 92;
-    --memory-accent-glow: rgba(255, 107, 157, 0.35);
-    --memory-card-back-a: rgba(108, 40, 86, 0.85);
-    --memory-card-back-b: rgba(58, 24, 56, 0.95);
+/* ── Titlebar ────────────────────────────────────────────── */
+
+.mem-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+  flex-shrink: 0;
+}
+.mem-name {
+  font-family: 'Playfair Display', 'Amiri', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--text-bright);
+  text-shadow: 0 0 16px rgba(155, 123, 255, 0.22);
 }
 
-/* Header */
-/* Header */
-.memory-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 44px;
-    padding-top: max(8px, env(safe-area-inset-top, 0px));
-    position: relative;
-    z-index: 10;
-    margin-bottom: 4px;
-    /* Slight separation */
+/* ── Stage ───────────────────────────────────────────────── */
+
+.mem-stage {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 260px;
+  min-height: 0;
 }
 
-.memory-title {
-    font-size: 20px;
-    font-weight: 800;
-    letter-spacing: 2px;
-    color: rgba(255, 255, 255, 0.9);
-    text-shadow:
-        0 0 10px rgba(var(--memory-accent-rgb), 0.7),
-        0 0 20px rgba(var(--memory-accent-rgb), 0.35);
-    text-transform: uppercase;
-    font-family: 'Courier New', monospace;
+/* ── Board area (left) ───────────────────────────────────── */
+
+/* CSS grid (not flex) for the board area: HUD = auto, grid-wrap = 1fr,
+   bottom-bar = auto. This forces the grid-wrap to claim all remaining
+   vertical space deterministically — flex-grow + aspect-ratio interact
+   poorly when the content self-collapses to 0. height: 100% required
+   for the 1fr row to have a definite size to bind against. */
+.mem-board-area {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 12px;
+  padding: 18px 24px 22px;
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 50%, rgba(155, 123, 255, 0.06), transparent 70%);
 }
 
-.memory-close {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    margin-top: max(0px, calc(env(safe-area-inset-top, 0px) / 2));
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: rgba(255, 255, 255, 0.8);
-    font-size: 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
+/* ── HUD bar above the grid (theme + stats) ───────────────── */
+
+.mem-theme-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  flex: 0 0 auto;
+}
+.mem-theme-lp {
+  padding: 5px 10px;
+  border-radius: 7px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.20);
+  cursor: pointer;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+  user-select: none;
+}
+.mem-theme-lp:hover { color: var(--text-bright); }
+.mem-theme-lp.is-active {
+  color: var(--violet, #9b7bff);
+  border-color: rgba(155, 123, 255, 0.40);
+  background: rgba(155, 123, 255, 0.08);
+}
+.mem-stat {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.06em;
+  margin-left: 12px;
+}
+.mem-stat b { color: var(--accent); margin-left: 2px; }
+
+/* ── Grid + cards ────────────────────────────────────────── */
+
+/* The grid lives inside a flex column (.mem-board-area). To size the
+   grid by both width and height — fitting cards' 3:4 aspect-ratio
+   while never overflowing — we wrap it in a centering container with
+   flex: 1 1 0 + min-height: 0 so it claims remaining space, and
+   aspect-ratio (set inline as cols×3 / rows×4) lets the browser pick
+   whichever dimension is the binding constraint. */
+.mem-grid-wrap {
+  /* Lives in board-area's grid-row 2 (1fr). min-height: 0 lets the
+     row shrink under content height. */
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 0;
+  overflow: hidden;
+}
+.mem-grid {
+  display: grid;
+  gap: 14px;
+  /* aspect-ratio set inline as (cols×3) / (rows×4). Filling 100% of
+     the wrap's height + max-width 100% means: grid claims height,
+     derives width from aspect; if the derived width would exceed
+     parent width, browser clamps and shrinks height to maintain
+     ratio. Either way, no overflow. */
+  height: 100%;
+  width: auto;
+  max-width: 100%;
 }
 
-.memory-close:hover {
-    background: rgba(255, 70, 70, 0.2);
-    border-color: rgba(255, 70, 70, 0.4);
-    color: #ff6b6b;
+/* The card itself is a 3D-flippable container. Two faces (back +
+   face) absolutely positioned with backface-visibility: hidden so
+   only one shows at a time. */
+.mem-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  /* aspect-ratio enforced by parent grid cell sizing — see .mem-grid */
+  cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
+  user-select: none;
+  border-radius: 12px;
+}
+.mem-card.is-flipped { transform: rotateY(180deg); }
+.mem-card.is-matched { animation: memMatchPulse 380ms cubic-bezier(0.16, 0.84, 0.32, 1); }
+@keyframes memMatchPulse {
+  50% { transform: rotateY(180deg) scale(1.05); }
+}
+.mem-card:focus-visible {
+  outline: 2px solid var(--violet, #9b7bff);
+  outline-offset: 4px;
 }
 
-/* Content area */
-/* Content area */
-.memory-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 12px;
-    padding-top: 4px;
-    /* Reduced top padding */
-    padding-bottom: max(16px, calc(12px + env(safe-area-inset-bottom, 0px)));
-    gap: clamp(10px, 2.4vw, 16px);
-    overflow: hidden;
+.mem-card-back,
+.mem-card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  display: grid;
+  place-items: center;
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  overflow: hidden;
 }
 
-/* Landscape: horizontal layout */
-@media (orientation: landscape) {
-    .memory-content {
-        flex-direction: row;
-        justify-content: center;
-        align-items: center;
-        gap: clamp(14px, 2.5vw, 30px);
-        padding: 8px clamp(12px, 4vw, 34px);
-        padding-bottom: max(20px, calc(16px + env(safe-area-inset-bottom, 0px)));
-    }
-
-    .memory-sidebar {
-        width: clamp(160px, 24vw, 220px);
-        gap: 14px;
-        align-items: stretch;
-        justify-content: flex-start;
-    }
-
-    .memory-difficulty {
-        flex-direction: column;
-    }
-
-    .memory-stats {
-        flex-direction: column;
-        gap: 8px;
-        text-align: center;
-    }
+/* Back side — violet glow with a faint diagonal hatch pattern */
+.mem-card-back {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(155, 123, 255, 0.50), rgba(40, 20, 90, 0.90) 70%),
+    #0e0a24;
+  border: 1px solid rgba(155, 123, 255, 0.25);
+}
+.mem-card-back::after {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(155, 123, 255, 0.08),
+    rgba(155, 123, 255, 0.08) 6px,
+    transparent 6px,
+    transparent 12px);
+  pointer-events: none;
+}
+.mem-card-glyph {
+  position: relative;
+  font-size: 22px;
+  color: var(--violet, #9b7bff);
+  opacity: 0.8;
+  font-family: 'Georgia', serif;
+}
+.mem-card:hover .mem-card-back {
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    0 0 0 2px rgba(155, 123, 255, 0.30),
+    0 0 18px rgba(155, 123, 255, 0.30);
 }
 
-/* Sidebar: portrait (column by default) */
-.memory-sidebar {
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    width: min(100%, 420px);
-    background: var(--memory-panel);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    padding: 10px;
+/* Face side — dark glass with the orb centered. Pre-rotated 180° so
+   when the parent flips, this face becomes visible. */
+.mem-card-face {
+  background: linear-gradient(180deg, #1a2436 0%, #0a131f 100%);
+  border: 1px solid rgba(var(--accent-rgb), 0.20);
+  transform: rotateY(180deg);
+}
+.mem-card.is-matched .mem-card-face {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px var(--accent),
+    0 0 24px rgba(var(--accent-rgb), 0.50),
+    inset 0 1px 0 rgba(255, 255, 255, 0.20);
 }
 
-/* Difficulty bar */
-.memory-difficulty {
-    display: flex;
-    gap: 8px;
-    background: rgba(0, 0, 0, 0.28);
-    padding: 6px;
-    border-radius: 10px;
+/* ── Orbs (face front + side rail mini-versions) ─────────── */
+
+.mem-orb {
+  width: 60%;
+  aspect-ratio: 1 / 1;
+  max-width: 88px;
+  border-radius: 50%;
+  box-shadow:
+    inset -6px -8px 16px rgba(0, 0, 0, 0.40),
+    0 0 24px currentColor;
+}
+.mem-orb-amber  { background: radial-gradient(circle at 35% 30%, #ffd485, #ff8a3d 60%, #c25a1c); color: rgba(255, 140,  60, 0.50); }
+.mem-orb-cyan   { background: radial-gradient(circle at 35% 30%, #b3fff0, #00e5c1 60%, #007a66); color: rgba(  0, 229, 193, 0.50); }
+.mem-orb-rose   { background: radial-gradient(circle at 35% 30%, #ffd1dc, #ff6f8b 60%, #c0334d); color: rgba(255, 111, 139, 0.50); }
+.mem-orb-violet { background: radial-gradient(circle at 35% 30%, #d4c5ff, #9b7bff 60%, #553a99); color: rgba(155, 123, 255, 0.50); }
+.mem-orb-green  { background: radial-gradient(circle at 35% 30%, #b8f5cd, #2dcf6a 60%, #1c7a3e); color: rgba( 45, 207, 106, 0.50); }
+.mem-orb-blue   { background: radial-gradient(circle at 35% 30%, #b8dcff, #5aa8ff 60%, #265a99); color: rgba( 90, 168, 255, 0.50); }
+
+/* ── Bottom bar (pulse track + pair counter) ─────────────── */
+
+.mem-bottom-bar {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.34);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.mem-bottom-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.10em;
+  white-space: nowrap;
+}
+.mem-bottom-label b { color: var(--accent); margin-right: 2px; }
+.mem-pulse-track {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+.mem-pulse-track i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, var(--violet, #9b7bff) 40%, var(--accent));
+  border-radius: inherit;
+  transition: width 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
 }
 
-.memory-diff-btn {
-    padding: 10px 16px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    color: rgba(200, 220, 255, 0.6);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    touch-action: manipulation;
+/* ── Side rail (right col, 260px) ────────────────────────── */
+
+.mem-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  min-width: 0;
+}
+body.theme-light .mem-side { border-left-color: rgba(0, 0, 0, 0.08); }
+
+.mem-side-block { display: flex; flex-direction: column; gap: 4px; }
+.mem-side-h {
+  margin: 0 0 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.mem-side-empty {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  padding: 4px 0;
 }
 
-.memory-diff-btn.active {
-    background: rgba(var(--memory-accent-rgb), 0.22);
-    border-color: rgba(var(--memory-accent-rgb), 0.65);
-    color: var(--memory-accent);
-    box-shadow: 0 0 16px var(--memory-accent-glow);
+/* Streak card (gradient violet) */
+.mem-streak-card {
+  padding: 14px;
+  border-radius: 12px;
+  background:
+    linear-gradient(160deg, rgba(155, 123, 255, 0.18), rgba(155, 123, 255, 0.04) 50%, rgba(8, 18, 32, 0.6));
+  border: 1px solid rgba(155, 123, 255, 0.25);
+}
+.mem-streak-h {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--violet, #9b7bff);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.mem-streak-v {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 32px;
+  font-weight: 300;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+.mem-streak-meta {
+  font-size: 11px;
+  color: var(--text);
 }
 
-/* Stats bar */
-.memory-stats {
-    display: flex;
-    justify-content: center;
-    gap: 14px;
-    font-size: 14px;
-    color: rgba(200, 220, 255, 0.8);
-    background: rgba(0, 0, 0, 0.24);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 10px;
-    padding: 8px 10px;
+/* Found-pairs legend */
+.mem-legend-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+}
+.mem-legend-row:last-child { border-bottom: 0; }
+.mem-legend-orb {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  /* Inherit gradient from .mem-orb-{name} via class composition */
+}
+.mem-legend-name {
+  font-size: 12px;
+  color: var(--text-bright);
+}
+.mem-legend-time {
+  margin-left: auto;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+.mem-legend-row.is-matched .mem-legend-time { color: var(--accent); }
+
+/* Difficulty picker (3 tiles) */
+.mem-diff-pick {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+}
+.mem-diff-tile {
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.20);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--text);
+  text-align: center;
+  cursor: pointer;
+  letter-spacing: 0.10em;
+  transition: color 120ms ease, background 120ms ease, border-color 120ms ease;
+  user-select: none;
+}
+.mem-diff-tile b {
+  display: block;
+  font-size: 11px;
+  color: var(--text-bright);
+  margin-bottom: 2px;
+}
+.mem-diff-tile.is-active {
+  color: var(--violet, #9b7bff);
+  border-color: rgba(155, 123, 255, 0.40);
+  background: rgba(155, 123, 255, 0.08);
+}
+.mem-diff-tile.is-active b { color: var(--violet, #9b7bff); }
+
+.mem-mode-note {
+  margin-top: auto;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+.mem-mode-note b { color: var(--violet, #9b7bff); }
+
+body.theme-light .mem-diff-tile,
+body.theme-light .mem-theme-lp,
+body.theme-light .mem-bottom-bar {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-.memory-stats span {
-    display: flex;
-    align-items: center;
-    gap: 6px;
+/* ── Win overlay ─────────────────────────────────────────── */
+
+.mem-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 24px;
+  background: rgba(2, 8, 16, 0.82);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  text-align: center;
+}
+.mem-overlay-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 38px;
+  color: var(--accent);
+  text-shadow: 0 0 24px rgba(var(--accent-rgb), 0.55);
+}
+.mem-overlay-sub {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.7;
+}
+.mem-overlay-best {
+  margin-top: 8px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--warm, #ffb84a);
+  text-shadow: 0 0 12px rgba(255, 184, 74, 0.45);
+}
+.mem-overlay-btn {
+  padding: 10px 22px;
+  border-radius: 10px;
+  background: rgba(var(--accent-rgb), 0.15);
+  border: 1px solid rgba(var(--accent-rgb), 0.40);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+.mem-overlay-btn:hover { background: rgba(var(--accent-rgb), 0.25); }
+
+/* ── Mobile / narrow (≤ 720px) ───────────────────────────── */
+
+@media (max-width: 720px) {
+  .mem-stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .mem-side {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 12px;
+    gap: 12px;
+    max-height: 160px;
+  }
+  .mem-side-block, .mem-streak-card { flex: 0 0 auto; min-width: 180px; }
+  .mem-mode-note { display: none; }
+  .mem-name { font-size: 18px; }
 }
 
-/* Grid */
-.memory-grid {
-    display: grid;
-    grid-template-columns: repeat(var(--cols, 4), 1fr);
-    gap: clamp(6px, 1.2vw, 10px);
-    width: min(88vw, 75vh, 420px);
-    max-width: calc(100vw - 32px);
-    margin: 0 auto;
-}
+/* ── Reduced motion ──────────────────────────────────────── */
 
-/* Landscape grid: size based on available height, add padding from edges */
-@media (orientation: landscape) {
-    .memory-grid {
-        --safe-height: calc(100vh - 110px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
-        width: auto;
-        height: min(var(--safe-height), 75vh);
-        max-height: calc(100vh - 110px);
-        aspect-ratio: var(--cols) / var(--rows, 4);
-        gap: clamp(4px, 0.9vw, 8px);
-        margin: 0;
-        margin-bottom: 8px;
-    }
-}
-
-/* Card */
-.memory-card {
-    aspect-ratio: 1;
-    perspective: 800px;
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    transition: transform 0.2s ease;
-}
-
-.memory-card:hover:not(.is-flipped):not(.is-matched) {
-    transform: translateY(-2px);
-}
-
-.memory-card:active {
-    transform: translateY(0) scale(0.98);
-}
-
-.memory-inner {
-    width: 100%;
-    height: 100%;
-    position: relative;
-    transform-style: preserve-3d;
-    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.memory-card.is-flipped .memory-inner,
-.memory-card.is-matched .memory-inner {
-    transform: rotateY(180deg) scale(1.01);
-}
-
-.memory-front,
-.memory-back {
-    position: absolute;
-    inset: 0;
-    backface-visibility: hidden;
-    -webkit-backface-visibility: hidden;
-    border-radius: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.memory-front {
-    background: linear-gradient(145deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: clamp(16px, 4vw, 24px);
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1);
-}
-
-.memory-back {
-    background: linear-gradient(145deg, var(--memory-card-back-a), var(--memory-card-back-b));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(var(--memory-accent-rgb), 0.35);
-    transform: rotateY(180deg);
-    font-size: clamp(22px, 6vw, 36px);
-    box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.35),
-        inset 0 1px 0 rgba(255, 255, 255, 0.12);
-}
-
-.memory-card.is-matched .memory-back {
-    background: linear-gradient(145deg,
-            rgba(var(--memory-accent-rgb), 0.4),
-            rgba(var(--memory-accent-strong-rgb), 0.25));
-    border-color: rgba(var(--memory-accent-strong-rgb), 0.6);
-    box-shadow:
-        0 0 24px rgba(var(--memory-accent-rgb), 0.5),
-        0 0 48px rgba(var(--memory-accent-strong-rgb), 0.25),
-        inset 0 1px 0 rgba(255, 255, 255, 0.2);
-    animation: memoryMatchPop 0.34s ease-out;
-}
-
-/* Restart button */
-.memory-restart {
-    padding: 10px 20px;
-    background: rgba(var(--memory-accent-rgb), 0.18);
-    border: 1px solid rgba(var(--memory-accent-rgb), 0.42);
-    border-radius: 10px;
-    color: var(--memory-accent);
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    touch-action: manipulation;
-}
-
-.memory-restart:hover {
-    box-shadow: 0 0 16px var(--memory-accent-glow);
-}
-
-.memory-restart:active {
-    transform: scale(0.95);
-}
-
-/* Win Modal */
-.memory-win-overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 100;
-    animation: fadeIn 0.3s ease;
-}
-
-.memory-win-modal {
-    position: relative;
-    overflow: hidden;
-    background: linear-gradient(135deg, rgba(20, 35, 60, 0.95), rgba(10, 20, 40, 0.98));
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(var(--memory-accent-rgb), 0.55);
-    border-radius: 20px;
-    padding: 30px 40px;
-    text-align: center;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    animation: memoryModalEnter 0.36s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.memory-win-title {
-    font-size: 28px;
-    font-weight: 800;
-    background: linear-gradient(135deg, var(--memory-accent-strong), var(--memory-accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 16px;
-}
-
-.memory-win-stats {
-    color: rgba(200, 220, 255, 0.8);
-    font-size: 16px;
-    line-height: 1.8;
-    margin-bottom: 20px;
-}
-
-.app-memory.memory-celebrate .memory-title {
-    animation: memoryTitleGlow 1.2s ease-in-out 2;
-}
-
-.memory-win-sparkles {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.memory-spark {
-    position: absolute;
-    left: var(--spark-x, 50%);
-    bottom: 12%;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, var(--memory-accent-strong), var(--memory-accent));
-    box-shadow: 0 0 14px rgba(var(--memory-accent-rgb), 0.6);
-    opacity: 0;
-    animation: memorySparkFloat 1.1s ease-out forwards;
-    animation-delay: var(--spark-delay, 0ms);
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
-@keyframes memoryMatchPop {
-    0% {
-        transform: scale(1);
-    }
-
-    50% {
-        transform: scale(1.08);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
-@keyframes memoryModalEnter {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.96);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-@keyframes memorySparkFloat {
-    0% {
-        opacity: 0;
-        transform: translateY(8px) scale(0.7);
-    }
-
-    20% {
-        opacity: 1;
-    }
-
-    100% {
-        opacity: 0;
-        transform: translateY(-60px) scale(1);
-    }
-}
-
-@keyframes memoryTitleGlow {
-    0%,
-    100% {
-        text-shadow:
-            0 0 10px rgba(var(--memory-accent-rgb), 0.7),
-            0 0 20px rgba(var(--memory-accent-rgb), 0.35);
-    }
-
-    50% {
-        text-shadow:
-            0 0 16px rgba(var(--memory-accent-rgb), 0.9),
-            0 0 34px rgba(var(--memory-accent-strong-rgb), 0.45);
-    }
+@media (prefers-reduced-motion: reduce) {
+  .mem-card { transition: none; }
+  .mem-card.is-matched { animation: none; }
+  .mem-pulse-track i { transition: none; }
 }

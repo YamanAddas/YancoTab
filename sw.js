@@ -5,8 +5,8 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-snake" suffix forces eviction of the pre-comet Snake assets.
-const CACHE_NAME = 'yancotab-v1.1.0-snake';
+// "-memory" suffix forces eviction of the pre-mirror Memory assets.
+const CACHE_NAME = 'yancotab-v1.1.0-memory';
 
 const PRECACHE = [
     './',
@@ -83,6 +83,8 @@ const PRECACHE = [
     './os/apps/ClockApp.js',
     './os/apps/FilesApp.js',
     './os/apps/MemoryApp.js',
+    './os/apps/memory/engine.js',
+    './os/apps/memory/view.js',
     './os/apps/NotesApp.js',
     './os/apps/SettingsApp.js',
     './os/apps/settings/AppearanceSettings.js',
