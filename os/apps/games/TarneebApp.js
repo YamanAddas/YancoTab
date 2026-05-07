@@ -25,6 +25,15 @@ import {
   buildCenterTable,
   buildHandView,
 } from './tarneeb/tarneebView.js';
+import { TableShell } from './table/TableShell.js';
+import { BanterDispatcher } from './table/banter.js';
+import { createHandHistory } from './table/handHistory.js';
+import TARNEEB_BANTER from './tarneeb/tarneebBanter.js';
+import TARNEEB_PRESETS from './tarneeb/tarneebPresets.js';
+import {
+  buildTarneebScoresheet,
+  buildTarneebHistoryEntry,
+} from './tarneeb/tarneebSalonView.js';
 
 function css(href) {
   const l = document.createElement('link');
@@ -56,8 +65,8 @@ export class TarneebApp extends App {
     this._stats = { gamesPlayed: 0, gamesWon: 0 };
   }
 
-  async init() {
-    this._styleLinks = [css('css/cards.css'), css('css/trix.css'), css('css/tarneeb.css')];
+  async init(config = {}) {
+    this._styleLinks = [css('css/cards.css'), css('css/trix.css'), css('css/tarneeb.css'), css('css/table.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window trix-remake tarneeb-remake' });
@@ -80,13 +89,49 @@ export class TarneebApp extends App {
 
     this._loadPrefs();
     this.store = createStore(tarneebReducer, initTarneebMatch());
+
+    // Salon shell — banter + presets + history
+    this._history = createHandHistory(this.kernel, 'tarneeb');
+    this._banter = new BanterDispatcher({
+      pack: TARNEEB_BANTER,
+      onUpdate: () => {}, // shell wraps this; see TableShell constructor
+      getName: (seat) => SEAT_NAMES[seat] || seat,
+      roleOf: (seat) => {
+        if (seat === 'south') return 'you';
+        if (seat === 'west') return 'partner';
+        return 'opponent';
+      },
+    });
+    this._shell = new TableShell({
+      kernel: this.kernel,
+      app: this,
+      gameId: 'tarneeb',
+      gameLabel: 'Tarneeb',
+      presets: TARNEEB_PRESETS,
+      history: this._history,
+      banter: this._banter,
+      renderFelt: (state) => this._renderFelt(state),
+      getScoresheet: (state) => this._renderScoresheet(state),
+      onPresetApply: (preset) => preset.apply(this.dispatch.bind(this)),
+      isSetupPhase: (state) => state?.phase === 'SETUP',
+    });
+    this._shell.mount(this.root);
+
     this._prevState = this.store.getState();
     this._unsub = this.store.subscribe((state, events = []) => {
       this._handleEvents(events, this._prevState, state);
+      try { this._banter?.handleEvents(events); } catch (e) { console.warn('[TarneebApp] banter dispatch failed', e); }
+      this._appendHistoryFromEvents(events, state);
       this.render(state);
       this._maybeBotMove(state);
       this._prevState = state;
     });
+
+    // Optional preset launch via spawn config
+    if (config?.preset) {
+      const p = TARNEEB_PRESETS.find((x) => x.id === config.preset);
+      if (p) try { p.apply(this.dispatch.bind(this)); } catch {}
+    }
 
     this.render(this.store.getState());
   }
@@ -94,10 +139,14 @@ export class TarneebApp extends App {
   destroy() {
     try { this._unsub?.(); } catch {}
     try { this._vhCleanup?.(); } catch {}
+    try { this._shell?.destroy(); } catch {}
     if (this._botTimer) { clearTimeout(this._botTimer); this._botTimer = null; }
     if (this._statusTimer) { clearTimeout(this._statusTimer); this._statusTimer = null; }
     if (this._animTimer) { clearTimeout(this._animTimer); this._animTimer = null; }
     if (this._layoutFrame) { cancelAnimationFrame(this._layoutFrame); this._layoutFrame = null; }
+    this._shell = null;
+    this._banter = null;
+    this._history = null;
     this._vhCleanup = null;
     for (const l of this._styleLinks) { try { l.remove(); } catch {} }
     this._styleLinks = [];
@@ -179,22 +228,13 @@ export class TarneebApp extends App {
 
   render(state) {
     try {
-      this.root.innerHTML = '';
+      // Modals (rules / scores) live OUTSIDE the salon shell as overlays
+      // attached to the app root, mirroring the pre-salon behavior. The
+      // shell owns the rest of the chrome.
+      const oldModals = this.root.querySelectorAll(':scope > .trix-modal-overlay, :scope > .tar-modal-overlay');
+      oldModals.forEach((n) => { try { n.remove(); } catch {} });
 
-      if (state.phase === 'SETUP') {
-        this.root.appendChild(this._setupScreen());
-        return;
-      }
-
-      const bidding = state.phase === 'BIDDING' ? this._biddingPanel(state) : null;
-      const screen = el('div', { class: 'trix-screen' }, [
-        el('div', { class: 'trix-area trix-area-hud' }, [this._hud(state)]),
-        el('div', { class: 'trix-area trix-area-score' }, [this._scoreStrip(state)]),
-        el('div', { class: 'trix-area trix-area-picker tar-area-bid' + (bidding ? '' : ' is-empty') }, [bidding || el('div')]),
-        el('div', { class: 'trix-area trix-area-table' }, [this._centerTable(state)]),
-        el('div', { class: 'trix-area trix-area-hand' }, [this._handView(state)]),
-      ]);
-      this.root.appendChild(screen);
+      this._shell?.update(state);
       this._scheduleLayoutFit(state);
 
       const scores = this._scoresModal(state);
@@ -205,6 +245,38 @@ export class TarneebApp extends App {
       console.error('[TarneebApp] render crash', err);
       const msg = err?.stack || err?.message || String(err);
       this.root.innerHTML = `<div style="padding:16px;color:#fff;font-family:monospace;white-space:pre-wrap;font-size:12px;">${String(msg).replace(/</g, '&lt;')}</div>`;
+    }
+  }
+
+  /** Build the felt-slot DOM. Called by TableShell. */
+  _renderFelt(state) {
+    if (!state) return el('div');
+    if (state.phase === 'SETUP') {
+      return this._setupScreen();
+    }
+    const bidding = state.phase === 'BIDDING' ? this._biddingPanel(state) : null;
+    return el('div', { class: 'trix-screen' }, [
+      el('div', { class: 'trix-area trix-area-hud' }, [this._hud(state)]),
+      el('div', { class: 'trix-area trix-area-score' }, [this._scoreStrip(state)]),
+      el('div', { class: 'trix-area trix-area-picker tar-area-bid' + (bidding ? '' : ' is-empty') }, [bidding || el('div')]),
+      el('div', { class: 'trix-area trix-area-table' }, [this._centerTable(state)]),
+      el('div', { class: 'trix-area trix-area-hand' }, [this._handView(state)]),
+    ]);
+  }
+
+  /** Build the right-rail scoresheet for the salon. */
+  _renderScoresheet(state) {
+    return buildTarneebScoresheet(state, { suitSymbol: (s) => this._suitSymbol(s) });
+  }
+
+  /** Append history entries when a round completes. */
+  _appendHistoryFromEvents(events, state) {
+    if (!Array.isArray(events) || !this._history) return;
+    for (const ev of events) {
+      if (ev.type !== 'round:end') continue;
+      const summary = ev.summary || state?.roundSummary;
+      const entry = buildTarneebHistoryEntry(summary, state?.matchId);
+      if (entry) this._history.append(entry);
     }
   }
 

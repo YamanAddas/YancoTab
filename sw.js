@@ -5,10 +5,9 @@
  */
 
 // Version synced with os/version.js — update both together.
-// The "-glass" suffix forces existing installs (which were on
-// yancotab-v1.0.0) to drop their cache and re-fetch the new files
-// from the Liquid Glass design pass.
-const CACHE_NAME = 'yancotab-v1.0.0-glass';
+// "-table" suffix forces installs from the Liquid Glass pass to drop
+// their cache and pick up the Table salon (Tarneeb wave).
+const CACHE_NAME = 'yancotab-v1.1.0-table';
 
 const PRECACHE = [
     './',
@@ -26,6 +25,7 @@ const PRECACHE = [
     './css/tictactoe.css',
     './css/tarneeb.css',
     './css/trix.css',
+    './css/table.css',
     './css/mahjong.css',
     './css/settings.css',
     './css/modal.css',
@@ -147,10 +147,21 @@ const PRECACHE = [
     './os/apps/games/shared/rng.js',
     './os/apps/games/shared/store.js',
     './os/apps/games/tarneeb/tarneebAI.js',
+    './os/apps/games/tarneeb/tarneebBanter.js',
+    './os/apps/games/tarneeb/tarneebPresets.js',
     './os/apps/games/tarneeb/tarneebReducer.js',
     './os/apps/games/tarneeb/tarneebRules.js',
+    './os/apps/games/tarneeb/tarneebSalonView.js',
     './os/apps/games/tarneeb/tarneebState.js',
     './os/apps/games/tarneeb/tarneebView.js',
+    // Table salon (shared by Tarneeb + Trix)
+    './os/apps/games/table/TableShell.js',
+    './os/apps/games/table/avatars.js',
+    './os/apps/games/table/banter.js',
+    './os/apps/games/table/cardFace.js',
+    './os/apps/games/table/handHistory.js',
+    './os/apps/games/table/handHistoryView.js',
+    './os/apps/games/table/presets.js',
     './os/apps/games/trix/trixAI.js',
     './os/apps/games/trix/trixReducer.js',
     './os/apps/games/trix/trixRules.js',

@@ -56,8 +56,11 @@ export class ProcessManager {
         // Config-bearing spawns are NOT deduped — each FilesApp file open gets its own pid.
         this._inflightNoConfig = new Map(); // appId -> Promise<pid>
 
-        // Listen for launch requests from UI
-        this.kernel.on('app:open', (appId) => this.spawn(appId));
+        // Listen for launch requests from UI. Optional `config` ride-along
+        // lets `kernel.emit('app:open', 'tarneeb', { preset: 'damascus' })`
+        // pass the preset all the way through to App.init(config). Existing
+        // single-arg callers keep working — config defaults to {} via spawn.
+        this.kernel.on('app:open', (appId, config) => this.spawn(appId, config));
         this.kernel.on('process:kill', (pid) => this.kill(pid));
     }
 

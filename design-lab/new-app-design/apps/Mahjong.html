@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Mahjong — Stoneworks</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.stone-stage { display: grid; grid-template-columns: 1fr 240px; min-height: 660px; }
+.stone-board { padding: 30px; position: relative; overflow: hidden;
+  background: radial-gradient(ellipse 70% 60% at 50% 50%, rgba(var(--accent-rgb),0.05), transparent 70%); }
+.stone-side { padding: 20px; border-left: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 12px; }
+
+.layout-pick { display: flex; gap: 6px; margin-bottom: 18px; flex-wrap: wrap; }
+.layout-pick .lp { padding: 5px 10px; border-radius: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  color: var(--text); border: 1px solid var(--border-light); background: rgba(0,0,0,0.2); cursor: pointer; letter-spacing: 0.08em; }
+.layout-pick .lp.active { color: var(--accent); border-color: rgba(var(--accent-rgb),0.4); background: rgba(var(--accent-rgb),0.08); }
+
+.tile-grid { position: relative; width: 720px; height: 460px; margin: 0 auto; }
+.tile {
+  position: absolute; width: 56px; height: 72px;
+  background: linear-gradient(180deg, #f1ead7 0%, #ddd0a8 100%);
+  border-radius: 6px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7),
+    inset 0 -2px 0 rgba(0,0,0,0.18),
+    inset -2px 0 0 rgba(0,0,0,0.10),
+    inset 2px 0 0 rgba(255,255,255,0.18),
+    0 4px 0 #8c7d56,
+    0 6px 12px rgba(0,0,0,0.5);
+  display: grid; place-items: center;
+  font-family: 'Georgia', serif; color: #0c0c0c;
+  cursor: pointer; transition: all var(--cinematic);
+}
+.tile.l2 { box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.18), inset -2px 0 0 rgba(0,0,0,0.10), inset 2px 0 0 rgba(255,255,255,0.18),
+    0 6px 0 #8c7d56, 0 10px 18px rgba(0,0,0,0.6); transform: translate(-3px,-5px); }
+.tile.l3 { box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.7), inset 0 -2px 0 rgba(0,0,0,0.18), inset -2px 0 0 rgba(0,0,0,0.10), inset 2px 0 0 rgba(255,255,255,0.18),
+    0 8px 0 #8c7d56, 0 14px 24px rgba(0,0,0,0.65); transform: translate(-6px,-10px); }
+.tile.red { color: #c5152e; }
+.tile.green { color: #1f6f3a; }
+.tile.blue { color: #1f437a; }
+.tile .ch { font-size: 30px; font-weight: 700; line-height: 1; }
+.tile .lbl { position: absolute; top: 4px; left: 6px; font-family: 'JetBrains Mono', monospace; font-size: 8px; color: rgba(0,0,0,0.4); letter-spacing: 0.08em; }
+.tile.matched { box-shadow: 0 0 0 2px var(--accent), 0 0 18px rgba(var(--accent-rgb),0.5),
+    inset 0 1px 0 rgba(255,255,255,0.7), 0 4px 0 #8c7d56; }
+.tile.locked { filter: brightness(0.6) saturate(0.6); }
+.tile.locked .ch { opacity: 0.5; }
+
+/* Pip tiles (dots, bamboo) */
+.tile .pip-dots { display: grid; grid-template-columns: repeat(2,1fr); gap: 4px; }
+.tile .pip-dots i { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle, #c5152e 30%, #7a0d1c); }
+.tile .bam { display: grid; grid-template-columns: repeat(2,1fr); gap: 3px; }
+.tile .bam i { width: 6px; height: 18px; border-radius: 2px; background: linear-gradient(180deg, #2dcf6a, #1f6f3a); }
+
+.constellation { position: absolute; inset: 0; pointer-events: none; opacity: 0.7; }
+
+.match-counter { position: absolute; top: 18px; right: 18px; padding: 8px 14px; border-radius: 999px;
+  background: rgba(0,0,0,0.4); border: 1px solid var(--border-light); font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--text); letter-spacing: 0.10em; }
+.match-counter b { color: var(--accent); font-size: 14px; }
+
+.shuffle-bar { position: absolute; left: 24px; right: 24px; bottom: 20px; display: flex; align-items: center; gap: 12px;
+  padding: 10px 16px; border-radius: 12px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-light); z-index: 5; }
+.shuffle-bar .stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); letter-spacing: 0.08em; }
+.shuffle-bar .stat b { color: var(--accent); }
+.shuffle-bar .right { margin-left: auto; display: flex; gap: 8px; }
+.btn-c { padding: 7px 12px; border-radius: 8px; border: 1px solid var(--border-light); background: rgba(0,0,0,0.2);
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; cursor: pointer; }
+.btn-c.primary { background: linear-gradient(180deg, var(--accent-bright), var(--accent)); color: #001a14; }
+
+.side-h { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 8px; }
+.set-row { display: flex; gap: 4px; padding: 6px 0; border-bottom: 1px dashed rgba(255,255,255,0.04); align-items: center; }
+.set-row .pair { display: inline-flex; gap: 2px; }
+.set-row .mini-tile { width: 14px; height: 18px; border-radius: 2px; background: linear-gradient(180deg,#f1ead7,#ddd0a8);
+  display: grid; place-items: center; font-family: 'Georgia', serif; font-size: 8px; color: #0c0c0c; box-shadow: 0 1px 0 #8c7d56; }
+.set-row .mini-tile.r { color: #c5152e; }
+.set-row .mini-tile.g { color: #1f6f3a; }
+.set-row .lab { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text); margin-left: auto; }
+</style></head>
+<body>
+<div class="cosmos" aria-hidden="true"><div class="nebula"></div><div class="stars"></div></div>
+
+<header class="page-head">
+  <h1>Mahjong — <b>Stoneworks</b></h1>
+  <span class="meta">Solitaire · 3D bone tiles · constellation lines connect matches</span>
+  <a class="back" href="../YancoTab Innovation Lab.html">← lab</a>
+</header>
+
+<main>
+<div class="app-frame">
+  <div class="titlebar">
+    <div class="traffic"><i></i><i></i><i></i></div>
+    <div class="name"><b>mahjong</b> / stoneworks</div>
+    <div class="tabs"><span class="tab active">Turtle</span><span class="tab">Pyramid</span><span class="tab">Spider</span><span class="tab">Castle</span></div>
+  </div>
+
+  <div class="stone-stage">
+    <div class="stone-board">
+      <div class="layout-pick">
+        <span class="lp active">TURTLE · 144</span>
+        <span class="lp">PYRAMID · 120</span>
+        <span class="lp">FORTRESS · 168</span>
+        <span class="lp">DAILY ✦</span>
+      </div>
+
+      <div class="match-counter">matched <b>14</b> / 72 pairs</div>
+
+      <div class="tile-grid">
+        <svg class="constellation" viewBox="0 0 720 460">
+          <defs>
+            <linearGradient id="cl" x1="0" x2="1"><stop offset="0" stop-color="#00e5c1" stop-opacity=".7"/><stop offset="1" stop-color="#00e5c1" stop-opacity="0"/></linearGradient>
+          </defs>
+          <path d="M 180 180 Q 260 120 360 200" stroke="url(#cl)" stroke-width="1.2" fill="none"/>
+          <path d="M 480 100 Q 540 180 580 260" stroke="url(#cl)" stroke-width="1.2" fill="none"/>
+          <circle cx="180" cy="180" r="3" fill="#00e5c1"/>
+          <circle cx="360" cy="200" r="3" fill="#00e5c1"/>
+          <circle cx="480" cy="100" r="3" fill="#00e5c1"/>
+          <circle cx="580" cy="260" r="3" fill="#00e5c1"/>
+        </svg>
+
+        <!-- Bottom layer (l1) - turtle silhouette rows -->
+        <!-- Row 1 long -->
+        <div class="tile" style="left:80px; top:30px"><span class="lbl">E</span><span class="ch" style="font-size:18px">東</span></div>
+        <div class="tile" style="left:140px; top:30px"><span class="ch red">中</span></div>
+        <div class="tile" style="left:200px; top:30px"><span class="bam"><i></i><i></i><i></i><i></i></span></div>
+        <div class="tile" style="left:260px; top:30px"><span class="ch green" style="font-size:22px">發</span></div>
+        <div class="tile" style="left:320px; top:30px"><span class="pip-dots"><i></i><i></i><i></i><i></i></span></div>
+        <div class="tile matched" style="left:380px; top:30px"><span class="ch red">中</span></div>
+        <div class="tile" style="left:440px; top:30px"><span class="lbl">S</span><span class="ch" style="font-size:18px">南</span></div>
+        <div class="tile" style="left:500px; top:30px"><span class="ch blue" style="font-size:22px">白</span></div>
+        <div class="tile" style="left:560px; top:30px"><span class="bam"><i></i><i></i></span></div>
+
+        <!-- Row 2 -->
+        <div class="tile" style="left:50px; top:120px"><span class="ch">三</span></div>
+        <div class="tile" style="left:110px; top:120px"><span class="ch">五</span></div>
+        <div class="tile locked" style="left:170px; top:120px"><span class="pip-dots"><i></i><i></i></span></div>
+        <div class="tile l2" style="left:230px; top:120px"><span class="ch red">中</span></div>
+        <div class="tile l2 matched" style="left:290px; top:120px"><span class="ch green" style="font-size:22px">發</span></div>
+        <div class="tile l2" style="left:350px; top:120px"><span class="ch">七</span></div>
+        <div class="tile l2" style="left:410px; top:120px"><span class="ch" style="font-size:18px">北</span></div>
+        <div class="tile" style="left:470px; top:120px"><span class="bam"><i></i><i></i><i></i></span></div>
+        <div class="tile" style="left:530px; top:120px"><span class="ch">九</span></div>
+        <div class="tile" style="left:590px; top:120px"><span class="ch">二</span></div>
+
+        <!-- Row 3 - peak -->
+        <div class="tile l2" style="left:140px; top:210px"><span class="ch">六</span></div>
+        <div class="tile l3" style="left:200px; top:210px"><span class="pip-dots"><i></i><i></i></span></div>
+        <div class="tile l3 matched" style="left:260px; top:210px"><span class="ch blue" style="font-size:22px">白</span></div>
+        <div class="tile l3" style="left:320px; top:210px"><span class="ch red">中</span></div>
+        <div class="tile l3" style="left:380px; top:210px"><span class="ch green" style="font-size:22px">發</span></div>
+        <div class="tile l2" style="left:440px; top:210px"><span class="ch">八</span></div>
+        <div class="tile l2" style="left:500px; top:210px"><span class="bam"><i></i><i></i></span></div>
+
+        <!-- Row 4 -->
+        <div class="tile" style="left:80px; top:300px"><span class="ch">四</span></div>
+        <div class="tile" style="left:140px; top:300px"><span class="ch">一</span></div>
+        <div class="tile l2" style="left:200px; top:300px"><span class="ch" style="font-size:18px">西</span></div>
+        <div class="tile" style="left:260px; top:300px"><span class="pip-dots"><i></i><i></i><i></i></span></div>
+        <div class="tile l2" style="left:320px; top:300px"><span class="ch red">中</span></div>
+        <div class="tile" style="left:380px; top:300px"><span class="ch">五</span></div>
+        <div class="tile" style="left:440px; top:300px"><span class="bam"><i></i><i></i></span></div>
+        <div class="tile" style="left:500px; top:300px"><span class="ch green" style="font-size:22px">發</span></div>
+        <div class="tile" style="left:560px; top:300px"><span class="ch">三</span></div>
+
+        <!-- Row 5 short - tail -->
+        <div class="tile" style="left:200px; top:380px"><span class="ch">七</span></div>
+        <div class="tile" style="left:260px; top:380px"><span class="bam"><i></i><i></i></span></div>
+        <div class="tile" style="left:320px; top:380px"><span class="pip-dots"><i></i><i></i></span></div>
+        <div class="tile" style="left:380px; top:380px"><span class="ch">九</span></div>
+      </div>
+
+      <div class="shuffle-bar">
+        <span class="stat">⏱ <b>11:24</b></span>
+        <span class="stat">free pairs <b>9</b></span>
+        <span class="stat">left <b>116</b></span>
+        <span class="right">
+          <button class="btn-c">↺ Undo</button>
+          <button class="btn-c">⌖ Hint</button>
+          <button class="btn-c">⇆ Shuffle · -50</button>
+          <button class="btn-c primary">⏸ Pause</button>
+        </span>
+      </div>
+    </div>
+
+    <aside class="stone-side">
+      <div class="side-h">Recent matches</div>
+      <div class="set-row"><span class="pair"><span class="mini-tile r">中</span><span class="mini-tile r">中</span></span><span class="lab">+12 · 0:04</span></div>
+      <div class="set-row"><span class="pair"><span class="mini-tile g">發</span><span class="mini-tile g">發</span></span><span class="lab">+10 · 0:11</span></div>
+      <div class="set-row"><span class="pair"><span class="mini-tile">白</span><span class="mini-tile">白</span></span><span class="lab">+10 · 0:18</span></div>
+      <div class="set-row"><span class="pair"><span class="mini-tile">五</span><span class="mini-tile">五</span></span><span class="lab">+8 · 0:24</span></div>
+      <div class="set-row"><span class="pair"><span class="mini-tile">東</span><span class="mini-tile">東</span></span><span class="lab">+9 · 0:31</span></div>
+
+      <div class="side-h" style="margin-top:14px">Stats</div>
+      <div class="set-row"><span class="lab" style="margin:0;color:var(--text)">Combo streak</span><span class="lab" style="color:var(--accent)">×4</span></div>
+      <div class="set-row"><span class="lab" style="margin:0;color:var(--text)">Best clear</span><span class="lab" style="color:var(--accent)">07:14</span></div>
+      <div class="set-row"><span class="lab" style="margin:0;color:var(--text)">Hints used</span><span class="lab">2 / 5</span></div>
+      <div class="set-row"><span class="lab" style="margin:0;color:var(--text)">Shuffles</span><span class="lab">0 / 3</span></div>
+
+      <div style="margin-top:auto;padding:12px;border-radius:10px;background:rgba(var(--accent-rgb),0.05);border:1px solid rgba(var(--accent-rgb),0.18);font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text);line-height:1.6">
+        <span style="color:var(--accent)">★ Daily Stoneworks</span><br>Today's tile set: 144 · seed locked · climb the leaderboard
+      </div>
+    </aside>
+  </div>
+</div>
+</main>
+</body></html>

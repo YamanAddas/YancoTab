@@ -1,0 +1,1077 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>YancoTab — Innovation Lab</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  :root {
+    --bg: #060b14;
+    --bg-card: rgba(8, 18, 32, 0.85);
+    --accent: #00e5c1;
+    --accent-rgb: 0, 229, 193;
+    --accent-bright: #33ffdd;
+    --text-bright: #c8d6e5;
+    --text: #8a9bb0;
+    --text-dim: #3d4f63;
+    --border: rgba(255, 255, 255, 0.06);
+    --border-light: rgba(255, 255, 255, 0.10);
+    --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    --cinematic: 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
+    --card-red: #c5152e;
+    --warm: #ffb84a;
+    --cool: #5aa8ff;
+    --violet: #9b7bff;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin:0; padding:0; background: var(--bg); color: var(--text-bright);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px;
+    -webkit-font-smoothing: antialiased; min-height: 100vh; overflow-x: hidden; }
+
+  /* Cosmic background */
+  .cosmos { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+  .nebula { position: absolute; inset: -10%;
+    background:
+      radial-gradient(900px 600px at 18% 22%, rgba(0, 229, 193, 0.16), transparent 60%),
+      radial-gradient(800px 600px at 82% 78%, rgba(155, 123, 255, 0.14), transparent 60%),
+      radial-gradient(700px 500px at 50% 50%, rgba(0, 229, 193, 0.05), transparent 70%);
+    filter: blur(2px); }
+  .stars { position: absolute; inset: 0; }
+  .stars::before, .stars::after { content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.85), transparent 50%),
+      radial-gradient(1px 1px at 33% 72%, rgba(255,255,255,0.55), transparent 50%),
+      radial-gradient(1px 1px at 67% 26%, rgba(0,229,193,0.7), transparent 50%),
+      radial-gradient(1px 1px at 88% 64%, rgba(255,255,255,0.65), transparent 50%),
+      radial-gradient(1.5px 1.5px at 45% 40%, rgba(255,255,255,0.7), transparent 50%),
+      radial-gradient(1px 1px at 22% 88%, rgba(0,229,193,0.55), transparent 50%),
+      radial-gradient(1px 1px at 78% 12%, rgba(255,255,255,0.7), transparent 50%),
+      radial-gradient(1px 1px at 8% 55%, rgba(255,255,255,0.5), transparent 50%); }
+  .stars::after { transform: translate(40px, 80px); opacity: 0.55; }
+
+  /* Page chrome */
+  .page-head {
+    position: relative; z-index: 5;
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 32px 36px 0; max-width: 1320px; margin: 0 auto;
+  }
+  .page-head h1 {
+    margin: 0; font-size: 28px; font-weight: 300; letter-spacing: -0.02em; color: var(--text-bright);
+  }
+  .page-head h1 b { color: var(--accent); font-weight: 500; }
+  .page-head .meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .page-head .meta b { color: var(--accent); }
+
+  main { position: relative; z-index: 5; max-width: 1320px; margin: 0 auto; padding: 24px 36px 80px; }
+
+  .sec-head {
+    display: flex; align-items: center; gap: 14px; margin: 56px 0 20px;
+  }
+  .sec-head .num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); letter-spacing: 0.16em; text-transform: uppercase; }
+  .sec-head h2 { margin: 0; font-size: 20px; font-weight: 400; letter-spacing: -0.01em; color: var(--text-bright); }
+  .sec-head .rule { flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+  .sec-head .meta { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-dim); }
+
+  /* App window chrome */
+  .app-frame {
+    border-radius: 22px;
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.6) 60%, rgba(2, 8, 16, 0.78) 100%),
+      linear-gradient(160deg, rgba(10, 28, 52, 0.7), rgba(4, 12, 24, 0.9));
+    border: 1px solid rgba(255,255,255,0.10);
+    backdrop-filter: blur(18px) saturate(1.6);
+    -webkit-backdrop-filter: blur(18px) saturate(1.6);
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.18) inset,
+      0 -1px 0 rgba(0,0,0,0.5) inset,
+      0 18px 60px -10px rgba(var(--accent-rgb), 0.20),
+      0 30px 80px rgba(0,0,0,0.55);
+    overflow: hidden;
+  }
+  .titlebar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-light);
+    background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+  }
+  .traffic { display: flex; gap: 8px; }
+  .traffic i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+  .traffic i:nth-child(1) { background: #ff5f57; }
+  .traffic i:nth-child(2) { background: #febc2e; }
+  .traffic i:nth-child(3) { background: #28c840; }
+  .titlebar .name { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); letter-spacing: 0.08em; text-transform: uppercase; }
+  .titlebar .name b { color: var(--accent); font-weight: 500; }
+  .titlebar .tabs { margin-left: auto; display: flex; gap: 4px; }
+  .titlebar .tab { padding: 4px 10px; border-radius: 7px; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-dim); cursor: pointer; transition: all var(--cinematic); }
+  .titlebar .tab.active { color: var(--accent); background: rgba(var(--accent-rgb), 0.08); border: 1px solid rgba(var(--accent-rgb), 0.25); }
+  .titlebar .tab:hover { color: var(--text-bright); }
+
+  /* ── CLOCK APP ── */
+  .clock-app { display: grid; grid-template-columns: 1.4fr 1fr; }
+  .clock-stage {
+    position: relative; padding: 28px 32px;
+    border-right: 1px solid var(--border-light);
+    min-height: 520px;
+  }
+  .clock-side { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  /* Orrery — concentric rotating dials = THE innovation */
+  .orrery {
+    position: relative; width: 100%; aspect-ratio: 1;
+    max-width: 460px; margin: 0 auto;
+  }
+  .orrery svg { width: 100%; height: 100%; overflow: visible; }
+  .orr-ring { fill: none; }
+  .orr-tick { stroke-linecap: round; }
+  .orr-label { font-family: 'JetBrains Mono', monospace; font-size: 7.5px; fill: var(--text-dim); letter-spacing: 0.1em; text-transform: uppercase; }
+  .orr-readout { font-family: 'JetBrains Mono', monospace; }
+  .orr-now {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; pointer-events: none;
+  }
+  .orr-now .day { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.18em; text-transform: uppercase; }
+  .orr-now .time {
+    font-family: 'JetBrains Mono', monospace; font-size: 56px; font-weight: 300; letter-spacing: -0.04em;
+    color: var(--text-bright); line-height: 1; margin: 6px 0;
+  }
+  .orr-now .time .s { color: var(--accent); font-size: 24px; vertical-align: 14px; margin-left: 4px; }
+  .orr-now .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text); letter-spacing: 0.1em; }
+
+  /* ring rotation hooks */
+  .ring-rot { transform-box: fill-box; transform-origin: center; transition: transform 1s linear; }
+
+  .city-pin { fill: var(--accent); }
+  .city-now-line { stroke: var(--accent); stroke-width: 1; stroke-dasharray: 2 2; opacity: 0.7; }
+  .sun-arc { stroke: var(--warm); stroke-width: 1.2; fill: none; opacity: 0.9; }
+  .night-arc { stroke: rgba(155, 123, 255, 0.6); stroke-width: 1.2; fill: none; }
+
+  /* World cities chip rail */
+  .cities { display: flex; flex-direction: column; gap: 10px; }
+  .city {
+    display: grid; grid-template-columns: 1fr auto auto;
+    align-items: center; gap: 12px; padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.025); border: 1px solid var(--border-light);
+    transition: all var(--cinematic); cursor: pointer;
+  }
+  .city:hover { border-color: rgba(var(--accent-rgb), 0.3); background: rgba(var(--accent-rgb), 0.05); transform: translateX(2px); }
+  .city .lbl { display: flex; flex-direction: column; gap: 2px; }
+  .city .lbl .n { font-size: 13px; color: var(--text-bright); }
+  .city .lbl .o { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); letter-spacing: 0.1em; }
+  .city .t { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text-bright); font-weight: 300; }
+  .city .delta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text); }
+  .city.you { border-color: rgba(var(--accent-rgb), 0.4); background: rgba(var(--accent-rgb), 0.06); }
+  .city.you .t { color: var(--accent); }
+  .city.night { background: rgba(155, 123, 255, 0.05); }
+  .city.night .delta { color: var(--violet); }
+
+  /* Chrono rail (alarm/timer/stopwatch) */
+  .chrono {
+    display: flex; gap: 8px; padding: 8px;
+    border-radius: 12px;
+    background: rgba(0,0,0,0.25); border: 1px solid var(--border-light);
+  }
+  .chrono .seg {
+    flex: 1; padding: 8px 10px; border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer; text-align: center; transition: all var(--cinematic);
+  }
+  .chrono .seg.active { color: var(--accent); background: rgba(var(--accent-rgb), 0.1); border: 1px solid rgba(var(--accent-rgb), 0.3); }
+  .chrono .seg b { display: block; color: var(--text-bright); font-size: 14px; margin-top: 2px; letter-spacing: 0; text-transform: none; font-weight: 400; }
+  .chrono .seg.active b { color: var(--accent-bright); }
+
+  /* Bottom strip: alarm cards */
+  .alarms-strip {
+    margin-top: 20px;
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  }
+  .alarm-card {
+    padding: 14px;
+    border-radius: 14px; border: 1px solid var(--border-light);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0.2)),
+      rgba(8, 18, 32, 0.5);
+    position: relative;
+  }
+  .alarm-card .lbl { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.14em; text-transform: uppercase; }
+  .alarm-card .t { font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--text-bright); font-weight: 300; margin-top: 4px; letter-spacing: -0.02em; }
+  .alarm-card .repeat { display: flex; gap: 4px; margin-top: 10px; }
+  .alarm-card .repeat span { font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 2px 5px; border-radius: 4px; background: rgba(255,255,255,0.04); color: var(--text-dim); }
+  .alarm-card .repeat span.on { color: var(--accent); background: rgba(var(--accent-rgb), 0.12); }
+  .alarm-card .toggle {
+    position: absolute; top: 14px; right: 14px;
+    width: 32px; height: 18px; border-radius: 999px;
+    background: rgba(var(--accent-rgb), 0.6); position: relative;
+  }
+  .alarm-card .toggle::after { content: ''; position: absolute; top: 2px; right: 2px; width: 14px; height: 14px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .alarm-card.off .toggle { background: rgba(255,255,255,0.08); }
+  .alarm-card.off .toggle::after { right: auto; left: 2px; }
+  .alarm-card.off .t { color: var(--text); }
+
+  /* ── WEATHER APP ── */
+  .weather-app {
+    display: grid; grid-template-columns: 1.5fr 1fr;
+    min-height: 560px;
+  }
+  .w-stage {
+    padding: 28px 32px;
+    border-right: 1px solid var(--border-light);
+    position: relative; overflow: hidden;
+    background:
+      radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255, 184, 74, 0.10), transparent 70%),
+      radial-gradient(ellipse 60% 60% at 100% 100%, rgba(90, 168, 255, 0.10), transparent 70%);
+  }
+  .w-side { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+
+  .w-loc {
+    display: flex; align-items: center; gap: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .w-loc b { color: var(--accent); font-weight: 500; }
+  .w-loc::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 6px rgba(var(--accent-rgb), 0.7); }
+  .w-temp {
+    margin: 14px 0 6px;
+    font-family: 'JetBrains Mono', monospace; font-size: 120px; font-weight: 200; line-height: 0.9;
+    letter-spacing: -0.06em; color: var(--text-bright);
+    text-shadow: 0 0 40px rgba(var(--accent-rgb), 0.18);
+  }
+  .w-temp .deg { color: var(--accent); font-weight: 200; }
+  .w-cond { font-size: 18px; color: var(--text-bright); }
+  .w-feels { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); margin-top: 4px; }
+
+  /* sky band: sun + moon + horizon, 24h */
+  .skyband {
+    margin-top: 26px;
+    position: relative; height: 110px;
+    border-radius: 12px;
+    background:
+      linear-gradient(180deg, rgba(90, 168, 255, 0.18) 0%, rgba(255, 184, 74, 0.10) 50%, rgba(20, 30, 60, 0.6) 100%);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+  }
+  .skyband .arc { position: absolute; inset: 0; }
+  .skyband svg { width: 100%; height: 100%; }
+  .skyband .now {
+    position: absolute; top: 0; bottom: 0; width: 1px;
+    background: linear-gradient(to bottom, transparent, var(--accent), transparent);
+    box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
+  }
+  .skyband .now .label {
+    position: absolute; top: 6px; left: 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+  .skyband .ticks {
+    position: absolute; left: 0; right: 0; bottom: 6px;
+    display: flex; justify-content: space-between;
+    padding: 0 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.1em;
+  }
+
+  /* 10-day forecast */
+  .forecast {
+    display: flex; flex-direction: column; gap: 6px;
+    margin-top: 14px;
+  }
+  .forecast .row {
+    display: grid;
+    grid-template-columns: 60px 24px 32px 1fr 32px;
+    align-items: center; gap: 12px;
+    padding: 8px 10px; border-radius: 9px;
+    transition: all var(--cinematic);
+  }
+  .forecast .row:hover { background: rgba(var(--accent-rgb), 0.04); }
+  .forecast .row.today { background: rgba(var(--accent-rgb), 0.06); }
+  .forecast .day { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); letter-spacing: 0.1em; text-transform: uppercase; }
+  .forecast .row.today .day { color: var(--accent); }
+  .forecast .glyph { color: var(--text-bright); font-size: 14px; }
+  .forecast .lo { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--cool); text-align: right; }
+  .forecast .hi { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--warm); text-align: left; }
+  .forecast .bar {
+    position: relative; height: 4px; border-radius: 999px;
+    background: rgba(255,255,255,0.05);
+  }
+  .forecast .bar .fill {
+    position: absolute; top: 0; bottom: 0; border-radius: 999px;
+    background: linear-gradient(90deg, var(--cool), var(--accent), var(--warm));
+  }
+  .forecast .bar .now {
+    position: absolute; top: -2px; bottom: -2px; width: 8px; border-radius: 999px;
+    background: white; box-shadow: 0 0 6px rgba(255,255,255,0.7);
+  }
+
+  /* AQI radial */
+  .aqi-card {
+    padding: 16px; border-radius: 14px;
+    border: 1px solid var(--border-light);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.18)),
+      rgba(8, 18, 32, 0.5);
+    display: grid; grid-template-columns: 88px 1fr; gap: 14px; align-items: center;
+  }
+  .aqi-ring { position: relative; width: 88px; height: 88px; }
+  .aqi-ring svg { transform: rotate(-90deg); }
+  .aqi-track { stroke: rgba(255,255,255,0.06); }
+  .aqi-fill { stroke: #2dcf6a; stroke-linecap: round; filter: drop-shadow(0 0 5px #2dcf6a); }
+  .aqi-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 22px; color: var(--text-bright); }
+  .aqi-meta .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--text-dim); text-transform: uppercase; }
+  .aqi-meta .v { color: var(--text-bright); font-size: 14px; margin-top: 2px; }
+  .aqi-meta .desc { color: var(--text); font-size: 11px; margin-top: 8px; line-height: 1.4; }
+
+  /* metric grid (humidity, wind, uv, pressure, dew, vis) */
+  .metrics {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;
+  }
+  .metric {
+    padding: 12px; border-radius: 11px;
+    border: 1px solid var(--border-light); background: rgba(255,255,255,0.02);
+    position: relative; overflow: hidden;
+  }
+  .metric .k { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.14em; text-transform: uppercase; }
+  .metric .v { font-family: 'JetBrains Mono', monospace; font-size: 18px; color: var(--text-bright); font-weight: 300; margin-top: 4px; }
+  .metric .v small { font-size: 10px; color: var(--text); margin-left: 2px; }
+  .metric .spark {
+    position: absolute; right: 8px; bottom: 8px; width: 36px; height: 16px; opacity: 0.7;
+  }
+
+  /* Innovation roadmap */
+  .road-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .road-card {
+    padding: 18px 20px; border-radius: 14px;
+    border: 1px solid var(--border-light);
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.15)),
+      rgba(8, 18, 32, 0.5);
+    transition: all var(--cinematic);
+  }
+  .road-card:hover { border-color: rgba(var(--accent-rgb), 0.3); transform: translateY(-2px); box-shadow: 0 14px 30px -10px rgba(var(--accent-rgb), 0.3); }
+  .road-head {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .road-head .mark {
+    width: 28px; height: 28px; clip-path: var(--hex-clip);
+    background: linear-gradient(160deg, var(--accent-bright), #00b89b);
+    box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.5);
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; color: #04211b; font-weight: 700;
+  }
+  .road-head h3 { margin: 0; font-size: 16px; font-weight: 500; color: var(--text-bright); }
+  .road-head .tag { margin-left: auto; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.10em; text-transform: uppercase; padding: 3px 8px; border: 1px solid rgba(var(--accent-rgb), 0.3); border-radius: 999px; }
+  .road-card .pitch { color: var(--text); font-size: 13px; line-height: 1.55; margin: 0 0 10px; }
+  .road-card .pitch b { color: var(--accent-bright); font-weight: 500; }
+  .road-card ul {
+    margin: 0; padding: 0; list-style: none;
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .road-card li {
+    font-size: 12px; color: var(--text-bright); padding-left: 16px; position: relative;
+    line-height: 1.5;
+  }
+  .road-card li::before {
+    content: ''; position: absolute; left: 0; top: 7px;
+    width: 6px; height: 6px; clip-path: var(--hex-clip);
+    background: var(--accent);
+  }
+  .road-card li em { color: var(--text); font-style: normal; }
+
+  @media (max-width: 1100px) {
+    .clock-app, .weather-app { grid-template-columns: 1fr; }
+    .clock-stage, .w-stage { border-right: 0; border-bottom: 1px solid var(--border-light); }
+    .road-grid { grid-template-columns: 1fr; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+    .ring-rot { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cosmos" aria-hidden="true">
+  <div class="nebula"></div>
+  <div class="stars"></div>
+</div>
+
+<header class="page-head">
+  <h1>Innovation <b>Lab</b></h1>
+  <span class="meta">Clock + Weather rebuild · <b>16</b> apps roadmap</span>
+</header>
+
+<main>
+
+  <!-- ─────────────────────────────────────────────────────────────
+       CLOCK APP — "The Orrery"
+       Concentric rotating dials: seconds / minutes / hours / day / month.
+       Center reads digital. Outer ring = world cities orbit.
+       ───────────────────────────────────────────────────────────── -->
+  <div class="sec-head">
+    <span class="num">App 01</span>
+    <h2>Clock — <em style="font-style:normal;color:var(--text);font-weight:300">The Orrery</em></h2>
+    <span class="rule"></span>
+    <span class="meta">concentric · world · alarms · timer · stopwatch</span>
+  </div>
+
+  <div class="app-frame">
+    <div class="titlebar">
+      <div class="traffic"><i></i><i></i><i></i></div>
+      <div class="name"><b>clock</b> / orrery</div>
+      <div class="tabs">
+        <span class="tab active">World</span>
+        <span class="tab">Alarms</span>
+        <span class="tab">Timer</span>
+        <span class="tab">Stopwatch</span>
+      </div>
+    </div>
+
+    <div class="clock-app">
+
+      <!-- Stage: orrery -->
+      <div class="clock-stage">
+        <div class="orrery">
+          <svg viewBox="-110 -110 220 220" id="orrery">
+            <!-- glow disc -->
+            <defs>
+              <radialGradient id="core-glow" cx="0.5" cy="0.5" r="0.6">
+                <stop offset="0" stop-color="rgba(0,229,193,0.18)"/>
+                <stop offset="0.6" stop-color="rgba(0,229,193,0.04)"/>
+                <stop offset="1" stop-color="rgba(0,229,193,0)"/>
+              </radialGradient>
+            </defs>
+            <circle cx="0" cy="0" r="100" fill="url(#core-glow)"/>
+
+            <!-- ring 1: seconds (outer, rotates fast) -->
+            <g class="ring-rot" id="ring-sec">
+              <circle class="orr-ring" r="100" stroke="rgba(255,255,255,0.05)" stroke-width="0.5"/>
+              <!-- 60 ticks -->
+              <g class="orr-tick">
+                <!-- generated below by JS for cleanliness; static here just in case -->
+              </g>
+              <!-- city markers around outer ring (label visible, dot fixed in space — but for visual we leave them on the rotating ring; alternative: keep cities static. Let's keep static below.) -->
+            </g>
+
+            <!-- ring 2: minutes -->
+            <g class="ring-rot" id="ring-min">
+              <circle class="orr-ring" r="84" stroke="rgba(0,229,193,0.18)" stroke-width="0.6"/>
+              <line x1="0" y1="-84" x2="0" y2="-94" stroke="var(--accent)" stroke-width="1.4" stroke-linecap="round"/>
+              <circle cx="0" cy="-89" r="2.2" fill="var(--accent)"/>
+            </g>
+
+            <!-- ring 3: hours -->
+            <g class="ring-rot" id="ring-hr">
+              <circle class="orr-ring" r="68" stroke="rgba(255,255,255,0.10)" stroke-width="0.8"/>
+              <line x1="0" y1="-68" x2="0" y2="-78" stroke="var(--text-bright)" stroke-width="1.6" stroke-linecap="round"/>
+            </g>
+
+            <!-- ring 4: day-of-month -->
+            <g class="ring-rot" id="ring-dom">
+              <circle class="orr-ring" r="52" stroke="rgba(155,123,255,0.25)" stroke-width="0.5"/>
+              <line x1="0" y1="-52" x2="0" y2="-58" stroke="var(--violet)" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+
+            <!-- ring 5: month -->
+            <g class="ring-rot" id="ring-mo">
+              <circle class="orr-ring" r="36" stroke="rgba(255,184,74,0.25)" stroke-width="0.5"/>
+              <line x1="0" y1="-36" x2="0" y2="-42" stroke="var(--warm)" stroke-width="1.2" stroke-linecap="round"/>
+            </g>
+
+            <!-- minute tick text labels (fixed) -->
+            <g id="hour-labels"></g>
+
+            <!-- ring labels (fixed, not rotating) -->
+            <g class="orr-readout">
+              <text x="0" y="-104" text-anchor="middle" class="orr-label">SECONDS</text>
+              <text x="0" y="-78.5" text-anchor="middle" class="orr-label" style="font-size:6.5px">MINUTES</text>
+              <text x="0" y="-62.5" text-anchor="middle" class="orr-label" style="font-size:6.5px">HOURS</text>
+              <text x="0" y="-46.5" text-anchor="middle" class="orr-label" style="font-size:6.5px">DAY</text>
+              <text x="0" y="-30.5" text-anchor="middle" class="orr-label" style="font-size:6.5px">MONTH</text>
+            </g>
+
+            <!-- city pins (fixed positions on outer ring) -->
+            <g id="city-pins"></g>
+
+            <!-- center accent core -->
+            <circle r="3" fill="var(--accent)" filter="drop-shadow(0 0 4px rgba(0,229,193,0.8))"/>
+          </svg>
+
+          <div class="orr-now">
+            <div class="day" id="orr-day">WED · MAY 06</div>
+            <div class="time" id="orr-time">14:32<span class="s">·08</span></div>
+            <div class="meta" id="orr-meta">DAY 126 · WEEK 19 · SUN 04:48 / 17:42</div>
+          </div>
+        </div>
+
+        <div class="alarms-strip">
+          <div class="alarm-card">
+            <div class="lbl">Wake</div>
+            <div class="t">07:00</div>
+            <div class="repeat"><span class="on">M</span><span class="on">T</span><span class="on">W</span><span class="on">T</span><span class="on">F</span><span>S</span><span>S</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="alarm-card">
+            <div class="lbl">Stand-up</div>
+            <div class="t">10:00</div>
+            <div class="repeat"><span class="on">M</span><span class="on">T</span><span class="on">W</span><span class="on">T</span><span class="on">F</span><span>S</span><span>S</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div class="alarm-card off">
+            <div class="lbl">Late shift</div>
+            <div class="t">14:30</div>
+            <div class="repeat"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span class="on">S</span><span class="on">S</span></div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar: world clocks + chrono -->
+      <div class="clock-side">
+        <div class="chrono">
+          <div class="seg active">Now<b>14:32</b></div>
+          <div class="seg">Timer<b>--:--</b></div>
+          <div class="seg">Stop<b>00:00</b></div>
+        </div>
+
+        <div class="cities">
+          <div class="city you">
+            <div class="lbl"><span class="n">Damascus</span><span class="o">UTC+3 · home</span></div>
+            <span class="t">14:32</span>
+            <span class="delta">now</span>
+          </div>
+          <div class="city">
+            <div class="lbl"><span class="n">London</span><span class="o">UTC+1</span></div>
+            <span class="t">12:32</span>
+            <span class="delta">−2h</span>
+          </div>
+          <div class="city">
+            <div class="lbl"><span class="n">New York</span><span class="o">UTC−4</span></div>
+            <span class="t">07:32</span>
+            <span class="delta">−7h</span>
+          </div>
+          <div class="city night">
+            <div class="lbl"><span class="n">Tokyo</span><span class="o">UTC+9 · 🌙</span></div>
+            <span class="t">20:32</span>
+            <span class="delta">+6h</span>
+          </div>
+          <div class="city">
+            <div class="lbl"><span class="n">Sydney</span><span class="o">UTC+10</span></div>
+            <span class="t">21:32</span>
+            <span class="delta">+7h</span>
+          </div>
+          <div class="city night">
+            <div class="lbl"><span class="n">San Francisco</span><span class="o">UTC−7 · 🌙</span></div>
+            <span class="t">04:32</span>
+            <span class="delta">−10h</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────────
+       WEATHER APP — "Sky Atlas"
+       Hero: huge temp + sky-band 24h ribbon (sun arc + moon arc + now).
+       10-day chart with min/max range bars + your-position dot.
+       AQI radial + metric tiles (humidity, wind, UV, pressure, dew, vis).
+       ───────────────────────────────────────────────────────────── -->
+  <div class="sec-head">
+    <span class="num">App 02</span>
+    <h2>Weather — <em style="font-style:normal;color:var(--text);font-weight:300">Sky Atlas</em></h2>
+    <span class="rule"></span>
+    <span class="meta">live · 10-day · AQI · sun & moon arc</span>
+  </div>
+
+  <div class="app-frame">
+    <div class="titlebar">
+      <div class="traffic"><i></i><i></i><i></i></div>
+      <div class="name"><b>weather</b> / sky atlas · damascus</div>
+      <div class="tabs">
+        <span class="tab active">Today</span>
+        <span class="tab">10 day</span>
+        <span class="tab">Air</span>
+        <span class="tab">Radar</span>
+      </div>
+    </div>
+
+    <div class="weather-app">
+      <div class="w-stage">
+        <div class="w-loc"><b>damascus</b> · syria · 33.5°N 36.3°E</div>
+        <div class="w-temp">32<span class="deg">°</span></div>
+        <div class="w-cond">Clear</div>
+        <div class="w-feels">Feels 30° · H 34° · L 19° · ↑ 04:48 ↓ 17:42</div>
+
+        <!-- Sky band (24h) -->
+        <div class="skyband">
+          <div class="arc">
+            <svg viewBox="0 0 600 110" preserveAspectRatio="none">
+              <!-- sun arc (sunrise → sunset) -->
+              <path d="M 120 100 Q 300 -20 480 100" class="sun-arc" stroke="#ffb84a" stroke-width="1.4" fill="none"/>
+              <!-- moon arc (sunset → sunrise next day) -->
+              <path d="M 480 100 Q 600 30 600 0" stroke="rgba(155,123,255,0.6)" stroke-width="1" fill="none" stroke-dasharray="2 2"/>
+              <path d="M 0 0 Q 0 30 120 100" stroke="rgba(155,123,255,0.6)" stroke-width="1" fill="none" stroke-dasharray="2 2"/>
+              <!-- sun -->
+              <circle cx="365" cy="20" r="8" fill="#ffb84a" filter="drop-shadow(0 0 8px rgba(255,184,74,0.7))"/>
+              <!-- horizon line -->
+              <line x1="0" y1="100" x2="600" y2="100" stroke="rgba(255,255,255,0.2)" stroke-dasharray="2 4"/>
+              <!-- sunrise / sunset marks -->
+              <circle cx="120" cy="100" r="2" fill="#ffb84a"/>
+              <circle cx="480" cy="100" r="2" fill="#9b7bff"/>
+              <text x="120" y="80" font-family="JetBrains Mono, monospace" font-size="9" fill="#ffb84a" text-anchor="middle">↑ 04:48</text>
+              <text x="480" y="80" font-family="JetBrains Mono, monospace" font-size="9" fill="#9b7bff" text-anchor="middle">↓ 17:42</text>
+            </svg>
+          </div>
+          <div class="now" style="left: 60%;">
+            <div class="label">14:32 · now</div>
+          </div>
+          <div class="ticks">
+            <span>00</span><span>04</span><span>08</span><span>12</span><span>16</span><span>20</span><span>24</span>
+          </div>
+        </div>
+
+        <!-- 10-day forecast -->
+        <div class="forecast">
+          <!-- today -->
+          <div class="row today">
+            <span class="day">Today</span>
+            <span class="glyph">☀</span>
+            <span class="lo">19°</span>
+            <div class="bar">
+              <div class="fill" style="left: 24%; right: 8%;"></div>
+              <div class="now" style="left: 56%;"></div>
+            </div>
+            <span class="hi">34°</span>
+          </div>
+          <div class="row">
+            <span class="day">Thu</span>
+            <span class="glyph">☀</span>
+            <span class="lo">20°</span>
+            <div class="bar"><div class="fill" style="left: 26%; right: 6%;"></div></div>
+            <span class="hi">35°</span>
+          </div>
+          <div class="row">
+            <span class="day">Fri</span>
+            <span class="glyph">⛅</span>
+            <span class="lo">19°</span>
+            <div class="bar"><div class="fill" style="left: 24%; right: 14%;"></div></div>
+            <span class="hi">31°</span>
+          </div>
+          <div class="row">
+            <span class="day">Sat</span>
+            <span class="glyph">☁</span>
+            <span class="lo">17°</span>
+            <div class="bar"><div class="fill" style="left: 20%; right: 22%;"></div></div>
+            <span class="hi">27°</span>
+          </div>
+          <div class="row">
+            <span class="day">Sun</span>
+            <span class="glyph">🌧</span>
+            <span class="lo">14°</span>
+            <div class="bar"><div class="fill" style="left: 14%; right: 30%;"></div></div>
+            <span class="hi">23°</span>
+          </div>
+          <div class="row">
+            <span class="day">Mon</span>
+            <span class="glyph">🌧</span>
+            <span class="lo">13°</span>
+            <div class="bar"><div class="fill" style="left: 12%; right: 36%;"></div></div>
+            <span class="hi">21°</span>
+          </div>
+          <div class="row">
+            <span class="day">Tue</span>
+            <span class="glyph">⛅</span>
+            <span class="lo">15°</span>
+            <div class="bar"><div class="fill" style="left: 18%; right: 24%;"></div></div>
+            <span class="hi">26°</span>
+          </div>
+          <div class="row">
+            <span class="day">Wed</span>
+            <span class="glyph">☀</span>
+            <span class="lo">18°</span>
+            <div class="bar"><div class="fill" style="left: 22%; right: 12%;"></div></div>
+            <span class="hi">32°</span>
+          </div>
+          <div class="row">
+            <span class="day">Thu</span>
+            <span class="glyph">☀</span>
+            <span class="lo">19°</span>
+            <div class="bar"><div class="fill" style="left: 24%; right: 8%;"></div></div>
+            <span class="hi">34°</span>
+          </div>
+          <div class="row">
+            <span class="day">Fri</span>
+            <span class="glyph">☀</span>
+            <span class="lo">21°</span>
+            <div class="bar"><div class="fill" style="left: 28%; right: 4%;"></div></div>
+            <span class="hi">36°</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="w-side">
+        <div class="aqi-card">
+          <div class="aqi-ring">
+            <svg width="88" height="88" viewBox="0 0 88 88">
+              <circle cx="44" cy="44" r="36" class="aqi-track" fill="none" stroke-width="6"/>
+              <circle cx="44" cy="44" r="36" class="aqi-fill" fill="none" stroke-width="6" stroke-dasharray="226" stroke-dashoffset="170"/>
+            </svg>
+            <div class="aqi-num">42</div>
+          </div>
+          <div class="aqi-meta">
+            <div class="k">Air Quality</div>
+            <div class="v">Good</div>
+            <div class="desc">PM2.5 12 · O₃ 38 · Safe for outdoor activity all day.</div>
+          </div>
+        </div>
+
+        <div class="metrics">
+          <div class="metric">
+            <div class="k">Humidity</div>
+            <div class="v">38<small>%</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,12 6,10 12,11 18,8 24,9 30,7 36,8" stroke="#5aa8ff" stroke-width="1" fill="none"/></svg>
+          </div>
+          <div class="metric">
+            <div class="k">Wind</div>
+            <div class="v">9<small>km/h NW</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,8 6,9 12,7 18,10 24,6 30,8 36,7" stroke="#00e5c1" stroke-width="1" fill="none"/></svg>
+          </div>
+          <div class="metric">
+            <div class="k">UV</div>
+            <div class="v">7<small>high</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,14 6,12 12,8 18,4 24,4 30,8 36,12" stroke="#ffb84a" stroke-width="1" fill="none"/></svg>
+          </div>
+          <div class="metric">
+            <div class="k">Pressure</div>
+            <div class="v">1014<small>hPa</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,8 6,7 12,9 18,8 24,7 30,8 36,7" stroke="#9b7bff" stroke-width="1" fill="none"/></svg>
+          </div>
+          <div class="metric">
+            <div class="k">Dew Pt</div>
+            <div class="v">14<small>°</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,10 6,9 12,10 18,11 24,9 30,10 36,9" stroke="#5aa8ff" stroke-width="1" fill="none"/></svg>
+          </div>
+          <div class="metric">
+            <div class="k">Visibility</div>
+            <div class="v">16<small>km</small></div>
+            <svg class="spark" viewBox="0 0 36 16" fill="none"><polyline points="0,4 6,5 12,4 18,4 24,3 30,4 36,4" stroke="#c8d6e5" stroke-width="1" fill="none"/></svg>
+          </div>
+        </div>
+
+        <div class="aqi-card" style="grid-template-columns: 1fr;">
+          <div>
+            <div class="k" style="font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.16em; color: var(--text-dim); text-transform: uppercase;">Tonight</div>
+            <div style="display: flex; align-items: baseline; gap: 10px; margin-top: 4px;">
+              <span style="font-family: 'JetBrains Mono', monospace; font-size: 26px; color: var(--text-bright); font-weight: 300;">19°</span>
+              <span style="color: var(--text); font-size: 13px;">Clear · waxing gibbous 78%</span>
+            </div>
+            <div style="margin-top: 8px; color: var(--text); font-size: 12px; line-height: 1.5;">
+              Stargazing window <b style="color: var(--accent)">22:14 → 04:12</b>. Mars rising at 23:08 in the east.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────────────────────
+       INNOVATION ROADMAP — remaining 16 apps
+       ───────────────────────────────────────────────────────────── -->
+  <div class="sec-head">
+    <span class="num">Roadmap</span>
+    <h2>The other 16 apps — innovation pitches</h2>
+    <span class="rule"></span>
+    <span class="meta">cosmic-native concepts · pick what excites you</span>
+  </div>
+
+  <div class="road-grid">
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">N</span><h3>Notes — <em style="font-style:normal;color:var(--text);font-weight:300">Constellations</em></h3><span class="tag">Productivity</span></div>
+      <p class="pitch">Notes float as <b>star nodes</b> on a zoomable cosmos. Tags become constellations — drag a tag to merge notes into a cluster. Backlinks draw teal threads between stars.</p>
+      <ul>
+        <li><em>Pin</em> = becomes a brighter "anchor star"</li>
+        <li>Search collapses the cosmos to a focused beam through matching nodes</li>
+        <li>Pomodoro integration: a 25-min ring orbits the active note while you write</li>
+        <li>Hex sticker palette for moods (idea / draft / done / archived)</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">T</span><h3>Todo — <em style="font-style:normal;color:var(--text);font-weight:300">Mission Control</em></h3><span class="tag">Productivity</span></div>
+      <p class="pitch">Lists become <b>missions</b>; tasks are countdown rockets on a timeline. Drag a task up the launchpad to mark "today"; watch it lift off when checked.</p>
+      <ul>
+        <li>Due dates as <em>orbital decay</em> — tasks dim & redden as they overrun</li>
+        <li>Priority = altitude on the launchpad column</li>
+        <li>"Streak" trail glow for daily recurring tasks</li>
+        <li>Weekly review = constellation of completed missions, exportable as Notes</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">P</span><h3>Pomodoro — <em style="font-style:normal;color:var(--text);font-weight:300">Solar Cycle</em></h3><span class="tag">Productivity</span></div>
+      <p class="pitch">Focus session = <b>day</b>. Break = <b>night</b>. The whole shell theme literally shifts: stars come out during breaks, sunrise gradient at session start. Treats focus as a daily rhythm, not a stopwatch.</p>
+      <ul>
+        <li>Session ring orbits the dock; tap any app to attach the timer to it</li>
+        <li>4-cycle "season" view — your week as four planetary loops</li>
+        <li>Optional ambient: deep-space drone ↔ solar wind</li>
+        <li>Auto-mute notifications during focus, restored at break</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">C</span><h3>Calculator — <em style="font-style:normal;color:var(--text);font-weight:300">Tape</em></h3><span class="tag">Utility</span></div>
+      <p class="pitch">Always-visible <b>scrollable tape</b> on the right; every line is editable and re-runs the chain. Inline unit conversion (<code style="color:var(--accent)">12 mi in km</code>), currency (<code style="color:var(--accent)">100 USD in SYP</code>), date math (<code style="color:var(--accent)">today + 90d</code>).</p>
+      <ul>
+        <li>Variable assignment: <code style="color:var(--accent)">tax = 0.16</code></li>
+        <li>Hex grid keypad (the brand made literal)</li>
+        <li>Tape auto-saves to Notes as a "calc journal"</li>
+        <li>Programmer / scientific modes via swipe</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">B</span><h3>Browser — <em style="font-style:normal;color:var(--text);font-weight:300">Wormholes</em></h3><span class="tag">Utility</span></div>
+      <p class="pitch">Bookmarks aren't a folder tree — they're <b>portals</b> arranged on a star map. Drag related sites near each other to form clusters. Recently-visited sites have a fading trail.</p>
+      <ul>
+        <li>Tab groups become shared orbits</li>
+        <li>Reader mode strips chrome and renders into the cosmic palette</li>
+        <li>"Send to Notes" pulls highlights as star-node quotes</li>
+        <li>Per-site favicon hex frames everywhere — consistency win</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">F</span><h3>Files — <em style="font-style:normal;color:var(--text);font-weight:300">The Vault</em></h3><span class="tag">Utility</span></div>
+      <p class="pitch">A virtual FS rendered as a <b>hex honeycomb</b>. Each cell is a folder; nest by zooming in. Files float as small hex coins; drag-stack to create folders.</p>
+      <ul>
+        <li>Universal preview pane: text, image, audio, PDF — same teal frame</li>
+        <li>Smart "rooms": Recent / Pinned / Heavy / Forgotten</li>
+        <li>Drag any file onto Notes/Todo/Browser dock icons → opens inside</li>
+        <li>Storage usage as a fuel gauge, not a percentage</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">S</span><h3>Settings — <em style="font-style:normal;color:var(--text);font-weight:300">Mission Console</em></h3><span class="tag">System</span></div>
+      <p class="pitch">Settings as a <b>spaceship console</b>. Toggles are physical-feeling switches; every change shows a 1-line confirmation in the status pill. Wallpapers preview live behind a portal cutout.</p>
+      <ul>
+        <li>"Quick rituals": one-tap night mode, focus mode, weekend mode</li>
+        <li>Privacy panel front and center — show <em>what doesn't leave the device</em></li>
+        <li>Sync diagnostics with timestamps and chunk counts (devs love this)</li>
+        <li>Easter egg: long-press the YancoTab logo to flip the whole shell upside-down</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">M</span><h3>Maps — <em style="font-style:normal;color:var(--text);font-weight:300">Atlas</em></h3><span class="tag">Utility</span></div>
+      <p class="pitch">Dark cosmic map style — teal roads, violet water, amber landmarks. Search a city → it lights up with current weather, time, and a "send to Clock world list" action.</p>
+      <ul>
+        <li>Layers: Streets / Stars (light-pollution overlay) / Weather / Air</li>
+        <li>"Now" pin shows your local sunrise/sunset arc on hover</li>
+        <li>Save places into hex-coin "pinboards"</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">P</span><h3>Photos — <em style="font-style:normal;color:var(--text);font-weight:300">Lightbox</em></h3><span class="tag">Media</span></div>
+      <p class="pitch">Photos sit in a <b>hex grid lightbox</b> with edge-to-edge focus mode. Auto-organized by month → constellation thumbnails on the timeline scrubber.</p>
+      <ul>
+        <li>Drop into Notes as inline cards</li>
+        <li>One-tap "set as wallpaper" with cosmic vignette</li>
+        <li>Faces and places clusters (local-only ML, optional)</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">P</span><h3>PDF Reader — <em style="font-style:normal;color:var(--text);font-weight:300">Codex</em></h3><span class="tag">Media</span></div>
+      <p class="pitch">Two-page spread on dark canvas with teal selection. Highlight → "send to Notes as quote-star". Outline = vertical orbit on the left edge.</p>
+      <ul>
+        <li>Inline calculator + dictionary on selection</li>
+        <li>Reading-streak heatmap in the title bar</li>
+        <li>Picture-in-picture mini-window for cross-referencing</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">S</span><h3>Solitaire — <em style="font-style:normal;color:var(--text);font-weight:300">Cosmic Felt</em></h3><span class="tag">Game</span></div>
+      <p class="pitch">Same Klondike rules; <b>cards float on starfield felt</b>, gentle parallax. Suits keep the iconic red/black, but with subtle teal edge-glow on legal moves.</p>
+      <ul>
+        <li>Daily "constellation deal" with seed code — share & compete</li>
+        <li>Win animation: cards fly off as a comet shower</li>
+        <li>Stats orbit: streak, best time, perfect-game count</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">S</span><h3>Spider — <em style="font-style:normal;color:var(--text);font-weight:300">Webwork</em></h3><span class="tag">Game</span></div>
+      <p class="pitch">Same engine as Solitaire, web-themed. Subtle <b>silver thread</b> auto-draws between cards in a valid sequence — visual tutoring without being a hint.</p>
+      <ul>
+        <li>1 / 2 / 4-suit difficulty as orbital "zones"</li>
+        <li>Undo with a faint phantom-card trail</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">M</span><h3>Mahjong — <em style="font-style:normal;color:var(--text);font-weight:300">Stoneworks</em></h3><span class="tag">Game</span></div>
+      <p class="pitch">Real ivory tile lighting, every match emits a <b>teal ripple</b> and a soft chime. Layouts unlock as constellations on a star map.</p>
+      <ul>
+        <li>"Pair lens" — toggle to dim non-matching tiles, accessibility win</li>
+        <li>Hint = a faint orbital line between two tiles</li>
+        <li>Daily layout, share seed</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">M</span><h3>Memory — <em style="font-style:normal;color:var(--text);font-weight:300">Mirror</em></h3><span class="tag">Game</span></div>
+      <p class="pitch">When you flip a card, its <b>twin briefly glints</b> in your peripheral vision — rewards observation, not luck. Difficulty knob disables this.</p>
+      <ul>
+        <li>Card backs are constellations; faces are app icons (a brand love-letter)</li>
+        <li>Time-attack vs. zen modes</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">S</span><h3>Snake — <em style="font-style:normal;color:var(--text);font-weight:300">Comet</em></h3><span class="tag">Game</span></div>
+      <p class="pitch">Snake is a <b>comet with a fading trail</b>. Apples are stars; eat them to grow. The world wraps; speed scales with score; trail length is your lifeline.</p>
+      <ul>
+        <li>Power-ups as planets (x2 score / slow-mo / shield)</li>
+        <li>Boss every 1000 pts: a black hole that pulls you</li>
+        <li>Leaderboard "all-time orbit"</li>
+      </ul>
+    </div>
+
+    <div class="road-card">
+      <div class="road-head"><span class="mark">T</span><h3>Tic-Tac-Toe + Tarneeb + Trix — <em style="font-style:normal;color:var(--text);font-weight:300">The Table</em></h3><span class="tag">Games</span></div>
+      <p class="pitch">All three table games share a <b>circular cosmic table</b> shell — same chrome, same chip vocabulary. Tarneeb/Trix get a <b>real Levantine flourish</b>: Arabic court-card art option, Eastern numerals toggle, classic café green felt as an alt theme.</p>
+      <ul>
+        <li>Personality AI opponents with names & quirks ("Abu Khalil bids cautiously")</li>
+        <li>Bid tracker / trick history orbits the table edge</li>
+        <li>Local 2-player passing-the-laptop mode with privacy curtain</li>
+        <li>Tic-Tac-Toe gets a 5×5 / Ultimate variant for veterans</li>
+      </ul>
+    </div>
+
+    <div class="road-card" style="grid-column: 1 / -1;">
+      <div class="road-head"><span class="mark">★</span><h3>Cross-app moves — <em style="font-style:normal;color:var(--text);font-weight:300">things only YancoTab can do</em></h3><span class="tag">Shell</span></div>
+      <p class="pitch">The reason this is a desktop, not 18 separate pages.</p>
+      <ul>
+        <li><b>Drag-anywhere</b>: drop a Photo onto Notes (inline), onto Files (saved), onto Browser (search by image), onto Wallpaper (set instantly)</li>
+        <li><b>Hex stickers</b>: a shared 8-color sticker palette colors notes, todos, files, places, tabs — one mental model, one keyboard shortcut</li>
+        <li><b>Mission mode</b>: pick an app + Pomodoro + a playlist; shell dims, dock collapses, "do not disturb" pill appears, status bar shows mission countdown</li>
+        <li><b>Daily ritual</b> on every new tab: 1-line "good morning, here's your day" — weather + first todo + first calendar item, all from existing apps</li>
+        <li><b>Universal ⌘K</b> over <em>everything</em>: apps, notes, todos, files, calc expressions, weather queries, world clocks. One bar to rule them all</li>
+        <li><b>Export-as-portal</b>: share any state (a Tarneeb game seed, a Solitaire deal, a Snake replay, a note) as a tiny URL that opens that exact state in another YancoTab</li>
+      </ul>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+  // Live orrery
+  (function() {
+    const ringSec = document.getElementById('ring-sec');
+    const ringMin = document.getElementById('ring-min');
+    const ringHr  = document.getElementById('ring-hr');
+    const ringDom = document.getElementById('ring-dom');
+    const ringMo  = document.getElementById('ring-mo');
+    const orrTime = document.getElementById('orr-time');
+    const orrDay  = document.getElementById('orr-day');
+    const orrMeta = document.getElementById('orr-meta');
+    const cityPins = document.getElementById('city-pins');
+    const hourLabels = document.getElementById('hour-labels');
+    const days = ['SUN','MON','TUE','WED','THU','FRI','SAT'];
+    const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+    // Static second tick marks (60 around outer ring, every 5 thicker)
+    const secTicks = (() => {
+      let g = '';
+      for (let i = 0; i < 60; i++) {
+        const a = (i / 60) * Math.PI * 2 - Math.PI / 2;
+        const r1 = 100, r2 = (i % 5 === 0) ? 94 : 97;
+        const x1 = Math.cos(a) * r1, y1 = Math.sin(a) * r1;
+        const x2 = Math.cos(a) * r2, y2 = Math.sin(a) * r2;
+        const stroke = (i % 5 === 0) ? 'rgba(0,229,193,0.7)' : 'rgba(255,255,255,0.18)';
+        const w = (i % 15 === 0) ? 1.2 : (i % 5 === 0) ? 0.9 : 0.5;
+        g += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${stroke}" stroke-width="${w}" stroke-linecap="round"/>`;
+      }
+      return g;
+    })();
+    ringSec.querySelector('g.orr-tick').innerHTML = secTicks;
+    // The seconds hand: a thin teal triangle pointing to current second on the ring (we rotate the whole ring instead)
+    const secHand = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    secHand.setAttribute('x1', '0'); secHand.setAttribute('y1', '-100');
+    secHand.setAttribute('x2', '0'); secHand.setAttribute('y2', '-110');
+    secHand.setAttribute('stroke', 'var(--accent)');
+    secHand.setAttribute('stroke-width', '1.8');
+    secHand.setAttribute('stroke-linecap', 'round');
+    ringSec.appendChild(secHand);
+
+    // Hour numerals 12 / 3 / 6 / 9 (fixed, not rotating)
+    const labels = [
+      [0, -76, '12'], [76, 0, '03'], [0, 76, '06'], [-76, 0, '09']
+    ];
+    let lblHTML = '';
+    labels.forEach(([x, y, t]) => {
+      lblHTML += `<text x="${x}" y="${y + 3}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="6.5" fill="rgba(255,255,255,0.25)">${t}</text>`;
+    });
+    hourLabels.innerHTML = lblHTML;
+
+    // City pins (static positions on outer ring — one per city based on its UTC offset relative to "you")
+    const cities = [
+      { name: 'DAM', off: 0, color: 'var(--accent)' },
+      { name: 'LON', off: -2 },
+      { name: 'NYC', off: -7 },
+      { name: 'TOK', off: 6 },
+      { name: 'SYD', off: 7 },
+      { name: 'SFO', off: -10 },
+    ];
+    let pinsHTML = '';
+    cities.forEach(c => {
+      const a = ((c.off / 24) * Math.PI * 2) - Math.PI / 2;
+      const r = 106;
+      const x = Math.cos(a) * r, y = Math.sin(a) * r;
+      const fill = c.color || 'rgba(155,123,255,0.6)';
+      pinsHTML += `<g><circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="2.4" fill="${fill}"/><text x="${(x*1.08).toFixed(2)}" y="${(y*1.08+1.5).toFixed(2)}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="5.5" fill="${fill}" letter-spacing="0.5">${c.name}</text></g>`;
+    });
+    cityPins.innerHTML = pinsHTML;
+
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function tick() {
+      const d = new Date();
+      const ms = d.getMilliseconds();
+      const s = d.getSeconds() + ms / 1000;
+      const m = d.getMinutes() + s / 60;
+      const h = (d.getHours() % 12) + m / 60;
+      const dom = d.getDate() - 1;
+      const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+      const mo = d.getMonth() + dom / dim;
+
+      ringSec.style.transform = `rotate(${(s / 60) * 360}deg)`;
+      ringMin.style.transform = `rotate(${(m / 60) * 360}deg)`;
+      ringHr.style.transform  = `rotate(${(h / 12) * 360}deg)`;
+      ringDom.style.transform = `rotate(${(dom / dim) * 360}deg)`;
+      ringMo.style.transform  = `rotate(${(mo / 12) * 360}deg)`;
+
+      orrTime.innerHTML = `${pad(d.getHours())}:${pad(d.getMinutes())}<span class="s">·${pad(d.getSeconds())}</span>`;
+      orrDay.textContent = `${days[d.getDay()]} · ${months[d.getMonth()]} ${pad(d.getDate())}`;
+      const dayOfYear = Math.floor((d - new Date(d.getFullYear(),0,0)) / 86400000);
+      const week = Math.ceil(dayOfYear / 7);
+      orrMeta.textContent = `DAY ${dayOfYear} · WEEK ${week} · SUN 04:48 / 17:42`;
+    }
+    tick(); setInterval(tick, 1000);
+  })();
+
+  // Tab toggles
+  document.querySelectorAll('.titlebar').forEach(tb => {
+    const tabs = tb.querySelectorAll('.tab');
+    tabs.forEach(t => t.addEventListener('click', () => {
+      tabs.forEach(o => o.classList.remove('active'));
+      t.classList.add('active');
+    }));
+  });
+</script>
+
+</body>
+</html>

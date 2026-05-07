@@ -423,6 +423,13 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
+    yancotab_tarneeb_history_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { hands: [] },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.hands),
+    },
 
     // ── Trix ──
     yancotab_trix: {
@@ -431,6 +438,25 @@ const REGISTRY = {
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_trix_history_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { hands: [] },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.hands),
+    },
+
+    // ── Table salon (Tarneeb + Trix shared) ──
+    // Banter ring buffer state — per-session counter + last-spoken cache so
+    // banter never repeats within a window. Volatile by design: a fresh
+    // browser session should feel newly chatty.
+    yancotab_table_banter_seed: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: 0,
+        validate: (v) => Number.isFinite(v),
     },
 
     // ── Maps ──

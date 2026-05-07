@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Solitaire — Cosmic Felt</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="_shared.css">
+<style>
+.felt { display: grid; grid-template-columns: 1fr 260px; min-height: 660px; }
+.felt-stage { position: relative; padding: 24px 28px; overflow: hidden;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(var(--accent-rgb), 0.06), transparent 70%); }
+.felt-side { padding: 20px; border-left: 1px solid var(--border-light); display: flex; flex-direction: column; gap: 14px; }
+
+.top-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.top-bar .stat { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); letter-spacing: 0.08em; }
+.top-bar .stat b { color: var(--accent); }
+.top-bar .seed { margin-left: auto; padding: 5px 10px; border-radius: 7px; border: 1px solid var(--border-light);
+  background: rgba(var(--accent-rgb), 0.05); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.06em; }
+
+/* Foundations + stock + waste row */
+.upper { display: grid; grid-template-columns: auto auto 1fr auto auto auto auto; gap: 10px; margin-bottom: 26px; align-items: start; }
+.foundation { width: 60px; height: 84px; border-radius: 7px; border: 1px dashed rgba(255,255,255,0.12); display: grid; place-items: center;
+  font-family: 'Georgia', serif; font-size: 28px; color: var(--text-dim); background: rgba(0,0,0,0.18); }
+.foundation.has { border-style: solid; border-color: var(--border-light); background: linear-gradient(180deg, #f4f0ea, #d4cdc0); color: #c5152e; }
+.foundation.has.black { color: #0c0c0c; }
+
+.card {
+  width: 60px; height: 84px; border-radius: 7px;
+  background: linear-gradient(180deg, #f4f0ea, #d4cdc0);
+  position: relative; padding: 6px 8px;
+  font-family: 'Georgia', serif; color: #0c0c0c;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.08);
+  cursor: grab;
+}
+.card.red { color: #c5152e; }
+.card.back {
+  background:
+    repeating-linear-gradient(45deg, rgba(0,229,193,0.15), rgba(0,229,193,0.15) 4px, transparent 4px, transparent 8px),
+    radial-gradient(circle at 50% 50%, #0a3a5a, #051a2e 70%, #020a14);
+  color: transparent;
+}
+.card.back::after { content: '⌘'; position: absolute; inset: 0; display: grid; place-items: center; color: var(--accent); font-size: 22px; opacity: 0.7; }
+
+.card .rank { font-size: 14px; line-height: 1; font-weight: 500; }
+.card .suit-tl { position: absolute; left: 6px; top: 18px; font-size: 11px; }
+.card .suit-c { position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%); font-size: 26px; }
+.card .rank-br { position: absolute; right: 6px; bottom: 6px; font-size: 14px; transform: rotate(180deg); font-weight: 500; }
+.card .suit-br { position: absolute; right: 6px; bottom: 18px; font-size: 11px; transform: rotate(180deg); }
+
+.card.legal { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.6), 0 0 16px rgba(var(--accent-rgb), 0.4), 0 2px 6px rgba(0,0,0,0.4); }
+
+/* Tableau columns */
+.tableau { display: grid; grid-template-columns: repeat(7, 60px); gap: 14px; justify-content: center; }
+.col { position: relative; min-height: 300px; }
+.col .card { position: absolute; left: 0; }
+.col .card:nth-child(1) { top: 0; }
+.col .card:nth-child(2) { top: 22px; }
+.col .card:nth-child(3) { top: 44px; }
+.col .card:nth-child(4) { top: 66px; }
+.col .card:nth-child(5) { top: 88px; }
+.col .card:nth-child(6) { top: 110px; }
+.col .card:nth-child(7) { top: 132px; }
+
+.stock-pile { position: relative; }
+.stock-pile .card { position: absolute; }
+.stock-pile .card:nth-child(2) { top: -2px; left: -2px; }
+.stock-pile .card:nth-child(3) { top: -4px; left: -4px; }
+
+.side-h { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: var(--text-dim); letter-spacing: 0.16em; text-transform: uppercase; margin: 0 0 8px; }
+
+.stat-orbit { padding: 14px; border-radius: 12px; background: rgba(0,0,0,0.2); border: 1px solid var(--border-light); }
+.stat-row { display: flex; justify-content: space-between; align-items: baseline; padding: 5px 0; border-bottom: 1px dashed rgba(255,255,255,0.04); }
+.stat-row:last-child { border-bottom: none; }
+.stat-row .k { font-size: 12px; color: var(--text); }
+.stat-row .v { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-bright); }
+.stat-row .v.accent { color: var(--accent); }
+
+.btn-row { display: flex; flex-direction: column; gap: 6px; }
+.btn-c { padding: 9px 12px; border-radius: 8px; border: 1px solid var(--border-light); background: rgba(0,0,0,0.18);
+  color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+  cursor: pointer; transition: all var(--cinematic); text-align: left; }
+.btn-c:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.3); }
+.btn-c.primary { background: linear-gradient(180deg, var(--accent-bright), var(--accent)); color: #001a14; border-color: rgba(var(--accent-rgb), 0.5); }
+.btn-c.primary:hover { color: #001a14; }
+
+.daily { padding: 14px; border-radius: 12px; background: linear-gradient(160deg, rgba(var(--accent-rgb),0.16), rgba(var(--accent-rgb),0.04) 40%, rgba(8,18,32,0.6) 100%);
+  border: 1px solid rgba(var(--accent-rgb), 0.25); }
+.daily .h { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--accent); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 4px; }
+.daily .seed-code { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-bright); margin-bottom: 8px; }
+.daily .meta { font-size: 11px; color: var(--text); line-height: 1.5; }
+
+/* Comet trail for win-state preview */
+.comet { position: absolute; right: -20px; top: 40px; pointer-events: none; opacity: 0.4; }
+</style></head>
+<body>
+<div class="cosmos" aria-hidden="true"><div class="nebula"></div><div class="stars"></div></div>
+
+<header class="page-head">
+  <h1>Solitaire — <b>Cosmic Felt</b></h1>
+  <span class="meta">Klondike · daily seed · teal edge-glow on legal moves</span>
+  <a class="back" href="../YancoTab Innovation Lab.html">← lab</a>
+</header>
+
+<main>
+<div class="app-frame">
+  <div class="titlebar">
+    <div class="traffic"><i></i><i></i><i></i></div>
+    <div class="name"><b>solitaire</b> / cosmic felt</div>
+    <div class="tabs"><span class="tab active">Klondike</span><span class="tab">Daily</span><span class="tab">Stats</span></div>
+  </div>
+
+  <div class="felt">
+    <div class="felt-stage">
+      <div class="top-bar">
+        <span class="stat">⏱ <b>04:18</b></span>
+        <span class="stat">moves <b>27</b></span>
+        <span class="stat">score <b>410</b></span>
+        <span class="seed">SEED · APR-26-Q3</span>
+      </div>
+
+      <div class="upper">
+        <div class="stock-pile">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+        </div>
+        <div class="card legal"><span class="rank">7</span><span class="suit-tl">♠</span><span class="suit-c">♠</span><span class="rank-br">7</span><span class="suit-br">♠</span></div>
+        <span></span>
+        <div class="foundation has"><span style="font-size:14px;color:#c5152e">A♥</span></div>
+        <div class="foundation has black"><span style="font-size:14px">2♣</span></div>
+        <div class="foundation"><span>♦</span></div>
+        <div class="foundation"><span>♠</span></div>
+      </div>
+
+      <div class="tableau">
+        <div class="col">
+          <div class="card red"><span class="rank">K</span><span class="suit-tl">♥</span><span class="suit-c">♥</span><span class="rank-br">K</span><span class="suit-br">♥</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card"><span class="rank">Q</span><span class="suit-tl">♣</span><span class="suit-c">♣</span><span class="rank-br">Q</span><span class="suit-br">♣</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card red"><span class="rank">J</span><span class="suit-tl">♦</span><span class="suit-c">♦</span><span class="rank-br">J</span><span class="suit-br">♦</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card"><span class="rank">10</span><span class="suit-tl">♠</span><span class="suit-c">♠</span><span class="rank-br">10</span><span class="suit-br">♠</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card red legal"><span class="rank">9</span><span class="suit-tl">♥</span><span class="suit-c">♥</span><span class="rank-br">9</span><span class="suit-br">♥</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card"><span class="rank">8</span><span class="suit-tl">♣</span><span class="suit-c">♣</span><span class="rank-br">8</span><span class="suit-br">♣</span></div>
+        </div>
+        <div class="col">
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card back"></div>
+          <div class="card red"><span class="rank">3</span><span class="suit-tl">♦</span><span class="suit-c">♦</span><span class="rank-br">3</span><span class="suit-br">♦</span></div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="felt-side">
+      <div class="daily">
+        <div class="h">★ Today's deal</div>
+        <div class="seed-code">CSF-2026-0506-9F4A</div>
+        <div class="meta">Solved by <b style="color:var(--accent)">2,418</b> players · best <b style="color:var(--accent)">02:14</b><br>Share seed → friends play same deal</div>
+      </div>
+
+      <div class="stat-orbit">
+        <div class="side-h">Stats orbit</div>
+        <div class="stat-row"><span class="k">Win rate</span><span class="v accent">68%</span></div>
+        <div class="stat-row"><span class="k">Best time</span><span class="v">01:48</span></div>
+        <div class="stat-row"><span class="k">Streak</span><span class="v accent">12</span></div>
+        <div class="stat-row"><span class="k">Perfect</span><span class="v">7</span></div>
+        <div class="stat-row"><span class="k">Played</span><span class="v">238</span></div>
+      </div>
+
+      <div>
+        <h4 class="side-h">Actions</h4>
+        <div class="btn-row">
+          <button class="btn-c primary">↺ Undo · ⌘Z</button>
+          <button class="btn-c">⌖ Hint · orbital line</button>
+          <button class="btn-c">⤴ Auto-finish</button>
+          <button class="btn-c">↗ Share seed</button>
+          <button class="btn-c" style="color:var(--card-red)">⌫ Restart deal</button>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);line-height:1.5">
+        Win → cards fly off as a comet shower · ⌘D for daily challenge
+      </div>
+    </aside>
+  </div>
+</div>
+</main>
+</body></html>

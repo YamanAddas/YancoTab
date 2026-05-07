@@ -131,6 +131,17 @@ export function tarneebReducer(prev, action) {
         state.turn = state.leader;
         state.message = 'Play tricks';
         events.push({ type: 'bids:complete', bids: { ...state.bids }, total: state.bidTotal });
+
+        // Banter trigger: who won the bid and at what level.
+        let topSeat = null;
+        let topBid = 0;
+        for (const s of SEATS) {
+          const b = Number(state.bids[s] || 0);
+          if (b > topBid) { topBid = b; topSeat = s; }
+        }
+        if (topSeat) {
+          events.push({ type: 'bid:total', winner: topSeat, top: topBid, total: state.bidTotal });
+        }
         return { state, events };
       }
 

@@ -14,7 +14,8 @@
       "Bash(git commit -m ':*)",
       "Bash(git push:*)",
       "mcp__Claude_Preview__preview_start",
-      "Bash(node --test tests/solitaire-engine.test.js)"
+      "Bash(node --test tests/solitaire-engine.test.js)",
+      "WebFetch(domain:api.anthropic.com)"
     ]
   }
 }
