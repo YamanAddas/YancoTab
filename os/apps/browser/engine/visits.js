@@ -62,15 +62,32 @@ export const HISTORY_LIMIT = 50;
 
 export function recordVisit(state, url, now = Date.now()) {
   if (!state || typeof url !== 'string' || !url) return state;
+  const target = canonicalUrl(url);
   const next = {
     ...state,
-    bookmarks: state.bookmarks.map((b) => (b.url === url ? bumpVisit(b, now) : b)),
+    bookmarks: state.bookmarks.map((b) => (canonicalUrl(b.url) === target ? bumpVisit(b, now) : b)),
     history: [
       { url, host: hostOf(url), ts: now },
       ...state.history.filter((v) => v.url !== url || v.ts < now - MIN),
     ].slice(0, HISTORY_LIMIT),
   };
   return next;
+}
+
+/**
+ * canonicalUrl(url) — normalize for matching: lowercase host, strip
+ * trailing slash on root, drop default ports. Returns input unchanged
+ * if it can't be parsed (so non-URL strings still compare by identity).
+ */
+export function canonicalUrl(url) {
+  try {
+    const u = new URL(String(url));
+    const path = u.pathname === '/' ? '' : u.pathname.replace(/\/$/, '');
+    const host = u.hostname.toLowerCase();
+    return `${u.protocol}//${host}${path}${u.search}${u.hash}`;
+  } catch {
+    return String(url);
+  }
 }
 
 /**
