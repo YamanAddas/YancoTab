@@ -1,30 +1,29 @@
 /**
- * CalculatorApp — "Tape" cosmic redesign (DOM rebuild).
- *
- * Two-column layout: hex keypad on the left, live tape on the right.
- * Every successful calculation appends a tape line {ts, expr, result}
- * which persists across sessions. Replaces the old popup history.
- *
- * View    in os/apps/calculator/view.js (DOM builders + constants).
- * Tape IO in os/apps/calculator/tape.js (clipboard, csv, save-to-Notes).
- *
- * Storage:
- *   • Canonical key  yancotab_calculator_v2  ({angleMode, tape})
- *   • One-shot migration from yancotab_calculator.history
+ * CalculatorApp — "Tape" redesign shell. Coordinates state, dispatch,
+ * rendering. Modes: Standard / Scientific (2nd-toggle) / Programmer
+ * (multi-base) / Date (today ± Nd). Pure helpers in calculator/*.js.
+ * Storage: yancotab_calculator_v3 (auto-migrates v2 and legacy v1).
  */
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import {
-  buildView, renderTapeLines,
-  SCI_UNARY, MODE_DEFS, TAB_DEFS, fmtOp,
+  buildView, renderTapeLines, renderVarsRow, renderBasePanel, relabelSciKeys,
+  renderDisplay, renderDateMode,
 } from './calculator/view.js';
 import {
   copyTape, exportTapeCsv, saveTapeToNotes,
 } from './calculator/tape.js';
-
-const STORAGE_KEY = 'yancotab_calculator_v2';
-const LEGACY_KEY  = 'yancotab_calculator';
-const MAX_TAPE = 50;
+import { renderHistory } from './calculator/historyView.js';
+import { renderNotesExport } from './calculator/notesExportView.js';
+import {
+  normalizeNumber, applyBinaryOp, fmtOp,
+  SCI_FNS, actionFor,
+  addDaysToToday, formatDateLabel,
+} from './calculator/engine.js';
+import {
+  loadCalculatorState, saveCalculatorState, MAX_TAPE,
+} from './calculator/persistence.js';
+import { promptDefineVar } from './calculator/vars.js';
 
 function css(href) {
   const l = document.createElement('link');
@@ -40,8 +39,14 @@ export class CalculatorApp extends App {
     this._resetState();
     this._parenStack = [];
     this._tape = [];
+    this._vars = {};
     this._mode = 'standard';
+    this._secondMode = false;
+    this._programmerBase = 'dec';
     this._activeTab = 'tape';
+    this._dateDelta = 0;     // session-only — magnitude of days
+    this._dateSign = '+';    // '+' or '-' for date mode
+    this._dateResultLabel = '';
     this._styleLinks = [];
     this._onKeyDown = null;
   }
@@ -68,9 +73,14 @@ export class CalculatorApp extends App {
       activeTab: this._activeTab,
       mode: this._mode,
       handlers: {
-        dispatch: (action, value) => this._dispatch(action, value),
-        setTab:   (id) => this._setActiveTab(id),
-        setMode:  (id, soon) => this._setMode(id, soon),
+        dispatch:    (action, value) => this._dispatch(action, value),
+        setTab:      (id) => this._setActiveTab(id),
+        setMode:     (id) => this._setMode(id),
+        setProgrammerBase: (id) => this._setProgrammerBase(id),
+        toggleSecond: () => this._toggleSecond(),
+        defineVar:   () => this._defineVar(),
+        useVar:      (n) => this._useVar(n),
+        deleteVar:   (n) => this._deleteVar(n),
         saveToNotes: () => saveTapeToNotes(this._tape, this.kernel),
         copyAll:     () => copyTape(this._tape, this.kernel),
         exportCsv:   () => exportTapeCsv(this._tape, this.kernel),
@@ -79,42 +89,34 @@ export class CalculatorApp extends App {
     });
     this._refs = refs;
     this.root.appendChild(frame);
+
+    // Apply initial mode/2nd state to the dom
+    this._applyModeClass();
+    if (this._secondMode) relabelSciKeys(refs.keyEls, true);
     this._renderAll();
     this._bindKeyboard();
   }
 
-  // ─── Persistence ────────────────────────────────────────────
-
   _loadPersisted() {
-    const saved = this.kernel.storage?.load(STORAGE_KEY);
-    if (saved && typeof saved === 'object') {
-      if (saved.angleMode === 'deg' || saved.angleMode === 'rad') this.state.angleMode = saved.angleMode;
-      if (Array.isArray(saved.tape)) this._tape = saved.tape.slice(0, MAX_TAPE);
-      return;
-    }
-    // One-shot legacy migration from {angleMode, history:[{expression, result}]}
-    const legacy = this.kernel.storage?.load(LEGACY_KEY);
-    if (legacy && typeof legacy === 'object') {
-      if (legacy.angleMode === 'deg' || legacy.angleMode === 'rad') this.state.angleMode = legacy.angleMode;
-      if (Array.isArray(legacy.history)) {
-        this._tape = legacy.history.map((h) => ({
-          ts: 0,
-          expr: String(h?.expression ?? ''),
-          result: String(h?.result ?? ''),
-        })).filter((t) => t.expr && t.result).slice(0, MAX_TAPE);
-      }
-      this._persist();
-    }
+    const s = loadCalculatorState(this.kernel);
+    this.state.angleMode = s.angleMode;
+    this._tape = s.tape;
+    this._vars = s.vars;
+    this._mode = s.mode;
+    this._secondMode = s.secondMode;
+    this._programmerBase = s.programmerBase;
   }
 
   _persist() {
-    this.kernel.storage?.save(STORAGE_KEY, {
+    saveCalculatorState(this.kernel, {
       angleMode: this.state.angleMode,
-      tape: this._tape.slice(0, MAX_TAPE),
+      tape: this._tape,
+      vars: this._vars,
+      mode: this._mode,
+      secondMode: this._secondMode,
+      programmerBase: this._programmerBase,
     });
   }
-
-  // ─── Tab + mode UI ──────────────────────────────────────────
 
   _setActiveTab(id) {
     if (this._activeTab === id) return;
@@ -122,38 +124,113 @@ export class CalculatorApp extends App {
     for (const [tid, elx] of Object.entries(this._refs.tabEls)) {
       elx.classList.toggle('is-active', tid === id);
     }
-    if (id === 'history' || id === 'notes') {
-      const label = TAB_DEFS.find((t) => t.id === id).label;
-      this.kernel.emit('toast', { message: `${label} view coming soon`, type: 'info' });
-      setTimeout(() => this._setActiveTab('tape'), 800);
+    this._refs.tapeHeadLabel.textContent = id === 'history' ? 'History' : id === 'notes' ? 'Notes export' : 'Tape';
+    this._renderRightPanel();
+  }
+
+  _renderRightPanel() {
+    const { tapeEl, tapeCountEl, tapeHeadDay } = this._refs;
+    if (this._activeTab === 'history') {
+      tapeHeadDay.textContent = 'all days';
+      tapeCountEl.textContent = `${this._tape.length} entries`;
+      renderHistory(tapeEl, this._tape, (r) => this._reuseResult(r));
+    } else if (this._activeTab === 'notes') {
+      tapeHeadDay.textContent = 'saved';
+      tapeCountEl.textContent = '';
+      renderNotesExport(tapeEl, this.kernel);
+    } else {
+      tapeHeadDay.textContent = 'Today';
+      this._renderTape();
     }
   }
 
-  _setMode(id, soon) {
-    if (soon) {
-      const label = MODE_DEFS.find((m) => m.id === id).label;
-      this.kernel.emit('toast', { message: `${label} mode coming soon`, type: 'info' });
-      return;
-    }
+  _setMode(id) {
     if (this._mode === id) return;
     this._mode = id;
     for (const [mid, elx] of Object.entries(this._refs.modeEls)) {
       elx.classList.toggle('is-active', mid === id);
     }
+    this._applyModeClass();
+    if (id !== 'scientific' && this._secondMode) {
+      // Leaving scientific clears the 2nd flag for safety
+      this._secondMode = false;
+      relabelSciKeys(this._refs.keyEls, false);
+      this._refs.sciSecondToggle?.classList.remove('is-active');
+    }
+    if (id === 'date') this._renderDateMode();
+    if (id === 'programmer') this._renderProgrammerMode();
+    this._persist();
   }
 
-  // ─── Keyboard ───────────────────────────────────────────────
+  _applyModeClass() {
+    this._refs.modePanels.dataset.mode = this._mode;
+    this.root.dataset.calcMode = this._mode;
+  }
+
+  _toggleSecond() {
+    this._secondMode = !this._secondMode;
+    this._refs.sciSecondToggle.classList.toggle('is-active', this._secondMode);
+    relabelSciKeys(this._refs.keyEls, this._secondMode);
+    this._persist();
+  }
+
+  _setProgrammerBase(base) {
+    if (this._programmerBase === base) return;
+    this._programmerBase = base;
+    this._renderProgrammerMode();
+    this._persist();
+  }
+
+  _renderProgrammerMode() {
+    if (this._mode !== 'programmer') return;
+    renderBasePanel(this._refs.baseRefs, this.state.current, this._programmerBase);
+  }
+
+  _renderDateMode() {
+    if (this._mode !== 'date') return;
+    renderDateMode(this._refs, {
+      today: formatDateLabel(new Date()),
+      sign: this._dateSign,
+      delta: this._dateDelta,
+      resultLabel: this._dateResultLabel,
+    });
+  }
+
+  async _defineVar() {
+    const r = await promptDefineVar({ kernel: this.kernel, defaultValue: this.state.current });
+    if (!r) return;
+    this._vars[r.name] = r.value;
+    this._appendTape(r.tapeEntry);
+    this._persist();
+    this._renderVars();
+    this._renderTape();
+    this.kernel.emit('toast', { message: `${r.name} stored`, type: 'success' });
+  }
+
+  _useVar(name) {
+    const v = this._vars[name];
+    if (!Number.isFinite(v)) return;
+    this.state.current = normalizeNumber(v);
+    this.state.resetNext = true;
+    this._renderDisplay();
+    this.kernel.emit('toast', { message: `${name} = ${this.state.current}`, type: 'info' });
+  }
+
+  _deleteVar(name) {
+    if (!(name in this._vars)) return;
+    delete this._vars[name];
+    this._persist();
+    this._renderVars();
+    this.kernel.emit('toast', { message: `${name} deleted`, type: 'info' });
+  }
 
   _bindKeyboard() {
     this._onKeyDown = (e) => {
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       const k = e.key;
-      if (k >= '0' && k <= '9') { this.appendNumber(k); e.preventDefault(); }
-      else if (k === '.') { this.appendDot(); e.preventDefault(); }
-      else if (k === '+') { this.setOperator('+'); e.preventDefault(); }
-      else if (k === '-') { this.setOperator('-'); e.preventDefault(); }
-      else if (k === '*') { this.setOperator('*'); e.preventDefault(); }
-      else if (k === '/') { this.setOperator('/'); e.preventDefault(); }
+      if (k >= '0' && k <= '9') { this.appendNumber(k); e.preventDefault(); return; }
+      if (k === '.') { this.appendDot(); e.preventDefault(); }
+      else if (k === '+' || k === '-' || k === '*' || k === '/') { this.setOperator(k); e.preventDefault(); }
       else if (k === 'Enter' || k === '=') { this.calculate(); e.preventDefault(); }
       else if (k === 'Escape') { this.clear(); e.preventDefault(); }
       else if (k === 'Backspace') { this._backspace(); e.preventDefault(); }
@@ -169,10 +246,18 @@ export class CalculatorApp extends App {
     this._renderDisplay();
   }
 
-  // ─── Input dispatch ─────────────────────────────────────────
-
   _dispatch(action, value) {
     if (this.state.current === 'Error' && action !== 'clear') this.clear();
+    // Date mode reroutes +/− to direction setters and = to date math
+    if (this._mode === 'date') {
+      if (action === 'op' && (value === '+' || value === '-')) {
+        this._dateSign = value;
+        this._dateDelta = Math.abs(Number(this.state.current)) || 0;
+        this._renderDateMode();
+        return;
+      }
+      if (action === 'eval') { this._evalDateMode(); return; }
+    }
     switch (action) {
       case 'num':     this.appendNumber(value); break;
       case 'dot':     this.appendDot(); break;
@@ -182,7 +267,7 @@ export class CalculatorApp extends App {
       case 'negate':  this.negate(); break;
       case 'percent': this.percent(); break;
       case 'paren':   value === '(' ? this._openParen() : this._closeParen(); break;
-      case 'sci':     this.handleScientific(value); break;
+      case 'sci':     this.handleScientific(actionFor(value, this._secondMode)); break;
       case 'mem':     this.handleMemory(value); break;
     }
   }
@@ -191,6 +276,10 @@ export class CalculatorApp extends App {
     if (this.state.resetNext) { this.state.current = '0'; this.state.resetNext = false; }
     if (this.state.current === '0') this.state.current = num;
     else if (this.state.current.length < 20) this.state.current += num;
+    if (this._mode === 'date') {
+      this._dateDelta = Math.abs(Number(this.state.current)) || 0;
+      this._renderDateMode();
+    }
     this._renderDisplay();
   }
 
@@ -215,18 +304,10 @@ export class CalculatorApp extends App {
     if (!this.state.operator || this.state.previous === null) return;
     const prev = Number(this.state.previous);
     const curr = Number(this.state.current);
-    if (!Number.isFinite(prev) || !Number.isFinite(curr)) { this.setError(); return; }
     const expr = `${this.state.previous} ${fmtOp(this.state.operator)} ${this.state.current}`;
-    let result;
-    switch (this.state.operator) {
-      case '+': result = prev + curr; break;
-      case '-': result = prev - curr; break;
-      case '*': result = prev * curr; break;
-      case '/': if (curr === 0) { this.setError(); return; } result = prev / curr; break;
-      default:  result = curr;
-    }
+    const result = applyBinaryOp(this.state.operator, prev, curr);
     if (!Number.isFinite(result)) { this.setError(); return; }
-    this.state.current = this.normalizeNumber(result);
+    this.state.current = normalizeNumber(result);
     this._appendTape({ ts: Date.now(), expr, result: this.state.current });
     this.state.previous = null;
     this.state.operator = null;
@@ -240,6 +321,11 @@ export class CalculatorApp extends App {
     this.state.operator = null;
     this.state.resetNext = false;
     this._parenStack = [];
+    if (this._mode === 'date') {
+      this._dateDelta = 0;
+      this._dateResultLabel = '';
+      this._renderDateMode();
+    }
     this._renderDisplay();
   }
 
@@ -253,14 +339,20 @@ export class CalculatorApp extends App {
   percent() {
     const curr = Number(this.state.current);
     if (!Number.isFinite(curr)) { this.setError(); return; }
-    this.state.current = this.normalizeNumber(curr / 100);
+    this.state.current = normalizeNumber(curr / 100);
     this.state.resetNext = true;
     this._renderDisplay();
   }
 
-  toRadians(v) { return this.state.angleMode === 'deg' ? (v * Math.PI) / 180 : v; }
-
-  // ─── Parens + scientific ────────────────────────────────────
+  _evalDateMode() {
+    const days = (this._dateSign === '-' ? -1 : 1) * this._dateDelta;
+    const r = addDaysToToday(days);
+    this._dateResultLabel = r.label;
+    const expr = `today ${this._dateSign === '-' ? '−' : '+'} ${this._dateDelta}d`;
+    this._appendTape({ ts: Date.now(), expr, result: r.label });
+    this._renderDateMode();
+    this._renderTape();
+  }
 
   _openParen() {
     this._parenStack.push({
@@ -280,17 +372,9 @@ export class CalculatorApp extends App {
     if (this.state.operator && this.state.previous !== null) {
       const prev = Number(this.state.previous);
       const curr = Number(this.state.current);
-      if (Number.isFinite(prev) && Number.isFinite(curr)) {
-        let r = curr;
-        switch (this.state.operator) {
-          case '+': r = prev + curr; break;
-          case '-': r = prev - curr; break;
-          case '*': r = prev * curr; break;
-          case '/': r = curr === 0 ? NaN : prev / curr; break;
-        }
-        if (!Number.isFinite(r)) { this.setError(); return; }
-        this.state.current = this.normalizeNumber(r);
-      }
+      const r = applyBinaryOp(this.state.operator, prev, curr);
+      if (!Number.isFinite(r)) { this.setError(); return; }
+      this.state.current = normalizeNumber(r);
     }
     const sub = this.state.current;
     const ctx = this._parenStack.pop();
@@ -301,14 +385,21 @@ export class CalculatorApp extends App {
     this._renderDisplay();
   }
 
-  handleScientific(func) {
-    const fn = SCI_UNARY[func];
+  handleScientific(funcId) {
+    const fn = SCI_FNS[funcId];
     if (!fn) return;
+    // Constants (pi, e) ignore the operand
+    if (funcId === 'pi' || funcId === 'e') {
+      this.state.current = normalizeNumber(fn());
+      this.state.resetNext = true;
+      this._renderDisplay();
+      return;
+    }
     const curr = Number(this.state.current);
     if (!Number.isFinite(curr)) { this.setError(); return; }
-    const res = fn(curr, this);
+    const res = fn(curr, this.state);
     if (!Number.isFinite(res)) { this.setError(); return; }
-    this.state.current = this.normalizeNumber(res);
+    this.state.current = normalizeNumber(res);
     this.state.resetNext = true;
     this._renderDisplay();
   }
@@ -319,21 +410,10 @@ export class CalculatorApp extends App {
     else if (action === 'm+' && Number.isFinite(curr)) this.state.memory += curr;
     else if (action === 'm-' && Number.isFinite(curr)) this.state.memory -= curr;
     else if (action === 'mr') {
-      this.state.current = this.normalizeNumber(this.state.memory);
+      this.state.current = normalizeNumber(this.state.memory);
       this.state.resetNext = true;
       this._renderDisplay();
     }
-  }
-
-  // ─── Number formatting + error ──────────────────────────────
-
-  normalizeNumber(value) {
-    if (!Number.isFinite(value)) return 'Error';
-    const safe = Math.abs(value) < 1e-12 ? 0 : value;
-    if (Math.abs(safe) >= 1e12 || (Math.abs(safe) > 0 && Math.abs(safe) < 1e-9)) {
-      return Number(safe).toExponential(8).replace(/\+/, '');
-    }
-    return String(Number.parseFloat(Number(safe).toFixed(12)));
   }
 
   setError() {
@@ -343,8 +423,6 @@ export class CalculatorApp extends App {
     this.state.resetNext = true;
     this._renderDisplay();
   }
-
-  // ─── Tape ───────────────────────────────────────────────────
 
   _appendTape(entry) {
     this._tape.push(entry);
@@ -356,51 +434,55 @@ export class CalculatorApp extends App {
     if (this._tape.length === 0) return;
     this._tape = [];
     this._persist();
-    this._renderTape();
+    this._renderRightPanel();
     this.kernel.emit('toast', { message: 'Tape cleared', type: 'info' });
   }
 
   _reuseResult(result) {
     if (!result || result === 'Error') return;
-    this.state.current = result;
+    // Date results aren't numeric — skip
+    if (/[A-Za-z]/.test(String(result))) return;
+    this.state.current = String(result);
     this.state.resetNext = true;
     this._renderDisplay();
   }
 
-  // ─── Rendering ──────────────────────────────────────────────
-
   _renderAll() {
     this._renderDisplay();
-    this._renderTape();
+    this._renderRightPanel();
+    this._renderVars();
   }
 
   _renderDisplay() {
-    const { exprEl, resultEl, metaEl } = this._refs;
-    const val = this.state.current;
-    resultEl.textContent = val;
-    resultEl.title = val;
-
-    const depth = this._parenStack.length;
-    const prefix = depth > 0 ? '( '.repeat(depth) : '';
-    if (this.state.previous !== null && this.state.operator) {
-      exprEl.textContent = `${prefix}${this.state.previous} ${fmtOp(this.state.operator)}`;
-    } else {
-      exprEl.textContent = depth > 0 ? prefix.trimEnd() : '';
-    }
-
-    metaEl.textContent = '';
-    metaEl.append(
-      'precision ', el('b', {}, '12'),
-      ' · base ', el('b', {}, '10'),
-      ' · ', el('b', {}, this.state.angleMode.toUpperCase()),
-    );
+    renderDisplay(this._refs, {
+      current: this.state.current,
+      previous: this.state.previous,
+      operator: this.state.operator,
+      parenDepth: this._parenStack.length,
+      angleMode: this.state.angleMode,
+      secondMode: this._secondMode,
+      fmtOp,
+    });
+    if (this._mode === 'programmer') this._renderProgrammerMode();
   }
 
   _renderTape() {
     const { tapeEl, tapeCountEl } = this._refs;
     const count = this._tape.length;
     tapeCountEl.textContent = count === 0 ? 'empty' : `${count} line${count === 1 ? '' : 's'}`;
-    renderTapeLines(tapeEl, this._tape, (r) => this._reuseResult(r));
+    if (this._activeTab === 'tape') {
+      renderTapeLines(tapeEl, this._tape, (r) => this._reuseResult(r));
+    } else if (this._activeTab === 'history') {
+      renderHistory(tapeEl, this._tape, (r) => this._reuseResult(r));
+    }
+  }
+
+  _renderVars() {
+    renderVarsRow(this._refs.varsRowEl, this._vars, {
+      defineVar: () => this._defineVar(),
+      useVar:    (n) => this._useVar(n),
+      deleteVar: (n) => this._deleteVar(n),
+    });
   }
 
   destroy() {

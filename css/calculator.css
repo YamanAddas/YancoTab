@@ -497,3 +497,223 @@ body.theme-light .calc-key.is-clr { color: #d0021b; }
 body.theme-light .calc-tape { background: rgba(0,0,0,0.02); }
 body.theme-light .calc-tape-line .expr { color: #1d1d1f; }
 body.theme-light .calc-vars-row { background: rgba(0,0,0,0.03); }
+
+/* ── Mode panels (programmer / date / scientific) ────────── */
+
+.calc-mode-panels {
+  display: none;
+  /* Reveal only when an active-mode dataset is set on the panel
+     wrapper — see :is() selectors below. */
+}
+.calc-mode-panels[data-mode="programmer"],
+.calc-mode-panels[data-mode="date"],
+.calc-mode-panels[data-mode="scientific"] {
+  display: block;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 6px 10px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  flex: none;
+}
+.calc-mode-panel { display: none; }
+.calc-mode-panels[data-mode="programmer"] .calc-mode-programmer { display: block; }
+.calc-mode-panels[data-mode="date"]       .calc-mode-date       { display: block; }
+.calc-mode-panels[data-mode="scientific"] .calc-mode-scientific { display: block; }
+
+.calc-mode-panel-h {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+/* Programmer base grid — 4 columns inline */
+.calc-base-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.calc-base-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 6px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  min-width: 0;
+  overflow: hidden;
+}
+.calc-base-row:hover {
+  background: rgba(var(--accent-rgb), 0.04);
+  color: var(--text-bright);
+}
+.calc-base-row.is-active {
+  background: rgba(var(--accent-rgb), 0.08);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.25);
+}
+.calc-base-label {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.calc-base-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+.calc-base-row.is-active .calc-base-value { color: var(--accent); }
+
+/* Date mode — single inline row */
+.calc-date-inline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--text-bright);
+  padding: 2px 0;
+}
+.calc-date-today { color: var(--text); }
+.calc-date-delta { color: var(--text-bright); font-weight: 500; }
+.calc-date-result { color: var(--accent-bright, #33ffdd); font-weight: 600; }
+.calc-date-sep { color: var(--text-dim); }
+
+/* Scientific 2nd toggle */
+.calc-sci-2nd {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  background: rgba(0, 0, 0, 0.20);
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 220ms cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.calc-sci-2nd:hover { color: var(--text-bright); }
+.calc-sci-2nd.is-active {
+  color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.08);
+  border-color: rgba(var(--accent-rgb), 0.4);
+}
+
+/* Meta line "2ND" indicator */
+.calc-meta-2nd {
+  color: var(--accent) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.06em;
+}
+
+/* ── Vars row (real pills) ───────────────────────────────── */
+
+.calc-var-pill {
+  /* button reset on top of the existing styled rule */
+  appearance: none;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  cursor: pointer;
+}
+.calc-var-pill:hover { background: rgba(155, 123, 255, 0.18); }
+.calc-var-pill.is-empty { cursor: default; }
+.calc-var-pill.is-empty:hover { background: transparent; }
+.calc-var-add {
+  background: rgba(0, 229, 193, 0.06);
+  border: 1px dashed rgba(var(--accent-rgb), 0.35);
+  color: var(--accent);
+}
+.calc-var-add:hover {
+  background: rgba(var(--accent-rgb), 0.12);
+  border-style: solid;
+}
+.calc-var-empty { font-style: italic; }
+
+/* ── History view ─────────────────────────────────────────── */
+
+.calc-history-day {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0 4px;
+  margin-top: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  user-select: none;
+}
+.calc-history-day:first-child { margin-top: 0; }
+.calc-history-day-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.calc-history-day-count {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+/* ── Notes export view ────────────────────────────────────── */
+
+.calc-export-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease;
+}
+.calc-export-item:hover {
+  background: rgba(var(--accent-rgb), 0.06);
+  border-color: rgba(var(--accent-rgb), 0.25);
+}
+.calc-export-name {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-bright);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.calc-export-date {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+
+/* Var-def tape lines lean violet to mirror the design */
+.calc-tape-line.is-var-def .expr { color: #b8a3ff; }
+.calc-tape-line.is-var-def .res  { color: #b8a3ff; font-weight: 500; }
+
+/* Light-theme adjustments for the new elements */
+body.theme-light .calc-mode-panels[data-mode] {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.08);
+}
+body.theme-light .calc-base-row { color: #4a5566; }
+body.theme-light .calc-base-row .calc-base-value { color: #1d1d1f; }
+body.theme-light .calc-date-row { color: #1d1d1f; }
+body.theme-light .calc-export-item {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.08);
+}
+body.theme-light .calc-export-name { color: #1d1d1f; }

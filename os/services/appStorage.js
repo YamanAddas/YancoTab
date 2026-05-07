@@ -517,7 +517,7 @@ const REGISTRY = {
         default: { angleMode: 'rad', history: [] },
         validate: (v) => v && typeof v === 'object' && (v.angleMode === 'rad' || v.angleMode === 'deg') && Array.isArray(v.history),
     },
-    // Canonical v2: {angleMode, tape:[{ts, expr, result}]}.
+    // Legacy v2: {angleMode, tape}. Migrated to v3 on first load.
     yancotab_calculator_v2: {
         storageClass: 'preferences',
         syncPolicy: 'always',
@@ -526,6 +526,23 @@ const REGISTRY = {
         validate: (v) => v && typeof v === 'object'
             && (v.angleMode === 'rad' || v.angleMode === 'deg')
             && Array.isArray(v.tape),
+    },
+    // Canonical v3: adds vars, mode, secondMode, programmerBase.
+    yancotab_calculator_v3: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 3,
+        default: {
+            angleMode: 'rad', tape: [], vars: {},
+            mode: 'standard', secondMode: false, programmerBase: 'dec',
+        },
+        validate: (v) => v && typeof v === 'object'
+            && (v.angleMode === 'rad' || v.angleMode === 'deg')
+            && Array.isArray(v.tape)
+            && v.vars && typeof v.vars === 'object'
+            && ['standard','scientific','programmer','date'].includes(v.mode)
+            && typeof v.secondMode === 'boolean'
+            && ['dec','hex','oct','bin'].includes(v.programmerBase),
     },
 
     // ── PDF Reader ──
