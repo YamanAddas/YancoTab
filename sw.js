@@ -4,8 +4,11 @@
  * Cache-first for static assets, network-first for APIs.
  */
 
-// Version synced with os/version.js — update both together
-const CACHE_NAME = 'yancotab-v1.0.0';
+// Version synced with os/version.js — update both together.
+// The "-glass" suffix forces existing installs (which were on
+// yancotab-v1.0.0) to drop their cache and re-fetch the new files
+// from the Liquid Glass design pass.
+const CACHE_NAME = 'yancotab-v1.0.0-glass';
 
 const PRECACHE = [
     './',

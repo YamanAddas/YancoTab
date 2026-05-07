@@ -10,6 +10,87 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 First public release on Chrome Web Store.
 
+### Added — Liquid Glass design pass (post-launch polish)
+
+Implements the design from claude.ai/design (handoff bundle archived in
+`design-lab/fetched-design/`). Source materials: README + chat log where
+each surface was approved + the hi-fi `YancoTab New Tab.html` mock.
+
+- **Tokens** (`css/tokens.css`) — new `--lg-*` recipe layer (tints, sheen,
+  edge, spotlight, cast, sweep) + canonical `--motion-snappy` /
+  `--motion-cinematic` / `--motion-spring` curves. Light-mode mirror for
+  every token.
+- **`css/glass.css`** — new polish stylesheet that loads last so it wins
+  specificity. Owns the polish across hex tiles, search bar, widget cards,
+  status bar, dock, cosmic stage (horizon glow + perspective grid floor),
+  ⌘K hint, section headings, signature pill, scope tabs, folder rail.
+- **Hex app icons** — chromed accent ring, wet-glass body, top sheen +
+  spotlight, animated specular sweep on hover, accent under-cast halo.
+- **Search bar** — bumped to 620×56 (design target). Accent-tinted
+  border, layered top-light glass, drop shadow, accent under-glow on
+  focus, `⌘K` hint badge that fades on focus + hides on touch devices.
+- **Search scope tabs** (`SmartSearch.js`) — All / Apps / Files / Notes /
+  Web below the input. Functional filter: each scope narrows result types
+  and the Web fallback. Empty-state row when a scoped query has no
+  matches.
+- **Game icons** (`GameIcons.js`) — all 9 game SVGs replaced with the
+  design's photoreal versions: Solitaire (green felt + 3 red card-backs +
+  Ace top), Spider (3 stacks + cobweb hint + spider), Mahjong (ivory tile
+  + bold red 中), Snake (pixel sprite + apple), Memory (3 cards w/ flipped
+  star), Minesweeper (cell grid + numbers + flag + mine), Tic-Tac-Toe
+  (engraved grid + teal X + red O), Tarneeb (fan + K♠ trump), Trix
+  (fan + A♦). Gradient IDs prefixed `gi-` for uniqueness on the page.
+- **Status bar** (`StatusBar.js`) — restructured into a full-width 3-column
+  tray. Brand mark (hex glyph + YancoTab + /new tab) on the left, mid
+  pills (local weather city·temp + net online/offline) in the middle,
+  right cluster keeps activity pill + clock + theme + settings buttons.
+- **Greeting hero** (`Greeting.js`) — design's structure: small mono
+  uppercase greet line ("WEDNESDAY · GOOD EVENING, YAMAN") in accent
+  color, giant `clamp(56px, 12vw, 96px)` live clock with teal `·SS`
+  seconds, mono uppercase day-of-year date.
+- **Pomodoro widget** (`widgets/PomodoroWidget.js`) — focus timer.
+  State machine `idle → focus (25min) → break (5min)` × 4 sessions.
+  Click to start / pause / resume; right-click to reset. State persists
+  via `kernel.storage`. Phase transitions fire kernel toasts and emit
+  `yancotab:activity` events. Visual: 88px SVG ring with accent stroke +
+  drop-shadow + 2s pulse during focus, MM:SS centered, mono session
+  label below.
+- **Activity feed widget** (`widgets/ActivityWidget.js`) — recent
+  activity, newest-first. Listens to `process:started` and the custom
+  `yancotab:activity` event. 20-event ring buffer; displays the last 4.
+  De-dupes identical labels within 2s. `*foo*` markdown renders as
+  `<em>`. Empty-state hint on first install.
+- **Folder rail** (`FolderRail.js`) — pill row below the grid mirroring
+  the folders that already live in AppGrid. Each pill: 18×18 mini 2×2
+  hex preview + folder name + child count. Click dispatches the same
+  `item:open` event the in-grid hex uses.
+- **Hex-tile dock** (`AppDock.js`) — replaces the old labeled NavBar
+  with the design's exact 9-tile + 2-separator row:
+  Browser | Notes | Todo | Weather | Clock | sep | Solitaire | Snake |
+  Files | sep | Settings. Each tile uses SmartIcon at `--hex-size:
+  44px`. Click → `kernel.emit('app:open', appId)`. Subscribes to
+  `process:started` / `process:stopped` and lights a 4px pulsing accent
+  dot under the tile while the matching pid is alive.
+- **Cosmic stage** — `body::before` accent horizon glow (320px), `body::
+  after` perspective grid floor (80×60px accent grid, `rotateX(60deg)`,
+  masked to fade up). Light-mode mirrors.
+- **Section headings** — uppercase title + 1px gradient rule + mono
+  meta tag, between widgets and grid. Numbers omitted per Yaman's call.
+- **Signature pill** — fixed bottom-right `${VERSION} · all systems
+  nominal` pill with pulsing accent dot. Hides in-app.
+- **AppGrid stale-positions reflow** (`MobileGridState.js`) —
+  `_hasStalePositions()` repacks items into the current cols on first
+  boot at a wider viewport. Fixes the symptom where items saved at
+  narrower cols would render in only the leftmost columns of a 9-col
+  desktop grid.
+- **Storage** — three new REGISTRY entries: `yancotab_pomodoro_v1` and
+  `yancotab_activity_v1` (user-data, sync conditional), and an updated
+  `yancotab_widgets` default that ships `pomodoro: true`, `activity:
+  true`, `clock: false`.
+- **Service worker cache** bumped to `yancotab-v1.0.0-glass` so existing
+  installs at the prior `yancotab-v1.0.0` cache pick up the new files
+  on reload.
+
 ### Added — Phase 3 (LAUNCH) closeout
 - **Promotional tile generator** (`promo-tile-generator.html`) — open in browser, click Download, get a 440×280 PNG ready for the Chrome Web Store listing's small tile slot. Uses the YancoTab logo on the left over a deep-space gradient with subtle starfield, accent glow, and "Your desktop, in every new tab." tagline. Required for CWS submission.
 - **Phase 3 verification:** i18n complete (`_locales/en/messages.json` + manifest `__MSG_*__` references), privacy.html shipped (covers data/permissions/external services/storage/contact), 5 store screenshots at 1280×800, manifest CSP and permissions clean (`storage` only), all 4 icon sizes present, version synced across manifest/package/version.js/sw.js, extension payload ~9MB (under 10MB limit).
