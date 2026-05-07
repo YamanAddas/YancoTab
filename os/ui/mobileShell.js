@@ -89,6 +89,7 @@ export class MobileShell {
       { id: 'notes',            name: 'Notes' },
       { id: 'pdf-reader',       name: 'PDF Reader' },
       { id: 'photos',           name: 'Photos' },
+      { id: 'pomodoro',         name: 'Pomodoro' },
       { id: 'settings',         name: 'Settings' },
       { id: 'todo',             name: 'Todo' },
       { id: 'weather',          name: 'Weather' },

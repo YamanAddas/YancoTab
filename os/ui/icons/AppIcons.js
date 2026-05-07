@@ -29,6 +29,7 @@ export const APP_ICON_REGISTRY = {
   notes:       { category: 'productivity', svgSource: 'phosphor', svgKey: 'notes' },
   todo:        { category: 'productivity', svgSource: 'phosphor', svgKey: 'todo' },
   calculator:  { category: 'productivity', svgSource: 'phosphor', svgKey: 'calculator' },
+  pomodoro:    { category: 'productivity', svgSource: 'phosphor', svgKey: 'pomodoro' },
 
   // Media
   browser:     { category: 'media', svgSource: 'phosphor', svgKey: 'browser' },

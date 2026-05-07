@@ -335,6 +335,41 @@ export const PHOSPHOR_ICONS = {
   </svg>`,
 
   /* ── Todo: clipboard with checkmarks ── */
+  /* ── Pomodoro: tomato timer with teal dial ── */
+  pomodoro: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="pomo-tomato" cx="0.35" cy="0.3" r="0.7">
+        <stop offset="0" stop-color="#ff8a6b"/><stop offset="0.5" stop-color="#ee4a35"/><stop offset="1" stop-color="#9c1818"/>
+      </radialGradient>
+      <linearGradient id="pomo-leaf" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#34d399"/><stop offset="1" stop-color="#1f7a4a"/>
+      </linearGradient>
+      <linearGradient id="pomo-dial" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#11202e"/><stop offset="1" stop-color="#050a12"/>
+      </linearGradient>
+    </defs>
+    <!-- Body -->
+    <ellipse cx="32" cy="38" rx="22" ry="20" fill="url(#pomo-tomato)" stroke="rgba(0,0,0,0.18)" stroke-width="0.5"/>
+    <!-- Body specular -->
+    <ellipse cx="22" cy="30" rx="9" ry="6" fill="rgba(255,255,255,0.28)"/>
+    <!-- Leaves -->
+    <path d="M22 16 Q28 8 32 14 Q36 8 42 16 Q38 22 32 20 Q26 22 22 16 Z" fill="url(#pomo-leaf)" stroke="rgba(0,0,0,0.18)" stroke-width="0.5"/>
+    <path d="M32 14 L32 22" stroke="rgba(0,0,0,0.25)" stroke-width="0.8" stroke-linecap="round"/>
+    <!-- Dial -->
+    <circle cx="32" cy="38" r="11" fill="url(#pomo-dial)" stroke="rgba(0,229,193,0.4)" stroke-width="0.8"/>
+    <!-- Tick marks -->
+    <g stroke="rgba(0,229,193,0.6)" stroke-width="1" stroke-linecap="round">
+      <line x1="32" y1="29" x2="32" y2="31"/>
+      <line x1="41" y1="38" x2="39" y2="38"/>
+      <line x1="32" y1="47" x2="32" y2="45"/>
+      <line x1="23" y1="38" x2="25" y2="38"/>
+    </g>
+    <!-- Hands -->
+    <line x1="32" y1="38" x2="32" y2="32" stroke="#00e5c1" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="32" y1="38" x2="37" y2="40" stroke="#33ffdd" stroke-width="1.2" stroke-linecap="round"/>
+    <circle cx="32" cy="38" r="1.6" fill="#00e5c1"/>
+  </svg>`,
+
   todo: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <linearGradient id="todo-bg" x1="0" y1="0" x2="0" y2="1">
