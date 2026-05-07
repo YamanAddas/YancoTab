@@ -105,6 +105,15 @@ const REGISTRY = {
         },
         validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
     },
+    yancotab_browser_v2: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 2,
+        default: {
+            bookmarks: [], clusters: [], history: [], currentUrl: '', version: 2,
+        },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.bookmarks),
+    },
     yancotab_todo_v2: {
         storageClass: 'user-data',
         syncPolicy: 'conditional',
