@@ -105,6 +105,15 @@ const REGISTRY = {
         },
         validate: (v) => v && typeof v === 'object' && typeof v.phase === 'string',
     },
+    yancotab_settings_console_v1: {
+        // Volatile: never sync this — sync log is transient and
+        // syncing it would create a feedback loop.
+        storageClass: 'preferences',
+        syncPolicy: 'never',
+        version: 1,
+        default: { lastRitual: null, lastRitualAt: null, lastRitualOk: null },
+        validate: (v) => v && typeof v === 'object',
+    },
     yancotab_browser_v2: {
         storageClass: 'user-data',
         syncPolicy: 'conditional',
