@@ -275,6 +275,24 @@ export class MobileShell {
       setTimeout(() => this.handleResize(), 100);
     });
 
+    // Forward wheel events that land outside .main-content (over the fixed
+    // dock, the absolute status bar, the kofi badge, etc.) into the
+    // scrollable main-content. Without this, wheeling while the cursor is
+    // over the dock does nothing because html/body have overflow:hidden
+    // and the dock is a sibling of main-content, not a descendant.
+    document.addEventListener('wheel', (e) => {
+      if (this.state.activePid) return; // never auto-scroll while in-app
+      const main = this.dom?.mainContent;
+      if (!main) return;
+      // If the wheel event already landed inside main-content (or any
+      // element with its own scrollable area), let the browser handle it.
+      if (main.contains(e.target)) return;
+      // Outside: forward the delta into main-content
+      main.scrollTop += e.deltaY;
+      // Don't preventDefault — the dock might want to allow wheel-over-app
+      // actions in the future. We just supplement scroll.
+    }, { passive: true });
+
     // App lifecycle
     kernel.on('process:started', ({ pid, appId, app }) => {
       // Destroy previous window chrome if any

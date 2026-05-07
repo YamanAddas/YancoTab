@@ -161,6 +161,9 @@ div.boot-screen .boot-text {
 }
 
 /* ── Main Content ── */
+/* On desktop the content stack (hero + search + widgets + section + grid +
+   folder rail) is taller than the viewport, so we let main-content scroll.
+   The 100px bottom padding clears the fixed-bottom dock. */
 .main-content {
   flex: 1;
   display: flex;
@@ -168,9 +171,10 @@ div.boot-screen .boot-text {
   align-items: center;
   justify-content: flex-start;
   gap: 0;
-  padding: 20px 20px 0;
+  padding: 20px 20px 110px;
   z-index: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 

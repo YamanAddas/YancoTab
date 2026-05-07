@@ -498,13 +498,35 @@ body.theme-light .sb-icon-btn {
 
 /* The .app-dock subclass switches from the old labeled-nav style to
    a horizontal row of hex tiles. The .nav-bar class stays on the root
-   so the in-app slide-out animation still applies. */
-.app-dock {
+   so the in-app slide-out animation still applies.
+
+   Floats fixed at the bottom of the viewport (matches the design)
+   so it stays accessible while main-content scrolls behind it.
+   Dual-class selector (.nav-bar.app-dock) wins over the looser
+   .nav-bar { position: relative } rule below in this file. */
+.nav-bar.app-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: var(--z-dock);
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
   padding: 10px 14px;
+  width: fit-content;
+  margin: 0;
+  max-width: none;
+  min-width: 0;
+}
+
+/* Override the old .nav-bar.is-hidden slide-out so it still works with
+   the new fixed positioning (the legacy rule used translateY only). */
+.nav-bar.app-dock.is-hidden {
+  transform: translateX(-50%) translateY(140px);
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* Each tile reuses the grid's hex visual (chromed ring + glass body +
