@@ -1437,14 +1437,20 @@ body.theme-light .folder-pill:hover {
 .app-dock-tile {
   color: #ffffff !important;
   font-weight: 700 !important;
+  /* 1px stroke is the right ratio for 12px+ text. At 10px it ate the
+     white core; at 12px the stem widths (~1.8px) leave a clearly visible
+     ~0.8px white core inside the black ring. */
   -webkit-text-stroke: 1px rgba(0, 0, 0, 0.95) !important;
   paint-order: stroke fill !important;
+  /* Bigger halo proportioned for 12px text. A 3px tight shadow + 14px
+     soft halo + 28px wide diffuse glow guarantees the glyphs separate
+     from any wallpaper, including saturated lime / sky / pastel. */
   text-shadow:
-    0 0 2px rgba(0, 0, 0, 0.95),
-    0 1px 3px rgba(0, 0, 0, 0.95),
-    0 0 10px rgba(0, 0, 0, 0.75),
-    0 0 20px rgba(0, 0, 0, 0.55) !important;
-  letter-spacing: 0.4px !important;
+    0 0 2px rgba(0, 0, 0, 0.98),
+    0 1px 3px rgba(0, 0, 0, 0.98),
+    0 0 14px rgba(0, 0, 0, 0.80),
+    0 0 28px rgba(0, 0, 0, 0.55) !important;
+  letter-spacing: 0.3px !important;
 }
 
 /* Folder pills carry a count line ("9 apps") below the name — keep it
