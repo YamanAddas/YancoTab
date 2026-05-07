@@ -11,11 +11,12 @@ import {
   addDaysToToday, formatDateLabel,
   groupTapeByDay,
   secondOf, labelFor, actionFor,
-  SCI_FNS, applyBinaryOp, fmtOp, OP_SYMBOLS,
+  SCI_FNS, NULLARY_SCI, applyBinaryOp, fmtOp, OP_SYMBOLS,
   isValidBitWidth, maskUnsigned,
   applyBigIntOp, applyBigIntNot,
   parseBigIntInBase, formatBigIntInBase,
   sanitizeProgrammerValue, MAX_PROGRAMMER_LENGTH,
+  factorial,
 } from '../os/apps/calculator/engine.js';
 
 // ─── normalizeNumber ────────────────────────────────────────────
@@ -429,4 +430,153 @@ test('sanitizeProgrammerValue: caps + rejects junk', () => {
   assert.equal(sanitizeProgrammerValue('1.5'), '0');
   // Length cap
   assert.equal(sanitizeProgrammerValue('9'.repeat(MAX_PROGRAMMER_LENGTH + 5)).length <= MAX_PROGRAMMER_LENGTH, true);
+});
+
+// ─── Scientific functions (PR-2) ────────────────────────────────
+
+const APPROX = 1e-9;
+const close = (a, b) => Math.abs(a - b) < APPROX;
+
+test('SCI_FNS: tan / atan respect angleMode', () => {
+  const rad = { angleMode: 'rad' };
+  const deg = { angleMode: 'deg' };
+  assert.ok(close(SCI_FNS.tan(0, rad), 0));
+  assert.ok(close(SCI_FNS.tan(Math.PI / 4, rad), 1));
+  assert.ok(close(SCI_FNS.tan(45, deg), 1));
+  assert.ok(close(SCI_FNS.atan(1, deg), 45));
+  assert.ok(close(SCI_FNS.atan(1, rad), Math.PI / 4));
+});
+
+test('SCI_FNS: hyperbolic identity cosh² − sinh² = 1', () => {
+  for (const x of [-2, -0.5, 0, 0.5, 2, 5]) {
+    const c = SCI_FNS.cosh(x);
+    const s = SCI_FNS.sinh(x);
+    assert.ok(close(c * c - s * s, 1), `failed at x=${x}`);
+  }
+});
+
+test('SCI_FNS: tanh = sinh/cosh', () => {
+  for (const x of [-1, 0, 1, 3]) {
+    assert.ok(close(SCI_FNS.tanh(x), SCI_FNS.sinh(x) / SCI_FNS.cosh(x)));
+  }
+});
+
+test('SCI_FNS: inverse hyperbolics roundtrip', () => {
+  for (const x of [0.5, 1.5, 5]) {
+    assert.ok(close(SCI_FNS.asinh(SCI_FNS.sinh(x)), x));
+    assert.ok(close(SCI_FNS.acosh(SCI_FNS.cosh(x)), x));
+  }
+  // atanh requires |x| < 1
+  for (const x of [0.1, 0.5, 0.9]) {
+    assert.ok(close(SCI_FNS.atanh(SCI_FNS.tanh(x)), x));
+  }
+});
+
+test('SCI_FNS: ln/exp inverse', () => {
+  for (const x of [0.1, 1, 5, 100]) {
+    assert.ok(close(SCI_FNS.ln(SCI_FNS.exp(x)) - x, 0));
+    assert.ok(close(SCI_FNS.exp(SCI_FNS.ln(x)) - x, 0));
+  }
+});
+
+test('SCI_FNS: log/tenx inverse', () => {
+  // 10^x stays finite for x ≲ 308; pick safe round-trip ranges.
+  for (const x of [0.5, 1, 5, 100]) {
+    assert.ok(close(SCI_FNS.log(SCI_FNS.tenx(x)) - x, 0), `log(10^${x}) drift`);
+  }
+  for (const x of [0.5, 1, 100, 1e6]) {
+    assert.ok(close(SCI_FNS.tenx(SCI_FNS.log(x)) - x, 0), `10^log(${x}) drift`);
+  }
+});
+
+test('SCI_FNS: ln(0) and ln(-1) are -Infinity / NaN', () => {
+  assert.equal(SCI_FNS.ln(0), -Infinity);
+  assert.ok(Number.isNaN(SCI_FNS.ln(-1)));
+});
+
+test('SCI_FNS: inv handles divide-by-zero', () => {
+  assert.equal(SCI_FNS.inv(2), 0.5);
+  assert.equal(SCI_FNS.inv(-4), -0.25);
+  assert.ok(Number.isNaN(SCI_FNS.inv(0)));
+});
+
+test('SCI_FNS: abs', () => {
+  assert.equal(SCI_FNS.abs(-7), 7);
+  assert.equal(SCI_FNS.abs(0), 0);
+  assert.equal(SCI_FNS.abs(3.14), 3.14);
+});
+
+test('SCI_FNS: rand uses ctx.rng when provided', () => {
+  let counter = 0;
+  const seq = [0.1, 0.5, 0.9];
+  const rng = () => seq[counter++ % seq.length];
+  assert.equal(SCI_FNS.rand(undefined, { rng }), 0.1);
+  assert.equal(SCI_FNS.rand(undefined, { rng }), 0.5);
+  assert.equal(SCI_FNS.rand(undefined, { rng }), 0.9);
+});
+
+test('SCI_FNS: rand falls back to Math.random when no ctx.rng', () => {
+  const r = SCI_FNS.rand(undefined, {});
+  assert.ok(r >= 0 && r < 1);
+});
+
+test('factorial: 0! = 1, 5! = 120, 10! = 3628800', () => {
+  assert.equal(factorial(0), 1);
+  assert.equal(factorial(1), 1);
+  assert.equal(factorial(5), 120);
+  assert.equal(factorial(10), 3628800);
+});
+
+test('factorial: cap at 170 (above is Infinity range)', () => {
+  assert.ok(Number.isFinite(factorial(170)));
+  assert.ok(Number.isNaN(factorial(171)));
+  assert.ok(Number.isNaN(factorial(1000)));
+});
+
+test('factorial: rejects non-integers and negatives', () => {
+  assert.ok(Number.isNaN(factorial(-1)));
+  assert.ok(Number.isNaN(factorial(3.5)));
+  assert.ok(Number.isNaN(factorial(NaN)));
+});
+
+test('NULLARY_SCI: covers pi, e, rand only', () => {
+  assert.ok(NULLARY_SCI.has('pi'));
+  assert.ok(NULLARY_SCI.has('e'));
+  assert.ok(NULLARY_SCI.has('rand'));
+  assert.ok(!NULLARY_SCI.has('sin'));
+  assert.ok(!NULLARY_SCI.has('fact'));
+});
+
+test('secondOf: extended pairs from PR-2', () => {
+  assert.equal(secondOf('tan'), 'atan');
+  assert.equal(secondOf('atan'), 'tan');
+  assert.equal(secondOf('sinh'), 'asinh');
+  assert.equal(secondOf('cosh'), 'acosh');
+  assert.equal(secondOf('tanh'), 'atanh');
+  // ln/log/exp/tenx are not paired — both members of each pair are
+  // directly visible on the sci panel, so 2nd-toggle would only
+  // confuse the user.
+  assert.equal(secondOf('ln'), null);
+  assert.equal(secondOf('exp'), null);
+  assert.equal(secondOf('log'), null);
+  assert.equal(secondOf('tenx'), null);
+});
+
+test('labelFor: 2nd-mode of trig/hyperbolic', () => {
+  assert.equal(labelFor('tan', false), 'tan');
+  assert.equal(labelFor('tan', true),  'tan⁻¹');
+  assert.equal(labelFor('sinh', true), 'sinh⁻¹');
+  // ln/log keep their label even in 2nd-mode (no pair)
+  assert.equal(labelFor('ln', true),  'ln');
+  assert.equal(labelFor('log', true), 'log');
+});
+
+test('isReservedVarName: covers new sci function names', () => {
+  for (const name of ['tan','ln','log','exp','fact','abs','inv','rand',
+                      'sinh','cosh','tanh','asinh','acosh','atanh']) {
+    assert.equal(isReservedVarName(name), true, `failed: ${name}`);
+  }
+  // Mixed-case still blocked (we lowercase before check)
+  assert.equal(isReservedVarName('TAN'), true);
+  assert.equal(isReservedVarName('Sinh'), true);
 });

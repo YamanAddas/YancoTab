@@ -591,26 +591,85 @@ body.theme-light .calc-vars-row { background: rgba(0,0,0,0.03); }
 .calc-date-result { color: var(--accent-bright, #33ffdd); font-weight: 600; }
 .calc-date-sep { color: var(--text-dim); }
 
-/* Scientific 2nd toggle */
-.calc-sci-2nd {
-  display: inline-block;
-  padding: 6px 14px;
+/* Scientific extension panel */
+.calc-sci-panel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.calc-sci-toggles {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.calc-sci-2nd, .calc-sci-angle {
+  padding: 5px 11px;
   border-radius: 999px;
   border: 1px solid rgba(255, 255, 255, 0.10);
   background: rgba(0, 0, 0, 0.20);
   color: var(--text);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.14em;
+  font-size: 10px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
   transition: all 220ms cubic-bezier(0.16, 0.84, 0.32, 1);
+  flex: none;
 }
-.calc-sci-2nd:hover { color: var(--text-bright); }
+.calc-sci-2nd:hover, .calc-sci-angle:hover { color: var(--text-bright); }
 .calc-sci-2nd.is-active {
   color: var(--accent);
   background: rgba(var(--accent-rgb), 0.08);
   border-color: rgba(var(--accent-rgb), 0.4);
+}
+.calc-sci-angle {
+  /* Always-on look so it reads as a state pill; click flips RAD ↔ DEG */
+  color: var(--text-bright);
+  background: rgba(var(--accent-rgb), 0.04);
+  border-color: rgba(var(--accent-rgb), 0.20);
+}
+
+/* Scrollable row of sci function keys */
+.calc-sci-keys {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.1) transparent;
+  padding-bottom: 2px;  /* breathing room for scrollbar */
+}
+.calc-sci-keys::-webkit-scrollbar { height: 4px; }
+.calc-sci-keys::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+}
+.calc-sci-key {
+  flex: none;
+  min-width: 44px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(180deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.18) 100%);
+  color: var(--text-bright);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 160ms cubic-bezier(0.16, 0.84, 0.32, 1);
+  white-space: nowrap;
+}
+.calc-sci-key:hover {
+  background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.12) 0%, rgba(0,0,0,0.18) 100%);
+  border-color: rgba(var(--accent-rgb), 0.30);
+  color: var(--accent-bright, #33ffdd);
+}
+.calc-sci-key:active { transform: scale(0.96); }
+.calc-sci-key.is-op { color: var(--accent); }
+.calc-sci-key.is-ee {
+  background: rgba(var(--accent-rgb), 0.06);
+  color: var(--accent);
 }
 
 /* Meta line "2ND" indicator */

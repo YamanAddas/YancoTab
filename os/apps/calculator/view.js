@@ -7,6 +7,7 @@
  */
 import { el } from '../../utils/dom.js';
 import { labelFor, formatBaseRows } from './engine.js';
+import { buildSciPanel } from './scientific.js';
 
 // ─── Keypad layout (6 rows × 5 cols, 30 keys total) ───────────
 //
@@ -120,15 +121,23 @@ export function buildView(cfg) {
     ]),
   ]);
 
-  // Scientific-mode panel — just shows 2nd-mode toggle hint
-  const sciSecondToggle = el('button', {
-    class: 'calc-sci-2nd',
-    type: 'button',
-    onclick: () => handlers.toggleSecond(),
-  }, '2nd');
+  // Scientific-mode panel — full extension with all 17 fns + Rad/Deg
+  const sciBuild = buildSciPanel({
+    handlers: {
+      toggleSecond: () => handlers.toggleSecond(),
+      toggleAngle:  () => handlers.toggleAngle(),
+      appendExponent: () => handlers.appendExponent(),
+      applyOp: (op) => handlers.applyOp(op),
+      applySci: (id) => handlers.applySci(id),
+    },
+    secondMode: cfg.secondMode || false,
+    angleMode: cfg.angleMode || 'rad',
+  });
+  const sciSecondToggle = sciBuild.secondToggle;
+  const sciAngleToggle = sciBuild.angleToggle;
+  const sciPanelKeyEls = sciBuild.sciKeyEls;
   const sciPanel = el('div', { class: 'calc-mode-panel calc-mode-scientific' }, [
-    el('div', { class: 'calc-mode-panel-h' }, 'Scientific · toggle alternate functions'),
-    sciSecondToggle,
+    sciBuild.panelEl,
   ]);
 
   // The 3 mode panels are stacked; CSS hides all but the active one.
@@ -210,7 +219,7 @@ export function buildView(cfg) {
       varsRowEl,
       modePanels, baseRefs,
       dateTodayEl, dateDeltaEl, dateResultEl,
-      sciSecondToggle,
+      sciSecondToggle, sciAngleToggle, sciPanelKeyEls,
       tabEls, modeEls, baseEls, keyEls,
     },
   };
@@ -296,8 +305,9 @@ export function renderBasePanel(baseRefs, decimalStr, activeBase) {
 }
 
 /**
- * Re-label sci keys when 2nd-mode toggles. The shell calls this with
- * the current secondMode boolean.
+ * Re-label sci keys when 2nd-mode toggles. Pass either the base
+ * keypad's keyEls or the sci panel's sciKeyEls — both have a
+ * `data-sci-id` dataset entry pointing at the engine function id.
  */
 export function relabelSciKeys(keyEls, secondMode) {
   for (const btn of keyEls) {

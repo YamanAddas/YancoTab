@@ -58,7 +58,15 @@ export function isValidVarName(name) {
 }
 
 /** Reserved identifiers that conflict with built-ins. */
-const RESERVED = new Set(['e', 'pi', 'rad', 'deg', 'in', 'today', 'd']);
+const RESERVED = new Set([
+  'e', 'pi', 'rad', 'deg', 'in', 'today', 'd',
+  // Scientific function names — adding a var with these names
+  // would shadow the function, so block them at definition time.
+  'sin', 'cos', 'tan', 'asin', 'acos', 'atan',
+  'sinh', 'cosh', 'tanh', 'asinh', 'acosh', 'atanh',
+  'ln', 'log', 'exp', 'fact', 'abs', 'inv', 'rand',
+  'mod', 'and', 'or', 'xor', 'not', 'lsh', 'rsh',
+]);
 
 export function isReservedVarName(name) {
   return RESERVED.has(String(name).toLowerCase());
@@ -154,40 +162,43 @@ export function groupTapeByDay(tape, now = Date.now()) {
 /**
  * Map a sci function id to its 2nd-mode alternate, or null if none.
  *
- * Pairs (toggle):
- *   pow2  ↔ pow3
- *   sqrt  ↔ cbrt
- *   sin   ↔ asin
- *   cos   ↔ acos
- *   pi    ↔ e
+ * Pairs cover both base-keypad sci keys and sci-panel keys. The
+ * 2nd-mode toggle relabels both surfaces in sync.
  */
 const SECOND_PAIRS = {
-  pow2: 'pow3', pow3: 'pow2',
-  sqrt: 'cbrt', cbrt: 'sqrt',
-  sin:  'asin', asin: 'sin',
-  cos:  'acos', acos: 'cos',
-  pi:   'e',    e:    'pi',
+  // Base keypad
+  pow2: 'pow3',  pow3:  'pow2',
+  sqrt: 'cbrt',  cbrt:  'sqrt',
+  sin:  'asin',  asin:  'sin',
+  cos:  'acos',  acos:  'cos',
+  pi:   'e',     e:     'pi',
+  // Sci panel — only inverse trig/hyperbolic since ln/log/exp/tenx
+  // are all directly visible on the panel and don't need a 2nd swap
+  tan:  'atan',  atan:  'tan',
+  sinh: 'asinh', asinh: 'sinh',
+  cosh: 'acosh', acosh: 'cosh',
+  tanh: 'atanh', atanh: 'tanh',
 };
 
 export function secondOf(funcId) { return SECOND_PAIRS[funcId] || null; }
 
 /**
- * Get the visible label for a sci function in the current 2nd-mode
- * state. The KEYPAD constant ships base-mode labels; this returns
- * the 2nd-mode override if the key has one and 2nd is active.
+ * Visible label for a sci function in either base or 2nd-mode state.
+ * The KEYPAD / SCI_PANEL constants ship the base label; this looks
+ * up the 2nd-mode override if 2nd is active.
  */
 const SECOND_LABELS = {
-  pow3: 'x³',
-  cbrt: '∛',
-  asin: 'sin⁻¹',
-  acos: 'cos⁻¹',
-  e:    'e',
-  // Base-mode labels for completeness:
-  pow2: 'x²',
-  sqrt: '√',
-  sin:  'sin',
-  cos:  'cos',
-  pi:   'π',
+  // Base-mode
+  pow2: 'x²', sqrt: '√',
+  sin:  'sin', cos: 'cos', tan: 'tan',
+  sinh: 'sinh', cosh: 'cosh', tanh: 'tanh',
+  ln:   'ln', log: 'log',
+  pi:   'π', e: 'e',
+  // 2nd-mode
+  pow3: 'x³', cbrt: '∛',
+  asin: 'sin⁻¹', acos: 'cos⁻¹', atan: 'tan⁻¹',
+  asinh:'sinh⁻¹', acosh:'cosh⁻¹', atanh:'tanh⁻¹',
+  exp:  'eˣ', tenx: '10ˣ',
 };
 
 export function labelFor(funcId, secondMode) {
@@ -203,22 +214,63 @@ export function actionFor(funcId, secondMode) {
 
 // ─── Scientific function table ──────────────────────────────────
 
+/** Factorial with strict integer + range cap. Caller treats NaN as Error. */
+export function factorial(n) {
+  if (!Number.isInteger(n) || n < 0 || n > 170) return NaN;
+  let r = 1;
+  for (let i = 2; i <= n; i++) r *= i;
+  return r;
+}
+
 /**
  * SCI_FNS keys are normalized function ids. When 2nd-mode is on,
- * the dispatcher maps the base id to its alt before looking up.
+ * the dispatcher maps the base id to its alt via secondOf() before
+ * lookup. Constants (pi, e) ignore the operand argument.
+ *
+ * Trig / hyperbolic ops respect ctx.angleMode ('rad' | 'deg').
+ * Rand uses ctx.rng (defaults to Math.random) so tests can pin it.
  */
 export const SCI_FNS = {
+  // Powers / roots
   pow2: (v) => v * v,
   pow3: (v) => v * v * v,
   sqrt: (v) => Math.sqrt(v),
   cbrt: (v) => Math.cbrt(v),
+  // Trig
   sin:  (v, ctx) => Math.sin(toRadians(v, ctx)),
   cos:  (v, ctx) => Math.cos(toRadians(v, ctx)),
+  tan:  (v, ctx) => Math.tan(toRadians(v, ctx)),
   asin: (v, ctx) => fromRadians(Math.asin(v), ctx),
   acos: (v, ctx) => fromRadians(Math.acos(v), ctx),
+  atan: (v, ctx) => fromRadians(Math.atan(v), ctx),
+  // Hyperbolic
+  sinh:  (v) => Math.sinh(v),
+  cosh:  (v) => Math.cosh(v),
+  tanh:  (v) => Math.tanh(v),
+  asinh: (v) => Math.asinh(v),
+  acosh: (v) => Math.acosh(v),
+  atanh: (v) => Math.atanh(v),
+  // Logs / exponentials
+  ln:   (v) => Math.log(v),
+  log:  (v) => Math.log10(v),
+  exp:  (v) => Math.exp(v),
+  tenx: (v) => Math.pow(10, v),
+  // Other unary
+  fact: (v) => factorial(v),
+  inv:  (v) => v === 0 ? NaN : 1 / v,
+  abs:  (v) => Math.abs(v),
+  // Constants
   pi:   () => Math.PI,
   e:    () => Math.E,
+  // Rand: 0 ≤ r < 1, deterministic via ctx.rng for tests
+  rand: (_v, ctx) => (ctx?.rng || Math.random)(),
 };
+
+/**
+ * Function ids that ignore their operand (constants + Rand).
+ * Caller uses this to skip the "needs current value" check.
+ */
+export const NULLARY_SCI = new Set(['pi', 'e', 'rand']);
 
 function toRadians(v, ctx)   { return ctx?.angleMode === 'deg' ? (v * Math.PI) / 180 : v; }
 function fromRadians(v, ctx) { return ctx?.angleMode === 'deg' ? (v * 180) / Math.PI : v; }

@@ -1,9 +1,4 @@
-/**
- * CalculatorApp — "Tape" redesign shell. Coordinates state, dispatch,
- * rendering. Modes: Standard / Scientific (2nd-toggle) / Programmer
- * (multi-base) / Date (today ± Nd). Pure helpers in calculator/*.js.
- * Storage: yancotab_calculator_v3 (auto-migrates v2 and legacy v1).
- */
+/** CalculatorApp — "Tape" redesign shell. Pure helpers in calculator/*.js. */
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
 import {
@@ -17,9 +12,12 @@ import { renderHistory } from './calculator/historyView.js';
 import { renderNotesExport } from './calculator/notesExportView.js';
 import {
   normalizeNumber, applyBinaryOp, fmtOp,
-  SCI_FNS, actionFor,
+  SCI_FNS, NULLARY_SCI, actionFor,
   addDaysToToday, formatDateLabel,
 } from './calculator/engine.js';
+import {
+  toggleSecondMode, toggleAngleMode, appendExponentMarker,
+} from './calculator/scientific.js';
 import {
   loadCalculatorState, saveCalculatorState, MAX_TAPE,
 } from './calculator/persistence.js';
@@ -74,12 +72,18 @@ export class CalculatorApp extends App {
     const { frame, refs } = buildView({
       activeTab: this._activeTab,
       mode: this._mode,
+      secondMode: this._secondMode,
+      angleMode: this.state.angleMode,
       handlers: {
         dispatch:    (action, value) => this._dispatch(action, value),
         setTab:      (id) => this._setActiveTab(id),
         setMode:     (id) => this._setMode(id),
         setProgrammerBase: (id) => this._setProgrammerBase(id),
         toggleSecond: () => this._toggleSecond(),
+        toggleAngle: () => this._toggleAngle(),
+        appendExponent: () => this._appendExponent(),
+        applyOp:     (op) => this.setOperator(op),
+        applySci:    (id) => this.handleScientific(this._resolveSciFunc(id)),
         defineVar:   () => this._defineVar(),
         useVar:      (n) => this._useVar(n),
         deleteVar:   (n) => this._deleteVar(n),
@@ -94,7 +98,10 @@ export class CalculatorApp extends App {
 
     // Apply initial mode/2nd state to the dom
     this._applyModeClass();
-    if (this._secondMode) relabelSciKeys(refs.keyEls, true);
+    if (this._secondMode) {
+      relabelSciKeys(refs.keyEls, true);
+      relabelSciKeys(refs.sciPanelKeyEls, true);
+    }
     this._renderAll();
     this._bindKeyboard();
   }
@@ -178,12 +185,9 @@ export class CalculatorApp extends App {
     this.root.dataset.calcMode = this._mode;
   }
 
-  _toggleSecond() {
-    this._secondMode = !this._secondMode;
-    this._refs.sciSecondToggle.classList.toggle('is-active', this._secondMode);
-    relabelSciKeys(this._refs.keyEls, this._secondMode);
-    this._persist();
-  }
+  _toggleSecond()    { toggleSecondMode(this, relabelSciKeys); }
+  _toggleAngle()     { toggleAngleMode(this); }
+  _appendExponent()  { appendExponentMarker(this); }
 
   _setProgrammerBase(base) {
     if (this._programmerBase === base) return;
@@ -268,6 +272,8 @@ export class CalculatorApp extends App {
   appendDot() {
     if (this.state.resetNext) { this.state.current = '0'; this.state.resetNext = false; }
     if (this.state.current.includes('.')) return;
+    // No decimals after an exponent marker — '1e3.5' isn't a valid number.
+    if (this.state.current.toLowerCase().includes('e')) return;
     this.state.current += '.';
     this._renderDisplay();
   }
@@ -314,7 +320,18 @@ export class CalculatorApp extends App {
   negate() {
     if (this.state.current === '0' || this.state.current === 'Error') return;
     const v = this.state.current;
-    this.state.current = v.startsWith('-') ? v.slice(1) : `-${v}`;
+    // If the current input is in EE entry (has an 'e'), flip the
+    // exponent's sign instead of the mantissa's sign.
+    const eIdx = v.toLowerCase().indexOf('e');
+    if (eIdx >= 0) {
+      const m = v.slice(0, eIdx);
+      const exp = v.slice(eIdx + 1);
+      if (exp.startsWith('-'))      this.state.current = `${m}e${exp.slice(1)}`;
+      else if (exp.startsWith('+')) this.state.current = `${m}e-${exp.slice(1)}`;
+      else                          this.state.current = `${m}e-${exp}`;
+    } else {
+      this.state.current = v.startsWith('-') ? v.slice(1) : `-${v}`;
+    }
     this._renderDisplay();
   }
 
@@ -370,9 +387,9 @@ export class CalculatorApp extends App {
   handleScientific(funcId) {
     const fn = SCI_FNS[funcId];
     if (!fn) return;
-    // Constants (pi, e) ignore the operand
-    if (funcId === 'pi' || funcId === 'e') {
-      this.state.current = normalizeNumber(fn());
+    // Nullary (constants + Rand) ignore the operand
+    if (NULLARY_SCI.has(funcId)) {
+      this.state.current = normalizeNumber(fn(undefined, this.state));
       this.state.resetNext = true;
       this._renderDisplay();
       return;
