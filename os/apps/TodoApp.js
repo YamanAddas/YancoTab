@@ -16,6 +16,9 @@ import * as intent from './todo/intents.js';
 import { buildSideRail } from './todo/view/sideRail.js';
 import { buildLaunchpad } from './todo/view/launchpad.js';
 import { buildReviewRail } from './todo/view/reviewRail.js';
+import { buildTodayTab } from './todo/view/todayTab.js';
+import { buildWeekTab } from './todo/view/weekTab.js';
+import { buildReviewTab } from './todo/view/reviewTab.js';
 
 const TABS = ['Launchpad', 'Today', 'Week', 'Review'];
 
@@ -110,13 +113,33 @@ export class TodoApp extends App {
     // Review rail
     this._views.review = buildReviewRail();
 
-    // Tab placeholder (Today/Week/Review wait for PR-3).
-    this._views.placeholder = el('div', { class: 'mc-tab-placeholder' });
-    this._views.placeholder.style.display = 'none';
+    // Today tab — cross-mission actionable + intraday timeline
+    this._views.todayTab = buildTodayTab({
+      onToggle: (mid, tid) => this._toggleTaskIn(mid, tid),
+      onOpenEditor: (mid, tid) => this._openEditorIn(mid, tid),
+      onDelete: (mid, tid) => this._deleteTaskIn(mid, tid),
+    });
+    this._views.todayTab.root.classList.add('mc-tab-panel');
+    this._views.todayTab.root.style.display = 'none';
+
+    // Week tab
+    this._views.weekTab = buildWeekTab({
+      onToggle: (mid, tid) => this._toggleTaskIn(mid, tid),
+      onOpenEditor: (mid, tid) => this._openEditorIn(mid, tid),
+    });
+    this._views.weekTab.root.classList.add('mc-tab-panel');
+    this._views.weekTab.root.style.display = 'none';
+
+    // Review tab
+    this._views.reviewTab = buildReviewTab();
+    this._views.reviewTab.root.classList.add('mc-tab-panel');
+    this._views.reviewTab.root.style.display = 'none';
 
     const stage = el('div', { class: 'mc-stage' }, [
       this._views.launchpad.root,
-      this._views.placeholder,
+      this._views.todayTab.root,
+      this._views.weekTab.root,
+      this._views.reviewTab.root,
     ]);
     this._views.stage = stage;
 
@@ -140,22 +163,19 @@ export class TodoApp extends App {
     for (const t of this.root.querySelectorAll('[data-tab]')) {
       t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-    const lp = this._views.launchpad.root;
-    const ph = this._views.placeholder;
-    if (this._activeTab === 'Launchpad') {
-      lp.style.display = '';
-      ph.style.display = 'none';
-      ph.textContent = '';
-      return;
-    }
-    lp.style.display = 'none';
-    ph.style.display = 'block';
-    const blurbs = {
-      Today: 'Today\'s timeline + filtered launchpad — landing in the next update.',
-      Week: 'Week-of view — landing in the next update.',
-      Review: 'Full review — landing in the next update.',
+    const panels = {
+      // Launchpad uses CSS `display: grid`; the others use flex. We
+      // pass empty-string to clear the inline override and let the
+      // stylesheet decide (and explicit 'none' to hide inactive).
+      Launchpad: { node: this._views.launchpad.root,    activeDisplay: '' },
+      Today:     { node: this._views.todayTab.root,      activeDisplay: 'flex' },
+      Week:      { node: this._views.weekTab.root,       activeDisplay: 'flex' },
+      Review:    { node: this._views.reviewTab.root,     activeDisplay: 'flex' },
     };
-    ph.textContent = blurbs[this._activeTab] || '';
+    for (const [name, { node, activeDisplay }] of Object.entries(panels)) {
+      if (!node) continue;
+      node.style.display = name === this._activeTab ? activeDisplay : 'none';
+    }
   }
 
   // ── State + actions ──────────────────────────────────────
@@ -225,6 +245,28 @@ export class TodoApp extends App {
     this._commit(intent.deleteTask(this._state, mission.id, taskId));
   }
 
+  // Cross-mission variants used by the Today / Week / Review tabs
+  // where the rocket may belong to a different mission than the active.
+  _toggleTaskIn(missionId, taskId) {
+    this._commit(intent.toggleDone(this._state, missionId, taskId));
+  }
+  _deleteTaskIn(missionId, taskId) {
+    this._commit(intent.deleteTask(this._state, missionId, taskId));
+  }
+  async _openEditorIn(missionId, taskId) {
+    const m = this._state.missions.find((x) => x.id === missionId);
+    const t = m?.tasks.find((x) => x.id === taskId);
+    if (!m || !t) return;
+    const newText = await showPrompt('Edit task', 'Task text:', t.text);
+    if (newText === null) return;
+    if (newText.trim() === '') {
+      const ok = await showConfirm('Delete task', 'Empty text — delete this task?', { danger: true });
+      if (ok) this._commit(intent.deleteTask(this._state, missionId, taskId));
+      return;
+    }
+    this._commit(intent.setText(this._state, missionId, taskId, newText));
+  }
+
   async _openEditor(taskId) {
     const mission = getActiveMission(this._state);
     if (!mission) return;
@@ -245,9 +287,13 @@ export class TodoApp extends App {
   _renderAll() {
     if (!this.root || !this._state) return;
     const mission = getActiveMission(this._state);
+    const now = Date.now();
     this._views.side.update(this._state);
-    this._views.launchpad.update(mission);
+    this._views.launchpad.update(mission, now);
     this._views.review.update(this._state);
+    this._views.todayTab.update(this._state, now);
+    this._views.weekTab.update(this._state, {}, now);
+    this._views.reviewTab.update(this._state, {}, now);
     this._renderTabState();
     // Tint the active mission's color via a CSS variable on the frame.
     if (mission) {
