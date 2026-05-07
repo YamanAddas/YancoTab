@@ -11,6 +11,13 @@ import {
   buildContractPickerBar, buildCenterTable, buildHandView,
   buildScoresheetModal, buildRulesModal, buildDoublingModal,
 } from './trix/trixView.js';
+import { TableShell } from './table/TableShell.js';
+import { BanterDispatcher } from './table/banter.js';
+import { createHandHistory } from './table/handHistory.js';
+import TRIX_BANTER from './trix/trixBanter.js';
+import TRIX_PRESETS from './trix/trixPresets.js';
+import { buildTrixScoresheet, buildTrixHistoryEntry } from './trix/trixSalonView.js';
+import { buildTrixFelt, buildTrixActions } from './trix/trixFeltView.js';
 
 function css(href) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; return l; }
 
@@ -29,8 +36,8 @@ export class TrixApp extends App {
     this._stats = { gamesPlayed: 0, gamesWon: 0 };
   }
 
-  async init() {
-    this._styleLinks = [css('css/cards.css'), css('css/trix.css')];
+  async init(config = {}) {
+    this._styleLinks = [css('css/cards.css'), css('css/trix.css'), css('css/table.css')];
     this._styleLinks.forEach(l => document.head.appendChild(l));
     this.root = el('div', { class: 'app-window trix-remake' });
     const setVh = () => { this.root.style.setProperty('--app-vh', `${(window.innerHeight || 0) * 0.01}px`); };
@@ -49,13 +56,55 @@ export class TrixApp extends App {
 
     this._loadPrefs();
     this.store = createStore(trixReducer, initMatch());
+
+    // Salon shell — banter + presets + history
+    this._history = createHandHistory(this.kernel, 'trix');
+    this._banter = new BanterDispatcher({
+      pack: TRIX_BANTER,
+      onUpdate: () => {},
+      getName: (seat) => SEAT_NAMES[seat] || seat,
+      roleOf: (seat) => {
+        if (seat === 'south') return 'you';
+        // Partner mapping depends on the match mode at update time.
+        // Default to 'opponent' for non-partner mode, partner-aware mapping
+        // happens in the trixFeltView where we know mode.
+        const mode = this.store?.getState?.()?.mode;
+        if (mode === 'partners' && partnerOf('south') === seat) return 'partner';
+        return 'opponent';
+      },
+    });
+    this._shell = new TableShell({
+      kernel: this.kernel,
+      app: this,
+      gameId: 'trix',
+      gameLabel: 'Trix',
+      presets: TRIX_PRESETS,
+      history: this._history,
+      banter: this._banter,
+      renderFelt: (state) => this._renderFelt(state),
+      getScoresheet: (state) => buildTrixScoresheet(state),
+      renderSidePanel: (state) => buildTrixActions(this, state),
+      onPresetApply: (preset) => preset.apply(this.dispatch.bind(this)),
+      isSetupPhase: (state) => state?.phase === 'SETUP',
+    });
+    this._shell.mount(this.root);
+
     this._prevState = this.store.getState();
     this._unsub = this.store.subscribe((state, events = []) => {
       this._handleEvents(events, this._prevState, state);
+      try { this._banter?.handleEvents(events); } catch (e) { console.warn('[TrixApp] banter dispatch failed', e); }
+      this._appendHistoryFromEvents(events, state);
       this.render(state);
       this._maybeBotMove(state);
       this._prevState = state;
     });
+
+    // Optional preset launch via spawn config
+    if (config?.preset) {
+      const p = TRIX_PRESETS.find((x) => x.id === config.preset);
+      if (p) try { p.apply(this.dispatch.bind(this)); } catch {}
+    }
+
     this._syncAdaptivePrefs({ force: true });
     this.render(this.store.getState());
   }
@@ -63,7 +112,11 @@ export class TrixApp extends App {
   destroy() {
     try { this._unsub?.(); } catch {}
     try { this._vhCleanup?.(); } catch {}
+    try { this._shell?.destroy(); } catch {}
     this._vhCleanup = null;
+    this._shell = null;
+    this._banter = null;
+    this._history = null;
     if (this._botTimer) { clearTimeout(this._botTimer); this._botTimer = null; }
     if (this._statusTimer) { clearTimeout(this._statusTimer); this._statusTimer = null; }
     if (this._animTimer) { clearTimeout(this._animTimer); this._animTimer = null; }
@@ -150,28 +203,23 @@ export class TrixApp extends App {
 
   render(state) {
     try {
-      this.root.innerHTML = '';
       this.root.dataset.scoreDensity = this._scoreCompact ? 'compact' : 'full';
+
+      // Drop any prior modal overlays before re-rendering them
+      const oldModals = this.root.querySelectorAll(':scope > .trix-modal-overlay, :scope > .trix-modal');
+      oldModals.forEach((n) => { try { n.remove(); } catch {} });
 
       if (state.phase === 'SETUP') {
         this._setupMode = state.mode || this._setupMode;
         this._setupDiff = state.difficulty || this._setupDiff;
         this._setupRules = state.ruleProfile || this._setupRules;
-        this.root.appendChild(this._setupScreen());
-        return;
       }
 
-      const picker = this._contractPickerBar(state);
-      const screen = el('div', { class: 'trix-screen' }, [
-        el('div', { class: 'trix-area trix-area-hud' }, [this._hud(state)]),
-        el('div', { class: 'trix-area trix-area-note' }, [this._contractBlurb(state)]),
-        el('div', { class: 'trix-area trix-area-score' }, [this._scoreStrip(state)]),
-        el('div', { class: 'trix-area trix-area-picker' + (picker ? '' : ' is-empty') }, [picker || el('div')]),
-        el('div', { class: 'trix-area trix-area-table' }, [this._centerTable(state)]),
-        el('div', { class: 'trix-area trix-area-hand' }, [this._handView(state)]),
-      ]);
-      this.root.appendChild(screen);
+      this._shell?.update(state);
 
+      // Modals (rules / scoresheet / doubling) live OUTSIDE the salon shell
+      // as overlays attached to the app root, mirroring the pre-salon
+      // behavior. The shell owns the rest of the chrome.
       const doubling = this._doublingModal(state);
       if (doubling) this.root.appendChild(doubling);
       const sheet = this._scoresheetModal(state);
@@ -182,6 +230,25 @@ export class TrixApp extends App {
       console.error('[TrixApp] render crash', err);
       const msg = (err?.stack || err?.message || String(err));
       this.root.innerHTML = `<div style="padding:16px;color:#fff;font-family:monospace;white-space:pre-wrap;font-size:12px;">${String(msg).replace(/</g, '&lt;')}</div>`;
+    }
+  }
+
+  /** Build the felt-slot DOM. Called by TableShell. */
+  _renderFelt(state) {
+    if (!state) return el('div');
+    if (state.phase === 'SETUP') {
+      return this._setupScreen();
+    }
+    return buildTrixFelt(this, state);
+  }
+
+  /** Append history entries when a deal completes. */
+  _appendHistoryFromEvents(events, state) {
+    if (!Array.isArray(events) || !this._history) return;
+    for (const ev of events) {
+      if (ev.type !== 'deal:end') continue;
+      const entry = buildTrixHistoryEntry(state);
+      if (entry) this._history.append(entry);
     }
   }
 

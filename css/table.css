@@ -622,6 +622,139 @@ body.theme-light .table-side-action {
   border-color: rgba(0, 0, 0, 0.08);
 }
 
+/* ── Trix-specific salon overrides ───────────────────────── */
+
+/* Contract banner — same shape as trump banner but the "suit" cell
+   carries a contract glyph (♚ ♛ ♦ ✚ ✦) and there's a label after. */
+.table-contract-banner .table-contract-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--text-bright);
+  padding-left: 4px;
+}
+
+/* Contract picker (replaces bid bar) — fits 5 large pill buttons */
+.table-contract-picker .table-contract-btn {
+  padding: 6px 10px;
+  font-family: 'Georgia', serif;
+  font-size: 12px;
+  color: var(--text-bright);
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+.table-contract-picker .table-contract-btn:hover {
+  background: rgba(var(--accent-rgb), 0.15);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.40);
+}
+.table-picker-wait {
+  pointer-events: none;
+  opacity: 0.85;
+}
+.table-picker-wait .table-bid-bar-lab {
+  color: var(--text-dim);
+}
+
+/* Trix layout board — replaces the trick area during the trix
+   contract. 4 rows, one per suit, showing the running low/high range
+   built from J. */
+.table-trix-layout {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(var(--accent-rgb), 0.30);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 3;
+  min-width: 200px;
+}
+.table-trix-layout-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+  color: var(--text-bright);
+}
+.table-trix-layout-suit {
+  font-size: 18px;
+  width: 22px;
+  text-align: center;
+}
+.table-trix-layout-spades   .table-trix-layout-suit,
+.table-trix-layout-clubs    .table-trix-layout-suit { color: #0c0c0c; background: linear-gradient(180deg, #f4f0ea, #d4cdc0); border-radius: 3px; }
+.table-trix-layout-hearts   .table-trix-layout-suit,
+.table-trix-layout-diamonds .table-trix-layout-suit { color: #c5152e; background: linear-gradient(180deg, #f4f0ea, #d4cdc0); border-radius: 3px; }
+.table-trix-layout-pip {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+}
+
+/* Trix layout PASS button (when no legal play available) */
+.table-trix-pass {
+  margin-left: 12px;
+  padding: 8px 16px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rose, #ff6f8b);
+  background: rgba(197, 21, 46, 0.08);
+  border: 1px solid rgba(197, 21, 46, 0.30);
+  border-radius: 8px;
+  cursor: pointer;
+  align-self: center;
+  height: 36px;
+}
+.table-trix-pass:hover {
+  background: rgba(197, 21, 46, 0.18);
+}
+
+/* Trix per-seat tally row in the right rail */
+.table-team-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 6px;
+  font-size: 12px;
+  color: var(--text);
+  border-top: 1px dashed rgba(255, 255, 255, 0.06);
+}
+.table-team-row:first-of-type { border-top: 0; }
+.table-team-row b { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.table-team-row b.us   { color: var(--accent); }
+.table-team-row b.them { color: var(--rose, #ff6f8b); }
+
+.table-scoresheet-empty {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 10px 0;
+}
+
+.table-trix-scoresheet-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* ── Mobile felt scaling ──────────────────────────────────── */
 /* All positions are percentage-based so the arena scales naturally
    with size. Mobile only needs to relax the aspect ratio so the

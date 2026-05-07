@@ -149,7 +149,7 @@ function applyTrickScore(state, winnerSeat, trick) {
   syncTeamScores(state);
 }
 
-function advanceAfterDeal(state) {
+function advanceAfterDeal(state, events) {
   const owner = state.kingdomOwner;
   const cid = state.currentContract?.id;
   if (owner && cid) {
@@ -170,6 +170,16 @@ function advanceAfterDeal(state) {
     return;
   }
 
+  // Kingdom complete — owner finished all 5 contracts.
+  // Banter dispatcher subscribes to this for kingdom-rotation lines.
+  if (events && Array.isArray(events)) {
+    events.push({
+      type: 'kingdom:end',
+      kingdomNumber: state.kingdomNumber,
+      kingdomOwner: owner,
+    });
+  }
+
   const nextOwner = nextSeat(owner);
   state.kingdomOwner = nextOwner;
   state.kingdomNumber += 1;
@@ -177,6 +187,19 @@ function advanceAfterDeal(state) {
   if (state.kingdomNumber > 4) {
     state.phase = 'GAME_END';
     state.message = 'Game over';
+    if (events && Array.isArray(events)) {
+      // Pick a winner for banter context. In partners mode, team
+      // with higher score; otherwise highest individual seat.
+      let winnerSeat = 'south';
+      let winnerTeam = null;
+      if (state.mode === 'partners') {
+        winnerTeam = (state.teamScores?.A || 0) >= (state.teamScores?.B || 0) ? 'A' : 'B';
+        winnerSeat = TEAMS[winnerTeam]?.find((s) => (state.scores?.[s] || 0) >= 0) || 'south';
+      } else {
+        winnerSeat = SEATS.slice().sort((a, b) => (state.scores[b] || 0) - (state.scores[a] || 0))[0];
+      }
+      events.push({ type: 'game:end', winnerSeat, winnerTeam });
+    }
     return;
   }
 
@@ -236,6 +259,7 @@ export function trixReducer(prev, action) {
 
         state.currentContract = contractById(cid);
         state.dealNumber += 1;
+        events.push({ type: 'contract:picked', seat: action.seat, contractId: cid });
 
         state.doubling = createDoublingState();
         const profile = state.ruleProfile || 'classic';
@@ -380,7 +404,7 @@ export function trixReducer(prev, action) {
           syncTeamScores(state);
           logDeal(state, deltas);
           events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
-          advanceAfterDeal(state);
+          advanceAfterDeal(state, events);
         }
         return { state, events };
       }
@@ -415,7 +439,7 @@ export function trixReducer(prev, action) {
           const deltas = scoreDealLayoutContract(state);
           logDeal(state, deltas);
           events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
-          advanceAfterDeal(state);
+          advanceAfterDeal(state, events);
         }
         return { state, events };
       }

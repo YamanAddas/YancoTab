@@ -6,8 +6,8 @@
 
 // Version synced with os/version.js — update both together.
 // "-table" suffix forces installs from the Liquid Glass pass to drop
-// their cache and pick up the Table salon (Tarneeb wave).
-const CACHE_NAME = 'yancotab-v1.1.0-table';
+// their cache and pick up the Table salon (Tarneeb + Trix waves).
+const CACHE_NAME = 'yancotab-v1.1.0-table-trix';
 
 const PRECACHE = [
     './',
@@ -164,8 +164,12 @@ const PRECACHE = [
     './os/apps/games/table/handHistoryView.js',
     './os/apps/games/table/presets.js',
     './os/apps/games/trix/trixAI.js',
+    './os/apps/games/trix/trixBanter.js',
+    './os/apps/games/trix/trixFeltView.js',
+    './os/apps/games/trix/trixPresets.js',
     './os/apps/games/trix/trixReducer.js',
     './os/apps/games/trix/trixRules.js',
+    './os/apps/games/trix/trixSalonView.js',
     './os/apps/games/trix/trixState.js',
     './os/apps/games/trix/trixView.js',
     // OCR
