@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-calculator';
+const CACHE_NAME = 'yancotab-v1.1.0-calculator-fit';
 
 const PRECACHE = [
     './',

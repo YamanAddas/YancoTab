@@ -118,7 +118,8 @@ export function buildView(cfg) {
       }, label));
     }
   }
-  const pad = el('div', { class: 'calc-pad' }, [display, modes, keypad]);
+  const keypadWrap = el('div', { class: 'calc-keypad-wrap' }, [keypad]);
+  const pad = el('div', { class: 'calc-pad' }, [display, modes, keypadWrap]);
 
   // Tape side
   const tapeCountEl = el('span', { class: 'calc-tape-count' });
