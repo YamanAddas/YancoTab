@@ -421,11 +421,14 @@ const REGISTRY = {
     },
 
     // ── Mahjong ──
+    // Keeps gamesPlayed/Won + bestTime + bestComboStreak. Per-game state
+    // (recent matches, current combo, hints/shuffles used) is in-memory
+    // only — those reset every new game.
     yancotab_mahjong: {
-        storageClass: 'volatile',
-        syncPolicy: 'sync',
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
         version: 1,
-        default: {},
+        default: { gamesPlayed: 0, gamesWon: 0, bestTime: null, bestComboStreak: 0 },
         validate: (v) => v && typeof v === 'object',
     },
 

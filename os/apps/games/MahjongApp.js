@@ -1,273 +1,20 @@
 
 import { App } from '../../core/App.js';
 import { el } from '../../utils/dom.js';
+import { MahjongGame } from './mahjong/mahjongGame.js';
+import {
+  buildLayoutPicker,
+  buildMatchCounter,
+  buildShuffleBar,
+  buildSideRail,
+} from './mahjong/mahjongSideView.js';
+import { MahjongConstellation } from './mahjong/mahjongConstellation.js';
+import { computeBoardLayout, countFreePairs } from './mahjong/mahjongLayout.js';
+import { buildWinOverlay, buildStuckOverlay } from './mahjong/mahjongOverlays.js';
 
-/**
- * MahjongApp.js — Mahjong Solitaire
- *
- * Classic tile-matching puzzle.  Arcade glass theme consistent with
- * Solitaire / Spider.  DOM-rendered, orientation-aware.
- */
-
-/* ─── Tile Definitions ─── */
-
-const SUITS = {
-  circles: { icons: ['①','②','③','④','⑤','⑥','⑦','⑧','⑨'], labels: ['1','2','3','4','5','6','7','8','9'] },
-  bamboo:  { icons: ['⑴','⑵','⑶','⑷','⑸','⑹','⑺','⑻','⑼'], labels: ['1','2','3','4','5','6','7','8','9'] },
-  chars:   { icons: ['㊀','㊁','㊂','㊃','㊄','㊅','㊆','㊇','㊈'], labels: ['1','2','3','4','5','6','7','8','9'] },
-  wind:    { icons: ['東','南','西','北'], labels: ['E','S','W','N'] },
-  dragon:  { icons: ['中','發','□'], labels: ['中','發','白'] },
-  flower:  { icons: ['梅','蘭','菊','竹'], labels: ['🌸','🌺','🌼','🎋'] },
-  season:  { icons: ['春','夏','秋','冬'], labels: ['Sp','Su','Au','Wi'] },
-};
-
-function buildDeck() {
-  const tiles = [];
-  let id = 0;
-  // 3 numbered suits × 9 ranks × 4 copies = 108
-  for (const suit of ['circles', 'bamboo', 'chars']) {
-    const s = SUITS[suit];
-    for (let r = 0; r < 9; r++) {
-      for (let c = 0; c < 4; c++) {
-        tiles.push({ id: id++, suit, rank: r, icon: s.icons[r], label: s.labels[r], matchGroup: `${suit}-${r}` });
-      }
-    }
-  }
-  // Winds × 4 = 16
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 4; c++) {
-      const s = SUITS.wind;
-      tiles.push({ id: id++, suit: 'wind', rank: r, icon: s.icons[r], label: s.labels[r], matchGroup: `wind-${r}` });
-    }
-  }
-  // Dragons × 4 = 12
-  for (let r = 0; r < 3; r++) {
-    for (let c = 0; c < 4; c++) {
-      const s = SUITS.dragon;
-      tiles.push({ id: id++, suit: 'dragon', rank: r, icon: s.icons[r], label: s.labels[r], matchGroup: `dragon-${r}` });
-    }
-  }
-  // Flowers (4 unique, each matches any other flower) = 4
-  for (let r = 0; r < 4; r++) {
-    const s = SUITS.flower;
-    tiles.push({ id: id++, suit: 'flower', rank: r, icon: s.icons[r], label: s.labels[r], matchGroup: 'flower' });
-  }
-  // Seasons (4 unique, each matches any other season) = 4
-  for (let r = 0; r < 4; r++) {
-    const s = SUITS.season;
-    tiles.push({ id: id++, suit: 'season', rank: r, icon: s.icons[r], label: s.labels[r], matchGroup: 'season' });
-  }
-  return tiles; // 144 total
-}
-
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
-/* ─── Classic "Turtle" Layout ───
- *
- * Coordinates: col (x), row (y), layer (z).
- * Each tile occupies a 2×2 cell footprint.
- * The layout is defined as a list of (col, row, layer) positions.
- */
-
-function turtleLayout() {
-  const positions = [];
-
-  // Layer 0 — base — 109 tiles (108 grid + 1 tail wing)
-  // Symmetric diamond centered at col 11, row 7
-  const L0 = [
-    // Row 0: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 0]),
-    // Row 1: 12 tiles  (cols 0 to 22, inset)
-    ...[...Array(12)].map((_,i) => [i*2, 2]),
-    // Row 2: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 4]),
-    // Row 3: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 6]),
-    // Row 4: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 8]),
-    // Row 5: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 10]),
-    // Row 6: 12 tiles  (cols 0 to 22, inset)
-    ...[...Array(12)].map((_,i) => [i*2, 12]),
-    // Row 7: 14 tiles  (cols -2 to 24)
-    ...[...Array(14)].map((_,i) => [i*2 - 2, 14]),
-  ];
-  L0.forEach(([c,r]) => positions.push({ col: c, row: r, layer: 0 }));
-  // Tail wing — single right extension
-  positions.push({ col: 26, row: 14, layer: 0 });
-  // L0 total: 109
-
-  // Layer 1 — 6×4 centered — 24 tiles
-  for (let r = 0; r < 4; r++) {
-    for (let c = 0; c < 6; c++) {
-      positions.push({ col: c*2+6, row: r*2+4, layer: 1 });
-    }
-  }
-
-  // Layer 2 — 4×2 centered — 8 tiles
-  for (let r = 0; r < 2; r++) {
-    for (let c = 0; c < 4; c++) {
-      positions.push({ col: c*2+8, row: r*2+6, layer: 2 });
-    }
-  }
-
-  // Layer 3 — 2×1 centered — 2 tiles
-  positions.push({ col: 10, row: 7, layer: 3 });
-  positions.push({ col: 12, row: 7, layer: 3 });
-
-  // Cap tile (layer 4) — 1 tile
-  positions.push({ col: 11, row: 7, layer: 4 });
-
-  // Total: 109 + 24 + 8 + 2 + 1 = 144
-  return positions;
-}
-
-function getLayout() {
-  return turtleLayout();
-}
-
-/* ─── Game Logic ─── */
-
-class MahjongGame {
-  constructor() {
-    this.reset();
-  }
-
-  reset() {
-    const deck = buildDeck();
-    shuffle(deck);
-    const layout = getLayout();
-
-    this.tiles = layout.map((pos, i) => ({
-      ...deck[i],
-      col: pos.col,
-      row: pos.row,
-      layer: pos.layer,
-      removed: false,
-    }));
-
-    this.selected = null;
-    this.moves = 0;
-    this.startTime = Date.now();
-    this.hintsUsed = 0;
-    this.shufflesUsed = 0;
-    this.gameOver = false;
-  }
-
-  remaining() { return this.tiles.filter(t => !t.removed); }
-
-  isFree(tile) {
-    if (tile.removed) return false;
-    const alive = this.remaining();
-
-    // Blocked from above? Any tile on a higher layer overlapping this tile's 2×2 footprint.
-    const hasAbove = alive.some(t =>
-      t.layer > tile.layer &&
-      t.col < tile.col + 2 && t.col + 2 > tile.col &&
-      t.row < tile.row + 2 && t.row + 2 > tile.row
-    );
-    if (hasAbove) return false;
-
-    // Blocked on both left AND right on the same layer?
-    const hasLeft = alive.some(t =>
-      t !== tile && t.layer === tile.layer &&
-      t.row < tile.row + 2 && t.row + 2 > tile.row &&
-      t.col + 2 === tile.col
-    );
-    const hasRight = alive.some(t =>
-      t !== tile && t.layer === tile.layer &&
-      t.row < tile.row + 2 && t.row + 2 > tile.row &&
-      t.col === tile.col + 2
-    );
-    return !(hasLeft && hasRight);
-  }
-
-  canMatch(a, b) {
-    if (a.id === b.id) return false;
-    if (!this.isFree(a) || !this.isFree(b)) return false;
-    return a.matchGroup === b.matchGroup;
-  }
-
-  trySelect(tile) {
-    if (this.gameOver || tile.removed) return null;
-    if (!this.isFree(tile)) return null;
-
-    if (!this.selected) {
-      this.selected = tile;
-      return { type: 'select', tile };
-    }
-
-    if (this.selected.id === tile.id) {
-      this.selected = null;
-      return { type: 'deselect', tile };
-    }
-
-    if (this.canMatch(this.selected, tile)) {
-      const pair = [this.selected, tile];
-      this._lastMatch = pair;
-      pair.forEach(t => t.removed = true);
-      this.selected = null;
-      this.moves++;
-
-      if (this.remaining().length === 0) {
-        this.gameOver = true;
-        return { type: 'win', pair };
-      }
-      return { type: 'match', pair };
-    }
-
-    // Different tile, no match — switch selection
-    const prev = this.selected;
-    this.selected = tile;
-    return { type: 'switch', prev, tile };
-  }
-
-  undo() {
-    if (!this._lastMatch || this.gameOver) return null;
-    const pair = this._lastMatch;
-    pair.forEach(t => t.removed = false);
-    this._lastMatch = null;
-    this.moves = Math.max(0, this.moves - 1);
-    return pair;
-  }
-
-  findHint() {
-    const free = this.remaining().filter(t => this.isFree(t));
-    for (let i = 0; i < free.length; i++) {
-      for (let j = i + 1; j < free.length; j++) {
-        if (free[i].matchGroup === free[j].matchGroup) return [free[i], free[j]];
-      }
-    }
-    return null;
-  }
-
-  hasValidMoves() { return !!this.findHint(); }
-
-  shuffleRemaining() {
-    const alive = this.remaining();
-    const positions = alive.map(t => ({ col: t.col, row: t.row, layer: t.layer }));
-    const tileData = alive.map(t => ({ suit: t.suit, rank: t.rank, icon: t.icon, label: t.label, matchGroup: t.matchGroup }));
-    shuffle(tileData);
-    alive.forEach((t, i) => {
-      Object.assign(t, tileData[i]);
-      t.col = positions[i].col;
-      t.row = positions[i].row;
-      t.layer = positions[i].layer;
-    });
-    this.selected = null;
-    this.shufflesUsed++;
-  }
-
-  elapsedSecs() { return Math.floor((Date.now() - this.startTime) / 1000); }
-}
-
-
-/* ─── App ─── */
+// MahjongApp host shell — engine in mahjong/mahjongGame, side rail in
+// mahjongSideView, constellation overlay in mahjongConstellation, board
+// fit math in mahjongLayout, win/stuck cards in mahjongOverlays.
 
 export class MahjongApp extends App {
   constructor(kernel, pid) {
@@ -284,36 +31,65 @@ export class MahjongApp extends App {
     const link = el('link', { rel: 'stylesheet', href: 'css/mahjong.css' });
     this.root.appendChild(link);
 
-    // Header
-    this.undoBtn = el('button', { class: 'mj-hdr-btn disabled', onclick: () => this.doUndo() }, 'Undo');
-    this.hintBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.doHint() }, 'Hint');
-    this.shuffleBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.doShuffle() }, 'Shuffle');
-    const newBtn = el('button', { class: 'mj-hdr-btn', onclick: () => this.newGame() }, 'New');
-
-    const header = el('div', { class: 'mj-header' }, [
-      el('div', { class: 'mj-header-left' }, [this.undoBtn, this.hintBtn, this.shuffleBtn, newBtn]),
-      el('div', { class: 'mj-title' }, 'Mahjong'),
-      el('button', { class: 'mj-close', onclick: () => this.close() }, '×'),
+    // Salon-style chrome — title pill + (no traffic lights) + tab pills
+    // for layouts. Yaman dropped the macOS dots from the salon; same here.
+    this._activeLayout = 'turtle';
+    this.titlebar = el('div', { class: 'mj-titlebar' }, [
+      el('div', { class: 'mj-name' }, 'Mahjong'),
+      el('div', { class: 'mj-layout-tabs' }, []),  // populated in render
     ]);
 
-    // Stats
-    this.tilesEl = el('span', {}, 'Tiles 144');
-    this.movesEl = el('span', {}, 'Moves 0');
-    this.timerEl = el('span', {}, 'Time 0:00');
-    const stats = el('div', { class: 'mj-stats' }, [this.tilesEl, this.movesEl, this.timerEl]);
+    // Stage = board area on left, side rail on right (1fr | 240px)
+    this.boardArea = el('div', { class: 'mj-board-area' });
 
-    // Board
+    // Layout picker pill row at top of board
+    this.layoutPickerSlot = el('div', { class: 'mj-layout-picker-slot' });
+
+    // Match counter pill (top-right of board)
+    this.matchCounterSlot = el('div', { class: 'mj-match-counter-slot' });
+
+    // The actual tile grid (sized by fitBoard based on container size)
     this.boardEl = el('div', { class: 'mj-board' });
     this.boardInner = el('div', { class: 'mj-board-inner' });
     this.boardEl.appendChild(this.boardInner);
 
-    this.root.append(header, stats, this.boardEl);
+    // Constellation overlay sits inside boardInner so it shares coords
+    this.constellation = new MahjongConstellation();
+    this.constellation.mount(this.boardInner);
+
+    // Shuffle bar (bottom of board) — replaces old mj-header buttons
+    this.shuffleBarSlot = el('div', { class: 'mj-shuffle-bar-slot' });
+
+    this.boardArea.append(
+      this.layoutPickerSlot,
+      this.matchCounterSlot,
+      this.boardEl,
+      this.shuffleBarSlot,
+    );
+
+    // Side rail (recent matches + stats + daily card)
+    this.sideEl = el('aside', { class: 'mj-side-slot' });
+
+    const stage = el('div', { class: 'mj-stage' }, [this.boardArea, this.sideEl]);
+    const frame = el('div', { class: 'mj-app-frame' }, [this.titlebar, stage]);
+    this.root.appendChild(frame);
 
     this.resizeObserver = new ResizeObserver(() => this.fitBoard());
     this.resizeObserver.observe(this.boardEl);
 
+    // In-game UI state (resets per game)
+    this._uiState = {
+      recent: [],
+      comboStreak: 0,
+      hintsUsed: 0,
+      shufflesUsed: 0,
+    };
+    this.HINT_LIMIT = 5;
+    this.SHUFFLE_LIMIT = 3;
+
     this._loadStats();
     this.newGame();
+    this._renderChrome();
   }
 
   /* ── Persistence ── */
@@ -325,12 +101,20 @@ export class MahjongApp extends App {
         gamesPlayed: d.gamesPlayed || 0,
         gamesWon: d.gamesWon || 0,
         bestTime: d.bestTime || null,
+        bestComboStreak: d.bestComboStreak || 0,
       };
-    } catch { this.stats = { gamesPlayed: 0, gamesWon: 0, bestTime: null }; }
+    } catch {
+      this.stats = { gamesPlayed: 0, gamesWon: 0, bestTime: null, bestComboStreak: 0 };
+    }
   }
 
   _saveStats() {
     try { this.kernel.storage.save('yancotab_mahjong', this.stats); } catch {}
+  }
+
+  _formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    return `${m}:${(secs % 60).toString().padStart(2, '0')}`;
   }
 
   /* ── Game lifecycle ── */
@@ -348,34 +132,99 @@ export class MahjongApp extends App {
 
     if (this.stats) { this.stats.gamesPlayed++; this._saveStats(); }
 
-    this.undoBtn?.classList.add('disabled');
+    // Reset in-game UI state
+    this._uiState = {
+      recent: [],
+      comboStreak: 0,
+      hintsUsed: 0,
+      shufflesUsed: 0,
+    };
+    this.constellation?.clear();
+
     this.startTimer();
     this.renderBoard();
-    this.updateStats();
+    this._renderChrome();
   }
 
   startTimer() {
     this.stopTimer();
-    this.timerInterval = setInterval(() => this.updateTimer(), 1000);
+    this.timerInterval = setInterval(() => this._renderChrome(), 1000);
   }
   stopTimer() { if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; } }
-  updateTimer() {
+
+  /* ── Chrome render ── */
+
+  /**
+   * Re-render the layout picker, match counter, shuffle bar, and side
+   * rail based on current game + UI state. Called after every action
+   * (match, hint, shuffle, undo, timer tick).
+   */
+  _renderChrome() {
     if (!this.game) return;
-    const s = this.game.elapsedSecs();
-    const m = Math.floor(s / 60);
-    this.timerEl.textContent = `Time ${m}:${(s%60).toString().padStart(2,'0')}`;
+
+    // Layout picker (only TURTLE wired in v1)
+    this.layoutPickerSlot.replaceChildren(buildLayoutPicker(this._activeLayout, (id, disabledId) => {
+      if (id === '__disabled') {
+        this.kernel?.emit?.('toast', {
+          type: 'info',
+          message: `${(disabledId || '').toUpperCase()} layout · coming soon`,
+        });
+      }
+    }));
+
+    // Match counter — total pairs = total tiles / 2 (144 → 72)
+    const totalPairs = Math.floor(this.game.tiles.length / 2);
+    const matchedPairs = totalPairs - Math.floor(this.game.remaining().length / 2);
+    this.matchCounterSlot.replaceChildren(buildMatchCounter(matchedPairs, totalPairs));
+
+    // Shuffle bar — timer + free pairs + tiles left + 4 buttons
+    const elapsed = this.game.elapsedSecs();
+    const freePairs = this._countFreePairs();
+    const tilesLeft = this.game.remaining().length;
+    this.shuffleBarSlot.replaceChildren(buildShuffleBar({
+      timeStr: this._formatTime(elapsed),
+      freePairs,
+      tilesLeft,
+      comboStreak: this._uiState.comboStreak,
+      handlers: {
+        canUndo: !!this.game._lastMatch && !this.game.gameOver,
+        onUndo: () => this.doUndo(),
+        onHint: () => this.doHint(),
+        onShuffle: () => this.doShuffle(),
+        onNew: () => this.newGame(),
+      },
+    }));
+
+    // Side rail
+    const bestClearStr = this.stats?.bestTime != null ? this._formatTime(this.stats.bestTime) : null;
+    this.sideEl.replaceChildren(buildSideRail({
+      matched: matchedPairs,
+      total: totalPairs,
+      recent: this._uiState.recent,
+      stats: {
+        comboStreak: this._uiState.comboStreak,
+        bestComboStreak: this.stats?.bestComboStreak || 0,
+        bestClearStr,
+        hintsUsed: this._uiState.hintsUsed,
+        hintsLimit: this.HINT_LIMIT,
+        shufflesUsed: this._uiState.shufflesUsed,
+        shufflesLimit: this.SHUFFLE_LIMIT,
+      },
+    }));
   }
-  updateStats() {
-    if (!this.game) return;
-    this.tilesEl.textContent = `Tiles ${this.game.remaining().length}`;
-    this.movesEl.textContent = `Moves ${this.game.moves}`;
-    this.updateTimer();
+
+  _countFreePairs() {
+    return countFreePairs(this.game);
   }
 
   /* ── Rendering ── */
 
   renderBoard() {
-    this.boardInner.innerHTML = '';
+    // Remove only the tile DOM — preserve the constellation SVG which
+    // also lives inside .mj-board-inner.
+    for (const t of this.tileEls.values()) {
+      try { t.remove(); } catch {}
+    }
     this.tileEls.clear();
 
     this.game.tiles.forEach(tile => {
@@ -399,6 +248,7 @@ export class MahjongApp extends App {
       class: 'mj-tile',
       'data-id': tile.id,
       'data-suit': tile.suit,
+      'data-rank': String(tile.rank),
       onclick: () => this.onTileClick(tile),
     }, [body]);
 
@@ -408,81 +258,37 @@ export class MahjongApp extends App {
   fitBoard() {
     if (!this.game || !this.boardEl) return;
     const rect = this.boardEl.getBoundingClientRect();
-    const pad = 8;
-    const aW = rect.width - pad * 2;
-    const aH = rect.height - pad * 2;
-    if (aW <= 0 || aH <= 0) return;
     const isPortrait = rect.height > rect.width;
     this.root.classList.toggle('mj-portrait', isPortrait);
 
-    // Compute layout extents
-    const alive = this.game.tiles; // include removed for stable sizing
-    let maxCol = 0, maxRow = 0, maxLayer = 0;
-    alive.forEach(t => {
-      if (t.col + 2 > maxCol) maxCol = t.col + 2;
-      if (t.row + 2 > maxRow) maxRow = t.row + 2;
-      if (t.layer > maxLayer) maxLayer = t.layer;
+    const layout = computeBoardLayout({
+      tiles: this.game.tiles, // include removed for stable sizing
+      width: rect.width,
+      height: rect.height,
+      isPortrait,
     });
-
-    // Normalise negative cols
-    let minCol = Infinity;
-    alive.forEach(t => { if (t.col < minCol) minCol = t.col; });
-    const colOffset = minCol < 0 ? -minCol : 0;
-    maxCol += colOffset;
-
-    // Layer offset (px) — 3D effect
-    const layerPx = isPortrait ? 2 : 3;
-    const totalLayerShift = maxLayer * layerPx;
-
-    // Tile cell size (portrait uses rotated board, so width/height are swapped for fitting)
-    const fitW = isPortrait ? aH : aW;
-    const fitH = isPortrait ? aW : aH;
-    const cellW = (fitW - totalLayerShift) / maxCol;
-    const cellH = (fitH - totalLayerShift) / maxRow;
-    const cell = Math.max(4, Math.min(cellW, cellH));
-
-    const tileW = cell * 2;
-    const tileH = cell * 2;
-
-    const iconSize = Math.max(8, tileW * 0.38);
-    const labelSize = Math.max(6, tileW * 0.22);
-    const placedTiles = [];
-    let minX = Infinity;
-    let minY = Infinity;
-    let maxX = -Infinity;
-    let maxY = -Infinity;
-
-    this.game.tiles.forEach(tile => {
-      const tileEl = this.tileEls.get(tile.id);
-      if (!tileEl) return;
-      const x = (tile.col + colOffset) * cell + tile.layer * layerPx;
-      const y = tile.row * cell + tile.layer * layerPx;
-      const w = tileW - 2;
-      const h = tileH - 2;
-      placedTiles.push({ tileEl, x, y, w, h, z: tile.layer * 100 + tile.row * 2 + 1 });
-      if (x < minX) minX = x;
-      if (y < minY) minY = y;
-      if (x + w > maxX) maxX = x + w;
-      if (y + h > maxY) maxY = y + h;
-    });
-
-    if (!placedTiles.length) return;
+    if (!layout) return;
+    const { iconSize, labelSize, minX, minY, maxX, maxY, placed } = layout;
 
     this.boardInner.style.width = `${Math.ceil(maxX - minX)}px`;
     this.boardInner.style.height = `${Math.ceil(maxY - minY)}px`;
 
-    placedTiles.forEach(({ tileEl, x, y, w, h, z }) => {
-      tileEl.style.left = `${x - minX}px`;
-      tileEl.style.top = `${y - minY}px`;
-      tileEl.style.setProperty('--mj-tile-w', `${w}px`);
-      tileEl.style.setProperty('--mj-tile-h', `${h}px`);
-      tileEl.style.zIndex = z;
-
+    for (const p of placed) {
+      const tileEl = this.tileEls.get(p.id);
+      if (!tileEl) continue;
+      tileEl.style.left = `${p.x - minX}px`;
+      tileEl.style.top = `${p.y - minY}px`;
+      tileEl.style.setProperty('--mj-tile-w', `${p.w}px`);
+      tileEl.style.setProperty('--mj-tile-h', `${p.h}px`);
+      tileEl.style.zIndex = p.z;
       const iconEl = tileEl.querySelector('.mj-tile-icon');
       const lblEl = tileEl.querySelector('.mj-tile-label');
       if (iconEl) iconEl.style.fontSize = `${iconSize}px`;
       if (lblEl) lblEl.style.fontSize = `${labelSize}px`;
-    });
+    }
+
+    // Constellation overlay must follow the inner-board's actual size
+    this.constellation?.resize(Math.ceil(maxX - minX), Math.ceil(maxY - minY));
   }
 
   updateFreeState() {
@@ -520,16 +326,52 @@ export class MahjongApp extends App {
         break;
 
       case 'match':
+        this._recordMatch(result.pair);
         this.animateRemove(result.pair);
-        this.undoBtn.classList.remove('disabled');
         break;
 
       case 'win':
+        this._recordMatch(result.pair);
         this.animateRemove(result.pair);
-        this.undoBtn.classList.add('disabled');
         this.stopTimer();
         setTimeout(() => this.showWin(), 400);
         break;
+    }
+    this._renderChrome();
+  }
+
+  /**
+   * Push a matched pair to the recent buffer (newest-first), bump the
+   * combo streak, draw a constellation curve. Score per pair is 8
+   * (tile suit/rank doesn't affect score in classic Mahjong solitaire,
+   * but we add a +2 bonus when the streak is ≥2 to reward chains).
+   */
+  _recordMatch(pair) {
+    if (!Array.isArray(pair) || pair.length !== 2) return;
+    this._uiState.comboStreak += 1;
+    if (this.stats && this._uiState.comboStreak > (this.stats.bestComboStreak || 0)) {
+      this.stats.bestComboStreak = this._uiState.comboStreak;
+      this._saveStats();
+    }
+    const baseScore = 8;
+    const comboBonus = this._uiState.comboStreak >= 2 ? 2 * (this._uiState.comboStreak - 1) : 0;
+    const score = baseScore + comboBonus;
+    const elapsed = this.game.elapsedSecs();
+    const entry = {
+      pair: pair.map((t) => ({
+        suit: t.suit, rank: t.rank, icon: t.icon, label: t.label, matchGroup: t.matchGroup,
+      })),
+      score,
+      time: this._formatTime(elapsed),
+    };
+    this._uiState.recent.unshift(entry);
+    while (this._uiState.recent.length > 12) this._uiState.recent.pop();
+
+    // Draw constellation curve between the two tile DOM nodes
+    const elA = this.tileEls.get(pair[0].id);
+    const elB = this.tileEls.get(pair[1].id);
+    if (elA && elB) {
+      try { this.constellation.drawBetween(elA, elB); } catch {}
     }
   }
 
@@ -547,7 +389,7 @@ export class MahjongApp extends App {
 
     setTimeout(() => {
       this.updateFreeState();
-      this.updateStats();
+      this._renderChrome();
       if (!this.game.gameOver && !this.game.hasValidMoves()) {
         this.showStuck();
       }
@@ -562,31 +404,46 @@ export class MahjongApp extends App {
 
   doHint() {
     if (this.game.gameOver) return;
+    if (this._uiState.hintsUsed >= this.HINT_LIMIT) {
+      this.kernel?.emit?.('toast', { type: 'info', message: 'No hints left this game' });
+      return;
+    }
     const pair = this.game.findHint();
     if (!pair) { this.showStuck(); return; }
     this.clearHighlights();
     this.game.selected = null;
     pair.forEach(t => this.tileEls.get(t.id)?.classList.add('hint'));
     this.game.hintsUsed++;
-    // Auto-clear hint after 2 seconds
+    this._uiState.hintsUsed++;
+    this._uiState.comboStreak = 0;       // hints break combo
     setTimeout(() => {
       pair.forEach(t => this.tileEls.get(t.id)?.classList.remove('hint'));
     }, 2000);
+    this._renderChrome();
   }
 
   doShuffle() {
     if (this.game.gameOver) return;
+    if (this._uiState.shufflesUsed >= this.SHUFFLE_LIMIT) {
+      this.kernel?.emit?.('toast', { type: 'info', message: 'No shuffles left this game' });
+      return;
+    }
     this.game.shuffleRemaining();
+    this._uiState.shufflesUsed++;
+    this._uiState.comboStreak = 0;       // shuffles break combo
+    this.constellation?.clear();
     this.renderBoard();
-    this.updateStats();
+    this._renderChrome();
   }
 
   doUndo() {
     const pair = this.game.undo();
     if (!pair) return;
+    // Drop the most-recent recorded match + roll back the combo
+    if (this._uiState.recent.length > 0) this._uiState.recent.shift();
+    this._uiState.comboStreak = Math.max(0, this._uiState.comboStreak - 1);
     this.renderBoard();
-    this.updateStats();
-    this.undoBtn.classList.add('disabled');
+    this._renderChrome();
   }
 
   /* ── Overlays ── */
@@ -598,43 +455,36 @@ export class MahjongApp extends App {
 
   showWin() {
     const s = this.game.elapsedSecs();
-    const m = Math.floor(s / 60);
-    const timeStr = `${m}:${(s%60).toString().padStart(2,'0')}`;
-
     if (this.stats) {
       this.stats.gamesWon++;
       if (this.stats.bestTime === null || s < this.stats.bestTime) this.stats.bestTime = s;
       this._saveStats();
     }
-
-    const bestStr = this.stats?.bestTime != null
-      ? `Best: ${Math.floor(this.stats.bestTime / 60)}:${(this.stats.bestTime % 60).toString().padStart(2, '0')}`
-      : '';
-
-    const overlay = el('div', { class: 'mj-overlay' }, [
-      el('div', { class: 'mj-overlay-title win' }, '🎉 You Win!'),
-      el('div', { class: 'mj-overlay-sub' },
-        `Moves: ${this.game.moves}  •  Time: ${timeStr}\nHints: ${this.game.hintsUsed}  •  Shuffles: ${this.game.shufflesUsed}`
-        + (bestStr ? `\n${bestStr}` : '')),
-      el('button', { class: 'mj-overlay-btn', onclick: () => this.newGame() }, '▶ Play Again'),
-    ]);
-    this.root.appendChild(overlay);
+    this.root.appendChild(buildWinOverlay({
+      moves: this.game.moves,
+      elapsed: s,
+      hintsUsed: this.game.hintsUsed,
+      shufflesUsed: this.game.shufflesUsed,
+      bestTime: this.stats?.bestTime,
+      comboStreak: this.stats?.bestComboStreak || 0,
+      onNew: () => this.newGame(),
+    }));
   }
 
   showStuck() {
     if (this.game.gameOver) return;
     this.stopTimer();
     this.game.gameOver = true;
-
-    const overlay = el('div', { class: 'mj-overlay' }, [
-      el('div', { class: 'mj-overlay-title stuck' }, 'No Moves'),
-      el('div', { class: 'mj-overlay-sub' }, `${this.game.remaining().length} tiles remaining.\nShuffle or start a new game.`),
-      el('div', { style: 'display:flex; gap:12px;' }, [
-        el('button', { class: 'mj-overlay-btn', onclick: () => { this.clearOverlay(); this.game.gameOver = false; this.doShuffle(); this.startTimer(); } }, '🔀 Shuffle'),
-        el('button', { class: 'mj-overlay-btn', onclick: () => this.newGame() }, '⟳ New'),
-      ]),
-    ]);
-    this.root.appendChild(overlay);
+    this.root.appendChild(buildStuckOverlay({
+      tilesLeft: this.game.remaining().length,
+      onShuffle: () => {
+        this.clearOverlay();
+        this.game.gameOver = false;
+        this.doShuffle();
+        this.startTimer();
+      },
+      onNew: () => this.newGame(),
+    }));
   }
 
   /* ── Cleanup ── */
@@ -642,6 +492,8 @@ export class MahjongApp extends App {
   destroy() {
     this.stopTimer();
     if (this.resizeObserver) this.resizeObserver.disconnect();
+    try { this.constellation?.destroy(); } catch {}
+    this.constellation = null;
     super.destroy();
   }
 }

@@ -5,9 +5,8 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-ttt" suffix on top of "-table-trix" forces eviction of the
-// pre-DOM-rebuild TicTacToe assets too.
-const CACHE_NAME = 'yancotab-v1.1.0-table-ttt';
+// "-mahjong" suffix forces eviction of the pre-cosmic Mahjong assets.
+const CACHE_NAME = 'yancotab-v1.1.0-mahjong';
 
 const PRECACHE = [
     './',
@@ -102,6 +101,11 @@ const PRECACHE = [
     './os/apps/WeatherApp.js',
     // Games
     './os/apps/games/MahjongApp.js',
+    './os/apps/games/mahjong/mahjongConstellation.js',
+    './os/apps/games/mahjong/mahjongGame.js',
+    './os/apps/games/mahjong/mahjongLayout.js',
+    './os/apps/games/mahjong/mahjongOverlays.js',
+    './os/apps/games/mahjong/mahjongSideView.js',
     './os/apps/games/MinesweeperApp.js',
     './os/apps/games/solitaire/SolitaireApp.js',
     './os/apps/games/solitaire/engine/state.js',
