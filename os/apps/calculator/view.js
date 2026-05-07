@@ -80,10 +80,7 @@ export function buildView(cfg) {
     tabEls[t.id] = tab;
     tabs.appendChild(tab);
   }
-  const titlebar = el('div', { class: 'calc-titlebar' }, [
-    el('div', { class: 'calc-name' }, [el('b', {}, 'calc'), ' / tape']),
-    tabs,
-  ]);
+  const titlebar = el('div', { class: 'calc-titlebar' }, [tabs]);
 
   // ── Display ──
   const exprEl = el('div', { class: 'calc-display-input' });

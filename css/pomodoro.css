@@ -58,27 +58,12 @@ body.theme-light .sol-app-frame {
 .sol-titlebar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
   background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
   flex-wrap: wrap;
 }
-.sol-traffic { display: flex; gap: 8px; }
-.sol-light { width: 12px; height: 12px; border-radius: 50%; display: block; }
-.sol-light.is-red    { background: #ff5f57; }
-.sol-light.is-amber  { background: #febc2e; }
-.sol-light.is-green  { background: #28c840; }
-.sol-name {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.sol-name b { color: var(--accent); font-weight: 500; }
-
-.sol-tabs { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+.sol-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .sol-tab {
   padding: 4px 10px;
   border-radius: 7px;

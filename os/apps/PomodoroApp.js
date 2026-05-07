@@ -76,17 +76,8 @@ export class PomodoroApp extends App {
   }
 
   _buildFrame() {
-    // ── Titlebar ──
+    // ── Titlebar (tabs only — WindowChrome owns the controls + title) ──
     const titlebar = el('div', { class: 'sol-titlebar' });
-    titlebar.appendChild(el('div', { class: 'sol-traffic' }, [
-      el('i', { class: 'sol-light is-red' }),
-      el('i', { class: 'sol-light is-amber' }),
-      el('i', { class: 'sol-light is-green' }),
-    ]));
-    titlebar.appendChild(el('div', { class: 'sol-name' }, [
-      el('b', {}, 'pomodoro'),
-      document.createTextNode(' / solar cycle'),
-    ]));
     const tabs = el('div', { class: 'sol-tabs' });
     for (const name of TABS) {
       const isActive = name === this._activeTab;

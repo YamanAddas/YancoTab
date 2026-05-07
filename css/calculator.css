@@ -57,25 +57,12 @@ body.theme-light .calc-app-frame {
 .calc-titlebar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 18px;
+  padding: 8px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.10);
   background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
   user-select: none;
 }
-.calc-titlebar .calc-name {
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.calc-titlebar .calc-name b {
-  color: var(--accent);
-  font-weight: 500;
-}
 .calc-titlebar .calc-tabs {
-  margin-left: auto;
   display: flex;
   gap: 4px;
   flex-wrap: wrap;

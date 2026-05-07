@@ -71,17 +71,8 @@ export class TodoApp extends App {
   }
 
   _buildFrame() {
-    // Title bar
+    // Title bar (tabs only — WindowChrome owns controls + title)
     const titlebar = el('div', { class: 'mc-titlebar' });
-    titlebar.appendChild(el('div', { class: 'mc-traffic' }, [
-      el('i', { class: 'mc-light is-red' }),
-      el('i', { class: 'mc-light is-amber' }),
-      el('i', { class: 'mc-light is-green' }),
-    ]));
-    titlebar.appendChild(el('div', { class: 'mc-name' }, [
-      el('b', {}, 'todo'),
-      document.createTextNode(' / mission control'),
-    ]));
     const tabs = el('div', { class: 'mc-tabs' });
     for (const name of TABS) {
       const tab = el('button', {

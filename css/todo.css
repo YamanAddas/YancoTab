@@ -55,27 +55,12 @@ body.theme-light .mc-frame {
 .mc-titlebar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 16px;
+  padding: 8px 16px;
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
   background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
   flex-wrap: wrap;
 }
-.mc-traffic { display: flex; gap: 8px; }
-.mc-light { width: 12px; height: 12px; border-radius: 50%; display: block; }
-.mc-light.is-red    { background: #ff5f57; }
-.mc-light.is-amber  { background: #febc2e; }
-.mc-light.is-green  { background: #28c840; }
-.mc-name {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 11px;
-  color: var(--text);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.mc-name b { color: var(--mc-mission-color, var(--accent)); font-weight: 500; }
-
-.mc-tabs { margin-left: auto; display: flex; gap: 4px; flex-wrap: wrap; }
+.mc-tabs { display: flex; gap: 4px; flex-wrap: wrap; }
 .mc-tab {
   padding: 4px 10px;
   border-radius: 7px;
