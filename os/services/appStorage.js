@@ -508,12 +508,24 @@ const REGISTRY = {
     },
 
     // ── Calculator ──
+    // Legacy v1: {angleMode, history:[{expression, result}]}.
+    // Read once on first launch of the Tape redesign and migrated into v2.
     yancotab_calculator: {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
         default: { angleMode: 'rad', history: [] },
         validate: (v) => v && typeof v === 'object' && (v.angleMode === 'rad' || v.angleMode === 'deg') && Array.isArray(v.history),
+    },
+    // Canonical v2: {angleMode, tape:[{ts, expr, result}]}.
+    yancotab_calculator_v2: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 2,
+        default: { angleMode: 'rad', tape: [] },
+        validate: (v) => v && typeof v === 'object'
+            && (v.angleMode === 'rad' || v.angleMode === 'deg')
+            && Array.isArray(v.tape),
     },
 
     // ── PDF Reader ──

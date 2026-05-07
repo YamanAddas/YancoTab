@@ -5,8 +5,8 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-memory" suffix forces eviction of the pre-mirror Memory assets.
-const CACHE_NAME = 'yancotab-v1.1.0-memory';
+// "-calculator" suffix forces eviction of pre-Tape Calculator assets.
+const CACHE_NAME = 'yancotab-v1.1.0-calculator';
 
 const PRECACHE = [
     './',
@@ -19,6 +19,7 @@ const PRECACHE = [
     './css/home.css',
     './css/main.css',
     './css/memory.css',
+    './css/calculator.css',
     './css/cards.css',
     './css/solitaire.css',
     './css/tictactoe.css',
@@ -80,6 +81,8 @@ const PRECACHE = [
     // Apps
     './os/apps/BrowserApp.js',
     './os/apps/CalculatorApp.js',
+    './os/apps/calculator/view.js',
+    './os/apps/calculator/tape.js',
     './os/apps/ClockApp.js',
     './os/apps/FilesApp.js',
     './os/apps/MemoryApp.js',
