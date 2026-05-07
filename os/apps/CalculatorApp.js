@@ -1,27 +1,32 @@
 /** CalculatorApp — "Tape" redesign shell. Pure helpers in calculator/*.js. */
 import { App } from '../core/App.js';
 import { el } from '../utils/dom.js';
-import {
-  buildView, renderTapeLines, renderVarsRow, renderBasePanel, relabelSciKeys,
-  renderDisplay, renderDateMode,
-} from './calculator/view.js';
-import {
-  copyTape, exportTapeCsv, saveTapeToNotes,
-} from './calculator/tape.js';
+import { buildView, renderTapeLines, renderVarsRow, relabelSciKeys,
+         renderDisplay, renderDateMode } from './calculator/view.js';
+import { copyTape, exportTapeCsv, saveTapeToNotes } from './calculator/tape.js';
 import { renderHistory } from './calculator/historyView.js';
 import { renderNotesExport } from './calculator/notesExportView.js';
-import {
-  normalizeNumber, applyBinaryOp, fmtOp,
-  SCI_FNS, NULLARY_SCI, actionFor,
-  addDaysToToday, formatDateLabel,
-} from './calculator/engine.js';
-import {
-  toggleSecondMode, toggleAngleMode, appendExponentMarker,
-} from './calculator/scientific.js';
-import {
-  loadCalculatorState, saveCalculatorState, MAX_TAPE,
-} from './calculator/persistence.js';
-import { promptDefineVar } from './calculator/vars.js';
+import { normalizeNumber, applyBinaryOp, fmtOp, SCI_FNS, NULLARY_SCI,
+         actionFor, addDaysToToday, formatDateLabel } from './calculator/engine.js';
+import { toggleSecondMode, toggleAngleMode,
+         appendExponentMarker } from './calculator/scientific.js';
+import { makeProgState,
+         actRender       as progRender,
+         actAppendDigit  as progAppendDigit,
+         actAppendHex    as progAppendHex,
+         actSetOp        as progSetOp,
+         actEval         as progEval,
+         actNot          as progNot,
+         actNegate       as progNegate,
+         actClear        as progClear,
+         actBackspace    as progBackspace,
+         actSetBase      as progSetBase,
+         actSetWidth     as progSetWidth } from './calculator/programmer.js';
+import { loadCalculatorState, saveCalculatorState,
+         MAX_TAPE } from './calculator/persistence.js';
+import { actDefineVar as defineVarAction,
+         actUseVar    as useVarAction,
+         actDeleteVar as deleteVarAction } from './calculator/vars.js';
 import { routeAction } from './calculator/dispatch.js';
 import { bindKeyboard } from './calculator/keyboard.js';
 
@@ -43,6 +48,8 @@ export class CalculatorApp extends App {
     this._mode = 'standard';
     this._secondMode = false;
     this._programmerBase = 'dec';
+    this._bitWidth = 32;
+    this._prog = makeProgState();
     this._activeTab = 'tape';
     this._dateDelta = 0;     // session-only — magnitude of days
     this._dateSign = '+';    // '+' or '-' for date mode
@@ -74,16 +81,22 @@ export class CalculatorApp extends App {
       mode: this._mode,
       secondMode: this._secondMode,
       angleMode: this.state.angleMode,
+      bitWidth: this._bitWidth,
+      programmerBase: this._programmerBase,
       handlers: {
         dispatch:    (action, value) => this._dispatch(action, value),
         setTab:      (id) => this._setActiveTab(id),
         setMode:     (id) => this._setMode(id),
         setProgrammerBase: (id) => this._setProgrammerBase(id),
+        setBitWidth: (w) => this._setBitWidth(w),
         toggleSecond: () => this._toggleSecond(),
         toggleAngle: () => this._toggleAngle(),
         appendExponent: () => this._appendExponent(),
         applyOp:     (op) => this.setOperator(op),
         applySci:    (id) => this.handleScientific(this._resolveSciFunc(id)),
+        appendHex:   (d) => this._progAppendHex(d),
+        applyBitop:  (op) => this._progSetOp(op),
+        applyNot:    () => this._progNot(),
         defineVar:   () => this._defineVar(),
         useVar:      (n) => this._useVar(n),
         deleteVar:   (n) => this._deleteVar(n),
@@ -114,6 +127,11 @@ export class CalculatorApp extends App {
     this._mode = s.mode;
     this._secondMode = s.secondMode;
     this._programmerBase = s.programmerBase;
+    this._bitWidth = s.bitWidth;
+    // Restore the programmer value as a BigInt; persistence stores
+    // it as a decimal string so JSON survives chrome.storage.sync.
+    try { this._prog.value = BigInt(s.programmerValue || '0'); }
+    catch { this._prog.value = 0n; }
   }
 
   _persist() {
@@ -124,6 +142,8 @@ export class CalculatorApp extends App {
       mode: this._mode,
       secondMode: this._secondMode,
       programmerBase: this._programmerBase,
+      bitWidth: this._bitWidth,
+      programmerValue: this._prog.value.toString(10),
     });
   }
 
@@ -189,17 +209,17 @@ export class CalculatorApp extends App {
   _toggleAngle()     { toggleAngleMode(this); }
   _appendExponent()  { appendExponentMarker(this); }
 
-  _setProgrammerBase(base) {
-    if (this._programmerBase === base) return;
-    this._programmerBase = base;
-    this._renderProgrammerMode();
-    this._persist();
-  }
-
-  _renderProgrammerMode() {
-    if (this._mode !== 'programmer') return;
-    renderBasePanel(this._refs.baseRefs, this.state.current, this._programmerBase);
-  }
+  _setProgrammerBase(base) { progSetBase(this, base); }
+  _setBitWidth(w)          { progSetWidth(this, w); }
+  _renderProgrammerMode()  { progRender(this); }
+  _progAppendDigit(d)      { progAppendDigit(this, d); }
+  _progAppendHex(letter)   { progAppendHex(this, letter); }
+  _progSetOp(op)           { progSetOp(this, op); }
+  _progEval()              { progEval(this); }
+  _progNot()               { progNot(this); }
+  _progNegate()            { progNegate(this); }
+  _progClear()             { progClear(this); }
+  _progBackspace()         { progBackspace(this); }
 
   _renderDateMode() {
     if (this._mode !== 'date') return;
@@ -211,33 +231,9 @@ export class CalculatorApp extends App {
     });
   }
 
-  async _defineVar() {
-    const r = await promptDefineVar({ kernel: this.kernel, defaultValue: this.state.current });
-    if (!r) return;
-    this._vars[r.name] = r.value;
-    this._appendTape(r.tapeEntry);
-    this._persist();
-    this._renderVars();
-    this._renderTape();
-    this.kernel.emit('toast', { message: `${r.name} stored`, type: 'success' });
-  }
-
-  _useVar(name) {
-    const v = this._vars[name];
-    if (!Number.isFinite(v)) return;
-    this.state.current = normalizeNumber(v);
-    this.state.resetNext = true;
-    this._renderDisplay();
-    this.kernel.emit('toast', { message: `${name} = ${this.state.current}`, type: 'info' });
-  }
-
-  _deleteVar(name) {
-    if (!(name in this._vars)) return;
-    delete this._vars[name];
-    this._persist();
-    this._renderVars();
-    this.kernel.emit('toast', { message: `${name} deleted`, type: 'info' });
-  }
+  _defineVar()       { return defineVarAction(this); }
+  _useVar(name)      { useVarAction(this, name); }
+  _deleteVar(name)   { deleteVarAction(this, name); }
 
   _bindKeyboard() {
     this._onKeyDown = bindKeyboard(this.root, this);
@@ -462,7 +458,9 @@ export class CalculatorApp extends App {
       secondMode: this._secondMode,
       fmtOp,
     });
-    if (this._mode === 'programmer') this._renderProgrammerMode();
+    // NOTE: programmer mode owns its own value; the multi-base
+    // panel + state.current are kept in sync by progRender(), so
+    // we don't call back into it from here (would recurse).
   }
 
   _renderTape() {

@@ -3,16 +3,12 @@
  *
  * The shell turns each keypad button click into a (action, value)
  * pair via buildView's onclick handler. routeAction walks the pair
- * through three phases:
+ * through these phases:
  *   1. Error recovery — if the display is in 'Error' state, any
  *      action other than 'clear' triggers a clear first.
- *   2. Per-mode shortcut — date mode reroutes +/− and = to date
- *      handlers without touching standard arithmetic state.
- *   3. Standard handler table.
- *
- * `ctx` is the CalculatorApp instance. Keeping the table here keeps
- * the shell short and makes new modes easy to wedge in (PR-3
- * programmer, PR-4 wider date support).
+ *   2. Per-mode shortcut — date and programmer modes intercept
+ *      relevant actions and route to their own handlers.
+ *   3. Standard handler table for non-intercepted actions.
  */
 
 const HANDLERS = {
@@ -30,6 +26,7 @@ const HANDLERS = {
 
 export function routeAction(ctx, action, value) {
   if (ctx.state.current === 'Error' && action !== 'clear') ctx.clear();
+  if (ctx._mode === 'programmer' && _routeProgrammerAction(ctx, action, value)) return;
   if (ctx._mode === 'date' && _routeDateAction(ctx, action, value)) return;
   HANDLERS[action]?.(ctx, value);
 }
@@ -46,4 +43,36 @@ function _routeDateAction(ctx, action, value) {
     return true;
   }
   return false;
+}
+
+/**
+ * Programmer mode reroutes most actions to BigInt-mode handlers.
+ * Returns true if the action was consumed; false to fall through
+ * to standard handling (e.g. when programmer mode chooses to defer
+ * an unsupported action with a toast).
+ */
+function _routeProgrammerAction(ctx, action, value) {
+  switch (action) {
+    case 'num':     ctx._progAppendDigit(value); return true;
+    case 'op':      ctx._progSetOp(value); return true;
+    case 'eval':    ctx._progEval(); return true;
+    case 'clear':   ctx._progClear(); return true;
+    case 'negate':  ctx._progNegate(); return true;
+    case 'percent': ctx._progSetOp('mod'); return true;
+    case 'dot':
+      // No decimals in programmer mode — silently consume.
+      return true;
+    case 'paren':
+      // Parens grouping for programmer ops is out of scope for this PR.
+      ctx.kernel.emit('toast', { message: 'Parens disabled in programmer mode', type: 'info' });
+      return true;
+    case 'sci':
+      ctx.kernel.emit('toast', { message: 'Sci functions disabled in programmer mode', type: 'info' });
+      return true;
+    case 'mem':
+      ctx.kernel.emit('toast', { message: 'Memory disabled in programmer mode', type: 'info' });
+      return true;
+    default:
+      return false;
+  }
 }

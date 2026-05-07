@@ -8,6 +8,7 @@
 import { el } from '../../utils/dom.js';
 import { labelFor, formatBaseRows } from './engine.js';
 import { buildSciPanel } from './scientific.js';
+import { buildProgPanel } from './programmer.js';
 
 // ─── Keypad layout (6 rows × 5 cols, 30 keys total) ───────────
 //
@@ -101,10 +102,23 @@ export function buildView(cfg) {
     baseEls[b.id] = row;
     baseGrid.appendChild(row);
   }
+  // Programmer panel: existing multi-base grid + new extension
+  // (hex digits A-F, bitwise ops, word-size pills) wired in below.
+  const progBuild = buildProgPanel({
+    handlers: {
+      appendHex:   (d) => handlers.appendHex(d),
+      applyBitop:  (op) => handlers.applyBitop(op),
+      applyNot:    () => handlers.applyNot(),
+      setWidth:    (w) => handlers.setBitWidth(w),
+    },
+    bitWidth: cfg.bitWidth || 32,
+    base: cfg.programmerBase || 'dec',
+  });
   const programmerPanel = el('div', { class: 'calc-mode-panel calc-mode-programmer' }, [
-    el('div', { class: 'calc-mode-panel-h' }, 'Programmer · current value in all bases'),
     baseGrid,
+    progBuild.panelEl,
   ]);
+  const progRefs = progBuild;
 
   // Date-mode panel
   const dateTodayEl   = el('span', { class: 'calc-date-today' });
@@ -220,6 +234,9 @@ export function buildView(cfg) {
       modePanels, baseRefs,
       dateTodayEl, dateDeltaEl, dateResultEl,
       sciSecondToggle, sciAngleToggle, sciPanelKeyEls,
+      progHexKeys: progRefs.hexKeys,
+      progBitOpEls: progRefs.bitOpEls,
+      progWidthPills: progRefs.widthPills,
       tabEls, modeEls, baseEls, keyEls,
     },
   };

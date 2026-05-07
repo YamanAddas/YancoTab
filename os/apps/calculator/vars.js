@@ -9,6 +9,7 @@ import { showPrompt } from '../../ui/components/YancoModal.js';
 import {
   isValidVarName, isReservedVarName, normalizeNumber,
 } from './engine.js';
+import { actInsertVar as progInsertVar } from './programmer.js';
 
 /**
  * Prompt for a new variable. On success the caller gets back
@@ -56,4 +57,38 @@ export async function promptDefineVar({ kernel, defaultValue = '' }) {
       kind: 'var-def',
     },
   };
+}
+
+// ─── Shell action helpers ───────────────────────────────────────
+
+export async function actDefineVar(ctx) {
+  const r = await promptDefineVar({ kernel: ctx.kernel, defaultValue: ctx.state.current });
+  if (!r) return;
+  ctx._vars[r.name] = r.value;
+  ctx._appendTape(r.tapeEntry);
+  ctx._persist();
+  ctx._renderVars();
+  ctx._renderTape();
+  ctx.kernel.emit('toast', { message: `${r.name} stored`, type: 'success' });
+}
+
+export function actUseVar(ctx, name) {
+  const v = ctx._vars[name];
+  if (!Number.isFinite(v)) return;
+  if (ctx._mode === 'programmer') {
+    progInsertVar(ctx, v);
+  } else {
+    ctx.state.current = normalizeNumber(v);
+    ctx.state.resetNext = true;
+    ctx._renderDisplay();
+  }
+  ctx.kernel.emit('toast', { message: `${name} inserted`, type: 'info' });
+}
+
+export function actDeleteVar(ctx, name) {
+  if (!(name in ctx._vars)) return;
+  delete ctx._vars[name];
+  ctx._persist();
+  ctx._renderVars();
+  ctx.kernel.emit('toast', { message: `${name} deleted`, type: 'info' });
 }

@@ -413,13 +413,24 @@ export function parseBigIntInBase(str, base) {
 }
 
 /**
- * Format a BigInt in the given base (uppercase for hex). Width-
- * masked first so negative values render as their unsigned two's-
- * complement bit pattern in HEX/OCT/BIN. DEC keeps the sign.
+ * Format a BigInt in the given base (uppercase for hex).
+ *
+ * Programmer mode stores values as the unsigned bit pattern (0 to
+ * 2^width − 1). Display contract:
+ *   • HEX / OCT / BIN — raw bit pattern via .toString(radix)
+ *   • DEC             — signed two's-complement interpretation via
+ *                       BigInt.asIntN(width). So 0xFF at 8-bit
+ *                       displays as '-1' in DEC, matching the
+ *                       convention in Windows Calc and DevToys.
+ *
+ * If width is omitted/invalid, DEC falls back to the raw .toString.
  */
 export function formatBigIntInBase(bigValue, base, width) {
   if (typeof bigValue !== 'bigint') return '—';
-  if (base === 'dec') return bigValue.toString(10);
+  if (base === 'dec') {
+    if (isValidBitWidth(width)) return BigInt.asIntN(width, bigValue).toString(10);
+    return bigValue.toString(10);
+  }
   if (!isValidBitWidth(width)) return '—';
   const masked = maskUnsigned(bigValue, width);
   switch (base) {
