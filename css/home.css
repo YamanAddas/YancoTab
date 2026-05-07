@@ -211,11 +211,15 @@ body.in-app .kofi-badge {
 .widget-bar-empty { display: none; }
 
 /* ── Widget Cards ── */
+/* All widgets share one shape: 130px min-height, 14px padding, flex column.
+   Widget-specific layouts (Pomodoro ring centered, Activity list stretched)
+   are handled below by the per-widget rules — but they all start from the
+   same base so the row visually balances. */
 .widget-card {
   min-width: 140px;
-  height: 88px;
+  min-height: 130px;
   border-radius: var(--radius-lg);
-  padding: 12px 14px;
+  padding: 14px 16px;
   background: var(--bg-card);
   backdrop-filter: blur(24px) saturate(1.2);
   -webkit-backdrop-filter: blur(24px) saturate(1.2);
@@ -230,10 +234,47 @@ body.in-app .kofi-badge {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   flex-shrink: 0;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
+  gap: 6px;
+}
+
+/* All widgets use the same head row: small mono uppercase label + accent
+   word. Per-widget content layout starts BELOW this header. */
+.widget-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.widget-head b {
+  color: var(--accent);
+  font-weight: 500;
+  margin-right: 2px;
+}
+
+/* The "body" is the prominent middle content; "foot" is small mono meta */
+.widget-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+.widget-foot {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  color: var(--text-dim);
+  text-transform: uppercase;
 }
 
 .widget-card::after {
@@ -303,40 +344,124 @@ body.in-app .kofi-badge {
   }
 }
 
+/* ── Weather widget ───────────────────────────────────────── */
+.widget-weather-body {
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+}
+
+.widget-weather-temp {
+  font-family: var(--font-mono);
+  font-size: 36px;
+  font-weight: 300;
+  letter-spacing: -0.04em;
+  color: var(--text-bright);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.widget-weather-deg {
+  font-size: 18px;
+  color: var(--accent);
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+.widget-weather-empty {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--text-dim);
+}
+
+.widget-empty-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+  opacity: 0.55;
+}
+
+.widget-empty-msg {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ── Todo widget ──────────────────────────────────────────── */
+.widget-todo-list {
+  gap: 6px;
+  justify-content: flex-start;
+  padding-top: 2px;
+}
+
+.widget-todo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-bright);
+  line-height: 1.3;
+}
+
+.widget-todo-check {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(var(--accent-rgb), 0.40);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: background var(--motion-snappy), border-color var(--motion-snappy);
+}
+
+.widget-todo-check:hover {
+  border-color: var(--accent);
+  background: rgba(var(--accent-rgb), 0.15);
+}
+
+.widget-todo-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.widget-todo-empty {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-dim);
+}
+
 /* ── Pomodoro widget ──────────────────────────────────────── */
 .widget-pomo {
   text-align: center;
-  align-items: center;
-  padding-top: 10px;
-  padding-bottom: 10px;
-  min-height: 124px;
+  align-items: stretch;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
 }
 
-.widget-pomo .w-pomo-head {
-  display: flex;
+.widget-pomo .widget-body {
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text);
-  margin-bottom: 8px;
 }
 
-.widget-pomo .w-pomo-head b {
-  color: var(--accent);
-  font-weight: 500;
-}
+/* Pomodoro head row stays centered (the widget is text-align: center) */
+.widget-pomo .widget-head { justify-content: center; }
 
 .widget-pomo .w-pomo-ring {
   position: relative;
-  width: 88px;
-  height: 88px;
+  width: 76px;
+  height: 76px;
   margin: 0 auto;
 }
 
@@ -376,51 +501,27 @@ body.in-app .kofi-badge {
   align-items: center;
   justify-content: center;
   font-family: var(--font-mono);
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-bright);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
+/* The pomodoro footer (was .w-pomo-label) now reuses .widget-foot. The
+   .w-pomo-label class is kept on the element so the JS can still query it. */
 .widget-pomo .w-pomo-label {
-  margin-top: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  color: var(--text);
-  text-transform: uppercase;
+  text-align: center;
 }
 
 /* ── Activity feed widget ─────────────────────────────────── */
 .widget-feed {
-  padding: 10px 14px;
-  min-height: 124px;
   text-align: left;
   align-items: stretch;
   cursor: default;
 }
 
-.widget-feed .w-feed-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text);
-  margin-bottom: 8px;
-}
-
-.widget-feed .w-feed-head b {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.widget-feed .w-feed-list {
-  display: flex;
-  flex-direction: column;
-}
+/* The .w-feed-list element reuses .widget-body — no extra rules needed
+   beyond what the per-item styles below provide. */
 
 .widget-feed .w-feed-item {
   display: flex;
@@ -539,68 +640,6 @@ body.theme-light .widget-feed .w-feed-txt em {
   color: var(--text-dim);
   margin-top: 6px;
   opacity: 0.6;
-}
-
-/* ── Todo Widget ── */
-.widget-todo-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.widget-todo-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-bright);
-}
-
-.widget-todo-count {
-  font-size: 11px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  padding: 2px 8px;
-  border-radius: var(--radius-xs);
-  font-weight: 500;
-}
-
-.widget-todo-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.widget-todo-check {
-  width: 16px;
-  height: 16px;
-  border-radius: 4px;
-  border: 1.5px solid var(--border-light);
-  flex-shrink: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color 150ms, background 150ms;
-}
-
-.widget-todo-check:hover {
-  border-color: var(--accent);
-  background: var(--accent-bg);
-}
-
-.widget-todo-text {
-  font-size: 13px;
-  color: var(--text-bright);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.widget-todo-more {
-  font-size: 11px;
-  color: var(--text-dim);
-  margin-top: 2px;
 }
 
 /* ── Quick Links ── */

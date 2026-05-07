@@ -68,12 +68,12 @@ export class PomodoroWidget {
         this.root = el('div', { class: 'widget-card widget-pomo' });
 
         this.root.append(
-            el('div', { class: 'w-pomo-head' }, [
+            el('div', { class: 'widget-head' }, [
                 el('b', {}, 'focus'),
                 el('span', {}, 'pomodoro'),
             ]),
-            this._buildRing(),
-            el('div', { class: 'w-pomo-label' }, ''),
+            el('div', { class: 'widget-body' }, [this._buildRing()]),
+            el('div', { class: 'widget-foot w-pomo-label' }, ''),
         );
 
         this.root.addEventListener('click', () => this._toggle());

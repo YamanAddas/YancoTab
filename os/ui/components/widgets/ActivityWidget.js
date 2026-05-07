@@ -59,14 +59,14 @@ export class ActivityWidget {
     }
 
     render() {
-        this.root = el('div', { class: 'widget-card widget-feed widget-medium' });
+        this.root = el('div', { class: 'widget-card widget-feed' });
 
         this.root.append(
-            el('div', { class: 'w-feed-head' }, [
+            el('div', { class: 'widget-head' }, [
                 el('b', {}, 'activity'),
                 el('span', {}, 'recent'),
             ]),
-            el('div', { class: 'w-feed-list' }),
+            el('div', { class: 'widget-body w-feed-list' }),
         );
 
         this._renderList();
