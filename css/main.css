@@ -6418,13 +6418,17 @@ body.is-mobile .m-app-item:active .y-folder-icon {
   overflow: hidden;
 }
 
+/* Favicons in folder previews need to fill the cell — Google's favicon
+   API returns square PNGs that already have their own internal padding,
+   so a tight 85% inside ANOTHER 5%-padded box made them look dwarfed.
+   `cover` instead of `contain` crops the rare oversized favicon down to
+   square while still letting normal favicons sit edge-to-edge. */
 .folder-preview-img {
-  width: 85%;
-  height: 85%;
-  object-fit: contain;
-  border-radius: 2px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
   display: block;
-  margin: auto;
 }
 
 .folder-preview-emoji {

@@ -41,14 +41,15 @@ body.in-app .home-top {
   pointer-events: none;
 }
 
-/* ── Greeting hero — compact for no-scroll fit ── */
-/* Small mono greet line → live clock (HH:MM with teal ·SS) → mono date.
-   Adaptive sizing: clock is clamp(40-72px) using 6vh so tall viewports get a
-   bigger hero, short viewports get a compact one. The whole stack sits high
-   on the page so the grid + dock fit without scrolling on a 1280×720 laptop. */
+/* ── Greeting hero — Playfair clock with arabesque flourishes ── */
+/* Small mono greet line above → flourish-flanked Playfair Display clock
+   in accent gradient → mono day-of-year date below. The flourishes (❧) are
+   accent-colored ornaments that frame the time without competing with it.
+   Adaptive size: clock uses clamp(40-72px) via 6vh so tall viewports get
+   a generous hero, laptop viewports stay compact. */
 .greeting-bar {
   text-align: center;
-  padding: 14px 0 8px;
+  padding: 14px 0 10px;
   animation: greetFadeDown 0.6s var(--ease-out) both;
 }
 
@@ -58,38 +59,88 @@ body.in-app .home-top {
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--accent);
-  margin-bottom: 4px;
-  text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.30);
+  margin-bottom: 8px;
+  text-shadow:
+    0 0 12px rgba(var(--accent-rgb), 0.50),
+    0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
+/* Wrapper that holds the flourish + clock + flourish in one row */
+.greeting-clock-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(12px, 2vw, 28px);
+}
+
+.greeting-flourish {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(20px, 3vh, 36px);
+  color: var(--accent);
+  text-shadow:
+    0 0 14px rgba(var(--accent-rgb), 0.70),
+    0 0 28px rgba(var(--accent-rgb), 0.40);
+  user-select: none;
+  opacity: 0.88;
+}
+
+.greeting-flourish-l { transform: rotate(-12deg); }
+.greeting-flourish-r { transform: rotate(168deg); }
+
 .greeting-clock {
-  font-family: var(--font-mono);
+  font-family: 'Playfair Display', 'Didot', Georgia, serif;
   font-size: clamp(40px, 6vh, 72px);
-  font-weight: 300;
-  letter-spacing: -0.04em;
+  font-weight: 400;
+  letter-spacing: -0.02em;
   line-height: 1;
-  color: var(--text-bright);
-  text-shadow: 0 0 30px rgba(var(--accent-rgb), 0.25);
   font-variant-numeric: tabular-nums;
+  /* Accent-bright→teal gradient text — readable on dark and light wallpapers */
+  background: linear-gradient(180deg, var(--text-bright) 0%, var(--text-bright) 55%, var(--accent) 100%);
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  /* Outline shadow for visibility on busy wallpapers (sits behind the gradient text) */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85))
+          drop-shadow(0 0 24px rgba(var(--accent-rgb), 0.35));
 }
 
 .greeting-sec {
+  font-family: 'Playfair Display', Georgia, serif;
   color: var(--accent);
-  font-size: 0.46em;
+  font-size: 0.5em;
   font-weight: 400;
+  font-style: italic;
   vertical-align: 0.32em;
   margin-left: 10px;
-  text-shadow: 0 0 12px rgba(var(--accent-rgb), 0.40);
+  /* Reset the gradient-clip from the parent so seconds paint as solid color */
+  background: none;
+  -webkit-text-fill-color: var(--accent);
+          color: var(--accent);
 }
 
 .greeting-date {
-  margin-top: 4px;
+  margin-top: 8px;
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 11px;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* Light theme: drop the dark text-shadow halos, swap to light halos */
+body.theme-light .greeting-greet,
+body.theme-light .greeting-date {
+  text-shadow:
+    0 0 8px rgba(255, 255, 255, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.10);
+}
+
+body.theme-light .greeting-clock {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.10))
+          drop-shadow(0 0 24px rgba(var(--accent-rgb), 0.30));
 }
 
 /* Legacy aliases — older saved DOM may still reference these. Hide them so

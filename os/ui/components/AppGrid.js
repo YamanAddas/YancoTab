@@ -435,17 +435,11 @@ export class AppGrid {
     iconNode.style.marginBottom = '6px';
     iconNode.classList.add('app-icon-inner');
 
-    const label = el('div', {
-      class: 'app-label',
-      style: {
-        fontSize: '10px', fontWeight: '500',
-        textAlign: 'center',
-        textShadow: '0 1px 6px rgba(0,0,0,0.9)',
-        letterSpacing: '0.3px',
-        whiteSpace: 'nowrap', overflow: 'hidden',
-        textOverflow: 'ellipsis', maxWidth: '100%',
-      },
-    }, item.title);
+    // Inline styles dropped here — all of these are now defined on the
+    // .app-label CSS rule (including the multi-layer text-shadow that
+    // makes labels readable on busy wallpapers). Keeping inline styles
+    // would override the CSS and break the readability fix.
+    const label = el('div', { class: 'app-label' }, item.title);
 
     div.appendChild(iconNode);
     div.appendChild(label);

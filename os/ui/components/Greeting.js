@@ -42,10 +42,19 @@ export class Greeting {
         this.root = el('div', { class: 'greeting-bar' });
 
         this.elements.greet = el('div', { class: 'greeting-greet' });
+
+        // Clock is flanked by arabesque flourishes — accent-colored
+        // ornamental glyphs that frame the time without competing with it.
         this.elements.clock = el('div', { class: 'greeting-clock' });
+        const clockWrap = el('div', { class: 'greeting-clock-wrap' }, [
+            el('span', { class: 'greeting-flourish greeting-flourish-l', 'aria-hidden': 'true' }, '❧'),
+            this.elements.clock,
+            el('span', { class: 'greeting-flourish greeting-flourish-r', 'aria-hidden': 'true' }, '❧'),
+        ]);
+
         this.elements.date = el('div', { class: 'greeting-date' });
 
-        this.root.append(this.elements.greet, this.elements.clock, this.elements.date);
+        this.root.append(this.elements.greet, clockWrap, this.elements.date);
 
         this._tick();
         this._interval = setInterval(() => this._tick(), 1000);

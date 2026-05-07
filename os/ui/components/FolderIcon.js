@@ -100,10 +100,22 @@ export class FolderIcon {
     const iconVal = child.icon;
     const title = child.title || '';
 
-    // Game mini-icon (game:snake, game:memory, etc.)
+    // Built-in game — try to resolve a mini icon by app id even when the
+    // child has no explicit `icon` field (the case for native game apps
+    // like snake / solitaire / spider-solitaire that resolve via the
+    // GAME_ICONS registry rather than carrying an icon string).
+    const gameKey = FolderIcon._gameKey(child.id);
+    if (gameKey && GAME_MINI_ICONS[gameKey]) {
+      const wrap = el('div', { class: 'folder-preview-game' });
+      wrap.innerHTML = GAME_MINI_ICONS[gameKey];
+      cell.appendChild(wrap);
+      return cell;
+    }
+
+    // Legacy: explicit "game:KEY" icon string
     if (iconVal && String(iconVal).startsWith('game:')) {
-      const gameKey = String(iconVal).substring(5);
-      const miniSvg = GAME_MINI_ICONS[gameKey];
+      const key = String(iconVal).substring(5);
+      const miniSvg = GAME_MINI_ICONS[key];
       if (miniSvg) {
         const wrap = el('div', { class: 'folder-preview-game' });
         wrap.innerHTML = miniSvg;
@@ -150,5 +162,18 @@ export class FolderIcon {
     this._root = null;
     this._onMove = null;
     this._onLeave = null;
+  }
+
+  /**
+   * Map an app id to its GAME_MINI_ICONS key. Native game apps don't carry
+   * an `icon` field — the SmartIcon registry resolves their visuals at
+   * render time — so the folder preview has to recognise them by id.
+   */
+  static _gameKey(id) {
+    if (!id) return null;
+    const direct = ['snake', 'memory', 'tictactoe', 'minesweeper', 'solitaire', 'mahjong', 'tarneeb', 'trix'];
+    if (direct.includes(id)) return id;
+    if (id === 'spider-solitaire') return 'spider';
+    return null;
   }
 }

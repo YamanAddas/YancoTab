@@ -1444,6 +1444,42 @@ body.in-app .sb-signature {
   }
 }
 
+/* ── 9.5. App label readability ──────────────────────────── */
+
+/* App / folder labels (the text below each hex tile) must read against
+   ANY wallpaper — dark cosmic, light pastel, photographic. A single soft
+   text-shadow gets washed out on busy backgrounds. We layer four short
+   black shadows (a "stroke ring") plus one larger soft halo, which
+   produces a readable outline without aliasing artifacts.
+
+   The same treatment applies to folder pill labels and dock tile titles. */
+.hex-icon-label,
+.app-label,
+.folder-pill-text b,
+.app-dock-tile {
+  text-shadow:
+    0 0 1px rgba(0, 0, 0, 0.85),
+    0 1px 2px rgba(0, 0, 0, 0.85),
+    0 -1px 2px rgba(0, 0, 0, 0.55),
+    0 0 6px rgba(0, 0, 0, 0.65),
+    0 0 12px rgba(0, 0, 0, 0.45);
+}
+
+/* In light theme the wallpaper goes light, so flip the shadow direction:
+   halo around the text in white-ish, keeping it readable on dark icons
+   and on light wallpapers. Light-mode kofi badge label etc inherit. */
+body.theme-light .hex-icon-label,
+body.theme-light .app-label,
+body.theme-light .folder-pill-text b,
+body.theme-light .app-dock-tile {
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.95),
+    0 1px 2px rgba(255, 255, 255, 0.85),
+    0 -1px 2px rgba(255, 255, 255, 0.55),
+    0 0 6px rgba(255, 255, 255, 0.65),
+    0 0 12px rgba(0, 0, 0, 0.10);
+}
+
 /* ── 10. Reduced-effects fallback ─────────────────────────── */
 
 body.reduced-effects .hex-icon::before,
