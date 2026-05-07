@@ -19,6 +19,9 @@ import * as intent from './browser/intents.js';
 import { buildToolbar } from './browser/view/toolbar.js';
 import { buildStarMap } from './browser/view/starMap.js';
 import { buildSideRail } from './browser/view/sideRail.js';
+import { buildReaderTab } from './browser/view/readerTab.js';
+import { buildHistoryTab } from './browser/view/historyTab.js';
+import { buildTabsTab } from './browser/view/tabsTab.js';
 import { hostFromUrl } from './browser/engine/state.js';
 
 const TABS = ['Star map', 'Reader', 'History', 'Tabs'];
@@ -132,6 +135,9 @@ export class BrowserApp extends App {
     this._views.starMap = buildStarMap({
       onOpenPortal: (b) => this._navigate(b.url),
       onContextMenu: (b) => this._portalContextMenu(b),
+      onMovePortal: (id, x, y) => this._commit(intent.updateBookmark(this._state, id, { x, y })),
+      onMergePortals: (draggedId, targetId) =>
+        this._commit(intent.mergeIntoCluster(this._state, draggedId, targetId)),
     });
 
     // Side rail
@@ -139,16 +145,54 @@ export class BrowserApp extends App {
       onOpenUrl: (url) => this._navigate(url),
     });
 
-    // Tab placeholder for non-Star-map tabs.
-    this._views.placeholder = el('div', { class: 'wh-tab-placeholder' });
-    this._views.placeholder.style.display = 'none';
+    // Reader / History / Tabs panels.
+    this._views.readerTab = buildReaderTab({
+      onOpenUrl: (url) => this._navigate(url),
+      onAnchor: (url) => this._toggleAnchor(url),
+    });
+    this._views.readerTab.root.classList.add('wh-tab-panel');
+    this._views.readerTab.root.style.display = 'none';
+
+    this._views.historyTab = buildHistoryTab({
+      onOpenUrl: (url) => this._navigate(url),
+      onClearHistory: () => this._clearHistoryPrompt(),
+    });
+    this._views.historyTab.root.classList.add('wh-tab-panel');
+    this._views.historyTab.root.style.display = 'none';
+
+    this._views.tabsTab = buildTabsTab({
+      onOpenUrl: (url) => this._navigate(url),
+    });
+    this._views.tabsTab.root.classList.add('wh-tab-panel');
+    this._views.tabsTab.root.style.display = 'none';
 
     // Layout: stage + side rail in a 2-column grid.
-    const stage = el('div', { class: 'wh-stage' }, [this._views.starMap.root, this._views.placeholder]);
+    const stage = el('div', { class: 'wh-stage' }, [
+      this._views.starMap.root,
+      this._views.readerTab.root,
+      this._views.historyTab.root,
+      this._views.tabsTab.root,
+    ]);
     this._views.stage = stage;
     const layout = el('div', { class: 'wh-layout' }, [stage, this._views.sideRail.root]);
 
     return el('div', { class: 'wh-frame' }, [titlebar, this._views.toolbar.root, layout]);
+  }
+
+  _toggleAnchor(url) {
+    const b = this._state.bookmarks.find((x) => x.url === url);
+    if (!b) return;
+    // Anchor by bumping visit count to threshold and marking as just-visited.
+    const target = Math.max(3, (b.visitCount || 0) + 1);
+    this._commit(intent.updateBookmark(this._state, b.id, {})); // no-op patch — placeholder
+    // Actually mutate via raw update — simulate visits on a blunt schedule.
+    const next = {
+      ...this._state,
+      bookmarks: this._state.bookmarks.map((x) => x.id === b.id
+        ? { ...x, visitCount: target, lastVisited: Date.now() }
+        : x),
+    };
+    this._commit(next);
   }
 
   // ── State actions ────────────────────────────────────────
@@ -217,6 +261,9 @@ export class BrowserApp extends App {
     this._views.toolbar.update(this._state, this._prefs);
     this._views.starMap.update(this._state);
     this._views.sideRail.update(this._state);
+    this._views.readerTab.update(this._state);
+    this._views.historyTab.update(this._state);
+    this._views.tabsTab.update(this._state);
     this._renderTabState();
   }
 
@@ -224,22 +271,19 @@ export class BrowserApp extends App {
     for (const t of this.root.querySelectorAll('[data-tab]')) {
       t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-    const sm = this._views.starMap.root;
-    const ph = this._views.placeholder;
-    if (this._activeTab === 'Star map') {
-      sm.style.display = '';
-      ph.style.display = 'none';
-      ph.textContent = '';
-      return;
-    }
-    sm.style.display = 'none';
-    ph.style.display = 'block';
-    const blurbs = {
-      Reader:  'Inline reader view — landing in the next update.',
-      History: 'Full history with date grouping — landing in the next update.',
-      Tabs:    'Pseudo-tab view — landing in the next update.',
+    // The star map uses absolute positioning for its children, so it
+    // needs explicit display rather than 'block' (defaults to block but
+    // we track it for parity with the other panels).
+    const panels = {
+      'Star map': { node: this._views.starMap.root,    activeDisplay: 'block' },
+      Reader:     { node: this._views.readerTab.root,  activeDisplay: 'flex'  },
+      History:    { node: this._views.historyTab.root, activeDisplay: 'flex'  },
+      Tabs:       { node: this._views.tabsTab.root,    activeDisplay: 'flex'  },
     };
-    ph.textContent = blurbs[this._activeTab] || '';
+    for (const [name, { node, activeDisplay }] of Object.entries(panels)) {
+      if (!node) continue;
+      node.style.display = name === this._activeTab ? activeDisplay : 'none';
+    }
   }
 
   // ── Helpers ──────────────────────────────────────────────

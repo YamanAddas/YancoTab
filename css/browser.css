@@ -467,20 +467,213 @@ body.theme-light .wh-frame {
   padding-top: 6px;
 }
 
-/* ── Tab placeholder ─────────────────────────────────────── */
+/* ── Cluster orbits + drag affordances ──────────────────── */
 
-.wh-tab-placeholder {
+.wh-orbits {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.wh-orbit {
+  position: absolute;
+  border: 1px dashed rgba(var(--accent-rgb), 0.20);
+  border-radius: 50%;
+  transition: border-color 200ms ease-out;
+}
+.wh-cluster-label {
+  position: absolute;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding-bottom: 3px;
+  border-bottom: 1px solid rgba(var(--accent-rgb), 0.30);
+  white-space: nowrap;
+  opacity: 0.85;
+}
+
+/* Dragging visuals */
+.wh-portal.is-dragging {
+  cursor: grabbing;
+  z-index: 10;
+  transition: none;
+  transform: translate(-50%, -52%) scale(1.08);
+}
+.wh-portal.is-dragging .wh-portal-hex {
+  box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.55);
+}
+.wh-portal.is-merge-target .wh-portal-hex {
+  box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.55);
+  border: 1.5px solid rgba(var(--accent-rgb), 0.7);
+}
+.wh-portal.is-merge-target .wh-portal-label {
+  color: var(--accent);
+  font-weight: 500;
+}
+.wh-portal-hex { cursor: grab; }
+
+/* Stage need explicit position context for orbits */
+.wh-portals { z-index: 1; }
+
+/* ── Tab panels (Reader / History / Tabs) ───────────────── */
+
+.wh-tab-panel {
   display: none;
-  margin: 18% 24px;
-  padding: 18px 22px;
-  border-radius: 14px;
-  border: 1px dashed var(--border, rgba(255,255,255,0.10));
-  background: rgba(0, 0, 0, 0.18);
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 22px 26px;
+  overflow-y: auto;
+  gap: 14px;
+}
+
+/* Reader tab */
+.wh-reader-top { display: flex; flex-direction: column; gap: 6px; }
+.wh-reader-tab-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--text-bright);
+  word-break: break-all;
+  line-height: 1.4;
+}
+.wh-reader-tab-blurb {
+  margin: 0;
   color: var(--text);
   font-size: 12px;
-  line-height: 1.5;
-  text-align: center;
+  line-height: 1.55;
+  max-width: 580px;
 }
+.wh-reader-tab-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.wh-reader-also { display: flex; flex-direction: column; gap: 4px; }
+
+/* History tab */
+.wh-history-tab { gap: 14px; }
+.wh-history-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.wh-history-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--text-bright);
+  letter-spacing: -0.01em;
+}
+.wh-history-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-right: auto;
+}
+.wh-history-empty {
+  margin: 0;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px dashed var(--border, rgba(255,255,255,0.10));
+  text-align: center;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+.wh-history-section { display: flex; flex-direction: column; gap: 6px; }
+.wh-history-list { display: flex; flex-direction: column; gap: 2px; }
+.wh-history-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  align-items: baseline;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.wh-history-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border, rgba(255,255,255,0.10));
+}
+.wh-history-host {
+  color: var(--text-bright);
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wh-history-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wh-history-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+/* Tabs tab */
+.wh-tabs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+}
+.wh-tabs-explainer {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.55;
+  max-width: 580px;
+}
+.wh-tabs-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: rgba(8, 18, 32, 0.55);
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  transition: border-color 200ms ease, transform 150ms ease;
+}
+.wh-tabs-card:hover {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  transform: translateY(-1px);
+}
+.wh-tabs-card.is-active {
+  border-color: rgba(var(--accent-rgb), 0.4);
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), 0.18);
+}
+.wh-tabs-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent);
+  flex-shrink: 0;
+}
+.wh-tabs-info { flex: 1; min-width: 0; }
 
 /* ── Reduced-motion ──────────────────────────────────────── */
 

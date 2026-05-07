@@ -11,18 +11,31 @@
 
 import { el } from '../../../utils/dom.js';
 import { buildPortal } from './portal.js';
+import { buildClusterOrbits } from './clusterOrbits.js';
+import { attachDragHandlers } from './drag.js';
 
-export function buildStarMap({ onOpenPortal, onContextMenu }) {
+export function buildStarMap({ onOpenPortal, onContextMenu, onMovePortal, onMergePortals }) {
   const root = el('div', { class: 'wh-starmap' });
+  const orbits = buildClusterOrbits();
   const portalsLayer = el('div', { class: 'wh-portals' });
   const emptyEl = el('div', { class: 'wh-starmap-empty' },
     'No portals yet. Use the toolbar to add one.');
   emptyEl.style.display = 'none';
-  root.append(portalsLayer, emptyEl);
+  root.append(orbits.root, portalsLayer, emptyEl);
+
+  // Drag handlers attach once on the portals layer (event delegation).
+  if (typeof onMovePortal === 'function' || typeof onMergePortals === 'function') {
+    attachDragHandlers(portalsLayer, {
+      getBookmarks: () => [],
+      onMove: (id, x, y) => onMovePortal?.(id, x, y),
+      onMerge: (draggedId, targetId) => onMergePortals?.(draggedId, targetId),
+    });
+  }
 
   return {
     root,
     update(state, now = Date.now()) {
+      orbits.update(state);
       portalsLayer.innerHTML = '';
       const bookmarks = Array.isArray(state?.bookmarks) ? state.bookmarks : [];
       if (bookmarks.length === 0) {
