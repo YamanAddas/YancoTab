@@ -20,6 +20,10 @@ import { buildTimerRing } from './pomodoro/view/timerRing.js';
 import { buildTimerInfo } from './pomodoro/view/timerInfo.js';
 import { buildPresetsRail } from './pomodoro/view/presetsRail.js';
 import { buildStatsTab } from './pomodoro/view/statsTab.js';
+import { buildSeasonTab } from './pomodoro/view/seasonTab.js';
+import { buildSettingsTab } from './pomodoro/view/settingsTab.js';
+import { buildAttachedRow } from './pomodoro/view/attachedRow.js';
+import { createAmbient } from './pomodoro/ambient.js';
 import * as intent from './pomodoro/intents.js';
 
 const TABS = ['Today', 'Season', 'Stats', 'Settings'];
@@ -42,6 +46,7 @@ export class PomodoroApp extends App {
     this._styleLinks = [];
     this._activeTab = 'Today';
     this._views = {};
+    this._ambient = createAmbient();
   }
 
   async init() {
@@ -109,27 +114,40 @@ export class PomodoroApp extends App {
       this._views.ring.root,
       this._views.info.root,
     ]);
-    this._views.todayBlock = el('div', { class: 'sol-today-block' }, [timerBlock]);
+    this._views.attachedRow = buildAttachedRow();
+    this._views.todayBlock = el('div', { class: 'sol-today-block' }, [
+      timerBlock,
+      this._views.attachedRow.root,
+    ]);
 
-    // Stats tab content (built once, repainted on update).
+    // Stats / Season / Settings panels — each built once, repainted on update.
     this._views.stats = buildStatsTab();
     this._views.stats.root.classList.add('sol-tab-panel', 'is-stats');
     this._views.stats.root.style.display = 'none';
 
-    // Coming-soon notice for tabs other than Today/Stats (Season, Settings).
-    this._views.placeholder = el('div', { class: 'sol-tab-placeholder' });
+    this._views.season = buildSeasonTab();
+    this._views.season.root.classList.add('sol-tab-panel', 'is-season');
+    this._views.season.root.style.display = 'none';
+
+    this._views.settings = buildSettingsTab({
+      onChange: (patch) => this._applySettings(patch),
+    });
+    this._views.settings.root.classList.add('sol-tab-panel', 'is-settings');
+    this._views.settings.root.style.display = 'none';
 
     const stage = el('div', { class: 'sol-stage' }, [
       this._views.sky.root,
       this._views.todayBlock,
       this._views.stats.root,
-      this._views.placeholder,
+      this._views.season.root,
+      this._views.settings.root,
     ]);
     this._views.stage = stage;
 
     // ── Side rail (right) ──
     this._views.side = buildPresetsRail({
       onPickPreset: (id) => this._handlePickPreset(id),
+      onAmbientToggle: (key) => this._toggleAmbient(key),
     });
 
     const layout = el('div', { class: 'sol-layout' }, [stage, this._views.side.root]);
@@ -157,6 +175,21 @@ export class PomodoroApp extends App {
       this._settings = { ...this._settings, activePresetId: id };
       saveSettings(this.kernel, this._settings);
     }
+  }
+
+  _toggleAmbient(key) {
+    const amb = { ...(this._settings.ambient || {}) };
+    amb[key] = !amb[key];
+    this._applySettings({ ambient: amb });
+  }
+
+  _applySettings(patch) {
+    this._settings = { ...this._settings, ...patch };
+    if (patch.ambient) {
+      this._settings.ambient = { ...(this._settings.ambient || {}), ...patch.ambient };
+    }
+    saveSettings(this.kernel, this._settings);
+    this._renderAll();
   }
 
   _setTab(name) {
@@ -190,8 +223,10 @@ export class PomodoroApp extends App {
       } else if (ev.type === 'sessionLogged') {
         this._history = appendSession(this._history, ev.entry);
         saveHistory(this.kernel, this._history);
+      } else if (ev.type === 'phase') {
+        // Wake the chime + body classes on phase transitions.
+        this._ambient.handlePhaseEvent(ev);
       }
-      // 'phase' events are listened for by the future widget — for PR-2 we ignore them locally.
     }
 
     // Repaint immediately for user-initiated actions (Start/Pause/Skip/etc).
@@ -229,6 +264,11 @@ export class PomodoroApp extends App {
     this._views.info.update(this._state, preset, this._history);
     this._views.side.update(this._state, this._history, this._settings);
     this._views.stats.update(this._history, this._settings);
+    this._views.season.update(this._history, this._settings);
+    this._views.settings.update(this._state, this._settings);
+
+    // Ambient effects (body classes for break-time mute / night shell).
+    this._ambient.applyState(this._state, this._settings);
 
     // Stage night/day class for ambient tinting.
     const sky = effectiveSky(this._state);
@@ -243,44 +283,37 @@ export class PomodoroApp extends App {
     for (const t of tabEls) {
       t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-    const today = this._views.todayBlock;
-    const stats = this._views.stats.root;
-    const ph = this._views.placeholder;
+    const panels = {
+      Today:    this._views.todayBlock,
+      Stats:    this._views.stats.root,
+      Season:   this._views.season.root,
+      Settings: this._views.settings.root,
+    };
     const sky = this._views.sky?.root;
-    if (!today || !stats || !ph) return;
-
-    // Hide all variants first.
-    today.style.display = 'none';
-    stats.style.display = 'none';
-    ph.style.display = 'none';
-    ph.textContent = '';
-
+    // Hide all panels first.
+    for (const p of Object.values(panels)) {
+      if (p) p.style.display = 'none';
+    }
     // Sky is a Today-only anchor; hiding it on other tabs frees ~180px
     // of vertical room for the tab content (and reads cleaner anyway).
     if (sky) sky.style.display = this._activeTab === 'Today' ? 'block' : 'none';
 
-    if (this._activeTab === 'Today') {
-      today.style.display = 'block';
-      return;
+    const target = panels[this._activeTab];
+    if (target) {
+      target.style.display = (this._activeTab === 'Stats' || this._activeTab === 'Settings')
+        ? 'flex'
+        : 'block';
     }
-    if (this._activeTab === 'Stats') {
-      stats.style.display = 'flex';
-      return;
-    }
-    // Season + Settings — placeholder copy. Explicit 'block' overrides
-    // the CSS default of `display: none`.
-    ph.style.display = 'block';
-    const blurbs = {
-      Season: 'Month overview + heatmap — landing in the next update.',
-      Settings: 'Custom preset durations, ambient toggles, attached app — landing in the next update.',
-    };
-    ph.textContent = blurbs[this._activeTab] || '';
   }
 
   destroy() {
     if (this._tickHandle) {
       clearInterval(this._tickHandle);
       this._tickHandle = null;
+    }
+    if (this._ambient) {
+      this._ambient.destroy();
+      this._ambient = null;
     }
     if (this._styleLinks) {
       for (const l of this._styleLinks) l.remove();

@@ -10,7 +10,15 @@ import { el } from '../../../utils/dom.js';
 import { listPresets } from '../engine/presets.js';
 import { buildWeekGrid } from './weekGrid.js';
 
-export function buildPresetsRail({ onPickPreset }) {
+const AMB_DEFS = [
+  { key: 'drone',      label: 'Deep-space drone',          soon: true },
+  { key: 'solarWind',  label: 'Solar wind on break',       soon: true },
+  { key: 'autoMute',   label: 'Auto-mute notifications' },
+  { key: 'nightShell', label: 'Night-mode shell on break' },
+  { key: 'endChime',   label: 'Chime at session end' },
+];
+
+export function buildPresetsRail({ onPickPreset, onAmbientToggle }) {
   const root = el('aside', { class: 'sol-side' });
 
   // ── This week — orbital loops ──
@@ -40,26 +48,10 @@ export function buildPresetsRail({ onPickPreset }) {
     presetList.appendChild(card);
   }
 
-  // ── Ambient placeholder ──
-  // PR-3 wires real persistence + behavior. PR-2 just shows the section.
+  // ── Ambient (interactive — shares state with Settings tab) ──
   const ambSec = el('section', { class: 'sol-side-section sol-ambient-section' });
   ambSec.appendChild(el('h4', { class: 'sol-side-h' }, 'AMBIENT'));
   const ambList = el('div', { class: 'sol-amb-list' });
-  const ambItems = [
-    { name: 'Deep-space drone',         on: false, soon: true },
-    { name: 'Solar wind on break',      on: false, soon: true },
-    { name: 'Auto-mute notifications',  on: true },
-    { name: 'Night-mode shell on break', on: true },
-    { name: 'Chime at session end',     on: false },
-  ];
-  for (const it of ambItems) {
-    const row = el('div', { class: 'sol-amb-row' }, [
-      el('b', {}, it.name),
-      el('div', { class: it.on ? 'sol-toggle is-on is-disabled' : 'sol-toggle is-disabled' }),
-    ]);
-    if (it.soon) row.appendChild(el('span', { class: 'sol-amb-soon' }, 'soon'));
-    ambList.appendChild(row);
-  }
   ambSec.appendChild(ambList);
 
   // ── Hint footer ──
@@ -80,6 +72,25 @@ export function buildPresetsRail({ onPickPreset }) {
       }
       // Repaint the week grid (cheap — 7 cells).
       weekGrid.update(history, 4, settings.weekStart || 'mon');
+
+      // Repaint ambient toggles from settings.
+      ambList.innerHTML = '';
+      const amb = settings.ambient || {};
+      for (const def of AMB_DEFS) {
+        const on = !!amb[def.key];
+        const tog = el('button', {
+          type: 'button',
+          class: `sol-toggle${on ? ' is-on' : ''}${def.soon ? ' is-disabled' : ''}`,
+          'aria-pressed': on ? 'true' : 'false',
+          'aria-label': def.label,
+        });
+        if (!def.soon && typeof onAmbientToggle === 'function') {
+          tog.addEventListener('click', () => onAmbientToggle(def.key));
+        }
+        const row = el('div', { class: 'sol-amb-row' }, [el('b', {}, def.label), tog]);
+        if (def.soon) row.appendChild(el('span', { class: 'sol-amb-soon' }, 'soon'));
+        ambList.appendChild(row);
+      }
     },
   };
 }

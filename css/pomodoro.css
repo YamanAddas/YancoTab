@@ -143,7 +143,7 @@ body.theme-light .sol-app-frame {
 
 .sol-sky {
   position: relative;
-  height: 180px;
+  height: 160px;
   border-radius: 16px;
   overflow: hidden;
   cursor: pointer;
@@ -767,6 +767,229 @@ body.theme-light .sol-app-frame {
   font-size: 10px;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Attached-app row (stub) ─────────────────────────────── */
+
+.sol-attach {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sol-attach-hex {
+  width: 38px;
+  height: 44px;
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.30), rgba(var(--accent-rgb), 0.10));
+  display: grid;
+  place-items: center;
+  font-size: 16px;
+  color: var(--accent, #00e5c1);
+  flex-shrink: 0;
+}
+.sol-attach-body { flex: 1; min-width: 0; }
+.sol-attach-body b {
+  color: var(--text-bright);
+  font-size: 12px;
+  display: block;
+}
+.sol-attach-body span {
+  display: block;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+/* ── Settings tab ────────────────────────────────────────── */
+
+.sol-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.sol-settings-card {
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+}
+.sol-settings-card-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.sol-settings-card-name {
+  color: var(--accent, #00e5c1);
+  font-size: 14px;
+  font-weight: 500;
+}
+.sol-settings-card-blurb {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+.sol-settings-card-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* Segmented control (Mon | Sun) */
+.sol-seg {
+  display: inline-flex;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+  border-radius: 999px;
+  padding: 3px;
+  gap: 2px;
+  width: max-content;
+}
+.sol-seg-btn {
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 200ms cubic-bezier(0.16, 0.84, 0.32, 1);
+}
+.sol-seg-btn:hover { color: var(--text-bright); }
+.sol-seg-btn.is-active {
+  color: #001a14;
+  background: linear-gradient(180deg, var(--accent-bright, #33ffdd), var(--accent, #00e5c1));
+}
+
+/* Settings ambient toggles inherit .sol-amb-* from the side rail. */
+.sol-settings .sol-amb-list {
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Toggle as a button — keep the rail visuals but stop the default border. */
+button.sol-toggle {
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+button.sol-toggle.is-disabled { cursor: not-allowed; }
+
+/* ── Season tab — 30-day heatmap ─────────────────────────── */
+
+.sol-season { display: flex; flex-direction: column; gap: 12px; }
+.sol-season-head {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 0 4px;
+}
+.sol-season-letter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.10em;
+  text-align: center;
+}
+.sol-season-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border, rgba(255,255,255,0.10));
+  background: rgba(0, 0, 0, 0.20);
+}
+.sol-season-cell {
+  aspect-ratio: 1;
+  max-height: 56px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  transition: transform 150ms ease;
+  justify-self: center;
+  width: 100%;
+}
+.sol-season-cell:hover { transform: scale(1.06); z-index: 1; }
+.sol-season-cell.is-future {
+  opacity: 0.35;
+  pointer-events: none;
+}
+.sol-season-cell.is-today {
+  outline: 2px solid var(--accent, #00e5c1);
+  outline-offset: 1px;
+  color: var(--accent, #00e5c1);
+}
+/* Bucket coloring 0-4 */
+.sol-season-cell.s0 { background: rgba(255, 255, 255, 0.04); }
+.sol-season-cell.s1 { background: rgba(var(--accent-rgb), 0.10); color: var(--text); }
+.sol-season-cell.s2 { background: rgba(var(--accent-rgb), 0.22); color: var(--text-bright); }
+.sol-season-cell.s3 { background: rgba(var(--accent-rgb), 0.40); color: #04221c; }
+.sol-season-cell.s4 {
+  background: linear-gradient(160deg, var(--accent-bright, #33ffdd), var(--accent, #00e5c1));
+  color: #001a14;
+  border-color: var(--accent, #00e5c1);
+}
+
+.sol-season-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+}
+.sol-season-swatches { display: flex; gap: 4px; }
+.sol-season-swatch {
+  width: 14px; height: 14px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+.sol-season-swatch.s0 { background: rgba(255, 255, 255, 0.04); }
+.sol-season-swatch.s1 { background: rgba(var(--accent-rgb), 0.10); }
+.sol-season-swatch.s2 { background: rgba(var(--accent-rgb), 0.22); }
+.sol-season-swatch.s3 { background: rgba(var(--accent-rgb), 0.40); }
+.sol-season-swatch.s4 { background: var(--accent, #00e5c1); }
+
+/* ── Ambient body classes ────────────────────────────────── */
+
+/* autoMute: hide all toasts globally during break. Both class names
+   are covered — .toast is the legacy single-toast variant, .toast-pill +
+   .toast-container is the live one. */
+body.pomodoro-mute .toast,
+body.pomodoro-mute .toast-pill,
+body.pomodoro-mute .toast-container { display: none !important; }
+
+/* nightShell: subtle dim on the dock + greeting + status bar so the
+   shell signals "break time" without yanking the theme. */
+body.pomodoro-night-shell .app-dock,
+body.pomodoro-night-shell .greeting,
+body.pomodoro-night-shell .status-bar {
+  filter: brightness(0.78) saturate(0.85);
+  transition: filter 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
 }
 
 /* ── Reduced-motion ──────────────────────────────────────── */
