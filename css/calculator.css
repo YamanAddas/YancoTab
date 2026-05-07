@@ -233,15 +233,15 @@ body.theme-light .calc-app-frame {
 }
 .calc-keypad {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(0, 1fr));
   gap: 6px;
-  /* Portrait keys — each cell is ~0.66 wide × 1 tall (matches the
-     hex orientation: pointy top/bottom, narrower horizontally). */
-  aspect-ratio: 5 / 9;
+  /* Landscape grid (6 cols × 5 rows). Aspect tuned so each cell
+     stays ~0.93 wide × 1 tall (the design's hex aspect). */
+  aspect-ratio: 6 / 5.4;
   max-width: 100%;
   max-height: 100%;
-  height: 100%;
+  width: 100%;
 }
 .calc-key {
   position: relative;

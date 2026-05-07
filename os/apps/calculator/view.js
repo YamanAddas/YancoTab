@@ -11,7 +11,7 @@ import { buildSciPanel } from './scientific.js';
 import { buildProgPanel } from './programmer.js';
 import { buildDatePanel } from './date.js';
 
-// ─── Keypad layout (6 rows × 5 cols, 30 keys total) ───────────
+// ─── Keypad layout (5 rows × 6 cols, 30 keys total) ───────────
 //
 // Row format: [label, action, value, type?]
 //   action ∈ {num, dot, op, eval, clear, negate, percent, sci, mem, paren}
@@ -19,13 +19,16 @@ import { buildDatePanel } from './date.js';
 //
 // `sci` keys take a function id as value (pow2, sqrt, sin, cos, pi)
 // — the shell remaps this id in 2nd-mode via engine.actionFor().
+//
+// Grid is wider-than-tall (6×5) so the keypad sits in a landscape
+// rectangle. Function keys cluster on the right; the standard 7-8-9
+// / 4-5-6 / 1-2-3 numeric grid stays in the leftmost three columns.
 export const KEYPAD = [
-  [['mc','mem','mc','fn'],   ['m+','mem','m+','fn'], ['m−','mem','m-','fn'], ['mr','mem','mr','fn'], ['AC','clear','','clr']],
-  [['sin','sci','sin','fn'], ['cos','sci','cos','fn'], ['π','sci','pi','fn'], ['%','percent','','op'], ['÷','op','/','op']],
-  [['7','num','7'],          ['8','num','8'],         ['9','num','9'],        ['×','op','*','op'],    ['x²','sci','pow2','fn']],
-  [['4','num','4'],          ['5','num','5'],         ['6','num','6'],        ['−','op','-','op'],    ['√','sci','sqrt','fn']],
-  [['1','num','1'],          ['2','num','2'],         ['3','num','3'],        ['+','op','+','op'],    ['±','negate','','fn']],
-  [['0','num','0'],          ['.','dot','','op'],     [')','paren',')','op'], ['(','paren','(','op'], ['=','eval','','eq']],
+  [['mc','mem','mc','fn'],   ['m+','mem','m+','fn'], ['m−','mem','m-','fn'], ['mr','mem','mr','fn'], ['AC','clear','','clr'], ['÷','op','/','op']],
+  [['sin','sci','sin','fn'], ['cos','sci','cos','fn'], ['π','sci','pi','fn'], ['%','percent','','op'], ['×','op','*','op'],    ['x²','sci','pow2','fn']],
+  [['7','num','7'],          ['8','num','8'],          ['9','num','9'],         ['−','op','-','op'],    ['√','sci','sqrt','fn'], ['±','negate','','fn']],
+  [['4','num','4'],          ['5','num','5'],          ['6','num','6'],         ['+','op','+','op'],    ['(','paren','(','op'],  [')','paren',')','op']],
+  [['1','num','1'],          ['2','num','2'],          ['3','num','3'],         ['0','num','0'],        ['.','dot','','op'],     ['=','eval','','eq']],
 ];
 
 export const TAB_DEFS = [
