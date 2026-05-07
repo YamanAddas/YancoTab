@@ -1,0 +1,369 @@
+/* ────────────────────────────────────────────────────────────
+ * css/snake.css — Snake "Comet" cosmic redesign.
+ *
+ * Mounted as `.app-window.app-snake > .snk-app-frame`. The canvas
+ * engine handles all gameplay rendering — this stylesheet wraps it
+ * in cosmic chrome (titlebar + 1fr|250px stage + side rail) and
+ * positions the HUD bar above the canvas.
+ *
+ * All colors resolve to css/tokens.css.
+ * ─────────────────────────────────────────────────────────── */
+
+.app-window.app-snake {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding: 0 !important;
+  overflow: hidden;
+  outline: none;
+}
+
+/* Open Snake at the cosmic-default 90%×88% so the 1fr|250px stage +
+   board fits comfortably on a 900px viewport. Manual edge-handle
+   resize via WindowChrome still wins via inline styles. */
+.window-chrome:has(.app-snake) {
+  left: 5%;
+  top: 6%;
+  width: 90%;
+  height: 88%;
+}
+
+/* ── Outer frame ─────────────────────────────────────────── */
+
+.snk-app-frame {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.6) 60%, rgba(2, 8, 16, 0.78) 100%),
+    linear-gradient(160deg, rgba(10, 28, 52, 0.7), rgba(4, 12, 24, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.18),
+    inset 0 -1px 0 rgba(0,0,0,0.5),
+    0 18px 60px -10px rgba(var(--accent-rgb), 0.20),
+    0 30px 80px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--text-bright);
+}
+body.theme-light .snk-app-frame {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 0%, rgba(255,255,255,0.02) 22%, rgba(245, 247, 250, 0.92) 60%, rgba(238, 240, 244, 0.95) 100%),
+    linear-gradient(160deg, rgba(220, 230, 240, 0.7), rgba(240, 244, 250, 0.9));
+}
+
+/* ── Titlebar ────────────────────────────────────────────── */
+
+.snk-titlebar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent);
+  flex-shrink: 0;
+}
+.snk-name {
+  font-family: 'Playfair Display', 'Amiri', Georgia, serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  color: var(--text-bright);
+  text-shadow: 0 0 16px rgba(var(--accent-rgb), 0.18);
+}
+
+/* ── Stage ───────────────────────────────────────────────── */
+
+.snk-stage {
+  flex: 1 1 auto;
+  display: grid;
+  grid-template-columns: 1fr 250px;
+  min-height: 0;
+}
+
+/* ── Board area (left col) ───────────────────────────────── */
+
+.snk-board-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 22px;
+  min-height: 0;
+  min-width: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 50%, rgba(var(--accent-rgb), 0.05), transparent 70%);
+}
+
+.snk-hud-slot {
+  flex: 0 0 auto;
+}
+.snk-hud {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 6px 0;
+  flex-wrap: wrap;
+}
+.snk-hud-stat {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  color: var(--text);
+  text-transform: uppercase;
+}
+.snk-hud-stat b {
+  color: var(--accent);
+  font-size: 14px;
+  margin-left: 2px;
+  letter-spacing: 0.04em;
+}
+.snk-hud-speed {
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.30);
+  color: var(--accent);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+/* ── Board (canvas container) ────────────────────────────── */
+
+.snk-board {
+  flex: 1 1 auto;
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 50%, rgba(var(--accent-rgb), 0.06), transparent 70%),
+    linear-gradient(180deg, #060f1d, #020812);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow:
+    inset 0 0 60px rgba(0, 0, 0, 0.6),
+    0 20px 60px rgba(0, 0, 0, 0.5);
+  min-height: 0;
+}
+.snk-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  outline: none;
+}
+
+/* ── Side rail (right col, 250px) ────────────────────────── */
+
+.snk-side-slot,
+.snk-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+  min-width: 0;
+}
+body.theme-light .snk-side-slot,
+body.theme-light .snk-side {
+  border-left-color: rgba(0, 0, 0, 0.08);
+}
+
+.snk-side-h {
+  margin: 0 0 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+.snk-side-empty {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+}
+
+/* Score card */
+.snk-score-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 0.18), rgba(var(--accent-rgb), 0.04));
+  border: 1px solid rgba(var(--accent-rgb), 0.25);
+}
+.snk-score-h {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.snk-score-v {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 38px;
+  font-weight: 300;
+  color: var(--accent);
+  line-height: 1;
+  margin-bottom: 4px;
+  letter-spacing: -0.02em;
+}
+.snk-score-meta {
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* Power-up rows */
+.snk-power-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.20);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+body.theme-light .snk-power-row {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.06);
+}
+.snk-power-icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  transform: rotate(45deg);
+  background: radial-gradient(circle, #d4c5ff, #9b7bff 50%, #553a99);
+  flex-shrink: 0;
+  box-shadow: 0 0 10px rgba(155, 123, 255, 0.45);
+}
+.snk-power-row.snk-power-slow   .snk-power-icon { background: radial-gradient(circle, #c9e0ff, #60a5fa 50%, #1e4ea0); box-shadow: 0 0 10px rgba(96, 165, 250, 0.45); }
+.snk-power-row.snk-power-magnet .snk-power-icon { background: radial-gradient(circle, #ffe9a8, #fbbf24 50%, #a17104); box-shadow: 0 0 10px rgba(251, 191, 36, 0.45); }
+.snk-power-row.snk-power-shield .snk-power-icon { background: radial-gradient(circle, #c1f2d3, #4ade80 50%, #1f6f3a); box-shadow: 0 0 10px rgba(74, 222, 128, 0.45); }
+.snk-power-text {
+  font-size: 11px;
+  color: var(--text);
+  flex: 1;
+  line-height: 1.4;
+}
+.snk-power-text b { color: var(--violet, #9b7bff); }
+.snk-power-row.snk-power-slow   .snk-power-text b { color: var(--info, #60a5fa); }
+.snk-power-row.snk-power-magnet .snk-power-text b { color: var(--warm, #fbbf24); }
+.snk-power-row.snk-power-shield .snk-power-text b { color: var(--success, #4ade80); }
+
+/* Personal-bests leaderboard */
+.snk-leader-row {
+  display: flex;
+  padding: 6px 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.04);
+  align-items: center;
+}
+.snk-leader-row:last-child { border-bottom: 0; }
+.snk-leader-rk {
+  width: 28px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--accent);
+}
+.snk-leader-nm {
+  flex: 1;
+  font-size: 12px;
+  color: var(--text-bright);
+}
+.snk-leader-sc {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+.snk-leader-row.is-you {
+  background: rgba(var(--accent-rgb), 0.08);
+  border-radius: 6px;
+  padding: 6px 8px;
+  margin: 0 -8px;
+  border: 1px solid rgba(var(--accent-rgb), 0.20);
+}
+.snk-leader-row.is-you .snk-leader-nm { color: var(--accent); }
+
+/* D-pad legend */
+.snk-dpad {
+  display: grid;
+  grid-template-columns: 30px 30px 30px;
+  grid-template-rows: 30px 30px 30px;
+  gap: 4px;
+  justify-content: center;
+}
+.snk-key {
+  background: rgba(0, 0, 0, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text);
+}
+.snk-key-up    { grid-area: 1 / 2; }
+.snk-key-left  { grid-area: 2 / 1; }
+.snk-key-right { grid-area: 2 / 3; }
+.snk-key-down  { grid-area: 3 / 2; }
+.snk-key-mid {
+  grid-area: 2 / 2;
+  background: rgba(var(--accent-rgb), 0.10);
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.30);
+}
+body.theme-light .snk-key {
+  background: rgba(255, 255, 255, 0.55);
+  border-color: rgba(0, 0, 0, 0.08);
+}
+
+.snk-dpad-hint {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 0.08em;
+  text-align: center;
+  margin-top: auto;
+  line-height: 1.6;
+}
+
+/* ── Mobile / narrow (≤ 720px) ───────────────────────────── */
+
+@media (max-width: 720px) {
+  .snk-stage {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .snk-side-slot, .snk-side {
+    border-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 10px 12px;
+    gap: 12px;
+    max-height: 160px;
+  }
+  .snk-score-card,
+  .snk-power-row,
+  .snk-leader-row,
+  .snk-dpad,
+  .snk-side-h,
+  .snk-dpad-hint {
+    flex: 0 0 auto;
+    min-width: 160px;
+  }
+  .snk-name { font-size: 18px; }
+}
+
+/* ── Reduced motion ──────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .snk-power-icon { box-shadow: none; }
+}

@@ -5,8 +5,8 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-mahjong" suffix forces eviction of the pre-cosmic Mahjong assets.
-const CACHE_NAME = 'yancotab-v1.1.0-mahjong';
+// "-snake" suffix forces eviction of the pre-comet Snake assets.
+const CACHE_NAME = 'yancotab-v1.1.0-snake';
 
 const PRECACHE = [
     './',
@@ -92,6 +92,8 @@ const PRECACHE = [
     './os/apps/settings/BrowserSettings.js',
     './os/apps/settings/AboutSettings.js',
     './os/apps/SnakeApp.js',
+    './os/apps/snake/snakeEngine.js',
+    './os/apps/snake/snakeSideView.js',
     './os/apps/TicTacToeApp.js',
     './os/apps/tictactoe/engine.js',
     './os/apps/tictactoe/ai.js',
