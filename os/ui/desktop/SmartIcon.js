@@ -193,7 +193,7 @@ export class SmartIcon {
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
         const wrap = el('div', { class: 'phosphor-wrap' });
-        wrap.innerHTML = PHOSPHOR_ICONS[key];
+        wrap.innerHTML = SmartIcon._scopeSvgIds(PHOSPHOR_ICONS[key]);
         container.appendChild(wrap);
     }
 
@@ -229,11 +229,32 @@ export class SmartIcon {
         container.innerHTML = `<div class="game-tint" style="background:${tone}"></div>`;
 
         const wrap = el('div', { class: 'game-wrap' });
-        wrap.innerHTML = GAME_ICONS[key];
+        wrap.innerHTML = SmartIcon._scopeSvgIds(GAME_ICONS[key]);
         container.appendChild(wrap);
 
         container.appendChild(el('div', { class: 'game-shine' }));
         return true;
+    }
+
+    /**
+     * Scope every gradient / filter / clipPath / mask id in an SVG string to
+     * a unique per-instance prefix. Without this, duplicate ids like
+     * `globe-sea` across multiple Browser-icon instances on the same page
+     * (e.g. one in the AppGrid, one in the AppDock) cause `url(#globe-sea)`
+     * lookups to bind to the FIRST id in document order — which may sit
+     * inside a `display: none` page-pane after a tab switch, leading to
+     * broken paint on the visible icons. Counter-bumping the prefix gives
+     * each SVG its own scope.
+     */
+    static _scopeCounter = 0;
+    static _scopeSvgIds(svgString) {
+        if (typeof svgString !== 'string' || !svgString.includes('id=')) return svgString;
+        const scope = `si${++SmartIcon._scopeCounter}`;
+        return svgString
+            .replace(/\bid="([^"]+)"/g, (_, id) => `id="${scope}-${id}"`)
+            .replace(/url\(#([^)]+)\)/g, (_, id) => `url(#${scope}-${id})`)
+            .replace(/href="#([^"]+)"/g, (_, id) => `href="#${scope}-${id}"`)
+            .replace(/xlink:href="#([^"]+)"/g, (_, id) => `xlink:href="#${scope}-${id}"`);
     }
 
     /* =========================

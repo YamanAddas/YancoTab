@@ -941,12 +941,28 @@ body.theme-light .page-tabs {
 
 /* ── 7.6. Page panes — show only the active tab's content ──── */
 
+/* The .page-panes wrapper holds the Files/Notes/Web panes. It needs to
+   stretch to .main-content's full width — main-content uses align-items:
+   center on a flex column, so without align-self:stretch the wrapper
+   shrinks to its content (which for the Web grid's auto-fill means the
+   minmax-min: 108px). That collapses the entire pane layout. */
+.page-panes {
+  width: 100%;
+  max-width: 1200px;
+  align-self: stretch;
+  margin: 0 auto;
+}
+
 /* All panes start hidden; the matching body.tab-<id> reveals one. */
+/* `align-self: stretch` is critical — .main-content uses flex column with
+   align-items: center so without it the pane would shrink to its content
+   width (e.g. the Web grid's 108px minimum), collapsing the layout. */
 .page-pane {
   display: none;
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
+  align-self: stretch;
   flex-direction: column;
   align-items: stretch;
   gap: 14px;
@@ -999,8 +1015,95 @@ body.tab-today .page-pane[data-tab="today"] .widget-bar {
   width: 100%;
 }
 
+/* Web tab uses square-ish block tiles (favicon centered, label below)
+   instead of the column-flex cards used by Files / Notes. */
 .page-pane-grid-web {
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+  gap: 14px;
+}
+
+.web-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 16px 10px 12px;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.55) 60%, rgba(2, 8, 16, 0.72) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.06),
+    0 6px 16px -8px rgba(var(--accent-rgb), 0.16),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform var(--motion-cinematic), box-shadow var(--motion-cinematic);
+  aspect-ratio: 1 / 1.05;
+  overflow: hidden;
+}
+
+.web-tile:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.20),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.40),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.30),
+    0 12px 24px -8px rgba(var(--accent-rgb), 0.40),
+    0 14px 28px rgba(0, 0, 0, 0.45);
+}
+
+.web-tile-favicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(var(--accent-rgb), 0.08);
+  border: 1px solid rgba(var(--accent-rgb), 0.18);
+  overflow: hidden;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.web-tile-favicon img {
+  width: 32px;
+  height: 32px;
+  display: block;
+}
+
+.web-tile-favicon-fallback img { display: none; }
+
+.web-tile-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-bright);
+  text-align: center;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  width: 100%;
+}
+
+body.theme-light .web-tile {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 22%, rgba(245, 245, 247, 0.70) 60%, rgba(235, 235, 240, 0.85) 100%);
+  border-color: rgba(0, 0, 0, 0.06);
 }
 
 .page-pane-empty {

@@ -252,25 +252,29 @@ export class PagePanes {
 
     _buildLinkCard(link) {
         const card = el('a', {
-            class: 'page-card page-card-web',
+            class: 'web-tile',
             href: link.url,
             target: '_blank',
             rel: 'noopener noreferrer',
+            title: this._displayHost(link.url),
         });
         const fav = faviconUrl(link.url);
-        const icon = el('span', { class: 'page-card-favicon' });
+        const icon = el('span', { class: 'web-tile-favicon' });
         if (fav) {
             const img = el('img', { src: fav, alt: '', loading: 'lazy', referrerpolicy: 'no-referrer' });
-            img.onerror = () => { icon.classList.add('page-card-favicon-fallback'); img.remove(); icon.textContent = (link.label || link.url[0]).slice(0, 2).toUpperCase(); };
+            img.onerror = () => {
+                icon.classList.add('web-tile-favicon-fallback');
+                img.remove();
+                icon.textContent = (link.label || link.url[0]).slice(0, 2).toUpperCase();
+            };
             icon.appendChild(img);
         } else {
-            icon.classList.add('page-card-favicon-fallback');
+            icon.classList.add('web-tile-favicon-fallback');
             icon.textContent = (link.label || 'L').slice(0, 2).toUpperCase();
         }
         card.append(
             icon,
-            el('span', { class: 'page-card-title' }, link.label || link.url),
-            el('span', { class: 'page-card-meta' }, this._displayHost(link.url)),
+            el('span', { class: 'web-tile-label' }, link.label || link.url),
         );
         return card;
     }
