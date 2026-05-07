@@ -148,6 +148,7 @@ const PRECACHE = [
     './os/apps/games/shared/store.js',
     './os/apps/games/tarneeb/tarneebAI.js',
     './os/apps/games/tarneeb/tarneebBanter.js',
+    './os/apps/games/tarneeb/tarneebFeltView.js',
     './os/apps/games/tarneeb/tarneebPresets.js',
     './os/apps/games/tarneeb/tarneebReducer.js',
     './os/apps/games/tarneeb/tarneebRules.js',

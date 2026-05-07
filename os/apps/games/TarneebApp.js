@@ -34,6 +34,10 @@ import {
   buildTarneebScoresheet,
   buildTarneebHistoryEntry,
 } from './tarneeb/tarneebSalonView.js';
+import {
+  buildTarneebFelt,
+  buildTarneebActions,
+} from './tarneeb/tarneebFeltView.js';
 
 function css(href) {
   const l = document.createElement('link');
@@ -112,6 +116,7 @@ export class TarneebApp extends App {
       banter: this._banter,
       renderFelt: (state) => this._renderFelt(state),
       getScoresheet: (state) => this._renderScoresheet(state),
+      renderSidePanel: (state) => buildTarneebActions(this, state),
       onPresetApply: (preset) => preset.apply(this.dispatch.bind(this)),
       isSetupPhase: (state) => state?.phase === 'SETUP',
     });
@@ -254,14 +259,13 @@ export class TarneebApp extends App {
     if (state.phase === 'SETUP') {
       return this._setupScreen();
     }
-    const bidding = state.phase === 'BIDDING' ? this._biddingPanel(state) : null;
-    return el('div', { class: 'trix-screen' }, [
-      el('div', { class: 'trix-area trix-area-hud' }, [this._hud(state)]),
-      el('div', { class: 'trix-area trix-area-score' }, [this._scoreStrip(state)]),
-      el('div', { class: 'trix-area trix-area-picker tar-area-bid' + (bidding ? '' : ' is-empty') }, [bidding || el('div')]),
-      el('div', { class: 'trix-area trix-area-table' }, [this._centerTable(state)]),
-      el('div', { class: 'trix-area trix-area-hand' }, [this._handView(state)]),
-    ]);
+    if (state.phase === 'ROUND_END') {
+      return el('div', { class: 'table-felt-arena-wrap' }, [this._roundSummaryPanel(state)]);
+    }
+    if (state.phase === 'GAME_END') {
+      return el('div', { class: 'table-felt-arena-wrap' }, [this._gameEndPanel(state)]);
+    }
+    return buildTarneebFelt(this, state);
   }
 
   /** Build the right-rail scoresheet for the salon. */
