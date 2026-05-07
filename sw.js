@@ -5,9 +5,9 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-table" suffix forces installs from the Liquid Glass pass to drop
-// their cache and pick up the Table salon (Tarneeb + Trix waves).
-const CACHE_NAME = 'yancotab-v1.1.0-table-trix';
+// "-ttt" suffix on top of "-table-trix" forces eviction of the
+// pre-DOM-rebuild TicTacToe assets too.
+const CACHE_NAME = 'yancotab-v1.1.0-table-ttt';
 
 const PRECACHE = [
     './',
@@ -94,6 +94,10 @@ const PRECACHE = [
     './os/apps/settings/AboutSettings.js',
     './os/apps/SnakeApp.js',
     './os/apps/TicTacToeApp.js',
+    './os/apps/tictactoe/engine.js',
+    './os/apps/tictactoe/ai.js',
+    './os/apps/tictactoe/view.js',
+    './os/apps/tictactoe/winLine.js',
     './os/apps/TodoApp.js',
     './os/apps/WeatherApp.js',
     // Games

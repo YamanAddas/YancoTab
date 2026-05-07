@@ -398,12 +398,26 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
+    // Legacy key retained for one-shot migration on first run of the
+    // DOM-rebuild TicTacToe. Read once, written never. Safe to remove
+    // a few releases after v1.1.0 ships.
     yancotab_neon_tactics: {
         storageClass: 'volatile',
         syncPolicy: 'sync',
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_tictactoe_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {
+            mode: 'ai',
+            difficulty: 'medium',
+            score: { X: 0, O: 0, draws: 0, streak: 0, bestStreak: 0 },
+        },
+        validate: (v) => v && typeof v === 'object' && typeof v.mode === 'string',
     },
 
     // ── Mahjong ──
