@@ -432,6 +432,15 @@ const REGISTRY = {
         default: null,
         validate: (v) => v === null || typeof v === 'string',
     },
+    yancotab_photos_meta_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { favorites: [] },
+        validate: (v) => v && typeof v === 'object'
+            && Array.isArray(v.favorites)
+            && v.favorites.every((s) => typeof s === 'string'),
+    },
 
     // ── Games ──
     yancotab_neon_mines: {
