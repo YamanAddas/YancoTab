@@ -12,6 +12,7 @@
  */
 
 import { el } from '../../../utils/dom.js';
+import { attachStarDrag } from './dragStar.js';
 
 function variantClass(meta = {}) {
   if (meta.pinned) return 'is-anchor';
@@ -22,7 +23,7 @@ function variantClass(meta = {}) {
   return '';
 }
 
-export function buildStar(note, { onSelect, isSelected }) {
+export function buildStar(note, { onSelect, isSelected, onMove, stageEl } = {}) {
   const meta = note.meta || {};
   const cls = ['nc-star', variantClass(meta), isSelected ? 'is-selected' : ''].filter(Boolean).join(' ');
   const root = el('div', {
@@ -34,8 +35,6 @@ export function buildStar(note, { onSelect, isSelected }) {
     tabindex: '0',
   });
 
-  // Hex core. Anchor notes get a larger core + initials/glyph; smaller
-  // notes are just hex shapes (label sits beneath).
   const isAnchor = meta.pinned || meta.status === 'anchor';
   const core = el('div', { class: 'nc-star-core' });
   const initial = (note.title || 'N').trim().slice(0, isAnchor ? 2 : 1);
@@ -53,6 +52,10 @@ export function buildStar(note, { onSelect, isSelected }) {
       trigger();
     }
   });
+
+  if (onMove && stageEl) {
+    attachStarDrag(root, note, stageEl, { onMove });
+  }
 
   return root;
 }

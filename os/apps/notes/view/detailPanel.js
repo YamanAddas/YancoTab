@@ -1,19 +1,21 @@
 /**
  * notes/view/detailPanel.js — selected note's title + meta + body
- * preview + backlinks.
+ * editor + mentioned + backlinks.
  *
- * PR-2: read-only. Editing returns in PR-3.
+ * PR-3: body is an always-editable textarea. Saves are debounced
+ * 300ms on input and flushed synchronously on blur and on any
+ * update() that targets a different note.
  */
 
 import { el } from '../../../utils/dom.js';
-import { buildBacklinkMap } from '../engine/wikilinks.js';
+import { buildBacklinkMap, extractWikilinks } from '../engine/wikilinks.js';
 import { formatDate } from '../../../utils/notes-utils.js';
 
 function chip(text, mod = '') {
   return el('span', { class: `nc-chip${mod ? ' ' + mod : ''}` }, text);
 }
 
-export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSelectPath }) {
+export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSelectPath, onSaveBody }) {
   const root = el('aside', { class: 'nc-detail' });
 
   const empty = el('div', { class: 'nc-detail-empty' }, [
@@ -29,27 +31,63 @@ export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSel
   const titleEl = el('h2', { class: 'nc-detail-title' });
   const metaRow = el('div', { class: 'nc-detail-meta' });
   const actionsRow = el('div', { class: 'nc-detail-actions' });
-  const bodyEl = el('div', { class: 'nc-detail-body' });
+  const bodyEditor = el('textarea', {
+    class: 'nc-detail-body-editor',
+    spellcheck: 'true',
+    placeholder: 'Write… use [[Title]] to link other notes, #tag to categorize.',
+  });
+  const mentionedEl = el('div', { class: 'nc-detail-mentioned' });
   const backlinksEl = el('div', { class: 'nc-detail-backlinks' });
 
-  root.append(empty, titleEl, metaRow, actionsRow, bodyEl, backlinksEl);
+  root.append(empty, titleEl, metaRow, actionsRow, bodyEditor, mentionedEl, backlinksEl);
 
-  // Helper to hide the populated rows when nothing's selected.
   function showSelected(visible) {
-    for (const el of [titleEl, metaRow, actionsRow, bodyEl, backlinksEl]) {
-      el.style.display = visible ? '' : 'none';
+    for (const e of [titleEl, metaRow, actionsRow, bodyEditor, mentionedEl, backlinksEl]) {
+      e.style.display = visible ? '' : 'none';
     }
     empty.style.display = visible ? 'none' : 'flex';
   }
 
+  // ── Save state ──────────────────────────────────────────────
+  let currentPath = null;
+  let saveTimer = null;
+  let pendingContent = null;
+
+  function flushPendingSave() {
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    if (currentPath && pendingContent !== null) {
+      onSaveBody?.(currentPath, pendingContent);
+      pendingContent = null;
+    }
+  }
+
+  bodyEditor.addEventListener('input', () => {
+    pendingContent = bodyEditor.value;
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(flushPendingSave, 300);
+  });
+  bodyEditor.addEventListener('blur', flushPendingSave);
+
   return {
     root,
     update(note, allNotes) {
+      // If we're switching notes, flush whatever was pending for the old one.
+      if (currentPath && (!note || currentPath !== note.path)) {
+        flushPendingSave();
+      }
+
       if (!note) {
+        currentPath = null;
         showSelected(false);
         return;
       }
       showSelected(true);
+
+      const switchingNote = currentPath !== note.path;
+      currentPath = note.path;
 
       // ── Title ──
       titleEl.textContent = note.title || 'Untitled';
@@ -71,7 +109,6 @@ export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSel
       pinBtn.addEventListener('click', () => onPin?.(note.path, !meta.pinned));
       actionsRow.appendChild(pinBtn);
 
-      // Status cycle: cycles through anchor → idea → draft → done → null.
       const cycleBtn = el('button', { type: 'button', class: 'nc-btn-ghost' },
         meta.status ? `Status: ${meta.status}` : 'Status: —');
       cycleBtn.addEventListener('click', () => {
@@ -86,32 +123,38 @@ export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSel
       delBtn.addEventListener('click', () => onDelete?.(note.path));
       actionsRow.appendChild(delBtn);
 
-      // ── Body preview (read-only in PR-2) ──
-      bodyEl.innerHTML = '';
-      const body = String(note.body || '').trim();
-      if (body) {
-        // Render with basic line preservation; wikilinks become clickable spans.
-        const parts = body.split(/(\[\[[^\]]+\]\])/g);
-        const lookup = new Map(allNotes.map((n) => [n.title.trim().toLowerCase(), n.path]));
-        for (const p of parts) {
-          if (/^\[\[.+\]\]$/.test(p)) {
-            const target = p.slice(2, -2).trim();
-            const targetPath = lookup.get(target.toLowerCase());
-            const linkEl = el('span', {
-              class: targetPath ? 'nc-wikilink' : 'nc-wikilink is-broken',
-              title: targetPath ? target : 'No matching note',
-            }, target);
-            if (targetPath) {
-              linkEl.addEventListener('click', () => onSelectPath?.(targetPath));
-            }
-            bodyEl.appendChild(linkEl);
-          } else if (p) {
-            bodyEl.appendChild(document.createTextNode(p));
-          }
-        }
+      // ── Body editor ──
+      // Only refresh textarea content when switching notes — avoid
+      // clobbering the user's in-flight edits during background re-renders.
+      if (switchingNote) {
+        bodyEditor.value = String(note.body || '');
+        pendingContent = null;
+      }
+
+      // ── Mentioned (forward wikilinks) ──
+      mentionedEl.innerHTML = '';
+      const lookup = new Map(allNotes.map((n) => [n.title.trim().toLowerCase(), n.path]));
+      const titleByLower = new Map(allNotes.map((n) => [n.title.trim().toLowerCase(), n.title]));
+      const mentioned = extractWikilinks(note.body);
+      mentionedEl.appendChild(el('h4', { class: 'nc-detail-h' }, 'MENTIONED'));
+      if (mentioned.length === 0) {
+        mentionedEl.appendChild(el('p', { class: 'nc-detail-blurb' },
+          'Use [[Title]] in the body to link to other notes.'));
       } else {
-        bodyEl.textContent = 'Empty note. Editing lands in the next update.';
-        bodyEl.classList.add('is-empty');
+        const list = el('ul', { class: 'nc-detail-blink-list' });
+        for (const targetLc of mentioned) {
+          const targetPath = lookup.get(targetLc);
+          const display = titleByLower.get(targetLc) || targetLc;
+          const li = el('li', {
+            class: targetPath ? 'nc-detail-blink' : 'nc-detail-blink is-broken',
+            title: targetPath ? '' : 'No matching note',
+          }, display);
+          if (targetPath) {
+            li.addEventListener('click', () => onSelectPath?.(targetPath));
+          }
+          list.appendChild(li);
+        }
+        mentionedEl.appendChild(list);
       }
 
       // ── Backlinks ──
@@ -134,5 +177,6 @@ export function buildDetailPanel({ onPin, onSetStatus, onDelete, onCreate, onSel
         backlinksEl.appendChild(list);
       }
     },
+    flushPendingSave,
   };
 }
