@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-photos-lightbox';
+const CACHE_NAME = 'yancotab-v1.1.0-pdf-codex';
 
 const PRECACHE = [
     './',
@@ -219,6 +219,23 @@ const PRECACHE = [
     './os/apps/photos/view/sideRail.js',
     './os/apps/photos/view/stage.js',
     './os/apps/photos/view/infoPanel.js',
+    // PDF Codex
+    './css/pdf-codex.css',
+    './os/apps/pdf/codex.js',
+    './os/apps/pdf/persistence.js',
+    './os/apps/pdf/engine/streak.js',
+    './os/apps/pdf/engine/bookmarks.js',
+    './os/apps/pdf/engine/outline.js',
+    './os/apps/pdf/engine/inlineCalc.js',
+    './os/apps/pdf/engine/quote.js',
+    './os/apps/pdf/view/pageView.js',
+    './os/apps/pdf/view/spread.js',
+    './os/apps/pdf/view/readerBar.js',
+    './os/apps/pdf/view/sideRail.js',
+    './os/apps/pdf/view/selectionMenu.js',
+    './os/apps/pdf/view/infoPanel.js',
+    './vendor/pdfjs/pdf.min.mjs',
+    './vendor/pdfjs/pdf.worker.min.mjs',
     // Assets
     './assets/browser-icon.png',
     // Theme wallpapers — referenced by themes.js and MobileContextMenu.js
