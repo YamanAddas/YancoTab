@@ -853,7 +853,7 @@ body.theme-light .m-search-container::before {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text);
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.12em;
