@@ -660,6 +660,13 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
     },
+    yancotab_pdf_highlights_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────

@@ -629,6 +629,85 @@ body.theme-light .cx-sel-menu {
 }
 .cx-drop-icon { font-size: 32px; margin-bottom: 8px; }
 
+/* ── Highlights (PR-3) ─────────────────────────────────────── */
+
+.cx-text-layer span.cx-hl {
+  /* Persistent highlight on a re-rendered page. Visible because the
+   * span text is normally `color: transparent` — we paint a colored
+   * box around it via background-color + a subtle outline. */
+  background: rgba(var(--accent-rgb), 0.32);
+  border-radius: 2px;
+}
+.cx-text-layer span.cx-hl-warm   { background: rgba(255, 184, 74, 0.32); }
+.cx-text-layer span.cx-hl-rose   { background: rgba(255, 111, 139, 0.32); }
+.cx-text-layer span.cx-hl-violet { background: rgba(155, 123, 255, 0.32); }
+.cx-text-layer span.cx-hl-cool   { background: rgba(90, 168, 255, 0.32); }
+
+/* ── Focus rings (a11y) ────────────────────────────────────── */
+
+.cx-icbtn:focus-visible,
+.cx-tab:focus-visible,
+.cx-titlebar-btn:focus-visible,
+.cx-ol-item:focus-visible,
+.cx-bm-item:focus-visible,
+.cx-page-counter:focus-visible,
+.cx-sel-btn:focus-visible,
+.cx-clear-btn:focus-visible,
+.cx-app-empty-btn:focus-visible,
+.cx-recent-item:focus-visible {
+  outline: 2px solid var(--accent, #00e5c1);
+  outline-offset: 2px;
+}
+
+/* ── Light-theme overrides ─────────────────────────────────── */
+
+body.theme-light .cx-titlebar {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), transparent);
+}
+body.theme-light .cx-side,
+body.theme-light .cx-info {
+  background: rgba(0, 0, 0, 0.02);
+}
+body.theme-light .cx-side-empty,
+body.theme-light .cx-card-blurb,
+body.theme-light .cx-info-hint {
+  color: var(--text-dim);
+}
+body.theme-light .cx-titlebar-btn,
+body.theme-light .cx-icbtn {
+  background: rgba(255, 255, 255, 0.7);
+}
+body.theme-light .cx-reader-bar {
+  background: rgba(255, 255, 255, 0.6);
+}
+body.theme-light .cx-card,
+body.theme-light .cx-card-tool {
+  background: rgba(0, 0, 0, 0.03);
+}
+body.theme-light .cx-stage {
+  background: radial-gradient(ellipse 60% 50% at 50% 30%, rgba(var(--accent-rgb), 0.04), transparent 70%);
+}
+body.theme-light .cx-streak-strip {
+  background: rgba(0, 0, 0, 0.03);
+}
+body.theme-light .cx-sel-menu {
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+body.theme-light .cx-recent-item {
+  background: rgba(255, 255, 255, 0.7);
+}
+body.theme-light .cx-drop-overlay {
+  background: rgba(245, 247, 250, 0.85);
+}
+body.theme-light .cx-text-layer span.cx-hl {
+  background: rgba(0, 122, 255, 0.22);
+}
+body.theme-light .cx-text-layer span.cx-hl-warm   { background: rgba(255, 152, 0, 0.28); }
+body.theme-light .cx-text-layer span.cx-hl-rose   { background: rgba(232, 64, 91, 0.22); }
+body.theme-light .cx-text-layer span.cx-hl-violet { background: rgba(124, 78, 255, 0.22); }
+body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 230, 0.22); }
+
 /* ── Reduced motion ────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

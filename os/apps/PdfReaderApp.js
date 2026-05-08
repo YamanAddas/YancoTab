@@ -16,6 +16,7 @@ import { buildCodex } from './pdf/codex.js';
 import {
   recordOpen, loadStreak,
   loadBookmarks, addBookmark, removeBookmark, listBookmarks,
+  addHighlight, listHighlightsOnPage,
 } from './pdf/persistence.js';
 import { densityStrip, currentStreak } from './pdf/engine/streak.js';
 
@@ -111,9 +112,13 @@ export class PdfReaderApp extends App {
       getStreakStrip: () => densityStrip(this._streak, 14),
       getStreakDays: () => currentStreak(this._streak),
       getBookmarks: (docId) => listBookmarks(this.kernel, docId),
+      getHighlightsOnPage: (docId, page) => listHighlightsOnPage(this.kernel, docId, page),
       onAddBookmark: ({ docId, page, label, color }) => {
         addBookmark(this.kernel, docId, { page, label, color });
         this._codex.refreshRail();
+      },
+      onAddHighlight: ({ docId, page, text, color }) => {
+        addHighlight(this.kernel, docId, { page, text, color });
       },
       onRemoveBookmark: (b) => {
         const docId = this._codex.getDocId();

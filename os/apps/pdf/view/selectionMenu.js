@@ -11,7 +11,7 @@ import { el } from '../../../utils/dom.js';
 
 const MARGIN_TOP_PX = 6;
 
-export function buildSelectionMenu({ onCopy, onSendToNotes, onCalc, onCite, onBookmark } = {}) {
+export function buildSelectionMenu({ onCopy, onSendToNotes, onCalc, onCite, onBookmark, onHighlight } = {}) {
   const root = el('div', { class: 'cx-sel-menu', role: 'toolbar' });
   root.style.display = 'none';
 
@@ -25,15 +25,16 @@ export function buildSelectionMenu({ onCopy, onSendToNotes, onCalc, onCite, onBo
     return b;
   }
 
+  const hlBtn    = btn('★ Highlight', 'Highlight the selection on this page', () => onHighlight?.());
   const copyBtn  = btn('Copy', 'Copy quoted text + citation', () => onCopy?.());
   const noteBtn  = btn('→ Notes', 'Copy as Notes-ready quote', () => onSendToNotes?.());
   noteBtn.classList.add('is-primary');
   const calcBtn  = btn('Calc', 'Evaluate as expression', () => onCalc?.());
   const citeBtn  = btn('Cite', 'Copy citation only', () => onCite?.());
-  const bmBtn    = btn('★ Bookmark', 'Bookmark this page with the selection as label', () => onBookmark?.());
+  const bmBtn    = btn('Bookmark', 'Bookmark this page with the selection as label', () => onBookmark?.());
 
   const div = () => el('span', { class: 'cx-sel-div' });
-  root.append(noteBtn, div(), copyBtn, citeBtn, div(), calcBtn, div(), bmBtn);
+  root.append(hlBtn, div(), noteBtn, div(), copyBtn, citeBtn, div(), calcBtn, div(), bmBtn);
 
   return {
     root,

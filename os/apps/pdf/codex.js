@@ -16,6 +16,7 @@ import { buildSpread } from './view/spread.js';
 import { buildSelectionMenu } from './view/selectionMenu.js';
 import { buildInfoPanel } from './view/infoPanel.js';
 import { setPdfJsModule } from './view/pageView.js';
+import { applyHighlights } from './view/applyHighlights.js';
 
 import { flattenOutline, annotateWithPages, destToKey } from './engine/outline.js';
 import { evaluate, looksNumeric, format as formatCalc } from './engine/inlineCalc.js';
@@ -42,8 +43,10 @@ export function buildCodex({
   getStreakStrip,
   getStreakDays,
   getBookmarks,
+  getHighlightsOnPage,
   onAddBookmark,
   onRemoveBookmark,
+  onAddHighlight,
   onSendToNotes,
   onRecordOpen,
   onToast,
@@ -92,6 +95,7 @@ export function buildCodex({
     onCalc: () => evalSelectionAsCalc(),
     onCite: () => copyCitation(),
     onBookmark: () => bookmarkSelection(),
+    onHighlight: () => highlightSelection(),
   });
 
   root.append(side.root, stage, info.root, selMenu.root);
@@ -132,6 +136,8 @@ export function buildCodex({
       stageWidth, gapPx: 14, paddingPx: 24,
       docId,
     });
+    // Re-apply persisted highlights to the freshly built text layers.
+    applyHighlightsToVisiblePages();
   }
 
   function renderRail() {
@@ -302,6 +308,33 @@ export function buildCodex({
     });
     onToast?.({ message: 'Bookmark added', type: 'success' });
     renderRail();
+  }
+
+  function highlightSelection() {
+    if (!docId || !Number.isFinite(lastSelection.page) || !lastSelection.text) return;
+    onAddHighlight?.({
+      docId,
+      page: lastSelection.page,
+      text: lastSelection.text,
+      color: 'accent',
+    });
+    onToast?.({ message: 'Highlight saved', type: 'success' });
+    // Re-apply to the live text layer of the selection's page so the
+    // visual highlight appears immediately.
+    applyHighlightsToVisiblePages();
+  }
+
+  /** For each visible page in the spread, re-apply stored highlights. */
+  function applyHighlightsToVisiblePages() {
+    if (!docId) return;
+    const pages = stage.querySelectorAll('.cx-page');
+    pages.forEach((pageEl, idx) => {
+      const pageNum = idx === 0 ? currentPage : currentPage + 1;
+      const textLayer = pageEl.querySelector('.cx-text-layer');
+      if (!textLayer || !pageNum) return;
+      const highlights = getHighlightsOnPage?.(docId, pageNum) || [];
+      applyHighlights(textLayer, highlights);
+    });
   }
 
   // ── Loading ──

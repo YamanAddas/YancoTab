@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-pdf-codex';
+const CACHE_NAME = 'yancotab-v1.1.0-pdf-codex-pr3';
 
 const PRECACHE = [
     './',
@@ -228,6 +228,8 @@ const PRECACHE = [
     './os/apps/pdf/engine/outline.js',
     './os/apps/pdf/engine/inlineCalc.js',
     './os/apps/pdf/engine/quote.js',
+    './os/apps/pdf/engine/highlights.js',
+    './os/apps/pdf/view/applyHighlights.js',
     './os/apps/pdf/view/pageView.js',
     './os/apps/pdf/view/spread.js',
     './os/apps/pdf/view/readerBar.js',

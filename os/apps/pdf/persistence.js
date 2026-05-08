@@ -11,11 +11,24 @@
 
 import { emptyState as emptyStreak, pushOpen, prune } from './engine/streak.js';
 import { emptyMap, listForDoc, add, remove, clearDoc } from './engine/bookmarks.js';
+import {
+  emptyMap as emptyHighlightMap,
+  listForDoc as listHighlightsForDoc,
+  listForDocPage as listHighlightsForDocPage,
+  add as addHighlightEntry,
+  remove as removeHighlightEntry,
+  clearDoc as clearHighlightsForDocEntry,
+} from './engine/highlights.js';
 
 const STREAK_KEY = 'yancotab_pdf_streak_v1';
 const BOOKMARKS_KEY = 'yancotab_pdf_bookmarks_v1';
+const HIGHLIGHTS_KEY = 'yancotab_pdf_highlights_v1';
 
-export const STORAGE_KEYS = Object.freeze({ STREAK: STREAK_KEY, BOOKMARKS: BOOKMARKS_KEY });
+export const STORAGE_KEYS = Object.freeze({
+  STREAK: STREAK_KEY,
+  BOOKMARKS: BOOKMARKS_KEY,
+  HIGHLIGHTS: HIGHLIGHTS_KEY,
+});
 
 // ── Streak ─────────────────────────────────────────────────
 
@@ -71,5 +84,45 @@ export function removeBookmark(kernel, docId, page, label = null) {
 export function clearBookmarksForDoc(kernel, docId) {
   const next = clearDoc(loadBookmarks(kernel), docId);
   saveBookmarks(kernel, next);
+  return next;
+}
+
+// ── Highlights ─────────────────────────────────────────────
+
+export function loadHighlights(kernel) {
+  try {
+    const raw = kernel?.storage?.load?.(HIGHLIGHTS_KEY);
+    if (raw && typeof raw === 'object') return raw;
+  } catch { /* ignore */ }
+  return emptyHighlightMap();
+}
+
+export function saveHighlights(kernel, map) {
+  try { kernel?.storage?.save?.(HIGHLIGHTS_KEY, map); } catch { /* ignore */ }
+}
+
+export function listHighlights(kernel, docId) {
+  return listHighlightsForDoc(loadHighlights(kernel), docId);
+}
+
+export function listHighlightsOnPage(kernel, docId, page) {
+  return listHighlightsForDocPage(loadHighlights(kernel), docId, page);
+}
+
+export function addHighlight(kernel, docId, entry) {
+  const next = addHighlightEntry(loadHighlights(kernel), docId, entry);
+  saveHighlights(kernel, next);
+  return next;
+}
+
+export function removeHighlight(kernel, docId, page, text) {
+  const next = removeHighlightEntry(loadHighlights(kernel), docId, page, text);
+  saveHighlights(kernel, next);
+  return next;
+}
+
+export function clearHighlightsForDoc(kernel, docId) {
+  const next = clearHighlightsForDocEntry(loadHighlights(kernel), docId);
+  saveHighlights(kernel, next);
   return next;
 }
