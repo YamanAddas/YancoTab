@@ -209,11 +209,12 @@ export class TrixApp extends App {
       const oldModals = this.root.querySelectorAll(':scope > .trix-modal-overlay, :scope > .trix-modal');
       oldModals.forEach((n) => { try { n.remove(); } catch {} });
 
-      if (state.phase === 'SETUP') {
-        this._setupMode = state.mode || this._setupMode;
-        this._setupDiff = state.difficulty || this._setupDiff;
-        this._setupRules = state.ruleProfile || this._setupRules;
-      }
+      // Note: while phase === SETUP, the user's local _setup* picks
+      // ARE the source of truth — they flow into the START_MATCH
+      // dispatch on the Start button. Pulling them back FROM state on
+      // every render here would clobber every click on the Mode /
+      // Difficulty / Ruleset buttons, because the store keeps its
+      // initial defaults until the match starts.
 
       this._shell?.update(state);
 
