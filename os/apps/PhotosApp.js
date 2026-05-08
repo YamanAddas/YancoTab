@@ -11,7 +11,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { showConfirm } from '../ui/components/YancoModal.js';
 import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
@@ -32,12 +32,6 @@ const TABS = [
   { id: 'wallpaper', label: 'Wallpapers' },
 ];
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class PhotosApp extends App {
   constructor(kernel, pid) {
@@ -57,7 +51,7 @@ export class PhotosApp extends App {
   }
 
   async init(options = {}) {
-    this._styleLinks = [css('css/photos-lightbox.css')];
+    this._styleLinks = [cssLink('css/photos-lightbox.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window app-photos-lightbox', tabindex: '0' });

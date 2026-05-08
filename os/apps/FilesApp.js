@@ -15,7 +15,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { showConfirm, showPrompt } from '../ui/components/YancoModal.js';
 import { buildVault } from './files/vault.js';
 import {
@@ -29,12 +29,6 @@ const TRASH_PATH = '/home/trash';
 const TEXT_EXTENSIONS = new Set(['txt', 'md', 'json', 'csv', 'log', 'xml', 'yaml', 'yml', 'ini', 'cfg', 'js', 'ts', 'css', 'html', 'htm']);
 const IMAGE_EXTENSIONS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class FilesApp extends App {
   constructor(kernel, pid) {
@@ -48,7 +42,7 @@ export class FilesApp extends App {
   }
 
   async init(options = {}) {
-    this._styleLinks = [css('css/files-vault.css')];
+    this._styleLinks = [cssLink('css/files-vault.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window app-files-vault', tabindex: '0' });

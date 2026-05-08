@@ -11,7 +11,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { buildCodex } from './pdf/codex.js';
 import {
   recordOpen, loadStreak,
@@ -23,12 +23,6 @@ import { densityStrip, currentStreak } from './pdf/engine/streak.js';
 const RECENT_KEY = 'yancotab_pdf_recent';
 const MAX_RECENTS = 5;
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class PdfReaderApp extends App {
   constructor(kernel, pid) {
@@ -46,7 +40,7 @@ export class PdfReaderApp extends App {
   }
 
   async init(options = {}) {
-    this._styleLinks = [css('css/pdf-codex.css')];
+    this._styleLinks = [cssLink('css/pdf-codex.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window app-pdf-codex', tabindex: '0' });

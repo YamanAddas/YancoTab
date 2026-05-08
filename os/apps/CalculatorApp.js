@@ -1,6 +1,6 @@
 /** CalculatorApp — "Tape" redesign shell. Pure helpers in calculator/*.js. */
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { buildView, renderTapeLines, renderVarsRow, relabelSciKeys,
          renderDisplay } from './calculator/view.js';
 import { copyTape, exportTapeCsv, saveTapeToNotes } from './calculator/tape.js';
@@ -38,12 +38,6 @@ import { actSetFrom    as dateSetFrom,
 import { routeAction } from './calculator/dispatch.js';
 import { bindKeyboard } from './calculator/keyboard.js';
 
-function css(href) {
-  const l = document.createElement('link');
-  l.rel = 'stylesheet';
-  l.href = href;
-  return l;
-}
 
 export class CalculatorApp extends App {
   constructor(kernel, pid) {
@@ -82,7 +76,7 @@ export class CalculatorApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/calculator.css')];
+    this._styleLinks = [cssLink('css/calculator.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._loadPersisted();

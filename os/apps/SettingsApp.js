@@ -18,7 +18,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { renderAppearance } from './settings/AppearanceSettings.js';
 import { renderHome } from './settings/HomeSettings.js';
 import { renderGames } from './settings/GamesSettings.js';
@@ -62,12 +62,6 @@ const SYNC_OBSERVE_KEYS = [
   'yancotab_settings_console_v1',
 ];
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class SettingsApp extends App {
   constructor(kernel, pid) {
@@ -83,7 +77,7 @@ export class SettingsApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/settings.css')];
+    this._styleLinks = [cssLink('css/settings.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._consoleState = loadConsoleState(this.kernel);

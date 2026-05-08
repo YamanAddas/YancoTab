@@ -12,7 +12,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { showConfirm } from '../ui/components/YancoModal.js';
 import {
   sanitizeTitle, titleFromPath, extractTags,
@@ -34,12 +34,6 @@ const TABS = ['Cosmos', 'List', 'Calendar', 'Timeline'];
 const DOCS_PATH = '/home/documents';
 const EXT = '.txt';
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class NotesApp extends App {
   constructor(kernel, pid) {
@@ -55,7 +49,7 @@ export class NotesApp extends App {
   }
 
   async init(payload = {}) {
-    this._styleLinks = [css('css/notes.css')];
+    this._styleLinks = [cssLink('css/notes.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     if (this.fs && !this.fs.exists(DOCS_PATH)) this.fs.mkdir(DOCS_PATH);

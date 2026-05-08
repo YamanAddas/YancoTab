@@ -1,5 +1,5 @@
 import { App } from '../../core/App.js';
-import { el } from '../../utils/dom.js';
+import { el, cssLink } from '../../utils/dom.js';
 import { safeSave } from '../../utils/safeSave.js';
 import { createStore } from './shared/store.js';
 import { trixReducer } from './trix/trixReducer.js';
@@ -20,7 +20,6 @@ import TRIX_PRESETS from './trix/trixPresets.js';
 import { buildTrixScoresheet, buildTrixHistoryEntry } from './trix/trixSalonView.js';
 import { buildTrixFelt, buildTrixActions } from './trix/trixFeltView.js';
 
-function css(href) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = href; return l; }
 
 export class TrixApp extends App {
   constructor(kernel, pid) {
@@ -38,7 +37,7 @@ export class TrixApp extends App {
   }
 
   async init(config = {}) {
-    this._styleLinks = [css('css/cards.css'), css('css/trix.css'), css('css/table.css')];
+    this._styleLinks = [cssLink('css/cards.css'), cssLink('css/trix.css'), cssLink('css/table.css')];
     this._styleLinks.forEach(l => document.head.appendChild(l));
     this.root = el('div', { class: 'app-window trix-remake' });
     const setVh = () => { this.root.style.setProperty('--app-vh', `${(window.innerHeight || 0) * 0.01}px`); };

@@ -9,7 +9,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { apply } from './pomodoro/engine/reducer.js';
 import { effectiveSky, remainingMs, phaseDurationMs } from './pomodoro/engine/state.js';
 import { getPreset } from './pomodoro/engine/presets.js';
@@ -28,12 +28,6 @@ import * as intent from './pomodoro/intents.js';
 
 const TABS = ['Today', 'Season', 'Stats', 'Settings'];
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class PomodoroApp extends App {
   constructor(kernel, pid) {
@@ -50,7 +44,7 @@ export class PomodoroApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/pomodoro.css')];
+    this._styleLinks = [cssLink('css/pomodoro.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._settings = loadSettings(this.kernel);

@@ -14,7 +14,7 @@
  * personal-bests leaderboard + D-pad legend.
  */
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { NeonSerpent, POWERUP_TYPES } from './snake/snakeEngine.js';
 import { buildHud, buildSideRail } from './snake/snakeSideView.js';
 
@@ -22,12 +22,6 @@ const PERSONAL_BESTS_KEY = 'yancotab_snake_personal_bests';
 const PERSONAL_BESTS_CAP = 5;
 const SIDE_POLL_MS = 500;
 
-function css(href) {
-  const l = document.createElement('link');
-  l.rel = 'stylesheet';
-  l.href = href;
-  return l;
-}
 
 export class SnakeApp extends App {
   constructor(kernel, pid) {
@@ -43,7 +37,7 @@ export class SnakeApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/snake.css')];
+    this._styleLinks = [cssLink('css/snake.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window app-snake' });

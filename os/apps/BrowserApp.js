@@ -12,7 +12,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { showConfirm, showPrompt } from '../ui/components/YancoModal.js';
 import { loadState, saveState, subscribe } from './browser/persistence.js';
 import * as intent from './browser/intents.js';
@@ -48,12 +48,6 @@ const SHORTCUTS = {
   netflix:   'https://www.netflix.com',
 };
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 export class BrowserApp extends App {
   constructor(kernel, pid) {
@@ -69,7 +63,7 @@ export class BrowserApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/browser.css')];
+    this._styleLinks = [cssLink('css/browser.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._state = loadState(this.kernel);

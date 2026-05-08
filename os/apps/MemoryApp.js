@@ -21,7 +21,7 @@
  *   • 1 / 2 / 3 — set difficulty (easy / standard / hard)
  */
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { memoryReducer, initialState, DIFFICULTIES } from './memory/engine.js';
 import { buildView, buildWinOverlay } from './memory/view.js';
 
@@ -30,12 +30,6 @@ const LEGACY_KEY  = 'yancotab_neon_recall';
 const RESOLVE_DELAY_MS = 1000;
 const TIMER_TICK_MS = 1000;
 
-function css(href) {
-  const l = document.createElement('link');
-  l.rel = 'stylesheet';
-  l.href = href;
-  return l;
-}
 
 export class MemoryApp extends App {
   constructor(kernel, pid) {
@@ -50,7 +44,7 @@ export class MemoryApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/memory.css')];
+    this._styleLinks = [cssLink('css/memory.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
     this.root = el('div', { class: 'app-window app-memory' });
 

@@ -8,7 +8,7 @@
  */
 
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { showConfirm, showPrompt, showAlert } from '../ui/components/YancoModal.js';
 import { loadState, saveState, subscribe } from './todo/persistence.js';
 import { getActiveMission, COLORS } from './todo/engine/state.js';
@@ -22,12 +22,6 @@ import { buildReviewTab } from './todo/view/reviewTab.js';
 
 const TABS = ['Launchpad', 'Today', 'Week', 'Review'];
 
-function css(href) {
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = href;
-  return link;
-}
 
 function colorVar(color) {
   switch (color) {
@@ -53,7 +47,7 @@ export class TodoApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/todo.css')];
+    this._styleLinks = [cssLink('css/todo.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._state = loadState(this.kernel);

@@ -47,3 +47,20 @@ export function qsa(sel, root = document) {
 export function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
+
+/**
+ * Build a `<link rel="stylesheet" href="...">` element.
+ *
+ * Lift of the `function css(href)` helper that was copy-pasted into 14
+ * app files (Browser, Calculator, Memory, Notes, PdfReader, Photos,
+ * Pomodoro, Settings, Snake, TicTacToe, Todo, Files, Tarneeb, Trix)
+ * with no behavioral differences. Apps push these links into a list at
+ * init() and remove them in destroy() — the convention is unchanged;
+ * only the construction is now centralized.
+ */
+export function cssLink(href) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = href;
+  return link;
+}

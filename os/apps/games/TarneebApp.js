@@ -1,5 +1,5 @@
 import { App } from '../../core/App.js';
-import { el } from '../../utils/dom.js';
+import { el, cssLink } from '../../utils/dom.js';
 import { safeSave } from '../../utils/safeSave.js';
 import { Card } from './cardEngine/Card.js';
 import { createStore } from './shared/store.js';
@@ -40,12 +40,6 @@ import {
   buildTarneebActions,
 } from './tarneeb/tarneebFeltView.js';
 
-function css(href) {
-  const l = document.createElement('link');
-  l.rel = 'stylesheet';
-  l.href = href;
-  return l;
-}
 
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
@@ -71,7 +65,7 @@ export class TarneebApp extends App {
   }
 
   async init(config = {}) {
-    this._styleLinks = [css('css/cards.css'), css('css/trix.css'), css('css/tarneeb.css'), css('css/table.css')];
+    this._styleLinks = [cssLink('css/cards.css'), cssLink('css/trix.css'), cssLink('css/tarneeb.css'), cssLink('css/table.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this.root = el('div', { class: 'app-window trix-remake tarneeb-remake' });

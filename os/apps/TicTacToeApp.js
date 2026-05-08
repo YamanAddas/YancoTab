@@ -19,7 +19,7 @@
  *   • 1 / 2 / 3 — set difficulty (when not mid-game)
  */
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, cssLink } from '../utils/dom.js';
 import { ttReducer, initialState } from './tictactoe/engine.js';
 import { chooseMove } from './tictactoe/ai.js';
 import { buildView } from './tictactoe/view.js';
@@ -29,12 +29,6 @@ const LEGACY_KEY = 'yancotab_neon_tactics';
 const AI_THINK_MS_MIN = 320;
 const AI_THINK_MS_MAX = 720;
 
-function css(href) {
-  const l = document.createElement('link');
-  l.rel = 'stylesheet';
-  l.href = href;
-  return l;
-}
 
 export class TicTacToeApp extends App {
   constructor(kernel, pid) {
@@ -49,7 +43,7 @@ export class TicTacToeApp extends App {
   }
 
   async init() {
-    this._styleLinks = [css('css/tictactoe.css')];
+    this._styleLinks = [cssLink('css/tictactoe.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
     this.root = el('div', { class: 'app-window app-tictactoe' });
 
