@@ -5,8 +5,9 @@
 export const LAYOUT = {
   cols: 7,
   cardAspect: 1.4,          // height/width
-  paddingRatio: 0.03,       // outer padding as fraction of width
+  paddingRatio: 0.025,      // outer padding as fraction of width
   gapRatio: 0.025,          // gap between columns
+  maxCardW: 84,             // cap so cards stop growing past poker-card proportions on wide screens
   topRowGap: 0.05,          // vertical gap between top row (stock/waste/foundation) and tableau
   fanOpenRatio: 0.28,       // how far down each face-up tableau card sits (of card height)
   fanClosedRatio: 0.12,     // face-down cards are tucked closer
@@ -21,9 +22,11 @@ export function computeLayout(containerW, containerH, opts = {}) {
   const gap = Math.max(6, containerW * LAYOUT.gapRatio);
   const leftHanded = !!opts.leftHanded;
 
-  // Card width: fit 7 columns with 6 gaps in the content width.
+  // Card width: fit 7 columns with 6 gaps in the content width, capped
+  // so cards on wide windows don't sprawl past poker-card proportions.
   const contentW = containerW - pad * 2;
-  const cardW = Math.floor((contentW - gap * (LAYOUT.cols - 1)) / LAYOUT.cols);
+  const naturalW = (contentW - gap * (LAYOUT.cols - 1)) / LAYOUT.cols;
+  const cardW = Math.floor(Math.min(naturalW, LAYOUT.maxCardW));
   const cardH = Math.floor(cardW * LAYOUT.cardAspect);
 
   // Top row sits at top; tableau below with topRowGap spacing.

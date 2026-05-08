@@ -80,7 +80,14 @@ function buildFront(card) {
   const tl = el('div', { class: 'cosmic-card-corner top-left' });
   tl.append(el('span', { class: 'rank' }, r), el('span', { class: 'suit' }, s));
 
-  const center = el('div', { class: 'cosmic-card-center' });
+  // Face cards (A/J/Q/K) get a stylized rank monogram next to the suit.
+  // Number cards keep just the suit. CSS handles the rendering — JS only
+  // tags the container and supplies the letter via data-monogram.
+  const isFace = card.rank === 1 || card.rank >= 11;
+  const center = el('div', {
+    class: 'cosmic-card-center' + (isFace ? ' is-face' : ''),
+  });
+  if (isFace) center.setAttribute('data-monogram', r);
   center.append(el('span', { class: 'suit-big' }, s));
 
   const br = el('div', { class: 'cosmic-card-corner bottom-right' });
