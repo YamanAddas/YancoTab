@@ -1,6 +1,7 @@
 
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
+import { isSafeUrl } from '../../utils/url.js';
 
 export class MobileShortcutModal {
     constructor(grid) {
@@ -201,6 +202,22 @@ export class MobileShortcutModal {
             // Final URL Normalization
             if (!url.startsWith('http') && !url.includes('://')) {
                 url = `https://${url}`;
+            }
+
+            // Scheme allowlist — reject javascript:, data:, file:, blob:,
+            // chrome:, etc. that would otherwise reach window.location.href.
+            if (!isSafeUrl(url)) {
+                kernel.emit('toast', {
+                    message: 'Only http, https, mailto, tel, sms URLs are allowed',
+                    type: 'error',
+                });
+                card.animate([
+                    { transform: 'translateX(0)' },
+                    { transform: 'translateX(-10px)' },
+                    { transform: 'translateX(10px)' },
+                    { transform: 'translateX(0)' }
+                ], { duration: 300 });
+                return;
             }
 
             const id = 'shortcut-' + Date.now();

@@ -21,6 +21,7 @@ import { MobileGridState } from './MobileGridState.js';
 import { SmartIcon } from '../desktop/SmartIcon.js';
 import { FolderIcon } from './FolderIcon.js';
 import { FolderOverlay } from './FolderOverlay.js';
+import { isSafeUrl } from '../../utils/url.js';
 
 export class AppGrid {
   constructor() {
@@ -165,6 +166,13 @@ export class AppGrid {
     try {
       const url = app?.url || app?.scheme || '';
       if (!url) return;
+      // Defense-in-depth: even though MobileShortcutModal validates on
+      // save, an older saved shortcut from a previous version could
+      // still hold a javascript: / data: URL. Re-validate at navigation.
+      if (!isSafeUrl(url)) {
+        kernel.emit('toast', { message: 'Blocked unsafe URL', type: 'error' });
+        return;
+      }
       if (url.startsWith('http')) {
         window.open(url, '_blank', 'noopener');
       } else {

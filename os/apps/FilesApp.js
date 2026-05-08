@@ -237,8 +237,20 @@ export class FilesApp extends App {
     if (item.isDir) return;
     const content = typeof item.content === 'string' ? item.content : (this.fs?.read(item.path)?.content || '');
     if (!content) return;
+    // Only http(s) URLs are valid "send to browser" targets. The previous
+    // implementation also passed-through `data:` content (including
+    // data:text/html), which is a phishing vector — a malicious .txt file
+    // imported into the FS could redirect to a fake login page in a new
+    // tab. Plain text files now wrap in `data:text/plain,...` which is
+    // viewable but not script-executable.
+    let href;
+    if (/^https?:\/\//i.test(content.trim())) {
+      href = content.trim();
+    } else {
+      href = `data:text/plain,${encodeURIComponent(content)}`;
+    }
     const a = document.createElement('a');
-    a.href = content.startsWith('data:') || /^https?:/i.test(content) ? content : `data:text/plain,${encodeURIComponent(content)}`;
+    a.href = href;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     a.style.display = 'none';
