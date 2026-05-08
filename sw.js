@@ -5,8 +5,8 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-files-vault';
+// "-audit" suffix forces eviction of pre-A1..A6 fixes assets.
+const CACHE_NAME = 'yancotab-v1.1.0-audit';
 
 const PRECACHE = [
     './',
@@ -21,7 +21,6 @@ const PRECACHE = [
     './css/memory.css',
     './css/calculator.css',
     './css/cards.css',
-    './css/solitaire.css',
     './css/tictactoe.css',
     './css/tarneeb.css',
     './css/trix.css',
