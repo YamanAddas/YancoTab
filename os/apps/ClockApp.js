@@ -502,7 +502,16 @@ export class ClockApp extends App {
                     max: '1',
                     step: '0.05',
                     value: String(alarmAudio.volume),
-                    oninput: (e) => { this.state.alarmAudio.volume = parseFloat(e.target.value); this.saveState(); },
+                    oninput: (e) => {
+                        const v = parseFloat(e.target.value);
+                        // Guard against NaN — clearing the slider input
+                        // would otherwise set volume to NaN and throw on
+                        // the next audio play.
+                        if (Number.isFinite(v)) {
+                            this.state.alarmAudio.volume = Math.max(0, Math.min(1, v));
+                            this.saveState();
+                        }
+                    },
                 }),
             ]),
         ]);

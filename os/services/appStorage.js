@@ -945,6 +945,25 @@ export class AppStorage {
             console.warn('[AppStorage] Backup before import failed:', e);
         }
 
+        // Defense-in-depth: strip prototype-pollution keys recursively
+        // before any value is normalized. Modern V8 already excludes raw
+        // __proto__ from JSON.parse-produced prototypes (becomes a string
+        // key, not a chain mutation), but downstream consumers calling
+        // Object.assign({}, importedThing) could re-pollute. Cheap to
+        // defend here at the import boundary.
+        const stripDangerKeys = (v) => {
+            if (Array.isArray(v)) return v.map(stripDangerKeys);
+            if (v && typeof v === 'object') {
+                const clean = {};
+                for (const [k, val] of Object.entries(v)) {
+                    if (k === '__proto__' || k === 'constructor' || k === 'prototype') continue;
+                    clean[k] = stripDangerKeys(val);
+                }
+                return clean;
+            }
+            return v;
+        };
+
         // Import each key through normalize/save pipeline
         for (const [key, importedData] of Object.entries(json.keys)) {
             if (!REGISTRY[key]) {
@@ -952,14 +971,15 @@ export class AppStorage {
                 continue;
             }
 
+            const cleaned = stripDangerKeys(importedData);
             try {
-                const normalized = this.normalize(key, importedData, 'import');
+                const normalized = this.normalize(key, cleaned, 'import');
                 const entry = REGISTRY[key];
 
                 // If normalize returned default and imported data wasn't the default,
                 // that means validation failed
                 if (this._deepEqual(normalized, this._cloneDefault(entry.default)) &&
-                    !this._deepEqual(importedData, entry.default)) {
+                    !this._deepEqual(cleaned, entry.default)) {
                     result.errors.push(key);
                     continue;
                 }

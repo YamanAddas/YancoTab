@@ -209,9 +209,21 @@ export class ProcessManager {
                 }
                 console.log(`[ProcessManager] Launching Shortcut: ${appMeta.name}`);
                 window.location.href = appMeta.scheme;
-                setTimeout(() => {
-                    const c = confirm(`Open ${appMeta.name} in Browser? (Cancel if App opened)`);
-                    if (c) window.open(appMeta.url, '_blank', 'noopener,noreferrer');
+                // Lazy-import YancoModal so processManager doesn't carry a
+                // hard dependency on the UI module — the modal is only
+                // needed in this rare scheme-with-fallback path.
+                setTimeout(async () => {
+                    try {
+                        const { showConfirm } = await import('../ui/components/YancoModal.js');
+                        const ok = await showConfirm(
+                            `Open ${appMeta.name} in Browser?`,
+                            'Click "Open" only if the native app did not launch.',
+                            { confirmLabel: 'Open', cancelLabel: 'Stay' }
+                        );
+                        if (ok) window.open(appMeta.url, '_blank', 'noopener,noreferrer');
+                    } catch (e) {
+                        console.error('[ProcessManager] Fallback confirm failed:', e);
+                    }
                 }, 1500);
                 return;
             }

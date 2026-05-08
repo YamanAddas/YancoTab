@@ -602,7 +602,15 @@ export class PhotoEditor {
         const valueLabel = el('span', { class: 'pe-slider__value' }, `${this._adj[key]}${unit}`);
         const range = el('input', {
             class: 'pe-slider__range', type: 'range', min: String(min), max: String(max), value: String(this._adj[key]),
-            oninput: (e) => { this._adj[key] = parseFloat(e.target.value); valueLabel.textContent = `${this._adj[key]}${unit}`; this._scheduleRender(); },
+            oninput: (e) => {
+                const v = parseFloat(e.target.value);
+                // Guard NaN — slider value can be cleared on some browsers.
+                if (Number.isFinite(v)) {
+                    this._adj[key] = v;
+                    valueLabel.textContent = `${v}${unit}`;
+                    this._scheduleRender();
+                }
+            },
         });
         const resetBtn = el('button', {
             class: 'pe-slider__reset', title: 'Reset',
@@ -719,7 +727,10 @@ export class PhotoEditor {
             el('input', {
                 class: 'pe-slider__range', type: 'range', min: '1', max: '20',
                 value: String(this._drawSize),
-                oninput: (e) => { this._drawSize = parseInt(e.target.value); },
+                oninput: (e) => {
+                    const v = parseInt(e.target.value, 10);
+                    if (Number.isFinite(v)) this._drawSize = Math.max(1, Math.min(20, v));
+                },
             }),
             el('div', { class: 'pe-panel__actions' }, [
                 el('button', { class: 'pe-btn', onclick: () => this._clearAnnotations() }, 'Clear All'),

@@ -36,6 +36,10 @@ export class Greeting {
         this.elements = {};
         this._interval = null;
         this._onNameChanged = null;
+        // Cache the last rendered minute / day so the per-second tick
+        // skips the date / greet-line / minute-pad reflow 59/60 times.
+        this._lastMinute = -1;
+        this._lastDayKey = '';
     }
 
     render() {
@@ -45,7 +49,14 @@ export class Greeting {
 
         // Clock is flanked by arabesque flourishes — accent-colored
         // ornamental glyphs that frame the time without competing with it.
-        this.elements.clock = el('div', { class: 'greeting-clock' });
+        // Build clock as two text spans so the per-second update is a
+        // single textContent write on the seconds span (not innerHTML).
+        this.elements.clockMain = el('span', { class: 'greeting-clock-main' });
+        this.elements.clockSec = el('span', { class: 'greeting-sec' });
+        this.elements.clock = el('div', { class: 'greeting-clock' }, [
+            this.elements.clockMain,
+            this.elements.clockSec,
+        ]);
         const clockWrap = el('div', { class: 'greeting-clock-wrap' }, [
             el('span', { class: 'greeting-flourish greeting-flourish-l', 'aria-hidden': 'true' }, '❧'),
             this.elements.clock,
@@ -59,7 +70,11 @@ export class Greeting {
         this._tick();
         this._interval = setInterval(() => this._tick(), 1000);
 
-        this._onNameChanged = () => this._tick();
+        this._onNameChanged = () => {
+            // Force greet-line re-render on next tick.
+            this._lastMinute = -1;
+            this._tick();
+        };
         window.addEventListener('yancotab:name_changed', this._onNameChanged);
 
         return this.root;
@@ -69,12 +84,20 @@ export class Greeting {
         if (!this.root) return;
 
         const d = new Date();
-        const h = pad(d.getHours());
-        const m = pad(d.getMinutes());
-        const s = pad(d.getSeconds());
+        const minute = d.getMinutes();
+        const dayKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
 
-        // Clock: HH:MM in big numerals, ·SS in accent color
-        this.elements.clock.innerHTML = `${h}:${m}<span class="greeting-sec">·${s}</span>`;
+        // Seconds: cheap textContent write, every tick.
+        this.elements.clockSec.textContent = `·${pad(d.getSeconds())}`;
+
+        // Minute hasn't ticked over → skip the rest. Saves ~59/60 of the
+        // greet-line + date-line + getDayOfYear + leap-year math each minute.
+        if (minute === this._lastMinute && dayKey === this._lastDayKey) return;
+        this._lastMinute = minute;
+        this._lastDayKey = dayKey;
+
+        // Clock main: HH:MM
+        this.elements.clockMain.textContent = `${pad(d.getHours())}:${pad(minute)}`;
 
         // Greet line: "Wednesday · Good afternoon, Yaman"
         const name = kernel.storage?.load('yancotab_user_name') || '';

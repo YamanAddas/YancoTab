@@ -28,7 +28,17 @@ export function exportTapeCsv(tape, kernel) {
     kernel.emit('toast', { message: 'Tape is empty', type: 'info' });
     return;
   }
-  const escape = (s) => `"${String(s).replace(/"/g, '""')}"`;
+  // CSV-injection guard: Excel/Sheets interpret cells beginning with
+  // =, +, -, @, tab, or CR as formulas. A user could type a calculator
+  // expression that starts with `=HYPERLINK(...)` or `-1+cmd|'/c calc'`,
+  // export to CSV, and a recipient opening it in Excel would execute
+  // the formula. Prefix offending cells with a single quote — Excel
+  // hides the apostrophe and treats the content as plain text.
+  const escape = (s) => {
+    let v = String(s);
+    if (/^[=+\-@\t\r]/.test(v)) v = `'${v}`;
+    return `"${v.replace(/"/g, '""')}"`;
+  };
   const rows = ['time,expression,result'];
   for (const t of tape) rows.push(`${escape(fmtTime(t.ts))},${escape(t.expr)},${escape(t.result)}`);
   const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
