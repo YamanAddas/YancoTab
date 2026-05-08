@@ -38,17 +38,47 @@ const nextFrame = () => new Promise((resolve) => {
 });
 
 function applyInitialTheme() {
-  const mode = localStorage.getItem('yancotab_theme_mode');
-  const legacy = localStorage.getItem('yancotab_theme');
-  const legacyDark = localStorage.getItem('yancotab_theme_dark');
-  const resolved = mode === 'light' || mode === 'dark'
-    ? mode
-    : legacy === 'light' || legacy === 'dark'
-      ? legacy
-      : legacyDark === 'false'
-        ? 'light'
-        : 'dark';
-  const isLight = resolved === 'light';
+  // Theme can be persisted in three shapes depending on which write path
+  // touched it last:
+  //   1. AppStorage envelope: '{"data":"auto","version":1,"ts":...}'
+  //   2. JSON-stringified scalar: '"dark"'
+  //   3. Raw legacy value: 'dark'
+  // Parse all three, with safe fallback to legacy keys.
+  const readMaybeWrapped = (key) => {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
+      if (typeof parsed === 'string') return parsed;
+    } catch { /* not JSON — fall through to raw */ }
+    return raw;
+  };
+
+  let mode = readMaybeWrapped('yancotab_theme_mode');
+  if (mode !== 'light' && mode !== 'dark' && mode !== 'auto') {
+    const legacy = readMaybeWrapped('yancotab_theme');
+    if (legacy === 'light' || legacy === 'dark') mode = legacy;
+    else {
+      const legacyDark = readMaybeWrapped('yancotab_theme_dark');
+      if (legacyDark === 'false') mode = 'light';
+      else if (legacyDark === 'true') mode = 'dark';
+    }
+  }
+
+  // Resolve 'auto' (and unknown) via OS preference.
+  let isLight;
+  if (mode === 'light') isLight = true;
+  else if (mode === 'dark') isLight = false;
+  else {
+    // 'auto' or first-run — follow the OS. Falls back to dark on browsers
+    // where matchMedia is unavailable.
+    try {
+      isLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    } catch {
+      isLight = false;
+    }
+  }
   document.body.classList.toggle('theme-light', isLight);
   document.documentElement.style.colorScheme = isLight ? 'light' : 'dark';
 }

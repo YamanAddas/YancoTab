@@ -19,8 +19,8 @@ const REGISTRY = {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
-        default: 'dark',
-        validate: (v) => v === 'dark' || v === 'light',
+        default: 'auto',
+        validate: (v) => v === 'dark' || v === 'light' || v === 'auto',
     },
     yancotab_24h: {
         storageClass: 'preferences',
@@ -989,13 +989,17 @@ export class AppStorage {
         let data;
         let version = 0;
 
-        // Step 1: Parse if string
+        // Step 1: Parse if string. The string came from one of two
+        // sources: (a) a JSON-stringified value read back out of
+        // localStorage (envelope or chunk-manifest shape), or (b) a
+        // caller passing a raw scalar string directly to save() — e.g.
+        // `save('yancotabSearchEngine', 'duck')`. Try JSON.parse first;
+        // on parse failure (case b), treat the string AS the value.
         if (typeof rawData === 'string') {
             try {
                 data = JSON.parse(rawData);
             } catch {
-                console.warn(`[AppStorage] ${key}: JSON parse failed (source: ${source}), using default`);
-                return this._cloneDefault(entry.default);
+                data = rawData;
             }
         } else {
             data = rawData;

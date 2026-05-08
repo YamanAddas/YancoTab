@@ -3,6 +3,8 @@
 // Three modes: 'dark', 'light', 'auto' (follows OS prefers-color-scheme).
 // Applies a body class and sets color-scheme so built-in controls render correctly.
 
+import { kernel } from '../kernel.js';
+
 const THEME_MODE_KEY = 'yancotab_theme_mode';
 const LEGACY_THEME_KEY = 'yancotab_theme';
 const LEGACY_THEME_DARK_KEY = 'yancotab_theme_dark';
@@ -11,17 +13,53 @@ export const THEME_CHANGE_EVENT = 'yancotab:theme_change';
 let _osMql = null;
 
 /**
+ * Read a value from localStorage, transparently unwrapping AppStorage's
+ * envelope shape `{data, version, ts, ...}` if present. Falls back to
+ * the raw string for legacy values written before the envelope existed.
+ *
+ * Theme has to cope with both shapes because the boot path writes raw
+ * (no kernel yet) but `kernel.storage.save` (used for cross-device
+ * sync) wraps the next write in an envelope.
+ */
+function readMaybeWrapped(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return null;
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
+      if (typeof parsed === 'string') return parsed;
+    } catch { /* not JSON — fall through */ }
+    return raw;
+  } catch { return null; }
+}
+
+/**
+ * Persist mode dual-write:
+ *   1. Raw localStorage so boot.js can read synchronously before the
+ *      kernel singleton is constructed (FOUC prevention).
+ *   2. kernel.storage when available — replicates to chrome.storage.sync
+ *      so the theme follows the user across devices.
+ * The kernel.storage write wraps the value in an envelope, so the next
+ * raw read sees envelope JSON; readMaybeWrapped() handles both shapes.
+ */
+function persistMode(value) {
+  try { localStorage.setItem(THEME_MODE_KEY, value); } catch { /* ignore */ }
+  try { kernel?.storage?.save?.(THEME_MODE_KEY, value); } catch { /* ignore */ }
+}
+
+/**
  * Returns the user's stored preference: 'light' | 'dark' | 'auto' | null.
  * Distinguishes "auto" (follow OS) from "no choice yet" (legacy migration).
  */
 export function getStoredMode() {
-  const mode = localStorage.getItem(THEME_MODE_KEY);
+  const mode = readMaybeWrapped(THEME_MODE_KEY);
   if (mode === 'light' || mode === 'dark' || mode === 'auto') return mode;
 
-  const legacy = localStorage.getItem(LEGACY_THEME_KEY);
+  const legacy = readMaybeWrapped(LEGACY_THEME_KEY);
   if (legacy === 'light' || legacy === 'dark') return legacy;
 
-  const legacyDark = localStorage.getItem(LEGACY_THEME_DARK_KEY);
+  const legacyDark = readMaybeWrapped(LEGACY_THEME_DARK_KEY);
   if (legacyDark === 'true') return 'dark';
   if (legacyDark === 'false') return 'light';
 
@@ -53,13 +91,17 @@ function prefersLight() {
 export function applyThemeMode(mode) {
   let effective;
   if (mode === 'auto') {
-    localStorage.setItem(THEME_MODE_KEY, 'auto');
+    persistMode('auto');
     effective = prefersLight() ? 'light' : 'dark';
   } else {
     effective = mode === 'light' ? 'light' : 'dark';
-    localStorage.setItem(THEME_MODE_KEY, effective);
-    localStorage.setItem(LEGACY_THEME_KEY, effective);
-    localStorage.setItem(LEGACY_THEME_DARK_KEY, String(effective === 'dark'));
+    persistMode(effective);
+    // Legacy keys stay raw (not in AppStorage REGISTRY) — back-compat
+    // shims for older versions of the extension reading these names.
+    try {
+      localStorage.setItem(LEGACY_THEME_KEY, effective);
+      localStorage.setItem(LEGACY_THEME_DARK_KEY, String(effective === 'dark'));
+    } catch { /* ignore */ }
   }
 
   const isLight = effective === 'light';
