@@ -212,7 +212,29 @@ export class PdfReaderApp extends App {
   }
 
   async _loadFromFile(file) {
+    const MAX_BYTES = 50 * 1024 * 1024; // 50 MB hard cap — real PDFs can be large
+    if (file.size > MAX_BYTES) {
+      this.kernel?.emit?.('toast', {
+        message: `PDF too large (max ${MAX_BYTES / 1024 / 1024} MB)`,
+        type: 'error',
+      });
+      return;
+    }
     const buffer = await file.arrayBuffer();
+    // Verify magic bytes — pdf.js trusts arbitrary bytes and a malicious
+    // 'evil.pdf' that doesn't actually start with '%PDF-' can spin the
+    // worker. Real PDFs always start with the 5 bytes '%PDF-' (25 50 44
+    // 46 2D), per ISO 32000-1 §7.5.2.
+    const head = new Uint8Array(buffer, 0, Math.min(5, buffer.byteLength));
+    if (head.length < 5
+        || head[0] !== 0x25 || head[1] !== 0x50 || head[2] !== 0x44
+        || head[3] !== 0x46 || head[4] !== 0x2D) {
+      this.kernel?.emit?.('toast', {
+        message: `${file.name} is not a valid PDF`,
+        type: 'error',
+      });
+      return;
+    }
     this._currentDataUrl = null;
     this._currentName = file.name;
     this._currentPath = null;
