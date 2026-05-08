@@ -388,8 +388,7 @@ export class MobileShell {
 
       // If in-app, go home first
       if (this.state.activePid) {
-        const proc = kernel.processManager.processes.get(this.state.activePid);
-        if (proc?.instance?.close) proc.instance.close();
+        kernel.processManager.closeProcess(this.state.activePid);
       }
 
       switch (id) {
@@ -680,8 +679,7 @@ export class MobileShell {
       // Escape — close current app and go home (always active)
       if (e.key === 'Escape') {
         if (this.state.activePid) {
-          const proc = kernel.processManager.processes.get(this.state.activePid);
-          if (proc?.instance?.close) proc.instance.close();
+          kernel.processManager.closeProcess(this.state.activePid);
           e.preventDefault();
         } else if (isInput) {
           e.target.blur();
@@ -726,10 +724,13 @@ export class MobileShell {
 
       // Ctrl+N — new note (when Notes app is the active window)
       if (ctrl && e.key === 'n') {
-        const proc = kernel.processManager.processes.get(this.state.activePid);
-        if (proc?.name === 'notes' && typeof proc.instance?._createDocument === 'function') {
-          e.preventDefault();
-          proc.instance._createDocument();
+        const info = kernel.processManager.getProcessInfo(this.state.activePid);
+        if (info?.name === 'notes') {
+          const inst = kernel.processManager.getInstance(this.state.activePid);
+          if (typeof inst?._createDocument === 'function') {
+            e.preventDefault();
+            inst._createDocument();
+          }
         }
         return;
       }

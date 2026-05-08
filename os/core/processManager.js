@@ -255,6 +255,51 @@ export class ProcessManager {
         return -1;
     }
 
+    /**
+     * Public read-only accessor — returns the app instance for `pid`, or
+     * null. Used by the shell to dispatch keyboard shortcuts to the
+     * active app (Ctrl+N → notes._createDocument, Escape → close, etc.).
+     *
+     * Mutating the returned instance is allowed (it's the same reference
+     * the app holds), but callers should treat it as opaque — only call
+     * documented App methods on it.
+     */
+    getInstance(pid) {
+        return this.processes.get(pid)?.instance || null;
+    }
+
+    /**
+     * Returns { pid, name } for `pid`, or null. `name` is the appId the
+     * process was spawned for ('notes', 'todo', 'tarneeb' …). Useful
+     * when the caller only needs identity, not the live instance.
+     */
+    getProcessInfo(pid) {
+        const p = this.processes.get(pid);
+        if (!p) return null;
+        return { pid, name: p.name };
+    }
+
+    /**
+     * Soft-close a process via its app's own close() method, if defined.
+     * The app is responsible for deciding what "close" means (animations,
+     * confirmation prompts, etc.) and for ultimately calling kill() —
+     * the shell asks politely; the app does the work.
+     *
+     * Returns true if a close method was invoked. Falls back to false
+     * if the pid is unknown or the instance has no close method.
+     * Callers wanting unconditional teardown should use kill() directly.
+     */
+    closeProcess(pid) {
+        const inst = this.processes.get(pid)?.instance;
+        if (inst && typeof inst.close === 'function') {
+            try { inst.close(); return true; } catch (e) {
+                console.warn('[ProcessManager] close() threw:', e);
+                return false;
+            }
+        }
+        return false;
+    }
+
     async kill(pid) {
         const process = this.processes.get(pid);
         if (!process) return false;
