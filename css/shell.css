@@ -211,6 +211,16 @@ body.in-app .main-content {
   justify-items: center;
 }
 
+/* The honeycomb pages position their icons absolutely (see AppGrid.js).
+   Each .hex-icon has an outer ::before glow at inset: -5px which pokes
+   above the icon's box. Without headroom the grid container's
+   overflow:hidden clips that glow on row-0 icons, leaving them visually
+   sliced at the top. Push the children down a few px so the glow has
+   room to render. */
+.m-grid-pages {
+  padding-top: 8px;
+}
+
 /* ── Page Dots ── */
 .m-grid-dots {
   display: flex;

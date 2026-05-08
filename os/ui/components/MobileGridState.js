@@ -85,21 +85,45 @@ export class MobileGridState {
 
   _hasStalePositions() {
     if (!this.layout?.metrics) return false;
-    const cols = this.layout.metrics.cols;
+    const m = this.layout.metrics;
+    const cols = m.cols;
     if (!cols) return false;
+
     let maxCol = 0;
     let placedCount = 0;
+    const slotsByPage = new Map(); // page → Set<slotIdx>
+    let maxSlotByPage = new Map(); // page → highest slot occupied
+
     for (const item of this.items.values()) {
       if (item.parent || item.hidden) continue;
-      if (item.col >= 0) {
-        placedCount++;
-        if (item.col > maxCol) maxCol = item.col;
+      if (item.col < 0 || item.row < 0) continue;
+      placedCount++;
+      if (item.col > maxCol) maxCol = item.col;
+
+      const slot = MobileLayoutEngine.rowColToSlot(item.row, item.col, m);
+      if (!slotsByPage.has(item.page)) slotsByPage.set(item.page, new Set());
+      slotsByPage.get(item.page).add(slot);
+      if (!maxSlotByPage.has(item.page) || slot > maxSlotByPage.get(item.page)) {
+        maxSlotByPage.set(item.page, slot);
       }
     }
     if (placedCount === 0) return false;
-    // Stale if every placed item fits in fewer columns than the current layout
-    // provides — i.e. the layout would be visibly squished to one side.
-    return maxCol < cols - 2;
+
+    // Stale case A: every placed item fits in fewer columns than the
+    // current layout provides — items would be squished to one side.
+    if (maxCol < cols - 2) return true;
+
+    // Stale case B: there's an internal gap. A "gap" means a slot is
+    // unoccupied but a later slot in linear order IS occupied. After a
+    // delete, folder-move, or position migration this can leave a hole
+    // mid-row that the grid renders as visible empty space.
+    for (const [page, occupied] of slotsByPage) {
+      const maxSlot = maxSlotByPage.get(page) ?? 0;
+      for (let s = 0; s < maxSlot; s++) {
+        if (!occupied.has(s)) return true;
+      }
+    }
+    return false;
   }
 
   // ─── Layout Updates ─────────────────────────────────────────
@@ -123,6 +147,11 @@ export class MobileGridState {
 
     // Try restoring saved positions for this orientation
     if (!this._restorePositionsForMode(mode)) {
+      this._reflowItems();
+    } else if (this._hasStalePositions()) {
+      // Restore succeeded but positions have an internal gap (e.g. user
+      // moved an item into a folder or deleted it on the previous boot,
+      // leaving a hole mid-row). Compact so the grid renders contiguously.
       this._reflowItems();
     }
 
