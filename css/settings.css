@@ -17,11 +17,15 @@
   outline: none;
 }
 
+/* Default window size — Settings now shows a single category page at a
+   time (vs. the prior multi-bay scrolling Console), so it doesn't need
+   90%×88% of the screen. 960×680 is plenty for a 220px rail + a single
+   ~700px-wide bay; capped to 95vw / 90vh so it always fits the viewport. */
 .window-chrome:has(.app-settings-console) {
-  left: 5%;
-  top: 6%;
-  width: 90%;
-  height: 88%;
+  width: min(960px, 95vw);
+  height: min(680px, 90vh);
+  left: calc(50% - min(960px, 95vw) / 2);
+  top: calc(50% - min(680px, 90vh) / 2);
 }
 
 /* ── Outer frame ─────────────────────────────────────────── */
@@ -30,7 +34,7 @@
   position: absolute;
   inset: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: 1fr;
   border-radius: 22px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 22%, rgba(8, 18, 32, 0.6) 60%, rgba(2, 8, 16, 0.78) 100%),
@@ -207,13 +211,16 @@ body.theme-light .mc-set-frame {
 
 /* ── Bays ────────────────────────────────────────────────── */
 
+/* Single-column flow now — only one bay is ever visible at a time, so
+   the previous 2-column grid would just leave the right half empty.
+   The active bay fills the stage width naturally. */
 .mc-bays {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
+  flex-direction: column;
   gap: 14px;
 }
 .mc-bay {
-  padding: 16px 18px;
+  padding: 22px 26px;
   border-radius: 14px;
   background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(0,0,0,0.20));
   border: 1px solid var(--border, rgba(255,255,255,0.10));
@@ -253,12 +260,8 @@ body.theme-light .mc-set-frame {
   font-size: 12px;
 }
 
-/* About bay (full-width) */
-.mc-bay-about { grid-column: 1 / -1; }
-
-@media (max-width: 1280px) {
-  .mc-bays { grid-template-columns: 1fr; }
-}
+/* (Was '.mc-bay-about { grid-column: 1 / -1 }' to span the old 2-column
+   bays grid; no longer needed — flex column gives every bay full width.) */
 
 /* ── Settings rows (legacy components) ───────────────────── */
 
