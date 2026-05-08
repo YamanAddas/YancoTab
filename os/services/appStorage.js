@@ -645,6 +645,21 @@ const REGISTRY = {
         default: [],
         validate: (v) => Array.isArray(v),
     },
+    yancotab_pdf_streak_v1: {
+        storageClass: 'volatile',
+        syncPolicy: 'never',     // local-only reading-history privacy
+        version: 1,
+        default: { days: {} },
+        validate: (v) => v && typeof v === 'object'
+            && v.days && typeof v.days === 'object',
+    },
+    yancotab_pdf_bookmarks_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────
