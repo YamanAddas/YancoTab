@@ -1,6 +1,8 @@
 // persistence.js — Save/load the active Spider game + aggregate stats via
 // kernel.storage. State is plain JSON-serialisable data, so we just round-trip.
 
+import { safeSave } from '../../../utils/safeSave.js';
+
 const SAVE_KEY     = 'yancotab_spider_save';
 const STATS_KEY    = 'yancotab_spider_stats';
 const SETTINGS_KEY = 'yancotab_spider_settings';
@@ -9,10 +11,10 @@ export function loadSave(kernel) {
   try { return kernel?.storage?.load(SAVE_KEY) ?? null; } catch { return null; }
 }
 export function saveGame(kernel, state) {
-  try { kernel?.storage?.save(SAVE_KEY, state); } catch {}
+  safeSave(kernel, SAVE_KEY, state, 'Spider game');
 }
 export function clearSave(kernel) {
-  try { kernel?.storage?.save(SAVE_KEY, null); } catch {}
+  safeSave(kernel, SAVE_KEY, null, 'Spider game');
 }
 
 export function loadStats(kernel) {
@@ -22,7 +24,7 @@ export function loadStats(kernel) {
   } catch { return defaultStats(); }
 }
 export function saveStats(kernel, stats) {
-  try { kernel?.storage?.save(STATS_KEY, stats); } catch {}
+  safeSave(kernel, STATS_KEY, stats, 'Spider stats');
 }
 
 export function defaultSettings() {
@@ -41,7 +43,7 @@ export function loadSettings(kernel) {
   } catch { return defaultSettings(); }
 }
 export function saveSettings(kernel, settings) {
-  try { kernel?.storage?.save(SETTINGS_KEY, settings); } catch {}
+  safeSave(kernel, SETTINGS_KEY, settings, 'Spider settings');
 }
 
 export function defaultStats() {

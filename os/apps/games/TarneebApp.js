@@ -1,5 +1,6 @@
 import { App } from '../../core/App.js';
 import { el } from '../../utils/dom.js';
+import { safeSave } from '../../utils/safeSave.js';
 import { Card } from './cardEngine/Card.js';
 import { createStore } from './shared/store.js';
 import { tarneebReducer } from './tarneeb/tarneebReducer.js';
@@ -177,13 +178,11 @@ export class TarneebApp extends App {
   }
 
   _savePrefs() {
-    try {
-      this.kernel.storage.save('yancotab_tarneeb', {
-        difficulty: this._setupDiff,
-        gamesPlayed: this._stats.gamesPlayed,
-        gamesWon: this._stats.gamesWon,
-      });
-    } catch {}
+    safeSave(this.kernel, 'yancotab_tarneeb', {
+      difficulty: this._setupDiff,
+      gamesPlayed: this._stats.gamesPlayed,
+      gamesWon: this._stats.gamesWon,
+    }, 'Tarneeb prefs');
   }
 
   _playerName(seat) { return SEAT_NAMES[seat] || seat; }

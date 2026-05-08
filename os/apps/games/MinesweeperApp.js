@@ -15,6 +15,7 @@
  */
 import { App } from '../../core/App.js';
 import { el } from '../../utils/dom.js';
+import { safeSave } from '../../utils/safeSave.js';
 
 /* ── Constants ── */
 const LS_KEY = 'yancotab_neon_mines';
@@ -185,15 +186,13 @@ class NeonMines {
         }
     }
     _save() {
-        try {
-            this.kernel.storage.save(LS_KEY, {
-                theme: this.theme,
-                bestTimes: this.bestTimes,
-                gamesPlayed: this.gamesPlayed,
-                gamesWon: this.gamesWon,
-                difficulty: this.difficulty,
-            });
-        } catch { /* ignore */ }
+        safeSave(this.kernel, LS_KEY, {
+            theme: this.theme,
+            bestTimes: this.bestTimes,
+            gamesPlayed: this.gamesPlayed,
+            gamesWon: this.gamesWon,
+            difficulty: this.difficulty,
+        }, 'Minesweeper stats');
     }
 
     get themeColor() { return COLORS[this.theme]; }

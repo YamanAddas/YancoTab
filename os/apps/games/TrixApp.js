@@ -1,5 +1,6 @@
 import { App } from '../../core/App.js';
 import { el } from '../../utils/dom.js';
+import { safeSave } from '../../utils/safeSave.js';
 import { createStore } from './shared/store.js';
 import { trixReducer } from './trix/trixReducer.js';
 import { SEAT_NAMES, SEATS, partnerOf } from './trix/trixRules.js';
@@ -139,12 +140,10 @@ export class TrixApp extends App {
   }
 
   _savePrefs() {
-    try {
-      this.kernel.storage.save('yancotab_trix', {
-        mode: this._setupMode, difficulty: this._setupDiff, rules: this._setupRules,
-        gamesPlayed: this._stats.gamesPlayed, gamesWon: this._stats.gamesWon,
-      });
-    } catch {}
+    safeSave(this.kernel, 'yancotab_trix', {
+      mode: this._setupMode, difficulty: this._setupDiff, rules: this._setupRules,
+      gamesPlayed: this._stats.gamesPlayed, gamesWon: this._stats.gamesWon,
+    }, 'Trix prefs');
   }
 
   _contractHint(id, state = null) {

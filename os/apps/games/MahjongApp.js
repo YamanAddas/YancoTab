@@ -1,6 +1,7 @@
 
 import { App } from '../../core/App.js';
 import { el } from '../../utils/dom.js';
+import { safeSave } from '../../utils/safeSave.js';
 import { MahjongGame } from './mahjong/mahjongGame.js';
 import {
   buildLayoutPicker,
@@ -109,7 +110,7 @@ export class MahjongApp extends App {
   }
 
   _saveStats() {
-    try { this.kernel.storage.save('yancotab_mahjong', this.stats); } catch {}
+    safeSave(this.kernel, 'yancotab_mahjong', this.stats, 'Mahjong stats');
   }
 
   _formatTime(secs) {

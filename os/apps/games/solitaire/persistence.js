@@ -1,6 +1,8 @@
 // persistence.js — Save/load the active game + aggregate stats via kernel.storage.
 // State is serialisable (pure data), so we just JSON-roundtrip it.
 
+import { safeSave } from '../../../utils/safeSave.js';
+
 const SAVE_KEY     = 'yancotab_solitaire_save';
 const STATS_KEY    = 'yancotab_solitaire_stats';
 const SETTINGS_KEY = 'yancotab_solitaire_settings';
@@ -9,10 +11,12 @@ export function loadSave(kernel) {
   try { return kernel?.storage?.load(SAVE_KEY) ?? null; } catch { return null; }
 }
 export function saveGame(kernel, state) {
-  try { kernel?.storage?.save(SAVE_KEY, state); } catch {}
+  // Was: silent catch — a quota-full event ate the user's game with
+  // no signal. safeSave warns + emits a single toast per session.
+  safeSave(kernel, SAVE_KEY, state, 'Solitaire game');
 }
 export function clearSave(kernel) {
-  try { kernel?.storage?.save(SAVE_KEY, null); } catch {}
+  safeSave(kernel, SAVE_KEY, null, 'Solitaire game');
 }
 
 export function loadStats(kernel) {
@@ -22,7 +26,7 @@ export function loadStats(kernel) {
   } catch { return defaultStats(); }
 }
 export function saveStats(kernel, stats) {
-  try { kernel?.storage?.save(STATS_KEY, stats); } catch {}
+  safeSave(kernel, STATS_KEY, stats, 'Solitaire stats');
 }
 
 export function defaultSettings() {
@@ -43,7 +47,7 @@ export function loadSettings(kernel) {
   } catch { return defaultSettings(); }
 }
 export function saveSettings(kernel, settings) {
-  try { kernel?.storage?.save(SETTINGS_KEY, settings); } catch {}
+  safeSave(kernel, SETTINGS_KEY, settings, 'Solitaire settings');
 }
 
 // One-shot migration from the legacy shared card-style key used by the old
