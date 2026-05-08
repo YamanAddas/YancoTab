@@ -155,10 +155,19 @@ export function buildVault({
       selectedPath,
     });
 
+    // Cache the visible file paths so keyboard nav can step through
+    // exactly what the user sees in the current room.
+    visiblePathsCache = files.map((f) => f.path);
+
     const selected = files.find((f) => f.path === selectedPath)
       || allItems.find((it) => it.path === selectedPath)
       || null;
     preview.update(selected);
+  }
+
+  function cssEscape(s) {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(s);
+    return String(s || '').replace(/(["\\])/g, '\\$1');
   }
 
   function countDirChildren(path) {
@@ -227,6 +236,11 @@ export function buildVault({
   });
   ro.observe(stage.root);
 
+  // Cache of the most-recent visible file paths so keyboard nav lines
+  // up with what the user can see on screen (after smart-room filter,
+  // honeycomb cap, etc.). Populated by render().
+  let visiblePathsCache = [];
+
   return {
     root,
     render,
@@ -236,6 +250,21 @@ export function buildVault({
     getSelected() {
       const allItems = decorateItems(listAllFiles?.() || [], { pinned: getPinnedSet?.() });
       return allItems.find((it) => it.path === selectedPath) || null;
+    },
+    clearSelection() { selectedPath = null; render(); },
+    keyMove(delta) {
+      if (!visiblePathsCache.length) return;
+      const i = visiblePathsCache.indexOf(selectedPath);
+      const next = i < 0
+        ? (delta < 0 ? visiblePathsCache.length - 1 : 0)
+        : (i + delta + visiblePathsCache.length) % visiblePathsCache.length;
+      selectedPath = visiblePathsCache[next];
+      render();
+      // Scroll the active coin/tile/row into view if needed.
+      const sel = root.querySelector(
+        `.fv-coin[data-file-path="${cssEscape(selectedPath)}"], .fv-tile[data-path="${cssEscape(selectedPath)}"], .fv-list-row[data-path="${cssEscape(selectedPath)}"]`
+      );
+      sel?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     },
     /** Open the currently selected coin via the shell's open routing. */
     openSelected() {

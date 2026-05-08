@@ -431,16 +431,41 @@ export class FilesApp extends App {
     if (!appLayer || appLayer.hidden) return;
     const tag = (e.target?.tagName || '').toUpperCase();
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (!this._vault) return;
 
-    if (e.key === 'Enter') {
-      const sel = this._vault.getSelected();
-      if (sel) { this._openItem(sel); e.preventDefault(); }
-    } else if (e.key === 'Delete' || e.key === 'Backspace') {
-      const sel = this._vault.getSelected();
-      if (sel) { this._deleteItem(sel); e.preventDefault(); }
-    } else if (e.key === 'F2') {
-      const sel = this._vault.getSelected();
-      if (sel) { this._renameItem(sel); e.preventDefault(); }
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        this._vault.keyMove(-1);
+        e.preventDefault();
+        break;
+      case 'ArrowRight':
+      case 'ArrowDown':
+        this._vault.keyMove(1);
+        e.preventDefault();
+        break;
+      case 'Enter': {
+        const sel = this._vault.getSelected();
+        if (sel) { this._openItem(sel); e.preventDefault(); }
+        break;
+      }
+      case 'Escape':
+        this._vault.clearSelection();
+        e.preventDefault();
+        break;
+      case 'Delete':
+      case 'Backspace': {
+        const sel = this._vault.getSelected();
+        if (sel) { this._deleteItem(sel); e.preventDefault(); }
+        break;
+      }
+      case 'F2': {
+        const sel = this._vault.getSelected();
+        if (sel) { this._renameItem(sel); e.preventDefault(); }
+        break;
+      }
+      default:
+        break;
     }
   }
 }

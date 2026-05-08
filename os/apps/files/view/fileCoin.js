@@ -9,11 +9,12 @@ import { el } from '../../../utils/dom.js';
 
 export function buildFileCoin(item, { onSelect, isSelected } = {}) {
   const cls = ['fv-coin', isSelected ? 'is-selected' : '',
+    item.pinned ? 'is-pinned' : '',
     `fv-coin-${item.category || 'other'}`].filter(Boolean).join(' ');
   const root = el('div', {
     class: cls,
     'data-file-path': item.path,
-    title: item.name,
+    title: item.name + (item.pinned ? ' · pinned' : ''),
     role: 'button',
     tabindex: '0',
     draggable: 'true',
@@ -24,6 +25,9 @@ export function buildFileCoin(item, { onSelect, isSelected } = {}) {
     el('span', { class: 'fv-coin-ext' }, ext),
     el('span', { class: 'fv-coin-nm' }, item.displayName || item.name || 'file'),
   );
+  if (item.pinned) {
+    root.appendChild(el('span', { class: 'fv-coin-pin', 'aria-label': 'Pinned' }, '★'));
+  }
 
   if (item.x != null && item.y != null) {
     root.style.left = `${item.x}px`;

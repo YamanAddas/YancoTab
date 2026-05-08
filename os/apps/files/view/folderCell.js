@@ -44,18 +44,27 @@ export function buildFolderCell(spec, { onSelect, onDrop } = {}) {
     }
   });
 
-  // Drop target — coin-onto-cell move (PR-3 will dispatch this).
+  // Drop target — coin-onto-cell move.
   if (onDrop) {
     root.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      root.classList.add('is-drop-target');
+      // Only respond to drags that include our internal path payload.
+      // (External OS-file drags are handled at the app-window level.)
+      if (e.dataTransfer && [...e.dataTransfer.types].includes('text/yancotab-fs-path')) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        root.classList.add('is-drop-target');
+      }
     });
     root.addEventListener('dragleave', () => root.classList.remove('is-drop-target'));
     root.addEventListener('drop', (e) => {
-      e.preventDefault();
-      root.classList.remove('is-drop-target');
       const sourcePath = e.dataTransfer?.getData('text/yancotab-fs-path');
-      if (sourcePath) onDrop(sourcePath, spec);
+      root.classList.remove('is-drop-target');
+      if (!sourcePath) return;
+      e.preventDefault();
+      onDrop(sourcePath, spec);
+      // Brief success flash so the user sees the drop landed.
+      root.classList.add('is-drop-flash');
+      setTimeout(() => root.classList.remove('is-drop-flash'), 600);
     });
   }
 

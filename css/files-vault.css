@@ -411,6 +411,27 @@ body.theme-light .app-window.app-files-vault {
 .fv-coin-audio  .fv-coin-ext { color: var(--rose, #ff6f8b); }
 .fv-coin-code   .fv-coin-ext { color: var(--cool, #5aa8ff); }
 .fv-coin-archive .fv-coin-ext { color: var(--text-dim); }
+.fv-coin.is-pinned {
+  box-shadow: 0 0 12px rgba(255, 184, 74, 0.40);
+}
+.fv-coin-pin {
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: 9px;
+  line-height: 1;
+  color: var(--warm, #ffb84a);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+
+/* Drop-success flash animation */
+@keyframes fv-drop-flash {
+  0%   { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.85), 0 0 40px rgba(var(--accent-rgb), 0.55); }
+  100% { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0),    0 0 40px rgba(var(--accent-rgb), 0); }
+}
+.fv-cell.is-drop-flash {
+  animation: fv-drop-flash 600ms ease-out;
+}
 
 /* ── Grid view (alt) ──────────────────────────────────────── */
 
