@@ -534,6 +534,64 @@ body.theme-light .app-window.app-photos-lightbox {
   margin-bottom: 8px;
 }
 
+/* ── Focus rings (a11y) ────────────────────────────────────── */
+
+.lb-cell:focus-visible {
+  outline: 2px solid var(--accent, #00e5c1);
+  outline-offset: 2px;
+}
+.lb-tab:focus-visible,
+.lb-action-btn:focus-visible,
+.lb-side-item:focus-visible,
+.lb-month:focus-visible,
+.lb-send-btn:focus-visible,
+.lb-focus-ctrl-btn:focus-visible,
+.lb-focus-nav:focus-visible,
+.lb-featured-clear:focus-visible {
+  outline: 2px solid var(--accent, #00e5c1);
+  outline-offset: 2px;
+}
+
+/* ── Light-theme overrides ─────────────────────────────────── */
+
+body.theme-light .lb-titlebar {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.02), transparent);
+}
+body.theme-light .lb-side,
+body.theme-light .lb-info {
+  background: rgba(0, 0, 0, 0.02);
+}
+body.theme-light .lb-side-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+body.theme-light .lb-action-btn,
+body.theme-light .lb-send-btn,
+body.theme-light .lb-featured-clear {
+  background: rgba(255, 255, 255, 0.7);
+}
+body.theme-light .lb-stage {
+  background:
+    radial-gradient(ellipse 60% 60% at 30% 30%, rgba(var(--accent-rgb), 0.04), transparent 70%),
+    radial-gradient(ellipse 60% 60% at 70% 80%, rgba(155, 123, 255, 0.04), transparent 70%);
+}
+body.theme-light .lb-focus {
+  background: rgba(0, 0, 0, 0.06);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+}
+body.theme-light .lb-cell {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+body.theme-light .lb-grid-empty {
+  border-color: var(--border-light, rgba(0, 0, 0, 0.06));
+}
+body.theme-light .lb-month:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+body.theme-light .lb-drop-overlay {
+  background: rgba(245, 247, 250, 0.85);
+}
+body.theme-light .lb-drop-content { color: var(--accent); }
+
 /* ── Reduced-motion ────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {

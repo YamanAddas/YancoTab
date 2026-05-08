@@ -109,6 +109,33 @@ export function buildLightbox({
       monthBuckets: buckets,
     });
     info.update(decorated.find((p) => p.path === selectedPath) || null);
+
+    // Keep the active cell in view during keyboard nav.
+    if (selectedPath) {
+      const active = root.querySelector('.lb-cell.is-active');
+      if (active && typeof active.scrollIntoView === 'function') {
+        active.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    }
+  }
+
+  /**
+   * Count columns in the rendered grid by looking for the first cell
+   * whose offsetTop differs from the first cell's. Robust to CSS
+   * media-query column changes and to the grid being empty.
+   */
+  function getGridColumns() {
+    const grid = root.querySelector('.lb-grid');
+    if (!grid) return 1;
+    const cells = grid.children;
+    if (cells.length === 0) return 1;
+    const firstTop = cells[0].offsetTop;
+    let cols = 0;
+    for (const c of cells) {
+      if (c.offsetTop !== firstTop) break;
+      cols++;
+    }
+    return cols || 1;
   }
 
   return {
@@ -125,5 +152,28 @@ export function buildLightbox({
     getSelected() { return selectedPath; },
     /** Keyboard navigation forwarded from the app shell. */
     keyMove(delta) { move(delta); },
+    /** Move by a full grid row (delta = ±1). */
+    keyMoveRow(delta) {
+      if (!visiblePhotos.length) return;
+      const cols = getGridColumns();
+      const i = visiblePhotos.findIndex((p) => p.path === selectedPath);
+      if (i < 0) {
+        selectedPath = visiblePhotos[0].path;
+        rerender();
+        return;
+      }
+      const next = i + delta * cols;
+      const clamped = Math.max(0, Math.min(visiblePhotos.length - 1, next));
+      if (clamped === i) return;
+      selectedPath = visiblePhotos[clamped].path;
+      rerender();
+    },
+    /** Jump to first / last visible photo. */
+    keyMoveTo(where) {
+      if (!visiblePhotos.length) return;
+      if (where === 'first') selectedPath = visiblePhotos[0].path;
+      else if (where === 'last') selectedPath = visiblePhotos[visiblePhotos.length - 1].path;
+      rerender();
+    },
   };
 }

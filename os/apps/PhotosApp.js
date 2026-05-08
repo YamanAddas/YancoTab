@@ -403,8 +403,12 @@ export class PhotosApp extends App {
     const tag = (e.target?.tagName || '').toUpperCase();
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-    if (e.key === 'ArrowLeft') { this._lightbox.keyMove(-1); e.preventDefault(); }
-    else if (e.key === 'ArrowRight') { this._lightbox.keyMove(1); e.preventDefault(); }
+    if (e.key === 'ArrowLeft')      { this._lightbox.keyMove(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowRight') { this._lightbox.keyMove(1);  e.preventDefault(); }
+    else if (e.key === 'ArrowUp')    { this._lightbox.keyMoveRow(-1); e.preventDefault(); }
+    else if (e.key === 'ArrowDown')  { this._lightbox.keyMoveRow(1);  e.preventDefault(); }
+    else if (e.key === 'Home')       { this._lightbox.keyMoveTo('first'); e.preventDefault(); }
+    else if (e.key === 'End')        { this._lightbox.keyMoveTo('last');  e.preventDefault(); }
     else if (e.key === 'Enter') {
       const sel = this._lightbox.getSelected();
       if (sel) { this._editPath(sel); e.preventDefault(); }
