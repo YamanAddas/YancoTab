@@ -122,7 +122,9 @@ export class SolitaireApp extends App {
     this.statMoves = el('span', { class: 'cosmic-stat' });
     this.statScore = el('span', { class: 'cosmic-stat' });
     this.statTime  = el('span', { class: 'cosmic-stat' });
-    left.append(this.statMoves, this.statScore, this.statTime);
+    this.statSeed  = el('span', { class: 'cosmic-stat cosmic-stat-seed' });
+    this.statSeed.style.display = 'none';
+    left.append(this.statMoves, this.statScore, this.statTime, this.statSeed);
 
     const mk = (label) => el('button', { class: 'cosmic-btn', type: 'button' }, label);
     const newBtn = mk('New Game ▾');
@@ -224,7 +226,35 @@ export class SolitaireApp extends App {
     this.statMoves.innerHTML = `Moves <strong>${state.moves}</strong>`;
     this.statScore.innerHTML = `Score <strong>${state.score}</strong>`;
     this._renderTime();
+    this._renderSeed(state);
     if (this._autoBtn) this._autoBtn.disabled = !isAutoFinishReady(state);
+  }
+  _renderSeed(state) {
+    if (!this.statSeed) return;
+    const seed = Number.isFinite(state?.seed) ? state.seed : null;
+    if (seed == null || seed === 0) {
+      this.statSeed.style.display = 'none';
+      return;
+    }
+    // 8-hex display so seeds round-trip with the Custom Seed input.
+    const hex = (seed >>> 0).toString(16).toUpperCase().padStart(8, '0');
+    this.statSeed.style.display = '';
+    this.statSeed.innerHTML = `Seed <strong>${hex}</strong>`;
+    this.statSeed.title = `Click to copy seed · ${hex}`;
+    this.statSeed.style.cursor = 'pointer';
+    if (!this._statSeedClickBound) {
+      this._statSeedClickBound = true;
+      this.statSeed.addEventListener('click', () => this._copySeedToClipboard());
+    }
+  }
+  async _copySeedToClipboard() {
+    try {
+      const seed = this.store?.getState?.()?.seed;
+      if (seed == null) return;
+      const hex = (seed >>> 0).toString(16).toUpperCase().padStart(8, '0');
+      await navigator.clipboard?.writeText?.(hex);
+      this.kernel?.emit?.('toast', { message: `Seed ${hex} copied`, type: 'success' });
+    } catch { /* ignore */ }
   }
   _renderTime() {
     if (!this.settings.timed) {

@@ -140,6 +140,67 @@
 
 .cosmic-stat strong { color: var(--accent-bright); font-weight: 600; }
 
+/* Seed chip — surfaces the current game's seed for sharing.
+ * Click to copy (handled by SolitaireApp). */
+.cosmic-stat-seed {
+  cursor: pointer;
+  border-color: rgba(var(--accent-rgb), 0.30);
+  background: rgba(var(--accent-rgb), 0.10);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.cosmic-stat-seed:hover {
+  background: rgba(var(--accent-rgb), 0.18);
+  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.30);
+}
+
+/* Difficulty pills (Spider) — inline 1-suit / 2-suit / 4-suit picker. */
+.cosmic-toolbar-center {
+  margin: 0 auto;
+}
+.cosmic-diff-pill {
+  appearance: none;
+  border: 1px solid rgba(var(--accent-rgb), 0.20);
+  background: transparent;
+  color: var(--text-dim);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  font: 500 11px var(--font-mono);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+.cosmic-diff-pill:hover { color: var(--text-bright); }
+.cosmic-diff-pill.is-active {
+  color: var(--accent);
+  border-color: rgba(var(--accent-rgb), 0.45);
+  background: rgba(var(--accent-rgb), 0.10);
+  box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.20);
+}
+
+/* Deals-remaining pip indicator (Spider) — 5 small bars, dimmed when spent. */
+.cosmic-deals-pip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+}
+.cosmic-deals-pip-i {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #f4f0ea, #d4cdc0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.cosmic-deals-pip-i.is-spent {
+  opacity: 0.20;
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: none;
+}
+
 .cosmic-btn {
   appearance: none;
   border: 1px solid rgba(var(--accent-rgb), 0.25);

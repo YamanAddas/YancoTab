@@ -110,13 +110,31 @@ export class SpiderSolitaireApp extends App {
   _buildToolbar() {
     const tb = el('div', { class: 'cosmic-toolbar' });
     const left = el('div', { class: 'cosmic-toolbar-group' });
+    const center = el('div', { class: 'cosmic-toolbar-group cosmic-toolbar-center' });
     const right = el('div', { class: 'cosmic-toolbar-group' });
 
     this.statMoves = el('span', { class: 'cosmic-stat' });
     this.statScore = el('span', { class: 'cosmic-stat' });
     this.statTime  = el('span', { class: 'cosmic-stat' });
     this.statSuits = el('span', { class: 'cosmic-stat' });
-    left.append(this.statMoves, this.statScore, this.statTime, this.statSuits);
+    this.dealsPip = el('span', { class: 'cosmic-stat cosmic-deals-pip', title: 'Deals remaining' });
+    left.append(this.statMoves, this.statScore, this.statTime, this.statSuits, this.dealsPip);
+
+    // Difficulty pills (1-suit / 2-suit / 4-suit) inline in toolbar.
+    // Switching mid-game asks for confirm via the start-screen flow.
+    this.diffPills = {};
+    for (const def of [
+      { id: 1, label: '1-suit' },
+      { id: 2, label: '2-suit' },
+      { id: 4, label: '4-suit' },
+    ]) {
+      const pill = el('button', {
+        type: 'button', class: 'cosmic-diff-pill', 'data-diff': String(def.id),
+      }, def.label);
+      pill.addEventListener('click', () => this._switchDifficulty(def.id));
+      this.diffPills[def.id] = pill;
+      center.appendChild(pill);
+    }
 
     const mk = (label) => el('button', { class: 'cosmic-btn', type: 'button' }, label);
     const undoBtn = mk('Undo');
@@ -139,8 +157,41 @@ export class SpiderSolitaireApp extends App {
     newBtn.addEventListener('click', () => this._showStartScreen());
     right.append(hintBtn, undoBtn, redoBtn, dealBtn, pauseBtn, statsBtn, setBtn, newBtn);
 
-    tb.append(left, right);
+    tb.append(left, center, right);
     return tb;
+  }
+
+  _switchDifficulty(diff) {
+    const cur = this.store?.getState?.();
+    const inProgress = cur && !isWon(cur) && cur.moves > 0;
+    if (inProgress) {
+      // Use the start-screen flow so the user can confirm.
+      this._showStartScreen();
+      return;
+    }
+    this._newGame({ difficulty: diff });
+  }
+  _renderDifficultyPills(state) {
+    if (!this.diffPills) return;
+    const active = state?.difficulty ?? this.settings?.difficulty ?? 2;
+    for (const [id, pill] of Object.entries(this.diffPills)) {
+      pill.classList.toggle('is-active', Number(id) === Number(active));
+    }
+  }
+  _renderDealsPip(state) {
+    if (!this.dealsPip) return;
+    const stockLeft = Array.isArray(state?.stock) ? state.stock.length : 0;
+    // Spider stock has 5 deals × 10 cards = 50 cards. Show 5 pips:
+    // filled for remaining deals, dimmed for spent ones.
+    const dealsRemaining = Math.max(0, Math.floor(stockLeft / 10));
+    const dealsTotal = 5;
+    let html = '';
+    for (let i = 0; i < dealsTotal; i++) {
+      html += `<i class="cosmic-deals-pip-i${i < dealsRemaining ? '' : ' is-spent'}"></i>`;
+    }
+    html += ` <strong>${dealsRemaining}</strong>`;
+    this.dealsPip.innerHTML = html;
+    this.dealsPip.style.display = state ? '' : 'none';
   }
 
   _newGame(opts = {}) {
@@ -217,6 +268,8 @@ export class SpiderSolitaireApp extends App {
     this.statScore.innerHTML = `Score <strong>${state.score}</strong>`;
     this.statSuits.innerHTML = `Suits <strong>${state.foundation.length}/8</strong>`;
     this._renderTime();
+    this._renderDifficultyPills(state);
+    this._renderDealsPip(state);
   }
   _renderTime() {
     if (!this.settings.timed) {
