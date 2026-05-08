@@ -24,7 +24,6 @@ export class MobileInteraction {
             dragSwipeThresholdPx: 38,
             dragSwipeCooldownMs: 260,
             pageFlipCooldownMs: 520,
-            folderDwellMs: 250,
         };
 
         this.layout = null;
@@ -53,7 +52,6 @@ export class MobileInteraction {
         this._editDragTimer = null;
         this._lpTimer = null;
         this._lpAt = 0;
-        this._folderDwellTimer = null;
         this._hoverTargetId = null;
         this._ghost = null;
         this._draggedEl = null; // Stable reference to the dragged element (survives _ptr reset)
@@ -635,16 +633,7 @@ export class MobileInteraction {
         return null;
     }
 
-    _clearFolderTimer() {
-        if (this._folderDwellTimer) {
-            clearTimeout(this._folderDwellTimer);
-            this._folderDwellTimer = null;
-        }
-        this._folderDwellTriggered = false;
-    }
-
     _clearFolderHover() {
-        this._clearFolderTimer();
         if (this._hoverTargetId) {
             this._dispatch('item:folder-hover-cancel', { targetId: this._hoverTargetId });
             this._hoverTargetId = null;

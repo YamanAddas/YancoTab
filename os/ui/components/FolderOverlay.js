@@ -295,7 +295,6 @@ export class FolderOverlay {
       this._dragState.active = false;
       window.removeEventListener('pointermove', this._onPointerMove);
       window.removeEventListener('pointerup', this._onPointerUp);
-    this._onContextMenu = this._onContextMenu.bind(this);
 
       const id = this._dragState.itemId;
       this.appGrid.state.removeChildFromFolder(id);
