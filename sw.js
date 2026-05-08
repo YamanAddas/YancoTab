@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-pdf-codex-pr3';
+const CACHE_NAME = 'yancotab-v1.1.0-files-vault';
 
 const PRECACHE = [
     './',
@@ -230,6 +230,24 @@ const PRECACHE = [
     './os/apps/pdf/engine/quote.js',
     './os/apps/pdf/engine/highlights.js',
     './os/apps/pdf/view/applyHighlights.js',
+    // Files Vault
+    './css/files-vault.css',
+    './os/apps/files/vault.js',
+    './os/apps/files/persistence.js',
+    './os/apps/files/engine/fileType.js',
+    './os/apps/files/engine/state.js',
+    './os/apps/files/engine/smartRooms.js',
+    './os/apps/files/engine/storageBreakdown.js',
+    './os/apps/files/engine/honeycombLayout.js',
+    './os/apps/files/view/folderCell.js',
+    './os/apps/files/view/fileCoin.js',
+    './os/apps/files/view/fuelGauge.js',
+    './os/apps/files/view/sideRail.js',
+    './os/apps/files/view/breadcrumb.js',
+    './os/apps/files/view/stage.js',
+    './os/apps/files/view/previewPanel.js',
+    './os/apps/files/view/gridView.js',
+    './os/apps/files/view/listView.js',
     './os/apps/pdf/view/pageView.js',
     './os/apps/pdf/view/spread.js',
     './os/apps/pdf/view/readerBar.js',
