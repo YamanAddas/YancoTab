@@ -77,6 +77,47 @@ function scoreDealTrickContract(state) {
   return state.dealDeltas || { south: 0, east: 0, north: 0, west: 0 };
 }
 
+/**
+ * For trick contracts (king/queens/diamonds), the deal can end early
+ * once every penalty card has been captured — no more scoring is
+ * possible, so forcing the user to play the remaining tricks is just
+ * busywork. Ltoosh has no penalty card (every trick scores) so it
+ * always plays all 13.
+ *
+ * Reads from the seat `taken` piles (post-trick) rather than
+ * `playedCards` (mid-trick) so this only fires after a trick has
+ * actually been won.
+ */
+function shouldEndTrickContract(state) {
+  const cid = state.currentContract?.id;
+  if (!cid) return false;
+  const allTaken = SEATS.flatMap((s) => state.taken?.[s] || []);
+  if (cid === 'king') {
+    return allTaken.some((c) => c.suit === 'hearts' && c.rank === 13);
+  }
+  if (cid === 'queens') {
+    return allTaken.filter((c) => c.rank === 12).length === 4;
+  }
+  if (cid === 'diamonds') {
+    return allTaken.filter((c) => c.suit === 'diamonds').length === 13;
+  }
+  return false;
+}
+
+/**
+ * End a trick-contract deal — either because all 13 tricks were
+ * played (cardsLeft === 0) or because every penalty card has been
+ * captured. Mirrors the tail of the PLAY_CARD path that runs at
+ * cardsLeft === 0.
+ */
+function endTrickDealEarly(state, events) {
+  const deltas = scoreDealTrickContract(state);
+  syncTeamScores(state);
+  logDeal(state, deltas);
+  events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
+  advanceAfterDeal(state, events);
+}
+
 function scoreDealLayoutContract(state) {
   const deltas = { south: 0, east: 0, north: 0, west: 0 };
   for (let i = 0; i < state.outOrder.length; i++) {
@@ -438,12 +479,8 @@ export function trixReducer(prev, action) {
         state.leader = winner;
 
         const cardsLeft = Object.values(state.hands).reduce((sum, h) => sum + (h?.length || 0), 0);
-        if (cardsLeft === 0) {
-          const deltas = scoreDealTrickContract(state);
-          syncTeamScores(state);
-          logDeal(state, deltas);
-          events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
-          advanceAfterDeal(state, events);
+        if (cardsLeft === 0 || shouldEndTrickContract(state)) {
+          endTrickDealEarly(state, events);
         }
         return { state, events };
       }

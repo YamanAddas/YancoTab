@@ -41,6 +41,47 @@ function isPenalty(card, contractId) {
   return false;
 }
 
+/**
+ * Who is currently winning the trick (the seat that played the highest
+ * card of the led suit)? Returns null if the trick is empty or no led
+ * suit yet.
+ *
+ * Note: this is the *current* leader. Players who haven't played yet
+ * may overtake. For partnership decisions ("am I about to dump a
+ * penalty on partner?") we treat the current leader as a strong
+ * proxy — bots won't overtake their own partner unless forced to.
+ */
+function currentTrickWinnerSeat(trick, ledSuit) {
+  if (!Array.isArray(trick) || !trick.length || !ledSuit) return null;
+  const led = trick.filter((t) => t?.card?.suit === ledSuit);
+  if (!led.length) return null;
+  return led.reduce(
+    (best, t) => (rankValue(t.card.rank) > rankValue(best.card.rank) ? t : best),
+    led[0]
+  ).seat;
+}
+
+/**
+ * Will this trick land on partner if I play an off-suit (non-led)
+ * discard? `seat` is me, `partner` is my partner, `trick` is the cards
+ * already on the table, `ledSuit` is what was led.
+ *
+ * Heuristic:
+ *   - Identify the current trick leader.
+ *   - If leader is me or my partner → discarding here lands on partner-side.
+ *   - Otherwise (opponent leads) → safe to dump penalty.
+ *
+ * Players still to act after me may overtake, but in practice the
+ * current leader's high card is usually the trick winner. This is
+ * the same simplification real Trix players use at the table.
+ */
+function partnerWillEatDiscard({ seat, partner, mode, trick, ledSuit }) {
+  if (mode !== 'partners' || !partner) return false;
+  const leader = currentTrickWinnerSeat(trick, ledSuit);
+  if (!leader) return false;
+  return leader === partner || leader === seat;
+}
+
 // ─── EASY ───────────────────────────────────────────────────
 
 function easyTrick(view) {
@@ -90,6 +131,12 @@ function moderateTrick(view) {
     return { type: 'PLAY_CARD', card: lowest(legal) };
   }
 
+  // Partnership context for the rest of the decisions.
+  const partnerEats = partnerWillEatDiscard({
+    seat: view.seat, partner: view.partner, mode: view.mode,
+    trick, ledSuit,
+  });
+
   // Following suit: try to avoid taking penalty cards
   const following = legal.filter(c => c.suit === ledSuit);
   if (following.length) {
@@ -103,22 +150,47 @@ function moderateTrick(view) {
       // Otherwise play lowest (least chance of winning)
       return { type: 'PLAY_CARD', card: lowest(following) };
     }
+    // أصول: if partner is winning this trick, don't overtake — let
+    // them have it. Play the highest safe card under partner's card so
+    // we shed high non-penalties without stealing the trick.
+    if (partnerEats) {
+      const trickCards = trick.filter(t => t.card.suit === ledSuit);
+      const highestPlayed = trickCards.length ? Math.max(...trickCards.map(t => rankValue(t.card.rank))) : 0;
+      const safe = following.filter(c => rankValue(c.rank) < highestPlayed);
+      if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
+      // Forced to overtake — minimize the damage
+      return { type: 'PLAY_CARD', card: lowest(following) };
+    }
     // For penalty contracts, play under the trick winner if possible
     return { type: 'PLAY_CARD', card: lowest(following) };
   }
 
-  // Off-suit: discard penalty cards if possible
+  // Off-suit discard. Dump penalties on the *opponent* leader, NOT on
+  // partner. If partner is winning, we shed our highest non-penalty.
+  const nonPenalty = legal.filter((c) => !isPenalty(c, cid));
   if (cid === 'diamonds') {
-    const dia = legal.filter(c => c.suit === 'diamonds');
-    if (dia.length) return { type: 'PLAY_CARD', card: highest(dia) }; // dump high diamonds
+    if (!partnerEats) {
+      const dia = legal.filter(c => c.suit === 'diamonds');
+      if (dia.length) return { type: 'PLAY_CARD', card: highest(dia) };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
   }
   if (cid === 'queens') {
-    const queens = legal.filter(c => c.rank === 12);
-    if (queens.length) return { type: 'PLAY_CARD', card: queens[0] }; // dump a queen
+    if (!partnerEats) {
+      const queens = legal.filter(c => c.rank === 12);
+      if (queens.length) return { type: 'PLAY_CARD', card: queens[0] };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
   }
   if (cid === 'king') {
-    const kh = legal.find(c => c.suit === 'hearts' && c.rank === 13);
-    if (kh) return { type: 'PLAY_CARD', card: kh }; // dump K♥
+    if (!partnerEats) {
+      const kh = legal.find(c => c.suit === 'hearts' && c.rank === 13);
+      if (kh) return { type: 'PLAY_CARD', card: kh };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
   }
   // Discard highest card from longest suit
   return { type: 'PLAY_CARD', card: highest(legal) };
@@ -233,6 +305,9 @@ function hardTrick(view) {
     return { type: 'PLAY_CARD', card: lowest(legal) };
   }
 
+  // أصول: is partner currently winning the trick?
+  const partnerEats = partnerWillEatDiscard({ seat, partner, mode, trick, ledSuit });
+
   // --- Following suit ---
   const following = legal.filter(c => c.suit === ledSuit);
   if (following.length) {
@@ -248,19 +323,25 @@ function hardTrick(view) {
     }
 
     if (cid === 'king') {
-      // If K♥ is in the trick, play highest (if hearts) to avoid being stuck
-      // Otherwise play under
-      if (!khPlayed && ledSuit === 'hearts') {
-        // Be careful; K♥ might be dropped on us
+      // If partner is winning, do NOT overtake — let them carry the trick.
+      if (partnerEats) {
         const safe = following.filter(c => rankValue(c.rank) < highestInTrick);
         if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
+        return { type: 'PLAY_CARD', card: lowest(following) };
       }
+      // Otherwise duck under the current winner.
       const safe = following.filter(c => rankValue(c.rank) < highestInTrick);
       if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
       return { type: 'PLAY_CARD', card: lowest(following) };
     }
 
     if (cid === 'diamonds') {
+      if (partnerEats) {
+        // Don't overtake partner. Play highest safe under-card.
+        const safe = following.filter(c => rankValue(c.rank) < highestInTrick);
+        if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
+        return { type: 'PLAY_CARD', card: lowest(following) };
+      }
       // Try to duck under
       const safe = following.filter(c => rankValue(c.rank) < highestInTrick);
       if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
@@ -275,14 +356,8 @@ function hardTrick(view) {
         if (safe.length) return { type: 'PLAY_CARD', card: highest(safe) };
       }
       // Partnership: if partner is winning and no queens in trick, can play high
-      if (mode === 'partners' && trick.length >= 1) {
-        const currentWinner = trick.reduce((best, t) => {
-          if (t.card.suit !== ledSuit) return best;
-          return rankValue(t.card.rank) > rankValue(best.card.rank) ? t : best;
-        }, trick[0]);
-        if (teamOf(currentWinner.seat) === teamOf(seat) && !hasQInTrick) {
-          return { type: 'PLAY_CARD', card: highest(following) };
-        }
+      if (partnerEats && !hasQInTrick) {
+        return { type: 'PLAY_CARD', card: highest(following) };
       }
       return { type: 'PLAY_CARD', card: lowest(following) };
     }
@@ -290,23 +365,39 @@ function hardTrick(view) {
     return { type: 'PLAY_CARD', card: lowest(following) };
   }
 
-  // --- Off-suit: discard strategically ---
+  // --- Off-suit discard ---
+  // أصول: never dump penalty cards on partner. If partner is winning,
+  // shed our highest non-penalty instead.
+  const nonPenalty = legal.filter((c) => !isPenalty(c, cid));
   if (cid === 'diamonds') {
-    const dia = legal.filter(c => c.suit === 'diamonds');
-    if (dia.length) return { type: 'PLAY_CARD', card: highest(dia) };
+    if (!partnerEats) {
+      const dia = legal.filter(c => c.suit === 'diamonds');
+      if (dia.length) return { type: 'PLAY_CARD', card: highest(dia) };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
   }
   if (cid === 'queens') {
-    const queens = legal.filter(c => c.rank === 12);
-    if (queens.length) return { type: 'PLAY_CARD', card: queens[0] };
-    // Discard high cards from long suits
+    if (!partnerEats) {
+      const queens = legal.filter(c => c.rank === 12);
+      if (queens.length) return { type: 'PLAY_CARD', card: queens[0] };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
+    // No queens to dump (or partner-protected and no non-penalties);
+    // discard high from long suits.
     return { type: 'PLAY_CARD', card: highest(legal) };
   }
   if (cid === 'king') {
-    const kh = legal.find(c => c.suit === 'hearts' && c.rank === 13);
-    if (kh) return { type: 'PLAY_CARD', card: kh };
-    // Discard high hearts to void hearts suit
-    const hearts = legal.filter(c => c.suit === 'hearts');
-    if (hearts.length) return { type: 'PLAY_CARD', card: highest(hearts) };
+    if (!partnerEats) {
+      const kh = legal.find(c => c.suit === 'hearts' && c.rank === 13);
+      if (kh) return { type: 'PLAY_CARD', card: kh };
+      // Discard high hearts to void hearts suit
+      const hearts = legal.filter(c => c.suit === 'hearts');
+      if (hearts.length) return { type: 'PLAY_CARD', card: highest(hearts) };
+    } else if (nonPenalty.length) {
+      return { type: 'PLAY_CARD', card: highest(nonPenalty) };
+    }
   }
   if (cid === 'ltoosh') {
     // Discard highest card

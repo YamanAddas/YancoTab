@@ -196,17 +196,54 @@ function buildLayoutBoard(state) {
   const wrap = el('div', { class: 'table-trix-layout' });
   const suits = ['spades', 'hearts', 'diamonds', 'clubs'];
   for (const suit of suits) {
-    const st = state.layoutBySuit?.[suit];
-    const started = !!(st && st.started);
-    const lo = started ? st.low : null;
-    const hi = started ? st.high : null;
-    const row = el('div', { class: `table-trix-layout-row table-trix-layout-${suit}` }, [
-      el('span', { class: 'table-trix-layout-suit' }, SUIT_GLYPH[suit] || '?'),
-      el('span', { class: 'table-trix-layout-pip' }, started ? `${rankLabel(lo)}…J…${rankLabel(hi)}` : 'J starts'),
-    ]);
-    wrap.appendChild(row);
+    wrap.appendChild(buildLayoutRow(suit, state.layoutBySuit?.[suit]));
   }
   return wrap;
+}
+
+/**
+ * Render one suit row as actual card faces.
+ *
+ * Layout shape (J anchor, cards extend down-left and up-right):
+ *
+ *    [♠]   [2][3][4]…[10][J][Q][K][A]
+ *
+ * `st.low` is the lowest rank played (11 = only J, 2 = full down to 2).
+ * `st.high` is the highest rank played (11 = only J, 12 = +Q, 13 = +Q+K,
+ * 1 = +Q+K+A; 1 wraps to "above K" because Aces are high in this layout).
+ *
+ * Empty rows show "♠ J to start" so the player knows what's needed first.
+ */
+function buildLayoutRow(suit, st) {
+  const row = el('div', { class: `table-trix-layout-row table-trix-layout-${suit}` });
+  row.appendChild(el('span', { class: 'table-trix-layout-suit' }, SUIT_GLYPH[suit] || '?'));
+
+  const started = !!(st && st.started);
+  if (!started) {
+    row.appendChild(el('span', { class: 'table-trix-layout-pip' }, 'J to start'));
+    return row;
+  }
+
+  const ranks = [];
+  // Down side: from low to J-1 (e.g. low=5 → 5,6,7,8,9,10).
+  for (let r = st.low; r < 11; r++) ranks.push(r);
+  ranks.push(11); // J anchor
+  // Up side: J+1 (Q=12), J+2 (K=13), J+3 (A=1, wraparound).
+  if (st.high === 12 || st.high === 13 || st.high === 1) ranks.push(12);
+  if (st.high === 13 || st.high === 1) ranks.push(13);
+  if (st.high === 1) ranks.push(1);
+
+  const stack = el('div', { class: 'table-trix-layout-stack' });
+  for (const rank of ranks) {
+    const card = buildCardFace({ suit, rank }, {
+      variant: 'layout',
+      key: `${suit}:${rank}`,
+    });
+    if (rank === 11) card.classList.add('is-anchor');
+    stack.appendChild(card);
+  }
+  row.appendChild(stack);
+  return row;
 }
 
 function buildContractPicker(app, state) {
