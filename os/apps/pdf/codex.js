@@ -345,7 +345,15 @@ export function buildCodex({
     docTitle = name || 'document.pdf';
 
     // source: { url } | { data: ArrayBuffer | Uint8Array }
-    pdfDoc = await pdfjs.getDocument(source).promise;
+    //
+    // isEvalSupported: false — defense-in-depth against CVE-2024-4367
+    // (PDF.js arbitrary JS execution via malicious FontMatrix). Our
+    // vendored pdf.js v4.10.38 already patches the eval path, but
+    // Mozilla's published mitigation is "set isEvalSupported: false"
+    // for projects not relying on font-eval performance optimizations.
+    // We don't, so this is a free hardening. CSP also forbids eval at
+    // the manifest level; this closes a third layer.
+    pdfDoc = await pdfjs.getDocument({ ...source, isEvalSupported: false }).promise;
     totalPages = pdfDoc.numPages;
     currentPage = 1;
 
