@@ -480,34 +480,35 @@ export class MobileInteraction {
         if (!this._ghost) return;
         this._queueGhostUpdate(e.clientX - this._dragOffset.x, e.clientY - this._dragOffset.y);
 
-        // ── Folder hover & Dwell detection ───────────────────────────────
-        const containerRect = this.root.getBoundingClientRect();
-        const localX = e.clientX - containerRect.left;
-        const localY = e.clientY - containerRect.top;
-        const w = this.layout?.gridArea?.width || window.innerWidth;
-        const loc = this.engine.getGridLocationFromPoint(localX, localY, -(this.currentPage * w), w, this.layout);
+        // ── Folder hover detection ───────────────────────────────────────
+        // The user's mental model: "if the dragged app TOUCHES another, they
+        // make a folder; otherwise it sits beside." We implement that as:
+        // the cursor must lie inside another icon's bounding rect, shrunk
+        // by FOLDER_RECT_MARGIN px on each side. The shrink gives the user
+        // a comfortable safe-zone in the gap between icons where releasing
+        // means "place beside," not "make folder."
+        //
+        // Dwell timer is gone — the rect-overlap is the commitment. Visual
+        // hint (item:folder-hover) fires immediately so feedback is fast.
+        const targetEl = this._findIconUnderCursor(e.clientX, e.clientY);
+        const newTargetId = targetEl?.dataset?.id || null;
 
-        if (loc) {
-            const occupant = this.state.findItemAt(loc.page, loc.row, loc.col);
-            const isTarget = occupant && occupant.id !== this._ptr.targetId;
-
-            if (isTarget) {
-                if (this._hoverTargetId !== occupant.id) {
-                    this._clearFolderTimer();
-                    this._hoverTargetId = occupant.id;
-                    this._dispatch('item:folder-hover', { targetId: occupant.id });
-
-                    this._folderDwellTimer = setTimeout(() => {
-                        this._folderDwellTriggered = true;
-                        this._dispatch('item:folder-dwell', { targetId: occupant.id });
-                        if (navigator.vibrate) navigator.vibrate(20);
-                    }, this.cfg.folderDwellMs);
-                }
-            } else {
-                this._clearFolderHover();
+        if (newTargetId && newTargetId !== this._hoverTargetId) {
+            // Switched targets (or entered first target). Clear any prior
+            // hover state — this fixes the "icon kept pulsating" bug where
+            // the previous hover-target's CSS classes never got cleared on
+            // transition.
+            if (this._hoverTargetId) {
+                this._dispatch('item:folder-hover-cancel', { targetId: this._hoverTargetId });
             }
-        } else {
-            this._clearFolderHover();
+            this._hoverTargetId = newTargetId;
+            this._dispatch('item:folder-hover', { targetId: newTargetId });
+            this._dispatch('item:folder-dwell', { targetId: newTargetId });
+            if (navigator.vibrate) navigator.vibrate(15);
+        } else if (!newTargetId && this._hoverTargetId) {
+            // Cursor left the icon — clear the visual hint.
+            this._dispatch('item:folder-hover-cancel', { targetId: this._hoverTargetId });
+            this._hoverTargetId = null;
         }
 
         // ── Edge-of-screen page flip ─────────────────────────────────────
@@ -542,46 +543,20 @@ export class MobileInteraction {
         // Capture current page BEFORE any coordinate calculations to avoid race conditions
         const dropPage = this.currentPage;
 
-        // Folder creation requires the dwell timer to have triggered —
-        // i.e. the user actually paused over the target long enough for
-        // the folder hint to appear. A quick brush-past + drop is treated
-        // as a swap (handled by the standard grid-drop path below), which
-        // matches iOS behavior: dropping ON an icon makes a folder, dropping
-        // BESIDE just rearranges. Without the dwell gate, every drop that
-        // happened to land on an occupied cell turned into a folder, which
-        // is the bug the user reported.
-        if (this._hoverTargetId && this._folderDwellTriggered) {
-            this._dispatch('item:drop-on-item', { sourceId: this._ptr.targetId, targetId: this._hoverTargetId });
+        // Folder commitment is rect-based: at drop time, re-run the same
+        // _findIconUnderCursor probe used during drag. If the cursor is
+        // inside another icon's shrunk rect → folder. Anything outside
+        // that rect (the gaps, empty cells, the dock) falls through to
+        // the standard placement path below.
+        const folderTargetEl = this._findIconUnderCursor(e.clientX, e.clientY);
+        const folderTargetId = folderTargetEl?.dataset?.id || null;
+        if (folderTargetId && folderTargetId !== this._ptr.targetId) {
+            this._dispatch('item:drop-on-item', {
+                sourceId: this._ptr.targetId,
+                targetId: folderTargetId,
+            });
             this._cleanupDrag();
             return;
-        }
-
-        // FALLBACK: Hit-test directly if grid location lookup failed / lagged.
-        // Same dwell gate — only commit to a folder if the user dwelled.
-        const hitEl = document.elementFromPoint(e.clientX, e.clientY);
-        const targetEl = hitEl?.closest('.app-icon');
-        if (targetEl && targetEl !== this._ptr.targetEl) {
-            const targetId = targetEl.dataset.id;
-            if (targetId && targetId !== this._ptr.targetId) {
-                if (this._folderDwellTriggered) {
-                    this._dispatch('item:drop-on-item', { sourceId: this._ptr.targetId, targetId });
-                    this._cleanupDrag();
-                    return;
-                }
-                // No dwell → swap: route the source into the target's cell
-                // and let MobileGridState.moveItemTo() handle the swap.
-                const targetItem = this.state?.items?.get?.(targetId);
-                if (targetItem && targetItem.page >= 0) {
-                    this._dispatch('item:drop', {
-                        id: this._ptr.targetId,
-                        page: targetItem.page,
-                        row: targetItem.row,
-                        col: targetItem.col,
-                    });
-                    this._cleanupDrag();
-                    return;
-                }
-            }
         }
 
         const dockEl = document.querySelector('.mobile-dock.m-dock') || document.querySelector('.m-dock');
@@ -624,6 +599,40 @@ export class MobileInteraction {
 
         const dockEl = document.querySelector('.mobile-dock.m-dock') || document.querySelector('.m-dock');
         dockEl?.classList.remove('is-drop-target');
+    }
+
+    /**
+     * Find the visible app-icon whose shrunk bounding rect contains the
+     * given client coordinates. Returns null if the point is in a gap, on
+     * the dragged source, on the dock, or outside the grid entirely.
+     *
+     * The shrink margin (FOLDER_RECT_MARGIN) is the user-facing "safe
+     * zone" — when releasing in the gap between icons, no folder is made.
+     * Tuned to ~10px which roughly matches the visible gap between hex
+     * cells across all viewport sizes.
+     */
+    _findIconUnderCursor(x, y) {
+        const FOLDER_RECT_MARGIN = 10;
+        const sourceId = this._ptr?.targetId;
+        const sourceEl = this._draggedEl || this._ptr?.targetEl;
+        const icons = this.root.querySelectorAll('.app-icon[data-id]');
+        for (const el of icons) {
+            if (el === sourceEl) continue;
+            if (sourceId && el.dataset.id === sourceId) continue;
+            // Skip hidden / mid-transition icons
+            if (el.offsetParent === null) continue;
+            const r = el.getBoundingClientRect();
+            if (r.width === 0 || r.height === 0) continue;
+            if (
+                x >= r.left + FOLDER_RECT_MARGIN &&
+                x <= r.right - FOLDER_RECT_MARGIN &&
+                y >= r.top + FOLDER_RECT_MARGIN &&
+                y <= r.bottom - FOLDER_RECT_MARGIN
+            ) {
+                return el;
+            }
+        }
+        return null;
     }
 
     _clearFolderTimer() {
