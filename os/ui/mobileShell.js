@@ -803,16 +803,17 @@ export class MobileShell {
   _openKofiModal() {
     if (document.querySelector('.kofi-modal-backdrop')) return;
 
-    const close = () => {
-      backdrop.classList.add('is-closing');
-      setTimeout(() => backdrop.remove(), 250);
-    };
+    // Hidden h2 used as the modal's accessible name via aria-labelledby.
+    const titleId = 'kofi-modal-title';
+    const titleEl = el('h2', {
+      id: titleId,
+      class: 'kofi-modal-srtitle',
+    }, 'Support YancoTab');
 
     const closeBtn = el('button', {
       class: 'kofi-modal-close',
       type: 'button',
       'aria-label': 'Close',
-      onclick: close,
     }, '×');
 
     const spinner = el('div', { class: 'kofi-modal-loading' }, 'Loading Ko-fi…');
@@ -820,11 +821,20 @@ export class MobileShell {
     // No `widget=true` — that flag switches Ko-fi to the per-coffee widget
     // which enforces a $5 unit price. Without it, Ko-fi serves the profile
     // page renderer that respects the creator's custom-amount setting.
+    //
+    // sandbox: allow-scripts + allow-same-origin so Ko-fi's session cookies
+    // and CSRF tokens work; allow-popups + allow-forms for the donate flow.
+    // Deliberately NO allow-top-navigation — prevents framebust if Ko-fi
+    // (or an ad inside their iframe) tries to redirect this whole tab.
+    // referrerpolicy=no-referrer hides the chrome-extension://<id> URL,
+    // which would otherwise leak the extension ID for fingerprinting.
     const iframe = el('iframe', {
       src: `https://ko-fi.com/yamanaddas/?hidefeed=true&embed=true&_=${Date.now()}`,
       class: 'kofi-modal-iframe',
       title: 'Support YancoTab on Ko-fi',
       frameborder: '0',
+      sandbox: 'allow-scripts allow-same-origin allow-popups allow-forms',
+      referrerpolicy: 'no-referrer',
     });
     iframe.addEventListener('load', () => spinner.remove(), { once: true });
 
@@ -838,14 +848,40 @@ export class MobileShell {
       rel: 'noopener noreferrer',
     }, 'Open full page →');
 
-    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, spinner, iframe, openFull]);
-    const backdrop = el('div', {
-      class: 'kofi-modal-backdrop',
-      onclick: (e) => { if (e.target === backdrop) close(); },
-    }, [card]);
+    const card = el('div', {
+      class: 'kofi-modal-card',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-labelledby': titleId,
+    }, [titleEl, closeBtn, spinner, iframe, openFull]);
+
+    // Declare `backdrop` first so close() and the keydown handler don't
+    // close over an uninitialized binding. Functionally the previous order
+    // worked because close() was only invoked async (post-click), but
+    // declaring before reference is clearer and won't trip a linter.
+    const backdrop = el('div', { class: 'kofi-modal-backdrop' }, [card]);
+    const close = () => {
+      backdrop.classList.add('is-closing');
+      document.removeEventListener('keydown', onKeydown);
+      setTimeout(() => backdrop.remove(), 250);
+    };
+    closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => { if (e.target === backdrop) close(); });
+
+    // Escape closes when focus is on the backdrop or close button.
+    // Focus inside the cross-origin iframe is unreachable to us — that's
+    // expected; users can press Esc again after Tab-ing back, or click
+    // the × / backdrop.
+    const onKeydown = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKeydown);
 
     document.body.appendChild(backdrop);
-    requestAnimationFrame(() => backdrop.classList.add('is-visible'));
+    requestAnimationFrame(() => {
+      backdrop.classList.add('is-visible');
+      // Move focus into the modal so screen readers announce it and
+      // Escape works from the keyboard immediately.
+      closeBtn.focus();
+    });
   }
 
   // ─── Service Worker Reload Banner ──────────────────────────

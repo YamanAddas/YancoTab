@@ -879,6 +879,19 @@ body.theme-light .sb-time {
   transform: scale(0.92) translateY(16px);
 }
 
+/* Visually hidden modal title — provides aria-labelledby target. */
+.kofi-modal-srtitle {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .kofi-modal-close {
   position: absolute;
   top: 8px;
