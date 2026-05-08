@@ -370,24 +370,46 @@ export class PhotosApp extends App {
   }
 
   _importFiles(files) {
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB per image — covers phone photos
+    // Reject oversize files up front so we don't spend memory on FileReader
+    // and don't blow past the localStorage quota partway through a batch.
+    const oversize = [...files].filter((f) => f.size > MAX_BYTES);
+    const accepted = [...files].filter((f) => f.size <= MAX_BYTES);
+    if (oversize.length) {
+      this.kernel?.emit?.('toast', {
+        message: oversize.length === 1
+          ? `Skipped ${oversize[0].name} — too large (max 10 MB)`
+          : `Skipped ${oversize.length} files larger than 10 MB`,
+        type: 'error',
+      });
+    }
+    if (!accepted.length) return;
+
     let loaded = 0;
-    for (const file of files) {
+    for (const file of accepted) {
       const reader = new FileReader();
       reader.onload = () => {
         const dataUrl = reader.result;
         const img = new Image();
         img.onload = () => {
           const photoId = `photo_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-          savePhoto(this.fs, file.name, dataUrl, {
-            mime: file.type || 'image/png',
-            size: file.size,
-            width: img.width,
-            height: img.height,
-            thumbnail: makeThumbnail(img),
-            photoId,
-          });
+          try {
+            savePhoto(this.fs, file.name, dataUrl, {
+              mime: file.type || 'image/png',
+              size: file.size,
+              width: img.width,
+              height: img.height,
+              thumbnail: makeThumbnail(img),
+              photoId,
+            });
+          } catch (e) {
+            this.kernel?.emit?.('toast', {
+              message: 'Storage full — could not save photo',
+              type: 'error',
+            });
+          }
           loaded++;
-          if (loaded === files.length) {
+          if (loaded === accepted.length) {
             this.gallery = loadGallery(this.fs);
             this._refreshLightbox();
           }

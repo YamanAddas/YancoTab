@@ -404,8 +404,20 @@ export class FilesApp extends App {
 
   _importFiles(files) {
     if (!this.fs) return;
+    const MAX_BYTES = 10 * 1024 * 1024; // 10 MB per file — covers most uses
+    const oversize = [...files].filter((f) => f.size > MAX_BYTES);
+    const accepted = [...files].filter((f) => f.size <= MAX_BYTES);
+    if (oversize.length) {
+      this.kernel?.emit?.('toast', {
+        message: oversize.length === 1
+          ? `Skipped ${oversize[0].name} — too large (max 10 MB)`
+          : `Skipped ${oversize.length} files larger than 10 MB`,
+        type: 'error',
+      });
+    }
+    if (!accepted.length) return;
     let written = 0;
-    for (const file of files) {
+    for (const file of accepted) {
       const reader = new FileReader();
       reader.onload = () => {
         const content = reader.result;
@@ -421,7 +433,7 @@ export class FilesApp extends App {
           return;
         }
         written++;
-        if (written === files.length) {
+        if (written === accepted.length) {
           this._vault.render();
           this.kernel?.emit?.('toast',
             { message: `Imported ${written} file${written === 1 ? '' : 's'}`, type: 'success' });

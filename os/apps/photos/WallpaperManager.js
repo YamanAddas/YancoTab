@@ -189,12 +189,22 @@ export class WallpaperManager {
     }
 
     _uploadCustom() {
+        const MAX_BYTES = 5 * 1024 * 1024; // 5 MB — generous for a wallpaper
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
         input.onchange = () => {
             const file = input.files?.[0];
             if (!file) return;
+            // Reject before reading the file into memory — prevents OOM and
+            // pre-empts the localStorage QuotaExceeded path.
+            if (file.size > MAX_BYTES) {
+                this.kernel?.emit?.('toast', {
+                    message: `Wallpaper too large (max ${MAX_BYTES / 1024 / 1024} MB)`,
+                    type: 'error',
+                });
+                return;
+            }
             const reader = new FileReader();
             reader.onload = () => {
                 const dataUrl = reader.result;
@@ -213,7 +223,13 @@ export class WallpaperManager {
 
                     window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
                 } catch (e) {
-                    console.warn('[WallpaperManager] Image too large for localStorage');
+                    // Triggered on QuotaExceededError when localStorage is
+                    // already near full — surface to the user instead of a
+                    // silent console.warn.
+                    this.kernel?.emit?.('toast', {
+                        message: 'Storage full — could not save wallpaper',
+                        type: 'error',
+                    });
                 }
             };
             reader.readAsDataURL(file);
