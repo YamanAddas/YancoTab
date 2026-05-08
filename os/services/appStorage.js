@@ -392,7 +392,7 @@ const REGISTRY = {
         storageClass: 'preferences',
         syncPolicy: 'always',
         version: 1,
-        default: 'grid',
+        default: 'honeycomb',
         validate: (v) => typeof v === 'string',
     },
     yancotab_files_favs: {
@@ -408,6 +408,15 @@ const REGISTRY = {
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_files_pinned_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { paths: [] },
+        validate: (v) => v && typeof v === 'object'
+            && Array.isArray(v.paths)
+            && v.paths.every((s) => typeof s === 'string'),
     },
 
     // ── Photos app ──
