@@ -3,9 +3,15 @@
  *
  * Categories: Nature, Abstract, Dark, Minimal, Gradient
  * Features: Set wallpaper, auto-rotate on schedule, custom upload
+ *
+ * All persistence routes through kernel.storage so the user's wallpaper
+ * choice + schedule sync across devices via chrome.storage.sync. The
+ * custom-upload data URL stays local-only (never sync — too large).
  */
 import { el } from '../../utils/dom.js';
+import { safeSave } from '../../utils/safeSave.js';
 
+const WP_KEY = 'yancotab_wallpaper';
 const WP_SCHEDULE_KEY = 'yancotab_wp_schedule';
 const WP_COLLECTION_KEY = 'yancotab_wp_collection';
 const WP_CUSTOM_KEY = 'yancotab_wallpaper_custom';
@@ -83,7 +89,9 @@ export class WallpaperManager {
         this.container = container;
         this.kernel = kernel;
         this._activeCategory = 'gradients';
-        this._currentWp = localStorage.getItem('yancotab_wallpaper') || null;
+        this._currentWp = (kernel?.storage?.load(WP_KEY) || null);
+        // Empty default ('') from REGISTRY → null for our null-or-id contract.
+        if (this._currentWp === '') this._currentWp = null;
         this._schedule = this._loadSchedule();
         this._scheduleTimer = null;
     }
@@ -174,7 +182,7 @@ export class WallpaperManager {
 
     _applyWallpaper(wp) {
         this._currentWp = wp.id;
-        localStorage.setItem('yancotab_wallpaper', wp.id);
+        safeSave(this.kernel, WP_KEY, wp.id, 'Wallpaper');
 
         const shell = document.getElementById('app-shell');
         if (shell) {
@@ -208,29 +216,37 @@ export class WallpaperManager {
             const reader = new FileReader();
             reader.onload = () => {
                 const dataUrl = reader.result;
+                // Custom wallpaper data URL stays in localStorage (it can be
+                // multi-MB; chrome.storage.sync 8KB/item cap would reject).
+                // The 'yancotab_wallpaper' = 'custom' marker DOES sync via
+                // kernel.storage; the data URL doesn't need to.
+                let savedDataUrl = false;
                 try {
                     localStorage.setItem(WP_CUSTOM_KEY, dataUrl);
-                    localStorage.setItem('yancotab_wallpaper', 'custom');
-                    this._currentWp = 'custom';
-
-                    const shell = document.getElementById('app-shell');
-                    if (shell) {
-                        shell.style.background = 'none';
-                        shell.style.backgroundImage = `url(${dataUrl})`;
-                        shell.style.backgroundSize = 'cover';
-                        shell.style.backgroundPosition = 'center';
-                    }
-
-                    window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
-                } catch (e) {
-                    // Triggered on QuotaExceededError when localStorage is
-                    // already near full — surface to the user instead of a
-                    // silent console.warn.
+                    savedDataUrl = true;
+                } catch {
+                    // QuotaExceededError mid-write — bail before flipping
+                    // the marker so we don't end up pointing at a missing
+                    // data URL.
                     this.kernel?.emit?.('toast', {
                         message: 'Storage full — could not save wallpaper',
                         type: 'error',
                     });
                 }
+                if (!savedDataUrl) return;
+
+                safeSave(this.kernel, WP_KEY, 'custom', 'Wallpaper');
+                this._currentWp = 'custom';
+
+                const shell = document.getElementById('app-shell');
+                if (shell) {
+                    shell.style.background = 'none';
+                    shell.style.backgroundImage = `url(${dataUrl})`;
+                    shell.style.backgroundSize = 'cover';
+                    shell.style.backgroundPosition = 'center';
+                }
+
+                window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
             };
             reader.readAsDataURL(file);
         };
@@ -240,14 +256,15 @@ export class WallpaperManager {
     // ─── Schedule ─────────────────────────────────────────────
 
     _loadSchedule() {
-        try {
-            const raw = localStorage.getItem(WP_SCHEDULE_KEY);
-            return raw ? JSON.parse(raw) : { interval: 0, category: 'gradients', lastChange: 0 };
-        } catch { return { interval: 0, category: 'gradients', lastChange: 0 }; }
+        const stored = this.kernel?.storage?.load(WP_SCHEDULE_KEY);
+        // REGISTRY default is { interval: 0, category: 'gradients', lastChange: 0 }
+        // — kernel.storage returns it on first load, so no fallback needed.
+        if (stored && typeof stored === 'object') return stored;
+        return { interval: 0, category: 'gradients', lastChange: 0 };
     }
 
     _saveSchedule() {
-        try { localStorage.setItem(WP_SCHEDULE_KEY, JSON.stringify(this._schedule)); } catch {}
+        safeSave(this.kernel, WP_SCHEDULE_KEY, this._schedule, 'Wallpaper schedule');
     }
 
     _startSchedule() {

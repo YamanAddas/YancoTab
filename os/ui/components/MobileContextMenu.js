@@ -8,6 +8,23 @@
 import { MobileShortcutModal } from './MobileShortcutModal.js';
 import { el } from '../../utils/dom.js';
 
+// Envelope-aware raw read — `yancotab_wallpaper` may be stored as
+// AppStorage's {data, version, ts, ...} envelope or (legacy) as a raw
+// string. This component is constructed before kernel.storage is
+// reliably available, so we read raw and unwrap.
+function readWallpaperRaw() {
+  try {
+    const raw = localStorage.getItem('yancotab_wallpaper');
+    if (raw == null) return '';
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
+      if (typeof parsed === 'string') return parsed;
+    } catch { /* not JSON — raw value */ }
+    return raw;
+  } catch { return ''; }
+}
+
 export class MobileContextMenu {
   constructor(grid) {
     this.grid = grid;
@@ -15,7 +32,7 @@ export class MobileContextMenu {
     this.overlay = null;
     this.shortcutModal = new MobileShortcutModal(grid);
 
-    const saved = localStorage.getItem('yancotab_wallpaper');
+    const saved = readWallpaperRaw();
     if (saved) this.applySavedWallpaper(saved);
   }
 
@@ -86,11 +103,21 @@ export class MobileContextMenu {
     shell.style.backgroundImage = `url("${normalized}")`;
     shell.style.backgroundSize = 'cover';
     shell.style.backgroundPosition = 'center';
-    localStorage.setItem('yancotab_wallpaper', `url("${normalized}")`);
+    // Route the write through kernel.storage if available so the choice
+    // syncs across devices. Falls back to raw localStorage when this
+    // component is created before the kernel is wired (boot path).
+    const value = `url("${normalized}")`;
+    const k = this.grid?.kernel || (typeof window !== 'undefined' ? window.kernel : null);
+    if (k?.storage?.save) {
+      try { k.storage.save('yancotab_wallpaper', value); }
+      catch { try { localStorage.setItem('yancotab_wallpaper', value); } catch { /* ignore */ } }
+    } else {
+      try { localStorage.setItem('yancotab_wallpaper', value); } catch { /* ignore */ }
+    }
   }
 
   changeWallpaper() {
-    const current = this.normalizeWallpaper(localStorage.getItem('yancotab_wallpaper') || '');
+    const current = this.normalizeWallpaper(readWallpaperRaw());
     let nextIndex = 0;
     const idx = this.wallpapers.indexOf(current);
     if (idx >= 0) nextIndex = (idx + 1) % this.wallpapers.length;

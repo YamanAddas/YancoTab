@@ -21,8 +21,22 @@ export function initStarfield() {
   let frameInterval = 1000 / FPS_FOCUSED;
 
   // Check if a wallpaper image is active (not 'black' or other solid-color wallpapers)
+  // Envelope-aware: AppStorage wraps preference values as {data, version, ts, ...};
+  // starfield runs early (before kernel.boot completes) so we read raw localStorage
+  // and unwrap the envelope here.
   function hasImageWallpaper() {
-    const wp = localStorage.getItem('yancotab_wallpaper') || '';
+    let wp = '';
+    try {
+      const raw = localStorage.getItem('yancotab_wallpaper');
+      if (raw != null) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') wp = parsed.data;
+          else if (typeof parsed === 'string') wp = parsed;
+          else wp = raw;
+        } catch { wp = raw; /* not JSON */ }
+      }
+    } catch { /* localStorage blocked */ }
     // Solid color wallpapers (no image) — starfield should run
     const solidWallpapers = ['black', 'dark', ''];
     return !solidWallpapers.includes(wp);

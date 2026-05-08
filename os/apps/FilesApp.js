@@ -16,6 +16,7 @@
 
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
+import { safeSave } from '../utils/safeSave.js';
 import { showConfirm, showPrompt } from '../ui/components/YancoModal.js';
 import { buildVault } from './files/vault.js';
 import {
@@ -260,19 +261,26 @@ export class FilesApp extends App {
     if (item.isDir || item.category !== 'img') return;
     const content = typeof item.content === 'string' ? item.content : (this.fs?.read(item.path)?.content || '');
     if (!content.startsWith('data:')) return;
-    // Raw localStorage — matches WallpaperManager / themes.js.
+    // Custom-image data URL stays in raw localStorage (it can be MB-scale;
+    // chrome.storage.sync's 8KB/item cap would reject it). The 'wallpaper
+    // = custom' marker syncs via kernel.storage.
+    let savedDataUrl = false;
     try {
       localStorage.setItem('yancotab_wallpaper_custom', content);
-      localStorage.setItem('yancotab_wallpaper', 'custom');
-      const shell = document.getElementById('app-shell');
-      if (shell) {
-        shell.style.backgroundImage = `url(${content})`;
-        shell.style.backgroundSize = 'cover';
-        shell.style.backgroundPosition = 'center';
-      }
-      window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
-      this.kernel?.emit?.('toast', { message: 'Wallpaper updated', type: 'success' });
-    } catch { /* ignore */ }
+      savedDataUrl = true;
+    } catch {
+      this.kernel?.emit?.('toast', { message: 'Storage full — could not save wallpaper', type: 'error' });
+    }
+    if (!savedDataUrl) return;
+    safeSave(this.kernel, 'yancotab_wallpaper', 'custom', 'Wallpaper');
+    const shell = document.getElementById('app-shell');
+    if (shell) {
+      shell.style.backgroundImage = `url(${content})`;
+      shell.style.backgroundSize = 'cover';
+      shell.style.backgroundPosition = 'center';
+    }
+    window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
+    this.kernel?.emit?.('toast', { message: 'Wallpaper updated', type: 'success' });
   }
   async _copyPath(item) {
     try { await navigator.clipboard?.writeText(item.path); } catch { /* ignore */ }

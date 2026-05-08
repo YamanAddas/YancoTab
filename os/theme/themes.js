@@ -162,13 +162,29 @@ export function getSavedTheme() {
 /**
  * Initialize theme on boot — restore saved color theme + wallpaper.
  */
+// Envelope-aware raw read for early-boot paths where kernel.storage
+// isn't constructed yet. AppStorage wraps preference values as
+// {data, version, ts, ...}; we need to handle both shapes.
+function readWallpaperKey() {
+  try {
+    const raw = localStorage.getItem('yancotab_wallpaper');
+    if (raw == null) return '';
+    try {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
+      if (typeof parsed === 'string') return parsed;
+    } catch { /* not JSON — raw value */ }
+    return raw;
+  } catch { return ''; }
+}
+
 export function initColorTheme() {
   try {
     const saved = getSavedTheme();
     applyColorTheme(saved);
 
     // Restore wallpaper (special modes handled separately)
-    const savedWp = localStorage.getItem('yancotab_wallpaper') || '';
+    const savedWp = readWallpaperKey();
     if (savedWp === 'cosmic' || savedWp === 'starfield') {
       // Special modes — don't change wallpaper, boot.js / starfield.js handles it
       return;

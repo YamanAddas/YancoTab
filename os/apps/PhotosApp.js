@@ -12,6 +12,7 @@
 
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
+import { safeSave } from '../utils/safeSave.js';
 import { showConfirm } from '../ui/components/YancoModal.js';
 import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
@@ -233,13 +234,21 @@ export class PhotosApp extends App {
   _setWallpaperByPath(path) {
     const item = this.gallery.find((g) => g.path === path);
     if (!item) return;
+    // The custom-image data URL stays in raw localStorage (chrome.storage
+    // .sync's 8KB/item cap would reject MB-scale images). The 'custom'
+    // marker syncs via kernel.storage. AppStorage's previous JSON.parse
+    // bug for raw scalar strings is fixed (see appStorage-string-save
+    // tests), so this routing now works correctly.
+    let savedDataUrl = false;
     try {
-      // Intentional raw localStorage to match WallpaperManager + themes.js,
-      // which read these keys directly. AppStorage's normalize() JSON-parses
-      // string inputs and corrupts non-JSON values (e.g. 'custom', dataUrls)
-      // back to defaults, so we can't route this through kernel.storage.
       localStorage.setItem('yancotab_wallpaper_custom', item.dataUrl);
-      localStorage.setItem('yancotab_wallpaper', 'custom');
+      savedDataUrl = true;
+    } catch {
+      this.kernel?.emit?.('toast', { message: 'Storage full — could not save wallpaper', type: 'error' });
+    }
+    if (!savedDataUrl) return;
+    try {
+      safeSave(this.kernel, 'yancotab_wallpaper', 'custom', 'Wallpaper');
       const shell = document.getElementById('app-shell');
       if (shell) {
         shell.style.backgroundImage = `url(${item.dataUrl})`;

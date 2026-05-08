@@ -65,6 +65,17 @@ const REGISTRY = {
         default: '',
         validate: (v) => typeof v === 'string',
     },
+    yancotab_wp_schedule: {
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: { interval: 0, category: 'gradients', lastChange: 0 },
+        validate: (v) =>
+            v && typeof v === 'object'
+            && typeof v.interval === 'number'
+            && typeof v.category === 'string'
+            && typeof v.lastChange === 'number',
+    },
     yancotab_home_layout_v100: {
         storageClass: 'preferences',
         syncPolicy: 'always',
