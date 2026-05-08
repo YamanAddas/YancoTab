@@ -358,14 +358,17 @@ export class SmartSearch {
             }
             case 'add-todo': {
                 if (!cmd.arg) { kernel.emit('app:open', 'todo'); break; }
-                const data = kernel.storage?.load('yancotab_todo_v1');
-                if (data?.lists?.[0]) {
-                    data.lists[0].tasks.push({ text: cmd.arg, done: false, dueDate: null, position: Date.now() });
-                    kernel.storage.save('yancotab_todo_v1', data);
-                    kernel.emit('toast', { message: `Todo added: ${cmd.arg}`, type: 'success' });
-                } else {
-                    kernel.emit('app:open', 'todo');
-                }
+                // Lazy-import the todo persistence so SmartSearch doesn't
+                // hard-depend on it at boot. quickAddTask routes through
+                // the v2 reducer (active mission, position, streak).
+                import('../../apps/todo/persistence.js').then((m) => {
+                    const next = m.quickAddTask(kernel, cmd.arg);
+                    if (next) {
+                        kernel.emit('toast', { message: `Todo added: ${cmd.arg}`, type: 'success' });
+                    } else {
+                        kernel.emit('app:open', 'todo');
+                    }
+                });
                 break;
             }
             case 'theme-dark':

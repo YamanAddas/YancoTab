@@ -200,17 +200,14 @@ const REGISTRY = {
     },
 
     // ── User Data (syncPolicy: 'conditional') ──
+    // Legacy todo schema — kept for one-shot migration read inside
+    // todo/persistence.js. Sync disabled so it doesn't replicate zombie
+    // data after a user upgrades to v2. New writes always go to v2.
     yancotab_todo_v1: {
         storageClass: 'user-data',
-        syncPolicy: 'conditional',
+        syncPolicy: 'never',
         version: 1,
-        default: {
-            lists: [{
-                id: 'default',
-                name: 'My Tasks',
-                tasks: [],
-            }],
-        },
+        default: { lists: [] },
         validate: (v) =>
             v && typeof v === 'object' &&
             Array.isArray(v.lists) &&
