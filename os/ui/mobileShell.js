@@ -176,16 +176,12 @@ export class MobileShell {
     );
 
     // Ko-fi support badge — upper-left, mirrors status bar position.
-    // Opens Ko-fi profile in a new tab (vs. an iframe modal) so the user
-    // sees the real Ko-fi page they've configured — no iframe-specific
-    // widget defaults (e.g. the $5/coffee minimum that the embedded
-    // widget enforces independently of profile custom-amount settings).
-    const kofiBadge = el('a', {
+    // Opens an in-extension modal that embeds the Ko-fi profile page (NOT
+    // the ?widget=true coffee widget — that one enforces a $5/coffee
+    // minimum independent of profile custom-amount settings).
+    const kofiBadge = el('div', {
       class: 'kofi-badge',
-      href: 'https://ko-fi.com/yamanaddas',
-      target: '_blank',
-      rel: 'noopener noreferrer',
-      'aria-label': 'Support YancoTab on Ko-fi (opens in a new tab)',
+      onclick: () => this._openKofiModal(),
     }, [
       el('span', { class: 'kofi-heart' }, '❤'),
       el('span', { class: 'kofi-text' }, 'Support'),
@@ -800,6 +796,56 @@ export class MobileShell {
       // Ignore and keep full effects.
     }
     return false;
+  }
+
+  // ─── Ko-fi Modal ────────────────────────────────────────────
+
+  _openKofiModal() {
+    if (document.querySelector('.kofi-modal-backdrop')) return;
+
+    const close = () => {
+      backdrop.classList.add('is-closing');
+      setTimeout(() => backdrop.remove(), 250);
+    };
+
+    const closeBtn = el('button', {
+      class: 'kofi-modal-close',
+      type: 'button',
+      'aria-label': 'Close',
+      onclick: close,
+    }, '×');
+
+    const spinner = el('div', { class: 'kofi-modal-loading' }, 'Loading Ko-fi…');
+
+    // No `widget=true` — that flag switches Ko-fi to the per-coffee widget
+    // which enforces a $5 unit price. Without it, Ko-fi serves the profile
+    // page renderer that respects the creator's custom-amount setting.
+    const iframe = el('iframe', {
+      src: `https://ko-fi.com/yamanaddas/?hidefeed=true&embed=true&_=${Date.now()}`,
+      class: 'kofi-modal-iframe',
+      title: 'Support YancoTab on Ko-fi',
+      frameborder: '0',
+    });
+    iframe.addEventListener('load', () => spinner.remove(), { once: true });
+
+    // Escape hatch — if the embed renders unexpectedly (Ko-fi may change
+    // its layout, or a future block via X-Frame-Options), the user can
+    // always jump to the full Ko-fi page in a new tab.
+    const openFull = el('a', {
+      class: 'kofi-modal-fullpage',
+      href: 'https://ko-fi.com/yamanaddas',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    }, 'Open full page →');
+
+    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, spinner, iframe, openFull]);
+    const backdrop = el('div', {
+      class: 'kofi-modal-backdrop',
+      onclick: (e) => { if (e.target === backdrop) close(); },
+    }, [card]);
+
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('is-visible'));
   }
 
   // ─── Service Worker Reload Banner ──────────────────────────
