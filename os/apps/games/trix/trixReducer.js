@@ -10,6 +10,45 @@ function removeFromHand(hand, card) {
   return idx >= 0;
 }
 
+/**
+ * Advance to the next seat that still has cards in the Trix layout
+ * phase. Players who have emptied their hand are out and must NOT be
+ * cycled back to — otherwise the deal hangs at "You to play" with a
+ * zero-card hand.
+ *
+ * Returns null when no seat has cards left (i.e., the deal is over);
+ * caller should treat that as "all out" and end the deal.
+ */
+function nextLayoutSeat(state, fromSeat) {
+  let cur = nextSeat(fromSeat);
+  for (let i = 0; i < SEATS.length; i++) {
+    const hand = state.hands[cur] || [];
+    if (hand.length > 0) return cur;
+    cur = nextSeat(cur);
+  }
+  return null;
+}
+
+/**
+ * End the current Trix-layout deal: any seat still holding cards
+ * joins the outOrder in seat order so scoring covers all four
+ * positions. Pushes a deal:end event and advances the match.
+ *
+ * Used by both LAYOUT_PLAY (when the last hand empties) and
+ * LAYOUT_PASS (when the layout deadlocks — one or more seats have
+ * cards but nobody can legally move).
+ */
+function endLayoutDeal(state, events) {
+  for (const s of SEATS) {
+    if (!state.outOrder.includes(s)) state.outOrder.push(s);
+  }
+  state.consecutivePasses = 0;
+  const deltas = scoreDealLayoutContract(state);
+  logDeal(state, deltas);
+  events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
+  advanceAfterDeal(state, events);
+}
+
 function syncTeamScores(state) {
   if (state.mode !== 'partners') return;
   state.teamScores = { A: 0, B: 0 };
@@ -424,6 +463,9 @@ export function trixReducer(prev, action) {
         applyLayoutCard(state.layoutBySuit, card);
         state.playedCards.push({ suit: card.suit, rank: card.rank, seat });
         state.layoutTurnCount = (state.layoutTurnCount || 0) + 1;
+        // A play breaks any consecutive-pass chain: other seats may now
+        // have legal moves the new low/high opens up.
+        state.consecutivePasses = 0;
         events.push({ type: 'layout:played', seat, card });
 
         if (hand.length === 0 && !state.outOrder.includes(seat)) {
@@ -431,16 +473,15 @@ export function trixReducer(prev, action) {
           events.push({ type: 'layout:out', seat, place: state.outOrder.length });
         }
 
-        state.turn = nextSeat(state.turn);
+        // Skip past players who are already out — otherwise the turn
+        // cycles back to a zero-card seat and the deal hangs.
+        const nextTurn = nextLayoutSeat(state, state.turn);
+        state.turn = nextTurn;
         maybeReveal2s(state);
 
-        const done = SEATS.every(s => (state.hands[s]?.length || 0) === 0);
-        if (done) {
-          const deltas = scoreDealLayoutContract(state);
-          logDeal(state, deltas);
-          events.push({ type: 'deal:end', dealNumber: state.dealNumber, deltas });
-          advanceAfterDeal(state, events);
-        }
+        const done = nextTurn === null
+          || SEATS.every(s => (state.hands[s]?.length || 0) === 0);
+        if (done) endLayoutDeal(state, events);
         return { state, events };
       }
 
@@ -453,9 +494,21 @@ export function trixReducer(prev, action) {
         if (legal.length) return { state, events };
 
         state.layoutTurnCount = (state.layoutTurnCount || 0) + 1;
+        state.consecutivePasses = (state.consecutivePasses || 0) + 1;
         events.push({ type: 'layout:pass', seat });
-        state.turn = nextSeat(state.turn);
+
+        // Same skip-past-out-players rule as LAYOUT_PLAY.
+        const nextTurn = nextLayoutSeat(state, state.turn);
+        state.turn = nextTurn;
         maybeReveal2s(state);
+
+        // End the deal if (a) nobody has cards, or (b) every remaining
+        // seat passed in a row — the layout is locked and no progress
+        // is possible.
+        const stillIn = SEATS.filter((s) => (state.hands[s]?.length || 0) > 0);
+        if (nextTurn === null || state.consecutivePasses >= stillIn.length) {
+          endLayoutDeal(state, events);
+        }
         return { state, events };
       }
 
