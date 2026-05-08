@@ -1,15 +1,20 @@
 /**
- * SettingsApp — Mission Console redesign.
+ * SettingsApp — Mission Console.
  *
- * Layout: 220px sidebar (Console / Trust / Account + status pill) +
- * stage with multiple console "bays" stacked vertically. Title bar
- * has 4 tabs (Console / Privacy / Sync / About) that filter which
- * bays are visible.
+ * Layout: 220px sidebar (Console / Trust / Account sections + status
+ * pill) + stage that shows a single bay at a time. Clicking a
+ * side-rail item switches the active bay; the previously active bay
+ * is hidden. The active bay id is persisted so the user lands back on
+ * the same page when reopening Settings.
+ *
+ * Special side-rail items:
+ *   • 'rituals'   → shows the Quick rituals row alone (no settings bay).
+ *   • 'wallpaper' → routes to the appearance bay (no separate bay exists).
  *
  * The 6 legacy renderXxx modules (AppearanceSettings, AppsSettings,
  * BrowserSettings, GamesSettings, HomeSettings, AboutSettings) keep
  * working as-is — they call `app._toggleRow(...)` etc., which we
- * delegate to the new components.js builders.
+ * delegate to the components.js builders.
  */
 
 import { App } from '../core/App.js';
@@ -32,7 +37,12 @@ import { apply as applyRitual, getRitual, RITUALS } from './settings/engine/ritu
 import { makeBuffer, record as recordSync } from './settings/engine/syncLog.js';
 import { loadState as loadConsoleState, saveState as saveConsoleState } from './settings/persistence.js';
 
-const TABS = ['Console', 'Privacy', 'Sync', 'About'];
+// Default landing bay when no prior selection is persisted.
+const DEFAULT_BAY = 'appearance';
+
+// Side-rail items that don't correspond to a settings bay one-to-one:
+//   'wallpaper' is a section inside the Appearance bay.
+const BAY_ALIASES = { wallpaper: 'appearance' };
 
 // Keys we subscribe to for the sync diagnostics buffer. Curated set
 // — not the entire registry (that would be ~25 listeners). The
@@ -63,7 +73,7 @@ export class SettingsApp extends App {
   constructor(kernel, pid) {
     super(kernel, pid);
     this.metadata = { name: 'Settings', id: 'settings', icon: '⚙️' };
-    this._activeTab = 'Console';
+    this._activeBay = DEFAULT_BAY;
     this._views = {};
     this._bays = new Map();
     this._consoleState = null;
@@ -77,6 +87,9 @@ export class SettingsApp extends App {
     this._styleLinks.forEach((l) => document.head.appendChild(l));
 
     this._consoleState = loadConsoleState(this.kernel);
+    if (this._consoleState.activeBay) {
+      this._activeBay = this._consoleState.activeBay;
+    }
 
     this.root = el('div', { class: 'app-window app-settings-console', tabindex: '0' });
     this.root.appendChild(this._buildFrame());
@@ -117,50 +130,36 @@ export class SettingsApp extends App {
   // ── Frame build ────────────────────────────────────────────────
 
   _buildFrame() {
-    // Title bar (tabs only).
-    const titlebar = el('div', { class: 'mc-set-titlebar' });
-    const tabs = el('div', { class: 'mc-set-tabs' });
-    for (const name of TABS) {
-      const t = el('button', {
-        type: 'button',
-        class: `mc-set-tab${name === this._activeTab ? ' is-active' : ''}`,
-        'data-tab': name,
-      }, name);
-      t.addEventListener('click', () => this._setTab(name));
-      tabs.appendChild(t);
-    }
-    titlebar.appendChild(tabs);
-
     // Side rail
     this._views.sideRail = buildSideRail({
-      onPickItem: (id) => this._scrollToBay(id),
+      onPickItem: (id) => this._setActiveBay(id),
     });
 
-    // Ritual cards
+    // Ritual cards (their own "page" — only shown when activeBay === 'rituals')
     this._views.rituals = buildRituals({
       onApplyRitual: (id) => this._applyRitual(id),
     });
 
-    // Build the bays in the order they appear on the Console tab.
+    // Build the bays. Each becomes its own page.
     const grid = el('div', { class: 'mc-bays' });
-    this._addBay(grid, 'appearance', { tab: 'Console' },
+    this._addBay(grid, 'appearance',
       buildSettingsBay({ id: 'appearance', title: 'Appearance', color: 'violet',
         render: renderAppearance, app: this }));
-    this._addBay(grid, 'home', { tab: 'Console' },
+    this._addBay(grid, 'home',
       buildSettingsBay({ id: 'home', title: 'Apps & dock', color: 'warm',
         render: renderHome, app: this }));
-    this._addBay(grid, 'apps', { tab: 'Console' },
+    this._addBay(grid, 'apps',
       buildSettingsBay({ id: 'apps', title: 'Apps & data', color: 'cool',
         render: renderApps, app: this }));
-    this._addBay(grid, 'browser', { tab: 'Console' },
+    this._addBay(grid, 'browser',
       buildSettingsBay({ id: 'browser', title: 'Browser & ⌘K', color: 'cool',
         render: renderBrowser, app: this }));
-    this._addBay(grid, 'games', { tab: 'Console' },
+    this._addBay(grid, 'games',
       buildSettingsBay({ id: 'games', title: 'Games', color: 'rose',
         render: renderGames, app: this }));
-    this._addBay(grid, 'privacy', { tab: 'Privacy' }, buildPrivacyBay());
-    this._addBay(grid, 'sync', { tab: 'Sync' }, buildSyncBay());
-    this._addBay(grid, 'about', { tab: 'About' },
+    this._addBay(grid, 'privacy', buildPrivacyBay());
+    this._addBay(grid, 'sync', buildSyncBay());
+    this._addBay(grid, 'about',
       buildSettingsBay({ id: 'about', title: 'About', color: 'rose',
         render: renderAbout, app: this, extraClass: 'mc-bay-about' }));
 
@@ -168,46 +167,40 @@ export class SettingsApp extends App {
     this._views.stage = stage;
 
     const layout = el('div', { class: 'mc-set-layout' }, [this._views.sideRail.root, stage]);
-    return el('div', { class: 'mc-set-frame' }, [titlebar, layout]);
+    return el('div', { class: 'mc-set-frame' }, [layout]);
   }
 
-  _addBay(container, id, meta, view) {
+  _addBay(container, id, view) {
     container.appendChild(view.root);
-    this._bays.set(id, { view, meta });
+    this._bays.set(id, { view });
   }
 
-  // ── Tabs + scroll ──────────────────────────────────────────────
+  // ── Active bay selection ──────────────────────────────────────
 
-  _setTab(name) {
-    if (this._activeTab === name) return;
-    this._activeTab = name;
-    this._renderTabState();
-  }
-
-  _renderTabState() {
-    for (const t of this.root.querySelectorAll('[data-tab]')) {
-      t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
-    }
-    // Filter visible bays by their `tab` meta. The Quick rituals row
-    // shows on Console only.
-    this._views.rituals.root.style.display = this._activeTab === 'Console' ? '' : 'none';
-    for (const [, { view, meta }] of this._bays) {
-      const visible = meta.tab === this._activeTab;
-      view.root.style.display = visible ? '' : 'none';
+  _setActiveBay(id) {
+    if (id === this._activeBay) return;
+    this._activeBay = id;
+    // Persist alongside ritual state so the same page is restored next time.
+    this._consoleState = { ...this._consoleState, activeBay: id };
+    saveConsoleState(this.kernel, this._consoleState);
+    this._renderActiveBayState();
+    // Side rail highlight follows from _renderAll → sideRail.update.
+    if (this._views.sideRail) {
+      this._views.sideRail.update({ ...this._consoleState, activeBay: id });
     }
   }
 
-  _scrollToBay(id) {
-    const entry = this._bays.get(id);
-    if (!entry) return;
-    // If the bay belongs to a different tab, switch to that tab first.
-    if (entry.meta.tab !== this._activeTab) {
-      this._setTab(entry.meta.tab);
+  _renderActiveBayState() {
+    // 'rituals' shows the Quick rituals row alone, no bay below it.
+    const showRituals = this._activeBay === 'rituals';
+    if (this._views.rituals) {
+      this._views.rituals.root.style.display = showRituals ? '' : 'none';
     }
-    // Then scroll. Defer one frame so the display: '' takes effect.
-    requestAnimationFrame(() => {
-      entry.view.root.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+    // Side-rail aliases route to a real bay (e.g. 'wallpaper' → 'appearance').
+    const target = BAY_ALIASES[this._activeBay] || this._activeBay;
+    for (const [id, { view }] of this._bays) {
+      view.root.style.display = id === target ? '' : 'none';
+    }
   }
 
   // ── Ritual application ────────────────────────────────────────
@@ -280,7 +273,7 @@ export class SettingsApp extends App {
 
   _renderAll() {
     if (!this.root) return;
-    this._views.sideRail.update(this._consoleState);
+    this._views.sideRail.update({ ...this._consoleState, activeBay: this._activeBay });
     // The bay update functions have different signatures:
     //   • sync bay  — takes the sync buffer
     //   • settings bays — refresh their legacy module
@@ -293,6 +286,6 @@ export class SettingsApp extends App {
         else view.update();
       } catch { /* ignore */ }
     }
-    this._renderTabState();
+    this._renderActiveBayState();
   }
 }

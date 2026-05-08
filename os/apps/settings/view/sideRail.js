@@ -50,6 +50,7 @@ export const SIDEBAR_SECTIONS = [
 
 export function buildSideRail({ onPickItem }) {
   const root = el('aside', { class: 'mc-set-side' });
+  const buttons = [];
 
   for (const section of SIDEBAR_SECTIONS) {
     root.appendChild(el('h4', { class: 'mc-set-side-h' }, section.name.toUpperCase()));
@@ -65,6 +66,7 @@ export function buildSideRail({ onPickItem }) {
       ]);
       btn.addEventListener('click', () => onPickItem(item.id));
       list.appendChild(btn);
+      buttons.push(btn);
     }
     root.appendChild(list);
   }
@@ -78,16 +80,20 @@ export function buildSideRail({ onPickItem }) {
 
   return {
     root,
-    update({ lastRitual, lastRitualAt, lastRitualOk } = {}) {
+    update({ lastRitual, lastRitualAt, lastRitualOk, activeBay } = {}) {
       if (!lastRitual) {
         pillBody.textContent = 'Idle · no recent rituals';
         pill.classList.remove('is-error');
-        return;
+      } else {
+        const t = formatTime(lastRitualAt);
+        const status = lastRitualOk === false ? '⚠' : '✓';
+        pillBody.textContent = `${status} ${capitalize(lastRitual)} mode · ${t}`;
+        pill.classList.toggle('is-error', lastRitualOk === false);
       }
-      const t = formatTime(lastRitualAt);
-      const status = lastRitualOk === false ? '⚠' : '✓';
-      pillBody.textContent = `${status} ${capitalize(lastRitual)} mode · ${t}`;
-      pill.classList.toggle('is-error', lastRitualOk === false);
+      // Highlight the side-rail item matching the active bay.
+      for (const b of buttons) {
+        b.classList.toggle('is-active', b.dataset.targetBay === activeBay);
+      }
     },
   };
 }

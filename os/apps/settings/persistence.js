@@ -16,6 +16,7 @@ const DEFAULT_STATE = Object.freeze({
   lastRitual: null,           // 'night' | 'focus' | 'weekend' | null
   lastRitualAt: null,         // ms epoch
   lastRitualOk: null,         // boolean | null
+  activeBay: null,            // last category the user opened — string id or null
 });
 
 export function loadState(kernel) {
@@ -36,6 +37,7 @@ export function normalizeState(s) {
     lastRitual: typeof s.lastRitual === 'string' ? s.lastRitual : null,
     lastRitualAt: Number.isFinite(s.lastRitualAt) ? s.lastRitualAt : null,
     lastRitualOk: typeof s.lastRitualOk === 'boolean' ? s.lastRitualOk : null,
+    activeBay: typeof s.activeBay === 'string' ? s.activeBay : null,
   };
 }
 
