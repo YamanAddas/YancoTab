@@ -175,10 +175,17 @@ export class MobileShell {
       this.components.folderRail.render(),
     );
 
-    // Ko-fi support badge — upper-left, mirrors status bar position
-    const kofiBadge = el('div', {
+    // Ko-fi support badge — upper-left, mirrors status bar position.
+    // Opens Ko-fi profile in a new tab (vs. an iframe modal) so the user
+    // sees the real Ko-fi page they've configured — no iframe-specific
+    // widget defaults (e.g. the $5/coffee minimum that the embedded
+    // widget enforces independently of profile custom-amount settings).
+    const kofiBadge = el('a', {
       class: 'kofi-badge',
-      onclick: () => this._openKofiModal(),
+      href: 'https://ko-fi.com/yamanaddas',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+      'aria-label': 'Support YancoTab on Ko-fi (opens in a new tab)',
     }, [
       el('span', { class: 'kofi-heart' }, '❤'),
       el('span', { class: 'kofi-text' }, 'Support'),
@@ -793,45 +800,6 @@ export class MobileShell {
       // Ignore and keep full effects.
     }
     return false;
-  }
-
-  // ─── Ko-fi Modal ────────────────────────────────────────────
-
-  _openKofiModal() {
-    // Prevent duplicates
-    if (document.querySelector('.kofi-modal-backdrop')) return;
-
-    const close = () => {
-      backdrop.classList.add('is-closing');
-      setTimeout(() => backdrop.remove(), 250);
-    };
-
-    const closeBtn = el('button', {
-      class: 'kofi-modal-close',
-      type: 'button',
-      'aria-label': 'Close',
-      onclick: close,
-    }, '×');
-
-    const spinner = el('div', { class: 'kofi-modal-loading' }, 'Loading Ko-fi…');
-
-    const iframe = el('iframe', {
-      src: `https://ko-fi.com/yamanaddas/?hidefeed=true&widget=true&embed=true&_=${Date.now()}`,
-      class: 'kofi-modal-iframe',
-      title: 'Support YancoTab on Ko-fi',
-      frameborder: '0',
-    });
-    iframe.addEventListener('load', () => spinner.remove(), { once: true });
-
-    const card = el('div', { class: 'kofi-modal-card' }, [closeBtn, spinner, iframe]);
-    const backdrop = el('div', {
-      class: 'kofi-modal-backdrop',
-      onclick: (e) => { if (e.target === backdrop) close(); },
-    }, [card]);
-
-    document.body.appendChild(backdrop);
-    // Trigger entrance animation on next frame
-    requestAnimationFrame(() => backdrop.classList.add('is-visible'));
   }
 
   // ─── Service Worker Reload Banner ──────────────────────────
