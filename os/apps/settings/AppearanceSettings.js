@@ -179,9 +179,13 @@ function _motion(container, app) {
 /* ── Region & Format ── */
 
 function _regionFormat(container, app, storage) {
+  // ClockApp's canonical storage key is yancotab_clock_v3. Pre-fix this
+  // toggle wrote to a phantom yancotab_clock_state_v3 (registered but
+  // unused) and read from yancotab_clock_v2 (not registered at all),
+  // so flipping it visually moved the switch but ClockApp never saw it.
   const get24 = () => {
-    try { return Boolean(JSON.parse(localStorage.getItem('yancotab_clock_v2') || '{}').use24h); }
-    catch { return false; }
+    const data = readJson('yancotab_clock_v3', null, storage);
+    return Boolean(data?.use24h);
   };
   const getMetric = () => {
     try { return (JSON.parse(localStorage.getItem('yancotab_weather_v1') || '{}').unit || 'c') === 'c'; }
@@ -190,9 +194,10 @@ function _regionFormat(container, app, storage) {
 
   container.appendChild(app._group('Region & Format', [
     app._toggleRow('24-Hour Time', 'Use 24-hour clock format', get24(), (next) => {
-      const data = readJson('yancotab_clock_state_v3', {}, storage);
+      const data = readJson('yancotab_clock_v3', {}, storage) || {};
       data.use24h = next;
-      storage.save('yancotab_clock_state_v3', data);
+      storage.save('yancotab_clock_v3', data);
+      // ClockApp listens for yancotab:clock_update and re-reads its state.
       window.dispatchEvent(new CustomEvent('yancotab:clock_update'));
     }),
     app._toggleRow('Metric Units', 'Use Celsius for weather', getMetric(), (next) => {

@@ -288,13 +288,6 @@ const REGISTRY = {
         default: {},
         validate: (v) => v && typeof v === 'object',
     },
-    yancotab_clock_state_v3: {
-        storageClass: 'volatile',
-        syncPolicy: 'never',
-        version: 1,
-        default: {},
-        validate: (v) => v && typeof v === 'object',
-    },
     yancotab_solitaire_save: {
         storageClass: 'volatile',
         syncPolicy: 'never',

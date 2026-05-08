@@ -23,7 +23,10 @@ export class ClockWidget {
         const now = new Date();
         const use24h = (() => {
             try {
-                const s = kernel.storage?.load('yancotab_clock_state_v3');
+                // Canonical key — ClockApp writes here. The phantom
+                // 'yancotab_clock_state_v3' had no writer; widget was
+                // permanently stuck on 12h.
+                const s = kernel.storage?.load('yancotab_clock_v3');
                 return s?.use24h || false;
             } catch { return false; }
         })();

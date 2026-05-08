@@ -86,7 +86,10 @@ export class StatusBar {
 
     getClock24h() {
         try {
-            const state = this.kernel?.storage?.load('yancotab_clock_state_v3');
+            // Canonical key — ClockApp writes here. Pre-fix this read used
+            // a phantom 'yancotab_clock_state_v3' that nothing wrote, so
+            // the status-bar clock was always stuck on 12-hour format.
+            const state = this.kernel?.storage?.load('yancotab_clock_v3');
             if (state && typeof state === 'object') return state.use24h || false;
         } catch { /* fall through to default */ }
         return false;
@@ -112,12 +115,14 @@ export class StatusBar {
 
     _getOpenTodoCount() {
         try {
-            const data = this.kernel?.storage?.load('yancotab_todo_v1');
-            if (!data || !data.lists || !Array.isArray(data.lists)) return 0;
+            // Canonical v2 schema — TodoApp / TodoWidget all use this. The
+            // pre-fix v1 read returned 0 for every user post-migration.
+            const data = this.kernel?.storage?.load('yancotab_todo_v2');
+            if (!data || !Array.isArray(data.missions)) return 0;
             let n = 0;
-            for (const list of data.lists) {
-                if (Array.isArray(list.tasks)) {
-                    for (const t of list.tasks) if (!t.done) n++;
+            for (const m of data.missions) {
+                if (Array.isArray(m.tasks)) {
+                    for (const t of m.tasks) if (!t.done) n++;
                 }
             }
             return n;
@@ -126,7 +131,8 @@ export class StatusBar {
 
     _getActiveAlarmCount() {
         try {
-            const state = this.kernel?.storage?.load('yancotab_clock_state_v3');
+            // Canonical key — ClockApp persists alarms here.
+            const state = this.kernel?.storage?.load('yancotab_clock_v3');
             if (!state || !Array.isArray(state.alarms)) return 0;
             return state.alarms.filter(a => a && a.enabled).length;
         } catch { return 0; }
