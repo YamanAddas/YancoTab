@@ -240,8 +240,12 @@ export class PhotosApp extends App {
     const item = this.gallery.find((g) => g.path === path);
     if (!item) return;
     try {
-      this.kernel.storage.save('yancotab_wallpaper_custom', item.dataUrl);
-      this.kernel.storage.save('yancotab_wallpaper', 'custom');
+      // Intentional raw localStorage to match WallpaperManager + themes.js,
+      // which read these keys directly. AppStorage's normalize() JSON-parses
+      // string inputs and corrupts non-JSON values (e.g. 'custom', dataUrls)
+      // back to defaults, so we can't route this through kernel.storage.
+      localStorage.setItem('yancotab_wallpaper_custom', item.dataUrl);
+      localStorage.setItem('yancotab_wallpaper', 'custom');
       const shell = document.getElementById('app-shell');
       if (shell) {
         shell.style.backgroundImage = `url(${item.dataUrl})`;

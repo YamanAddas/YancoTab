@@ -81,29 +81,31 @@ export function buildPageView() {
     root.style.height = `${viewport.height}px`;
 
     const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     showEmpty(false);
     pageNum.textContent = label || `— ${pdfPage.pageNumber} —`;
 
-    renderTask = pdfPage.render({ canvasContext: ctx, viewport });
-    // Race the render against a timeout — if pdf.js's render hangs
-    // (e.g. competing with concurrent renders sharing the same worker
-    // pool), we want to log it and move on to the text layer rather
-    // than block the orchestrator forever.
-    const result = await Promise.race([
-      renderTask.promise.then(() => ({ ok: true })).catch((e) => ({ ok: false, e })),
-      new Promise((res) => setTimeout(() => res({ ok: false, timeout: true }), 8000)),
-    ]);
-    renderTask = null;
-    if (result.timeout) {
-      console.warn('[Codex] page render timed out — falling through to text layer');
-    } else if (!result.ok && result.e?.name !== 'RenderingCancelledException') {
-      console.error('[Codex] page render failed:', result.e);
-    } else if (!result.ok) {
-      // RenderingCancelledException — bail and let the next render take over.
+    // Pass DPR via the `transform` param rather than pre-transforming
+    // the context — pdf.js v4 expects an untouched context and applies
+    // its own viewport transform internally. Pre-transforming caused
+    // render() to hang silently.
+    const renderTransform = dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0];
+    renderTask = pdfPage.render({
+      canvasContext: ctx,
+      viewport,
+      ...(renderTransform ? { transform: renderTransform } : {}),
+    });
+    try {
+      await renderTask.promise;
+    } catch (e) {
+      if (e?.name !== 'RenderingCancelledException') {
+        console.error('[Codex] page render failed:', e);
+        throw e;
+      }
+      renderTask = null;
       return;
     }
+    renderTask = null;
 
     // Build text layer.
     textLayerDiv.innerHTML = '';
