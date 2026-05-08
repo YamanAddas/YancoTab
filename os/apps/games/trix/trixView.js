@@ -404,7 +404,7 @@ export function buildRulesModal(app, state) {
   const rules = {
     king: profile === 'jawaker2025'
       ? ['Follow suit.', 'Taking K♥ = −75.', 'If doubled, taker gets −150 and doubler gets +75 unless self-captured.', 'Doubling is closed in Jawaker 2025 profile.']
-      : ['Follow suit.', 'Taking K♥ = −75.', 'Tadbeel doubles to −150.'],
+      : ['Follow suit.', 'Taking K♥ = −75.', 'Tadbeel: taker gets −150 and doubler gets +75 unless self-captured.'],
     queens: profile === 'jawaker2025'
       ? ['Each queen = −25.', 'Doubled queen = −50 to taker and +25 to doubler unless self-captured.', 'Follow suit; highest wins.']
       : ['Each queen = −25.', 'Follow suit; highest wins.'],
