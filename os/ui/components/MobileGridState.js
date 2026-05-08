@@ -293,6 +293,20 @@ export class MobileGridState {
       // Auto-delete empty folder
       if (folder.children.length === 0) {
         this.items.delete(folder.id);
+      } else if (folder.children.length === 1) {
+        // iPhone behavior: when only one app remains in a folder, the
+        // folder dissolves and the last app takes the folder's slot.
+        // (Without this, single-item folders pile up after the user
+        // drags an app out — exactly what the user reported.)
+        const lastChildId = folder.children[0];
+        const lastChild = this.items.get(lastChildId);
+        if (lastChild) {
+          lastChild.parent = null;
+          lastChild.page = folder.page;
+          lastChild.row = folder.row;
+          lastChild.col = folder.col;
+        }
+        this.items.delete(folder.id);
       }
     }
     child.parent = null;

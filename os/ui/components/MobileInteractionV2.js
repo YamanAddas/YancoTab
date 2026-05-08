@@ -542,24 +542,45 @@ export class MobileInteraction {
         // Capture current page BEFORE any coordinate calculations to avoid race conditions
         const dropPage = this.currentPage;
 
-        // Check for folder creation/drop BEFORE standard grid drop
-        // Check for folder creation/drop BEFORE standard grid drop
-        // Relaxed: If we are hovering a valid target at drop time, treat as folder interaction
-        if (this._hoverTargetId) {
+        // Folder creation requires the dwell timer to have triggered —
+        // i.e. the user actually paused over the target long enough for
+        // the folder hint to appear. A quick brush-past + drop is treated
+        // as a swap (handled by the standard grid-drop path below), which
+        // matches iOS behavior: dropping ON an icon makes a folder, dropping
+        // BESIDE just rearranges. Without the dwell gate, every drop that
+        // happened to land on an occupied cell turned into a folder, which
+        // is the bug the user reported.
+        if (this._hoverTargetId && this._folderDwellTriggered) {
             this._dispatch('item:drop-on-item', { sourceId: this._ptr.targetId, targetId: this._hoverTargetId });
             this._cleanupDrag();
             return;
         }
 
-        // FALLBACK: Hit-test directly if grid location lookup failed / lagged
+        // FALLBACK: Hit-test directly if grid location lookup failed / lagged.
+        // Same dwell gate — only commit to a folder if the user dwelled.
         const hitEl = document.elementFromPoint(e.clientX, e.clientY);
         const targetEl = hitEl?.closest('.app-icon');
         if (targetEl && targetEl !== this._ptr.targetEl) {
             const targetId = targetEl.dataset.id;
             if (targetId && targetId !== this._ptr.targetId) {
-                this._dispatch('item:drop-on-item', { sourceId: this._ptr.targetId, targetId });
-                this._cleanupDrag();
-                return;
+                if (this._folderDwellTriggered) {
+                    this._dispatch('item:drop-on-item', { sourceId: this._ptr.targetId, targetId });
+                    this._cleanupDrag();
+                    return;
+                }
+                // No dwell → swap: route the source into the target's cell
+                // and let MobileGridState.moveItemTo() handle the swap.
+                const targetItem = this.state?.items?.get?.(targetId);
+                if (targetItem && targetItem.page >= 0) {
+                    this._dispatch('item:drop', {
+                        id: this._ptr.targetId,
+                        page: targetItem.page,
+                        row: targetItem.row,
+                        col: targetItem.col,
+                    });
+                    this._cleanupDrag();
+                    return;
+                }
             }
         }
 
