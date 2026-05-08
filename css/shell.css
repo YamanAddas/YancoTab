@@ -184,10 +184,16 @@ body.in-app .main-content {
 }
 
 /* ── App Grid ── */
+/* overflow: clip with overflow-clip-margin lets the hex ::before glow at
+   inset:-5px render above the row-0 icons without being sliced. Plain
+   overflow:hidden clipped them at the top edge. The 12px margin extends
+   the clip region outward in all directions; horizontally that's well
+   under the page-width gap to neighboring pages, so no swipe artifacts. */
 .m-grid-container {
   position: relative;
   flex: 0 0 auto;
-  overflow: hidden;
+  overflow: clip;
+  overflow-clip-margin: 12px;
   margin-top: auto;
   margin-left: auto;
   margin-right: auto;
@@ -211,15 +217,10 @@ body.in-app .main-content {
   justify-items: center;
 }
 
-/* The honeycomb pages position their icons absolutely (see AppGrid.js).
-   Each .hex-icon has an outer ::before glow at inset: -5px which pokes
-   above the icon's box. Without headroom the grid container's
-   overflow:hidden clips that glow on row-0 icons, leaving them visually
-   sliced at the top. Push the children down a few px so the glow has
-   room to render. */
-.m-grid-pages {
-  padding-top: 8px;
-}
+/* (Headroom for hex ::before glow handled by .m-grid-container's
+   overflow-clip-margin — adding padding here had no effect because
+   absolute-positioned icons resolve their containing block to the nearest
+   positioned ancestor, which is .m-grid-container, not .m-grid-pages.) */
 
 /* ── Page Dots ── */
 .m-grid-dots {

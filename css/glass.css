@@ -818,20 +818,27 @@ body.theme-light .m-search-container::before {
 
 /* ── 7.5. Page tabs (top-level home navigation) ─────────────── */
 
-/* [Apps] [Today] [Files] [Notes] [Web] — slim inline strip between the
-   search bar and the home content. Previously a chunky pill bar with
-   gradient + backdrop-filter; now just text + an accent underline so
-   it stops competing with the search bar visually. */
+/* [Apps] [Today] [Files] [Notes] [Web] — compact framed pill bar between
+   the search bar and the home content. Subtle glass frame holds 5 small
+   pill buttons; active tab gets an accent fill + ring + glow. Sized so
+   the whole strip is ~30px tall and noticeably narrower than the search
+   bar above it. */
 .page-tabs {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 18px;
-  margin: 4px auto 8px;
-  padding: 0;
-  background: transparent;
-  border: 0;
-  box-shadow: none;
+  gap: 2px;
+  margin: 6px auto 10px;
+  padding: 3px;
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 60%, rgba(0, 0, 0, 0.18) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.25),
+    0 4px 14px -4px rgba(0, 0, 0, 0.35);
   width: fit-content;
   animation: greetFadeDown 0.6s var(--ease-out) 0.2s both;
 }
@@ -841,23 +848,28 @@ body.theme-light .m-search-container::before {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 22px;
-  padding: 0 4px;
+  height: 24px;
+  padding: 0 13px;
   border: 0;
-  border-radius: 0;
+  border-radius: 999px;
   background: transparent;
   color: var(--text-dim);
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.10em;
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
   outline: none;
-  transition: color var(--motion-cinematic), transform var(--motion-snappy);
+  transition:
+    color var(--motion-cinematic),
+    background var(--motion-cinematic),
+    box-shadow var(--motion-cinematic),
+    transform var(--motion-snappy);
 }
 
 .page-tab:hover {
   color: var(--text-bright);
+  background: rgba(var(--accent-rgb), 0.05);
 }
 
 .page-tab:active {
@@ -866,12 +878,17 @@ body.theme-light .m-search-container::before {
 
 .page-tab:focus-visible {
   box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.5);
-  border-radius: 4px;
 }
 
 .page-tab.active {
   color: var(--accent);
-  text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.45);
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.18) 0%, rgba(var(--accent-rgb), 0.06) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.30),
+    inset 0 1px 0 rgba(255, 255, 255, 0.10),
+    0 0 10px rgba(var(--accent-rgb), 0.18);
+  text-shadow: 0 0 6px rgba(var(--accent-rgb), 0.40);
 }
 
 .page-tab-label {
@@ -879,23 +896,10 @@ body.theme-light .m-search-container::before {
   z-index: 2;
 }
 
-/* Underline indicator slides in on active */
+/* Underline element exists in markup but the active state now uses an
+   accent fill instead — hide the underline. */
 .page-tab-underline {
-  position: absolute;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%) scaleX(0);
-  width: 14px;
-  height: 2px;
-  border-radius: 2px;
-  background: var(--accent);
-  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.7);
-  transition: transform var(--motion-cinematic);
-  transform-origin: center;
-}
-
-.page-tab.active .page-tab-underline {
-  transform: translateX(-50%) scaleX(1);
+  display: none;
 }
 
 /* While in-app, the page tabs slide down with the rest of home */
@@ -905,16 +909,29 @@ body.in-app .page-tabs {
   transition: opacity var(--motion-cinematic);
 }
 
-/* Light-mode mirror — slim strip carries no chrome, only the label
-   color shifts so it reads on a light background. */
+/* Light-mode mirror — softer frame on white backgrounds. */
+body.theme-light .page-tabs {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(255, 255, 255, 0.4) 100%);
+  border-color: rgba(0, 0, 0, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+}
 body.theme-light .page-tab {
   color: var(--text);
 }
 body.theme-light .page-tab:hover {
   color: var(--text-bright);
+  background: rgba(var(--accent-rgb), 0.06);
 }
 body.theme-light .page-tab.active {
   color: var(--accent);
+  background:
+    linear-gradient(180deg, rgba(var(--accent-rgb), 0.12) 0%, rgba(var(--accent-rgb), 0.04) 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.25),
+    0 0 8px rgba(var(--accent-rgb), 0.12);
 }
 
 /* ── 7.6. Page panes — show only the active tab's content ──── */
