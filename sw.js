@@ -6,7 +6,7 @@
 
 // Version synced with os/version.js — update both together.
 // "-calculator" suffix forces eviction of pre-Tape Calculator assets.
-const CACHE_NAME = 'yancotab-v1.1.0-calc-pr4';
+const CACHE_NAME = 'yancotab-v1.1.0-photos-lightbox';
 
 const PRECACHE = [
     './',
@@ -204,6 +204,21 @@ const PRECACHE = [
     './vendor/tesseract/tesseract-worker.js',
     './vendor/tesseract/tesseract-core.wasm',
     './vendor/tesseract/eng.traineddata',
+    // Photos Lightbox
+    './css/photos-lightbox.css',
+    './os/apps/photos/lightbox.js',
+    './os/apps/photos/persistence.js',
+    './os/apps/photos/storage.js',
+    './os/apps/photos/engine/state.js',
+    './os/apps/photos/engine/filters.js',
+    './os/apps/photos/engine/scrubber.js',
+    './os/apps/photos/engine/aggregate.js',
+    './os/apps/photos/view/photoCell.js',
+    './os/apps/photos/view/focusPreview.js',
+    './os/apps/photos/view/scrubber.js',
+    './os/apps/photos/view/sideRail.js',
+    './os/apps/photos/view/stage.js',
+    './os/apps/photos/view/infoPanel.js',
     // Assets
     './assets/browser-icon.png',
     // Theme wallpapers — referenced by themes.js and MobileContextMenu.js
