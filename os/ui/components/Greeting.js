@@ -8,7 +8,7 @@
  *   • 1s — updates HH:MM·SS in the clock and the greet line (handles the
  *     midnight-rollover and afternoon-to-evening transitions cleanly).
  *   • Re-renders fully when the user changes their name in Settings via the
- *     existing `yancotab:name_changed` event.
+ *     existing `yancotab:name-changed` event.
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
@@ -75,7 +75,7 @@ export class Greeting {
             this._lastMinute = -1;
             this._tick();
         };
-        window.addEventListener('yancotab:name_changed', this._onNameChanged);
+        window.addEventListener('yancotab:name-changed', this._onNameChanged);
 
         return this.root;
     }
@@ -114,7 +114,7 @@ export class Greeting {
 
     destroy() {
         if (this._interval) clearInterval(this._interval);
-        if (this._onNameChanged) window.removeEventListener('yancotab:name_changed', this._onNameChanged);
+        if (this._onNameChanged) window.removeEventListener('yancotab:name-changed', this._onNameChanged);
         if (this.root) this.root.remove();
     }
 }

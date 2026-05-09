@@ -42,7 +42,7 @@ export class ClockApp extends App {
             this.state = this.loadState();
             if (this.activeTab === 'world') this.renderWorld();
         };
-        window.addEventListener('yancotab:clock_update', this.onClockUpdate);
+        window.addEventListener('yancotab:clock-update', this.onClockUpdate);
     }
 
     // ── Segmented Control ────────────────────────────────────
@@ -1301,7 +1301,7 @@ export class ClockApp extends App {
         this.cancelRAF();
         this.intervals.forEach(i => clearInterval(i));
         this.intervals = [];
-        if (this.onClockUpdate) window.removeEventListener('yancotab:clock_update', this.onClockUpdate);
+        if (this.onClockUpdate) window.removeEventListener('yancotab:clock-update', this.onClockUpdate);
         super.destroy();
     }
 }

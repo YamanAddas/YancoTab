@@ -44,7 +44,7 @@ export class WeatherApp extends App {
             this.toggleUnitDisplayOnly(); // Helper to just update UI
             this.refreshWeather({ withLoading: false });
         };
-        window.addEventListener('yancotab:weatherchange', this.onWeatherChange);
+        window.addEventListener('yancotab:weather-change', this.onWeatherChange);
     }
 
     destroy() {
@@ -55,7 +55,7 @@ export class WeatherApp extends App {
         if (this.onDocClick) document.removeEventListener('click', this.onDocClick);
         if (this.onVisibilityChange) document.removeEventListener('visibilitychange', this.onVisibilityChange);
         if (this.onWindowFocus) window.removeEventListener('focus', this.onWindowFocus);
-        if (this.onWeatherChange) window.removeEventListener('yancotab:weatherchange', this.onWeatherChange);
+        if (this.onWeatherChange) window.removeEventListener('yancotab:weather-change', this.onWeatherChange);
 
         super.destroy();
     }
@@ -524,7 +524,7 @@ export class WeatherApp extends App {
             this.state.currentLocation = idx >= 0 ? locations[idx] : normalized;
         }
         this.saveState();
-        if (emitChange) window.dispatchEvent(new CustomEvent('yancotab:weatherchange'));
+        if (emitChange) window.dispatchEvent(new CustomEvent('yancotab:weather-change'));
         this.renderLocations();
         if (refresh) this.refreshWeather({ withLoading: true });
         return true;
@@ -544,7 +544,7 @@ export class WeatherApp extends App {
             this.state.currentLocation = this.state.locations.find((loc) => loc.isAuto) || this.state.locations[0];
         }
         this.saveState();
-        window.dispatchEvent(new CustomEvent('yancotab:weatherchange'));
+        window.dispatchEvent(new CustomEvent('yancotab:weather-change'));
         this.renderLocations();
         if (!this.state.currentLocation) {
             this.ensureStartupLocation().then(() => {
@@ -600,7 +600,7 @@ export class WeatherApp extends App {
         this.state.unit = this.state.unit === 'f' ? 'c' : 'f';
         this.unitBtn.textContent = this.state.unit === 'f' ? '°F' : '°C';
         this.saveState();
-        window.dispatchEvent(new CustomEvent('yancotab:weatherchange'));
+        window.dispatchEvent(new CustomEvent('yancotab:weather-change'));
         if (this.lastPayload) {
             this.renderPayload(this.lastPayload, {
                 stale: Boolean(this.lastFailureReason),

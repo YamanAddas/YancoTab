@@ -142,7 +142,7 @@ export class StatusBar {
         try {
             const isLight = document.body.classList.contains('theme-light');
             const next = isLight ? 'dark' : 'light';
-            window.dispatchEvent(new CustomEvent('yancotab:theme_request', { detail: { mode: next } }));
+            window.dispatchEvent(new CustomEvent('yancotab:theme-request', { detail: { mode: next } }));
             document.body.classList.toggle('theme-light');
         } catch { /* ignore */ }
     }
@@ -161,7 +161,7 @@ export class StatusBar {
         };
         document.addEventListener('visibilitychange', this._visibilityHandler);
 
-        window.addEventListener('yancotab:clock_update', () => {
+        window.addEventListener('yancotab:clock-update', () => {
             if (this.elements.time) this.elements.time.textContent = this.getTime();
         });
     }

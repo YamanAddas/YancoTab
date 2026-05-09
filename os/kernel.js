@@ -22,6 +22,58 @@ const SYSTEM_EVENTS = new Set([
     'ui:mount',
 ]);
 
+/**
+ * Canonical event names used across YancoTab.
+ *
+ * Convention: `domain:event-name` — colon separates the namespace from
+ * the event, and the event itself uses kebab-case. The pre-v1.1.1 mix
+ * of `theme_change` / `weatherchange` / `wallpaper-changed` was
+ * normalized to kebab-case across the board.
+ *
+ * Two buses are in use:
+ *   • kernel.bus      — for app lifecycle + cross-app commands
+ *                       (process:started, app:open, toast).
+ *                       Use kernel.emit() / kernel.on() — these include
+ *                       a return-value unsubscribe to avoid leaks.
+ *   • window          — for events that fire before the kernel singleton
+ *                       is constructed (boot/theme/wallpaper) or that
+ *                       intentionally cross documents (storage events).
+ *                       Use window.dispatchEvent() / addEventListener().
+ *
+ * Migrating an event between buses requires changing every dispatcher
+ * AND every listener in the same commit — this list helps the next
+ * person spot mismatches.
+ */
+export const KNOWN_EVENTS = Object.freeze({
+    // ── kernel.bus ──
+    SYSTEM_READY:    'system:ready',
+    SYSTEM_PANIC:    'system:panic',
+    SYSTEM_APP_ERROR: 'system:app-error',
+    UI_MOUNT:        'ui:mount',
+    PROCESS_KILL:    'process:kill',
+    PROCESS_STARTED: 'process:started',
+    PROCESS_STOPPED: 'process:stopped',
+    APP_OPEN:        'app:open',
+    TOAST:           'toast',
+    TODO_CHANGED:    'todo:changed',
+
+    // ── window bus (early-boot or cross-document) ──
+    THEME_CHANGE:        'yancotab:theme-change',
+    THEME_REQUEST:       'yancotab:theme-request',
+    NAME_CHANGED:        'yancotab:name-changed',
+    CLOCK_UPDATE:        'yancotab:clock-update',
+    WEATHER_CHANGE:      'yancotab:weather-change',
+    WALLPAPER_CHANGED:   'yancotab:wallpaper-changed',
+    BROWSER_SETTINGS_CHANGED: 'yancotab:browser-settings-changed',
+    SETTINGS_CHANGED:    'yancotab:settings-changed',
+    OPEN_FILE:           'yancotab:open-file',
+    NEW_FOLDER_REQUEST:  'yancotab:new-folder-request',
+    ACTIVITY:            'yancotab:activity',
+    NOTIFY:              'yancotab:notify',
+    STORAGE_CHANGED:     'yancotab:storage-changed',
+    STORAGE_FULL:        'yancotab:storage-full',
+});
+
 let resizeHandler = null;
 
 export class Kernel {

@@ -45,7 +45,7 @@ function _profile(container, app, storage) {
     clearTimeout(debounce);
     debounce = setTimeout(() => {
       storage.save('yancotab_user_name', nameInput.value.trim().slice(0, 30));
-      window.dispatchEvent(new CustomEvent('yancotab:name_changed'));
+      window.dispatchEvent(new CustomEvent('yancotab:name-changed'));
     }, 400);
   });
   container.appendChild(app._group('Profile', [
@@ -169,7 +169,7 @@ function _motion(container, app) {
       storage?.save('yancotab_starfield_enabled', Boolean(next));
       // Dispatch a theme_change event — starfield already listens and will
       // start/stop accordingly without double-registering listeners.
-      window.dispatchEvent(new CustomEvent('yancotab:theme_change', {
+      window.dispatchEvent(new CustomEvent('yancotab:theme-change', {
         detail: { reason: 'starfield-toggle' },
       }));
     }),
@@ -197,13 +197,13 @@ function _regionFormat(container, app, storage) {
       const data = readJson('yancotab_clock_v3', {}, storage) || {};
       data.use24h = next;
       storage.save('yancotab_clock_v3', data);
-      // ClockApp listens for yancotab:clock_update and re-reads its state.
-      window.dispatchEvent(new CustomEvent('yancotab:clock_update'));
+      // ClockApp listens for yancotab:clock-update and re-reads its state.
+      window.dispatchEvent(new CustomEvent('yancotab:clock-update'));
     }),
     app._toggleRow('Metric Units', 'Use Celsius for weather', getMetric(), (next) => {
       const ws = app.kernel.getService('weather');
       if (ws) { const state = ws.getState(); state.unit = next ? 'c' : 'f'; ws.saveState(state); }
-      window.dispatchEvent(new CustomEvent('yancotab:weatherchange'));
+      window.dispatchEvent(new CustomEvent('yancotab:weather-change'));
     }),
   ]));
 }

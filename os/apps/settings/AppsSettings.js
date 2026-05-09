@@ -72,7 +72,7 @@ function _clock(container, storage, app, rerender) {
     _pillRow('Clock Face', ['digital', 'analog'], style, (picked) => {
       state.mainClockStyle = picked;
       storage.save(CLOCK_KEY, state);
-      window.dispatchEvent(new CustomEvent('yancotab:clock_update'));
+      window.dispatchEvent(new CustomEvent('yancotab:clock-update'));
       rerender();
     }),
     // Alarm tone

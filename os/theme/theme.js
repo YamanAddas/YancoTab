@@ -8,7 +8,7 @@ import { kernel } from '../kernel.js';
 const THEME_MODE_KEY = 'yancotab_theme_mode';
 const LEGACY_THEME_KEY = 'yancotab_theme';
 const LEGACY_THEME_DARK_KEY = 'yancotab_theme_dark';
-export const THEME_CHANGE_EVENT = 'yancotab:theme_change';
+export const THEME_CHANGE_EVENT = 'yancotab:theme-change';
 
 let _osMql = null;
 

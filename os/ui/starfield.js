@@ -169,7 +169,7 @@ export function initStarfield() {
   });
 
   // React to light/dark theme changes — start or stop accordingly.
-  window.addEventListener('yancotab:theme_change', () => {
+  window.addEventListener('yancotab:theme-change', () => {
     if (shouldSkip()) {
       stop();
       canvas.style.display = 'none';
