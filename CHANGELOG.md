@@ -6,6 +6,93 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.1.1] — 2026-05-08
+
+Pre-CWS audit pass. Fixed real user-visible bugs in shipped v1.1.0,
+plus architectural debt and AI-cruft cleanup.
+
+### Fixed (user-visible bugs in v1.1.0)
+
+- **TodoWidget + SmartSearch wrote v1 schema while TodoApp used v2.**
+  Toggling a checkbox in the home-screen Todo widget mutated a
+  schema TodoApp no longer reads — UI showed done, app showed open.
+  Two tasks with the same text collided. New `quickAddTask` /
+  `quickToggleTask` helpers in `os/apps/todo/persistence.js` route
+  through the v2 reducer (mission ids, streak log, completedAt).
+- **Settings 24-Hour Time toggle now propagates everywhere.**
+  Previously wrote to a phantom `yancotab_clock_state_v3` (registered
+  but unused) and read from `yancotab_clock_v2` (not registered);
+  ClockApp / StatusBar / ClockWidget all stayed on 12-hour. Six
+  callers collapsed onto canonical `yancotab_clock_v3`.
+- **Game saves no longer fail silently on storage full.** Six game
+  persistence paths (Solitaire, Spider, Mahjong, Tarneeb, Trix,
+  Minesweeper) used `try { save() } catch {}`. New
+  `os/utils/safeSave.js` helper warns + emits a single deduped
+  toast per session.
+- **`'auto'` theme + AppStorage string-save bug.** Latent: AppStorage
+  `normalize()` was running `JSON.parse()` on every string input,
+  silently dropping every string-typed preference write (search
+  engine, theme, sort modes, view modes). Fixed; raw scalar
+  strings now persist correctly. `'auto'` added to theme validator
+  and resolved at boot via `matchMedia` to prevent FOUC.
+
+### Security (defense in depth)
+
+- **Scheme allowlist for user-controllable URLs.** New
+  `os/utils/url.js` `isSafeUrl()` allows only `https`, `http`,
+  `mailto`, `tel`, `sms`. Closed the `javascript:` XSS path in
+  `MobileShortcutModal` save + `AppGrid.openUserApp`. `FilesApp.
+  _sendToBrowser` now refuses `data:` URLs entirely.
+- **File-import size caps.** Wallpaper 5 MB, Photos 10 MB, Files 10 MB.
+  Quota-exceeded errors surface as toast.
+- **PDF magic-byte verification + 50 MB cap.** Blocks renamed binary
+  blobs from reaching pdf.js. `isEvalSupported: false` set on
+  `getDocument()` for defense-in-depth against CVE-2024-4367 (we
+  ship pdf.js 4.10.38 which has the patch already; this is the
+  third layer).
+- **Ko-fi modal `sandbox` + `referrerpolicy="no-referrer"`.** Hides
+  the chrome-extension://<id> URL and prevents framebust. Modal
+  also gained `role="dialog"`, `aria-modal`, `aria-labelledby`,
+  Escape-to-close, and focus-on-open.
+- **`importAll` strips `__proto__`/`constructor`/`prototype` keys.**
+- **CSV-injection escape in calculator tape export.**
+- **NaN guards** on parseFloat/parseInt slider readers (ClockApp
+  alarm volume, PhotoEditor adjustments + brush size).
+
+### Architecture / cleanup
+
+- **Wallpaper writes route through `kernel.storage`** so the choice
+  syncs across devices via chrome.storage.sync. Custom-image data
+  URL stays in raw localStorage (would blow the 8 KB/item cap).
+  Envelope-aware readers added to themes.js, starfield, and
+  MobileContextMenu for early-boot paths.
+- **`function css(href)` extracted from 14 app files** into
+  `os/utils/dom.js` `cssLink(href)`. −56 LOC.
+- **ProcessManager public API**: `getInstance(pid)`,
+  `getProcessInfo(pid)`, `closeProcess(pid)`. Three sites in
+  mobileShell that were poking past `processManager.processes` now
+  go through the API.
+- **Event names normalized to kebab-case.** 5 snake_case events
+  renamed (`theme_change`, `name_changed`, `clock_update`,
+  `theme_request`, `weatherchange`). `KNOWN_EVENTS` const added to
+  `os/kernel.js` documenting both buses.
+- **REGISTRY duplicate `yancotab_starfield_enabled` removed** +
+  source-grep regression test that fails on any future duplicate.
+- **`offline_enabled: true`** added to manifest.
+- **Dead `css/solitaire.css` deleted** (812 lines, was only in SW
+  precache; the live cosmic Solitaire uses a different file).
+
+### Tests
+
+1337 tests, +16 from v1.1.0. New suites:
+- `tests/url-safe.test.js`
+- `tests/safeSave.test.js`
+- `tests/todo-persistence-helpers.test.js`
+- `tests/appStorage-string-save.test.js`
+- `tests/appStorage-registry-integrity.test.js`
+
+---
+
 ## [1.1.0] — 2026-05-07
 
 The "Table salon" wave — Tarneeb and Trix share a new oval-felt

@@ -5,8 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-// "-audit" suffix forces eviction of pre-A1..A6 fixes assets.
-const CACHE_NAME = 'yancotab-v1.1.0-audit';
+const CACHE_NAME = 'yancotab-v1.1.1';
 
 const PRECACHE = [
     './',

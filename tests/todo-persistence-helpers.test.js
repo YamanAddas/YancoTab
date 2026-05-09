@@ -151,7 +151,10 @@ describe('todo/persistence — quickAddTask / quickToggleTask', () => {
     const taskId = persist.getOpenTasks(persist.loadState(k))[0].id;
     persist.quickToggleTask(k, taskId);
     const state = persist.loadState(k);
-    const todayKey = new Date().toISOString().slice(0, 10);
+    // Use the same local-date format that engine/state.js todayKey()
+    // produces — UTC date can differ across the midnight boundary.
+    const d = new Date();
+    const todayKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     assert.equal(state.streakLog[todayKey], 1);
   });
 });
