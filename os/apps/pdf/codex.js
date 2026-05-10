@@ -121,6 +121,12 @@ export function buildCodex({
       currentPage = n; renderRail(); renderBar();
       memory?.save(docId, { page: currentPage, scrollY: stage.scrollTop });
     },
+    onPageRendered: () => {
+      // A lazy-loaded page just got its text-layer — re-apply the
+      // search-match highlights and note pips on it.
+      ann?.renderNotePips?.();
+      search?.redecorate?.();
+    },
   });
   spread.root.style.display = 'none';
   strip.root.style.display = 'none';
@@ -263,6 +269,9 @@ export function buildCodex({
     }
     // Place sticky-note pips after pages render.
     ann?.renderNotePips?.();
+    // Re-apply find-bar match highlights (lazy renders may have replaced
+    // the previous text-layer DOM).
+    search?.redecorate?.();
   }
 
   async function resolveZoom() {

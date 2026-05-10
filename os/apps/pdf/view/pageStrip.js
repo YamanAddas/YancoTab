@@ -20,7 +20,7 @@ const OVERSCAN_PAGES = 1;          // render visible ± this many pages
 const PAGE_GAP_PX = 14;             // vertical spacing between pages
 const PADDING_PX = 24;
 
-export function buildPageStrip({ onCurrentPageChange, onLinkInternal, onLinkExternal } = {}) {
+export function buildPageStrip({ onCurrentPageChange, onPageRendered, onLinkInternal, onLinkExternal } = {}) {
     const root = el('div', { class: 'cx-strip' });
     const linkOpts = { onLinkInternal, onLinkExternal };
 
@@ -150,8 +150,9 @@ export function buildPageStrip({ onCurrentPageChange, onLinkInternal, onLinkExte
         if (!box || box.rendered) return;
         try {
             box.container.classList.remove('is-placeholder');
-            await box.view.render(box.page, { cssWidth: box.cssWidth, label: `— ${box.pageNum} —` });
+            await box.view.render(box.page, { cssWidth: box.cssWidth, label: `— ${box.pageNum} —`, pageNum: box.pageNum });
             box.rendered = true;
+            onPageRendered?.(box.pageNum);
         } catch { /* ignore */ }
     }
 

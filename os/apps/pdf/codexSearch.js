@@ -132,40 +132,78 @@ export function createSearchController({
         const m = matches[idx];
         if (!m) return;
         if (m.page !== getCurrentPage()) onJumpToPage?.(m.page);
-        // Highlight after a short delay so the page render finishes.
-        setTimeout(() => decorateCurrent(m), 80);
+        // Decorate immediately so the user sees the highlight pass on all
+        // already-rendered pages, then re-decorate after a beat to catch
+        // pages that rendered lazily after the page-jump.
+        decorateAllMatches();
+        setTimeout(() => decorateAllMatches(), 120);
+        setTimeout(() => decorateAllMatches(), 400);
+        // Scroll the current match into view.
+        setTimeout(() => scrollCurrentIntoView(), 160);
     }
 
-    /** Wrap matching tokens in <mark class="cx-find-match"> for the current page. */
-    function decorateCurrent(match) {
+    /**
+     * Highlight every search match on every rendered page. The current
+     * match (matches[cursor]) gets an `is-current` modifier so the user
+     * can see "I am here" while stepping through results — Adobe-style.
+     *
+     * Mapping cursor → DOM span: matches[] is page-ordered, so the
+     * cursor-th match on a page corresponds to the cursor-th *matching
+     * span* on that page (in text-layer DOM order). For PDFs where
+     * pdf.js reorders text-layer items vs reading order this can drift
+     * by ±1, but it's stable for the common case.
+     */
+    function decorateAllMatches() {
         clearMatchHighlights();
-        if (!match || !stage) return;
+        if (!stage || !matches.length) return;
+        const q = bar.getQuery();
+        if (!q) return;
+        const flags = bar.getFlags();
+        const re = new RegExp(escapeRe(q), flags.caseSensitive ? 'g' : 'gi');
+        const currentMatch = matches[cursor];
+
+        // Index of the current match within its own page's match list.
+        const cursorOnPage = currentMatch
+            ? matches.slice(0, cursor).filter((m) => m.page === currentMatch.page).length
+            : -1;
+
         const pageEls = stage.querySelectorAll('.cx-page');
+        const matchedPages = new Set(matches.map((m) => m.page));
+
         for (const pageEl of pageEls) {
-            const dataPage = pageEl.closest?.('[data-page]')?.dataset?.page;
+            const dataPage = pageEl.dataset?.page
+                || pageEl.closest?.('[data-page]')?.dataset?.page;
             const num = dataPage ? Number(dataPage) : null;
-            if (num !== match.page) continue;
+            if (!num || !matchedPages.has(num)) continue;
             const layer = pageEl.querySelector('.cx-text-layer');
             if (!layer) continue;
-            const q = bar.getQuery();
-            if (!q) return;
-            const flags = bar.getFlags();
-            const re = new RegExp(escapeRe(q), flags.caseSensitive ? 'g' : 'gi');
+
+            let spanHitIndex = 0;
             for (const span of layer.querySelectorAll('span')) {
                 if (!span.textContent) continue;
-                if (re.test(span.textContent)) {
-                    span.classList.add('cx-find-match');
-                }
                 re.lastIndex = 0;
+                if (!re.test(span.textContent)) continue;
+                span.classList.add('cx-find-match');
+                if (currentMatch && num === currentMatch.page && spanHitIndex === cursorOnPage) {
+                    span.classList.add('is-current');
+                }
+                spanHitIndex++;
             }
-            return;
         }
+    }
+
+    function scrollCurrentIntoView() {
+        const cur = stage?.querySelector('.cx-text-layer span.cx-find-match.is-current');
+        if (!cur) return;
+        try {
+            cur.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        } catch { /* ignore — older browsers */ }
     }
 
     function clearMatchHighlights() {
         if (!stage) return;
         const marks = stage.querySelectorAll('.cx-find-match');
-        marks.forEach((m) => m.classList.remove('cx-find-match'));
+        marks.forEach((m) => m.classList.remove('cx-find-match', 'is-current'));
     }
 
     /** Reset the cached index after a doc change. */
@@ -183,6 +221,8 @@ export function createSearchController({
         toggle: (q) => isOpen() ? close() : open(q),
         reset,
         recompute: () => recomputeMatches(),
+        /** Re-apply highlights — called by codex after lazy page renders. */
+        redecorate: () => decorateAllMatches(),
     };
 }
 

@@ -993,12 +993,40 @@ body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 23
   border-color: rgba(var(--accent-rgb), 0.30);
 }
 
-/* ── Find-match highlight (transient — distinct from persisted .cx-hl) ── */
+/* ── Find-match highlight (transient — distinct from persisted .cx-hl) ──
+   Two tiers, Adobe-style:
+     – every match gets a soft yellow tint
+     – the *current* match (the one the prev/next cursor is on) gets a
+       brighter orange + a stronger outline so the reader sees "I am here". */
 .cx-text-layer span.cx-find-match {
-  background: rgba(var(--accent-rgb), 0.32);
-  outline: 1px solid var(--accent);
+  background: rgba(255, 220, 70, 0.45);
   border-radius: 2px;
   color: transparent;
+  transition: background 120ms ease, outline 120ms ease, box-shadow 120ms ease;
+}
+.cx-text-layer span.cx-find-match.is-current {
+  background: rgba(255, 150, 30, 0.85);
+  outline: 2px solid #ff8a00;
+  box-shadow: 0 0 12px rgba(255, 138, 0, 0.5);
+  z-index: 2;
+  position: relative;
+}
+/* Light-theme variants */
+body.theme-light .cx-text-layer span.cx-find-match {
+  background: rgba(255, 230, 120, 0.7);
+}
+body.theme-light .cx-text-layer span.cx-find-match.is-current {
+  background: rgba(255, 130, 0, 0.55);
+  outline-color: #ff7a00;
+}
+/* Dark-pages mode: the canvas is inverted, so flip our colors back so
+   they don't look cyan/blue after the inversion. */
+.codex.is-dark-pages .cx-text-layer span.cx-find-match {
+  background: rgba(0, 35, 185, 0.55);  /* inverts to yellow */
+}
+.codex.is-dark-pages .cx-text-layer span.cx-find-match.is-current {
+  background: rgba(0, 105, 225, 0.85); /* inverts to orange */
+  outline-color: #007aff;
 }
 
 /* ── Dark-pages mode ───────────────────────────────────────
