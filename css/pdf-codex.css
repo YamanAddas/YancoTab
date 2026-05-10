@@ -363,7 +363,10 @@ body.theme-light .cx-page {
 }
 body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
 
-/* Text layer overlay — selectable, transparent */
+/* Text layer overlay — transparent spans sit over the canvas so the
+   browser's native selection can highlight them. Empty space in the
+   layer passes pointer events through to the canvas below; only
+   actual text spans receive clicks and start selection (Acrobat model). */
 .cx-text-layer {
   position: absolute;
   inset: 0;
@@ -371,6 +374,13 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
   overflow: hidden;
   line-height: 1;
   opacity: 1;
+  pointer-events: none;
+}
+/* Beat the body.is-mobile [data-allow-context] * opt-in (0,0,2,1)
+   so the container itself never starts a selection on empty space. */
+.codex .cx-page .cx-text-layer {
+  -webkit-user-select: none !important;
+  user-select: none !important;
 }
 .cx-text-layer span {
   color: transparent;
@@ -378,6 +388,7 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
+  pointer-events: auto;
 }
 .cx-text-layer ::selection {
   background: rgba(var(--accent-rgb), 0.32);

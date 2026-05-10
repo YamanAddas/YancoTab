@@ -391,6 +391,7 @@ export function buildCodex({
   stage.addEventListener('dblclick', (e) => {
     if (!pdfDoc) return;
     if (e.target.closest('.cx-reader-bar')) return;
+    if (e.target.closest('.cx-text-layer')) return;
     if (typeof userZoom === 'number') setZoom('fit-width');
     else setZoom(1.0);
   });
