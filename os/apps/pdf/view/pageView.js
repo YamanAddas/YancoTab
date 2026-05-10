@@ -42,7 +42,7 @@ export function buildPageView() {
 
   showEmpty(true);
 
-  async function render(pdfPage, { cssWidth, label } = {}) {
+  async function render(pdfPage, { cssWidth, label, rotation = 0 } = {}) {
     if (!pdfPage || !cssWidth || cssWidth <= 0) {
       showEmpty(true);
       return;
@@ -60,14 +60,17 @@ export function buildPageView() {
       try { await old.promise; } catch { /* ignore — cancellation rejects */ }
     }
 
-    const baseViewport = pdfPage.getViewport({ scale: 1 });
+    // Rotation is normalized: 0 / 90 / 180 / 270 plus pdf.js's intrinsic
+    // page rotation. pdf.js's getViewport({ rotation }) handles the math.
+    const rot = ((Number(rotation) || 0) + 360) % 360;
+    const baseViewport = pdfPage.getViewport({ scale: 1, rotation: rot });
     const scale = cssWidth / baseViewport.width;
-    const viewport = pdfPage.getViewport({ scale });
+    const viewport = pdfPage.getViewport({ scale, rotation: rot });
 
     const dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
 
-    // Avoid double-render of the same page at the same width.
-    const key = `${pdfPage.pageNumber}@${cssWidth.toFixed(1)}@${dpr}`;
+    // Avoid double-render of the same page at the same width + rotation.
+    const key = `${pdfPage.pageNumber}@${cssWidth.toFixed(1)}@${dpr}@r${rot}`;
     if (key === lastRenderedKey) return;
     lastRenderedKey = key;
 

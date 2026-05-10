@@ -716,3 +716,145 @@ body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 23
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   v2: zoom group + view-mode group + continuous strip
+   ───────────────────────────────────────────────────────────── */
+
+/* Zoom group [-] [100% ▾] [+] */
+.cx-zoom-group {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.10));
+  border-radius: 7px;
+  overflow: hidden;
+}
+.cx-zoom-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 0 10px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 200ms ease, color 200ms ease;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cx-zoom-btn:hover { background: rgba(var(--accent-rgb), 0.08); color: var(--accent); }
+.cx-zoom-btn-step { width: 28px; font-size: 16px; }
+.cx-zoom-label { min-width: 56px; border-left: 1px solid var(--border, rgba(255,255,255,0.10)); border-right: 1px solid var(--border, rgba(255,255,255,0.10)); }
+.cx-zoom-popover {
+  z-index: 1000;
+  min-width: 180px;
+  background: var(--bg-panel, rgba(8, 15, 28, 0.97));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+}
+.cx-zoom-popover-list { display: flex; flex-direction: column; }
+.cx-zoom-popover-item {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 6px 10px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font: inherit;
+}
+.cx-zoom-popover-item:hover { background: rgba(var(--accent-rgb), 0.10); color: var(--accent); }
+.cx-zoom-popover-item.is-current { background: rgba(var(--accent-rgb), 0.18); color: var(--accent); font-weight: 600; }
+.cx-zoom-popover-sep { height: 1px; background: var(--border); margin: 4px 0; }
+.cx-zoom-popover-custom { padding: 4px 6px 2px; }
+.cx-zoom-popover-input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  padding: 5px 8px;
+  border-radius: 4px;
+  font: inherit;
+  font-family: 'JetBrains Mono', monospace;
+}
+.cx-zoom-popover-input:focus { outline: none; border-color: var(--accent); }
+.cx-zoom-popover-input.is-invalid { border-color: var(--danger, #ff3b30); animation: cx-shake 200ms; }
+@keyframes cx-shake { 25% { transform: translateX(-2px); } 75% { transform: translateX(2px); } }
+
+/* View-mode group [Single] [Scroll] [Spread] [Book] */
+.cx-mode-group {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.10));
+  border-radius: 7px;
+  overflow: hidden;
+}
+.cx-mode-btn {
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 4px 10px;
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 200ms ease, color 200ms ease;
+  border-right: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+}
+.cx-mode-btn:last-child { border-right: none; }
+.cx-mode-btn:hover { background: rgba(var(--accent-rgb), 0.08); color: var(--accent); }
+.cx-mode-btn.is-active {
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent);
+  font-weight: 600;
+}
+.cx-mode-glyph { font-size: 12px; }
+.cx-mode-label { letter-spacing: 0.04em; }
+@media (max-width: 1100px) {
+  .cx-mode-label { display: none; }
+}
+
+/* Continuous strip — vertical scroll list of pages */
+.cx-stage.is-continuous {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+.cx-stage.is-continuous .cx-reader-bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  flex-shrink: 0;
+  margin-bottom: 8px;
+}
+.cx-stage.is-continuous .cx-stage-empty { display: none !important; }
+.cx-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+.cx-strip-page {
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cx-strip-page.is-placeholder { background: rgba(255, 255, 255, 0.04); }
+.cx-strip-page-inner { width: 100%; height: 100%; }
+
+/* Book mode — push page 1 (cover) to the right when current = 1 */
+.cx-spread.is-book .cx-page:first-child {
+  /* Cover sits centered when alone; spread.js hides right when needed */
+}
