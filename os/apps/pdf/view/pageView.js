@@ -32,6 +32,7 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
   root.append(canvas, textLayerDiv, pageNum, empty);
 
   let renderTask = null;
+  let textLayerTask = null;
   let lastRenderedKey = null;
 
   function showEmpty(visible) {
@@ -59,6 +60,10 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
       renderTask = null;
       try { old.cancel(); } catch { /* ignore */ }
       try { await old.promise; } catch { /* ignore — cancellation rejects */ }
+    }
+    if (textLayerTask) {
+      try { textLayerTask.cancel(); } catch { /* ignore */ }
+      textLayerTask = null;
     }
 
     // Rotation is normalized: 0 / 90 / 180 / 270 plus pdf.js's intrinsic
@@ -117,35 +122,24 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
     }
     renderTask = null;
 
-    // Build text layer.
+    // Build text layer via pdf.js TextLayer — handles scaleX per glyph
+    // so span hit-areas match canvas rendering, making drag-selection accurate.
     textLayerDiv.innerHTML = '';
-    const textContent = await pdfPage.getTextContent();
-    const frag = document.createDocumentFragment();
-    for (const item of textContent.items) {
-      if (!item || typeof item.str !== 'string' || !item.str) continue;
-      const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-      // tx is [a,b,c,d,e,f]: e,f = x,y; sqrt(c² + d²) ≈ font size
-      const fontSize = Math.hypot(tx[2], tx[3]);
-      if (fontSize <= 0) continue;
-      const span = document.createElement('span');
-      span.textContent = item.str;
-      span.style.position = 'absolute';
-      span.style.left = `${tx[4]}px`;
-      span.style.top = `${tx[5] - fontSize}px`;
-      span.style.fontSize = `${fontSize}px`;
-      span.style.fontFamily = item.fontName || 'sans-serif';
-      // Slight scale-x correction to match canvas glyph widths so the
-      // text-layer spans line up with what the user sees on the canvas.
-      if (item.width && fontSize > 0) {
-        const ctxScale = (item.width * scale) / span.getBoundingClientRect().width || 1;
-        if (Number.isFinite(ctxScale) && ctxScale > 0 && ctxScale !== 1) {
-          // Skip in fragment build — getBoundingClientRect requires DOM
-          // attachment. We accept slight drift; better than n DOM thrashes.
-        }
+    if (typeof pdfjsLib.TextLayer === 'function') {
+      const task = new pdfjsLib.TextLayer({
+        textContentSource: pdfPage.streamTextContent(),
+        container: textLayerDiv,
+        viewport,
+      });
+      textLayerTask = task;
+      try {
+        await task.render();
+      } catch (e) {
+        if (e?.name !== 'AbortException') console.warn('[Codex] text layer:', e);
+      } finally {
+        if (textLayerTask === task) textLayerTask = null;
       }
-      frag.appendChild(span);
     }
-    textLayerDiv.appendChild(frag);
 
     // Link annotations (clickable cross-refs + URI links).
     if (onLinkInternal || onLinkExternal) {
@@ -163,6 +157,10 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
     if (renderTask) {
       try { renderTask.cancel(); } catch { /* ignore */ }
       renderTask = null;
+    }
+    if (textLayerTask) {
+      try { textLayerTask.cancel(); } catch { /* ignore */ }
+      textLayerTask = null;
     }
     canvas.width = 0;
     canvas.height = 0;

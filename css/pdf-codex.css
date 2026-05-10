@@ -374,9 +374,10 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
 }
 .cx-text-layer span {
   color: transparent;
+  position: absolute;
   white-space: pre;
   cursor: text;
-  transform-origin: 0 0;
+  transform-origin: 0% 0%;
 }
 .cx-text-layer ::selection {
   background: rgba(var(--accent-rgb), 0.32);
