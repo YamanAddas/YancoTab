@@ -1,393 +1,349 @@
 /**
- * PdfReaderApp — "Codex" cosmic redesign.
+ * PdfReaderApp — Library + Reader composite.
  *
- * 3-column layout: outline + bookmarks + reading-streak rail · 2-page
- * spread (single below 1100px) · selection info / inline calc /
- * today's quotes panel.
+ * v2 (P1) is a switcher: by default, mounts the Library (IDB-backed
+ * grid of imported PDFs); on doc-open, mounts the Reader (existing
+ * Codex orchestrator) and tears it down on close. This kills the
+ * 50-MB cap because PDFs now live in IndexedDB as Blobs, not as
+ * base64 in localStorage.
  *
- * Replaces the previous Chrome-iframe viewer with a pdf.js render +
- * text layer so selection, inline calc, and quote-with-citation
- * actually work. Editor / annotate / cross-ref-PiP land in PR-3.
+ * Lifecycle:
+ *   init({ filePath })  — opened from FilesApp; import-then-open the FS file
+ *   init({ dataUrl })   — opened from a search/share path; import-then-open
+ *   init({ docId })     — direct open of a Library doc (e.g. quote-back-link)
+ *   init()              — show the Library home
  */
 
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
 import { buildCodex } from './pdf/codex.js';
 import {
-  recordOpen, loadStreak,
-  loadBookmarks, addBookmark, removeBookmark, listBookmarks,
-  addHighlight, listHighlightsOnPage,
+    recordOpen, loadStreak,
+    addBookmark, removeBookmark, listBookmarks,
+    addHighlight, listHighlightsOnPage,
 } from './pdf/persistence.js';
 import { densityStrip, currentStreak } from './pdf/engine/streak.js';
-
-const RECENT_KEY = 'yancotab_pdf_recent';
-const MAX_RECENTS = 5;
-
+import { buildLibraryView } from './pdf/library/LibraryView.js';
+import { migrateIfNeeded } from './pdf/library/migration.js';
+import { importFromFilesApp, importBlob, vetImport } from './pdf/library/importExport.js';
 
 export class PdfReaderApp extends App {
-  constructor(kernel, pid) {
-    super(kernel, pid);
-    this.metadata = { name: 'PDF Reader', id: 'pdf-reader', icon: '📕' };
-    this.fs = kernel.getService('fs');
-    this._currentDataUrl = null;
-    this._currentName = null;
-    this._currentPath = null;
-    this._openedFromFiles = false;
-    this._codex = null;
-    this._streak = loadStreak(this.kernel);
-    this._styleLinks = [];
-    this._boundKeydown = this._onKeydown.bind(this);
-  }
+    constructor(kernel, pid) {
+        super(kernel, pid);
+        this.metadata = { name: 'PDF Reader', id: 'pdf-reader', icon: '📕' };
+        this.fs = kernel.getService('fs');
+        this.pdfStore = kernel.getService('pdfStore');
+        this._streak = loadStreak(this.kernel);
+        this._styleLinks = [];
+        this._boundKeydown = this._onKeydown.bind(this);
 
-  async init(options = {}) {
-    this._styleLinks = [cssLink('css/pdf-codex.css')];
-    this._styleLinks.forEach((l) => document.head.appendChild(l));
-
-    this.root = el('div', { class: 'app-window app-pdf-codex', tabindex: '0' });
-
-    this._buildUI();
-    this._renderEmpty();
-    document.addEventListener('keydown', this._boundKeydown);
-
-    if (options?.filePath) {
-      this._openedFromFiles = true;
-      this._currentPath = options.filePath;
-      const file = this.fs?.read(options.filePath);
-      if (file && file.content) {
-        const name = this._basename(options.filePath);
-        await this._loadFromDataUrl(file.content, name, options.filePath);
-        this._addToRecents(name, options.filePath);
-      }
-    } else if (options?.dataUrl) {
-      await this._loadFromDataUrl(options.dataUrl, options.name || 'document.pdf', null);
+        this._library = null;
+        this._reader = null;
+        this._currentDocId = null;
+        this._currentDoc = null;
+        this._readerHost = null;
+        this._libraryHost = null;
+        this._titleBar = null;
+        this._persistRequested = { value: false };
     }
-  }
 
-  destroy() {
-    document.removeEventListener('keydown', this._boundKeydown);
-    if (this._codex) {
-      this._codex.destroy();
-      this._codex = null;
+    async init(options = {}) {
+        this._styleLinks = [
+            cssLink('css/pdf-codex.css'),
+            cssLink('css/pdf-library.css'),
+        ];
+        this._styleLinks.forEach((l) => document.head.appendChild(l));
+
+        this.root = el('div', { class: 'app-window app-pdf', tabindex: '0' });
+
+        this._buildShell();
+        document.addEventListener('keydown', this._boundKeydown);
+
+        // Run the v1→v2 migration before anything else mounts.
+        await this._runMigration();
+
+        // Decide what to show.
+        if (options?.docId) {
+            await this._openDocId(options.docId);
+        } else if (options?.filePath) {
+            await this._openFromFilesApp(options.filePath);
+        } else if (options?.dataUrl) {
+            await this._openFromDataUrl(options.dataUrl, options.name || 'document.pdf');
+        } else {
+            this._showLibrary();
+        }
     }
-    if (this._styleLinks) {
-      for (const l of this._styleLinks) l.remove();
-      this._styleLinks = [];
+
+    destroy() {
+        document.removeEventListener('keydown', this._boundKeydown);
+        this._teardownReader();
+        if (this._styleLinks) {
+            for (const l of this._styleLinks) l.remove();
+            this._styleLinks = [];
+        }
+        super.destroy();
     }
-    super.destroy();
-  }
 
-  // ── UI ──
+    // ── shell ──────────────────────────────────────────────────
 
-  _buildUI() {
-    // Title bar (tabs + actions). Codex shows just one functional
-    // tab in PR-2; Annotate/Outline land later.
-    this._titlebar = el('div', { class: 'cx-titlebar' });
-    const tabs = el('div', { class: 'cx-tabs' }, [
-      el('button', { type: 'button', class: 'cx-tab is-active' }, 'Read'),
-    ]);
-    const actions = el('div', { class: 'cx-titlebar-actions' });
-    actions.appendChild(this._btnOpen = el('button', {
-      type: 'button', class: 'cx-titlebar-btn', title: 'Open PDF',
-      onclick: () => this._triggerOpen(),
-    }, '+ Open'));
-    actions.appendChild(this._btnSave = el('button', {
-      type: 'button', class: 'cx-titlebar-btn', title: 'Save to Files',
-      onclick: () => this._saveToFiles(),
-    }, '⇩ Save'));
-    actions.appendChild(this._btnClose = el('button', {
-      type: 'button', class: 'cx-titlebar-btn', title: 'Close PDF',
-      onclick: () => this._closeDoc(),
-    }, '✕ Close'));
-    this._btnSave.style.display = 'none';
-    this._btnClose.style.display = 'none';
-    this._titlebar.append(tabs, actions);
+    _buildShell() {
+        // Reader-mode title bar (Library button, etc.) — hidden in Library mode.
+        this._titleBar = el('div', { class: 'cx-titlebar' });
+        this._titleBarLibBtn = el('button', {
+            type: 'button', class: 'cx-titlebar-btn',
+            title: 'Back to Library',
+            onclick: () => this._closeReader(),
+        }, '← Library');
+        this._titleBarTitle = el('div', { class: 'cx-titlebar-title' });
+        this._titleBarActions = el('div', { class: 'cx-titlebar-actions' });
+        this._btnDownload = el('button', {
+            type: 'button', class: 'cx-titlebar-btn',
+            title: 'Download to disk',
+            onclick: () => this._downloadCurrent(),
+        }, '⇩ Download');
+        this._btnExport = el('button', {
+            type: 'button', class: 'cx-titlebar-btn',
+            title: 'Export a copy to /home/documents',
+            onclick: () => this._exportCurrent(),
+        }, 'Export to Files');
+        this._titleBarActions.append(this._btnDownload, this._btnExport);
+        this._titleBar.append(this._titleBarLibBtn, this._titleBarTitle, this._titleBarActions);
 
-    this._codex = buildCodex({
-      getStreakStrip: () => densityStrip(this._streak, 14),
-      getStreakDays: () => currentStreak(this._streak),
-      getBookmarks: (docId) => listBookmarks(this.kernel, docId),
-      getHighlightsOnPage: (docId, page) => listHighlightsOnPage(this.kernel, docId, page),
-      onAddBookmark: ({ docId, page, label, color }) => {
-        addBookmark(this.kernel, docId, { page, label, color });
-        this._codex.refreshRail();
-      },
-      onAddHighlight: ({ docId, page, text, color }) => {
-        addHighlight(this.kernel, docId, { page, text, color });
-      },
-      onRemoveBookmark: (b) => {
-        const docId = this._codex.getDocId();
-        if (!docId) return;
-        removeBookmark(this.kernel, docId, b.page, b.label);
-        this._codex.refreshRail();
-      },
-      onSendToNotes: () => { /* clipboard handled inside codex; toast also */ },
-      onRecordOpen: () => {
-        this._streak = recordOpen(this.kernel);
-      },
-      onToast: (t) => this.kernel?.emit?.('toast', t),
-    });
+        this._libraryHost = el('div', { class: 'pdf-lib-host' });
+        this._readerHost = el('div', { class: 'pdf-reader-host' });
 
-    // Empty state shown when no doc is loaded — overlays the codex root.
-    this._empty = el('div', { class: 'cx-app-empty' }, [
-      el('div', { class: 'cx-app-empty-icon' }, '📕'),
-      el('div', { class: 'cx-app-empty-title' }, 'PDF Codex'),
-      el('div', { class: 'cx-app-empty-hint' }, 'Open a PDF to start reading. Drag & drop also works.'),
-      (() => {
-        const b = el('button', {
-          type: 'button', class: 'cx-app-empty-btn',
-          onclick: () => this._triggerOpen(),
-        }, '+ Open PDF');
-        return b;
-      })(),
-      this._buildRecentsList(),
-    ]);
-
-    this._dropOverlay = el('div', { class: 'cx-drop-overlay' }, [
-      el('div', { class: 'cx-drop-content' }, [
-        el('div', { class: 'cx-drop-icon' }, '⬇'),
-        el('div', {}, 'Drop PDF here'),
-      ]),
-    ]);
-
-    this._fileInput = el('input', {
-      type: 'file',
-      accept: 'application/pdf,.pdf',
-      hidden: true,
-      onchange: (e) => this._handleFileSelect(e),
-    });
-
-    this.root.append(this._titlebar, this._codex.root, this._empty, this._dropOverlay, this._fileInput);
-    this._bindDragDrop();
-  }
-
-  _buildRecentsList() {
-    const recents = this._getValidRecents();
-    if (!recents.length) return el('div', { class: 'cx-recents-empty' }, '');
-    const list = el('div', { class: 'cx-recents' }, [
-      el('div', { class: 'cx-recents-h' }, 'Recently opened'),
-    ]);
-    for (const r of recents) {
-      const btn = el('button', {
-        type: 'button', class: 'cx-recent-item', title: r.path,
-        onclick: () => this._openRecent(r),
-      }, [
-        el('span', { class: 'cx-recent-icon' }, '📕'),
-        el('span', { class: 'cx-recent-name' }, r.name),
-        el('span', { class: 'cx-recent-date' }, this._formatDate(r.openedAt)),
-      ]);
-      list.appendChild(btn);
+        this.root.append(this._titleBar, this._libraryHost, this._readerHost);
     }
-    return list;
-  }
 
-  _renderEmpty() {
-    const hasDoc = !!this._codex.getDocId();
-    // Keep the codex root visible at all times — pdf.js render
-    // hangs when its canvas is in a display:none subtree. The empty
-    // overlay floats on top of it instead.
-    this._empty.style.display = hasDoc ? 'none' : 'flex';
-    this._btnSave.style.display = (hasDoc && !this._openedFromFiles) ? '' : 'none';
-    this._btnClose.style.display = hasDoc ? '' : 'none';
-  }
-
-  // ── Loading ──
-
-  async _loadFromDataUrl(dataUrl, name, path) {
-    this._currentDataUrl = dataUrl;
-    this._currentName = name || 'document.pdf';
-    this._currentPath = path || null;
-    // pdf.js accepts data URLs directly via `getDocument({ url })`.
-    await this._codex.load({
-      source: { url: dataUrl },
-      name: this._currentName,
-      id: path || `recent:${name}`,
-    });
-    this._renderEmpty();
-  }
-
-  async _loadFromFile(file) {
-    const MAX_BYTES = 50 * 1024 * 1024; // 50 MB hard cap — real PDFs can be large
-    if (file.size > MAX_BYTES) {
-      this.kernel?.emit?.('toast', {
-        message: `PDF too large (max ${MAX_BYTES / 1024 / 1024} MB)`,
-        type: 'error',
-      });
-      return;
+    async _runMigration() {
+        try {
+            const result = await migrateIfNeeded({
+                loadStorage: (k) => this.kernel.storage.load(k),
+                saveStorage: (k, v) => this.kernel.storage.save(k, v),
+                readFile: (p) => this.fs?.read?.(p),
+                fileExists: (p) => Boolean(this.fs?.exists?.(p)),
+                addDocument: async (blob, name, meta) => {
+                    return this.pdfStore.addDocument(blob, name, meta);
+                },
+                findDocBySourcePath: async (path) => {
+                    return this.pdfStore.findBySourcePath(path);
+                },
+                warn: (...args) => console.warn('[pdf-migrate]', ...args),
+            });
+            if (result && !result.alreadyDone && result.migrated > 0) {
+                this.kernel?.emit?.('toast', {
+                    message: `Imported ${result.migrated} PDF${result.migrated === 1 ? '' : 's'} into your Library`,
+                    type: 'success',
+                });
+            }
+        } catch (e) {
+            console.warn('[PdfReaderApp] migration failed:', e);
+        }
     }
-    const buffer = await file.arrayBuffer();
-    // Verify magic bytes — pdf.js trusts arbitrary bytes and a malicious
-    // 'evil.pdf' that doesn't actually start with '%PDF-' can spin the
-    // worker. Real PDFs always start with the 5 bytes '%PDF-' (25 50 44
-    // 46 2D), per ISO 32000-1 §7.5.2.
-    const head = new Uint8Array(buffer, 0, Math.min(5, buffer.byteLength));
-    if (head.length < 5
-        || head[0] !== 0x25 || head[1] !== 0x50 || head[2] !== 0x44
-        || head[3] !== 0x46 || head[4] !== 0x2D) {
-      this.kernel?.emit?.('toast', {
-        message: `${file.name} is not a valid PDF`,
-        type: 'error',
-      });
-      return;
+
+    // ── Library ────────────────────────────────────────────────
+
+    _showLibrary() {
+        if (!this._library) {
+            this._library = buildLibraryView({
+                kernel: this.kernel,
+                onOpenDoc: (doc) => this._openDocId(doc.id),
+                onToast: (t) => this.kernel?.emit?.('toast', t),
+            });
+            this._libraryHost.appendChild(this._library.root);
+        }
+        this._teardownReader();
+        this._libraryHost.style.display = '';
+        this._readerHost.style.display = 'none';
+        this._titleBar.style.display = 'none';
+        this._library.refresh();
     }
-    this._currentDataUrl = null;
-    this._currentName = file.name;
-    this._currentPath = null;
-    this._openedFromFiles = false;
-    await this._codex.load({
-      source: { data: new Uint8Array(buffer) },
-      name: file.name,
-      id: `recent:${file.name}`,
-    });
-    // Cache the data URL for save-to-files.
-    this._currentDataUrl = await blobToDataUrl(file);
-    this._renderEmpty();
-  }
 
-  _closeDoc() {
-    if (!this._codex) return;
-    this._codex.close();
-    this._currentDataUrl = null;
-    this._currentName = null;
-    this._currentPath = null;
-    this._openedFromFiles = false;
-    // Rebuild recents list inside the empty state.
-    this._empty.replaceChildren(...this._empty.children);
-    this._renderEmpty();
-  }
+    // ── Reader ─────────────────────────────────────────────────
 
-  // ── File ops ──
-
-  _triggerOpen() { this._fileInput.click(); }
-
-  _handleFileSelect(e) {
-    const file = e.target.files?.[0];
-    if (file && (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf'))) {
-      this._loadFromFile(file);
+    async _openDocId(docId) {
+        if (!docId || !this.pdfStore) return;
+        try {
+            const doc = await this.pdfStore.getDocument(docId);
+            if (!doc) {
+                this.kernel?.emit?.('toast', { message: 'Document not found', type: 'error' });
+                this._showLibrary();
+                return;
+            }
+            this._currentDoc = stripBlob(doc);
+            this._currentDocId = doc.id;
+            await this._mountReader(doc);
+        } catch (e) {
+            console.error('[PdfReaderApp] open failed:', e);
+            this.kernel?.emit?.('toast', { message: `Couldn't open: ${e.message || e}`, type: 'error' });
+        }
     }
-    this._fileInput.value = '';
-  }
 
-  _saveToFiles() {
-    if (!this._currentDataUrl || !this.fs) return;
-    const name = this._currentName || 'document.pdf';
-    let targetPath = `/home/documents/${name}`;
-    if (this.fs.exists(targetPath)) {
-      const ext = '.pdf';
-      const base = name.toLowerCase().endsWith(ext) ? name.slice(0, -ext.length) : name;
-      let counter = 2;
-      while (this.fs.exists(targetPath)) {
-        targetPath = `/home/documents/${base} (${counter})${ext}`;
-        counter++;
-      }
+    async _openFromFilesApp(path) {
+        const meta = await importFromFilesApp({ pdfStore: this.pdfStore, fs: this.fs, path });
+        if (meta) {
+            await this._openDocId(meta.id);
+        } else {
+            this.kernel?.emit?.('toast', { message: `Couldn't import "${path}"`, type: 'error' });
+            this._showLibrary();
+        }
     }
-    this.fs.write(targetPath, this._currentDataUrl, {
-      mime: 'application/pdf',
-      size: this._currentDataUrl.length,
-      source: 'pdf-reader',
-    });
-    this._currentPath = targetPath;
-    this._openedFromFiles = true;
-    this._addToRecents(name, targetPath);
-    this.kernel?.emit?.('toast', { message: 'Saved to /home/documents', type: 'success' });
-    this._renderEmpty();
-  }
 
-  // ── Recents ──
-
-  _addToRecents(name, path) {
-    if (!name || !path) return;
-    try {
-      const recents = this.kernel.storage.load(RECENT_KEY) || [];
-      const filtered = recents.filter((r) => r.path !== path);
-      filtered.unshift({ name, path, openedAt: Date.now() });
-      this.kernel.storage.save(RECENT_KEY, filtered.slice(0, MAX_RECENTS));
-    } catch { /* ignore */ }
-  }
-
-  _getRecents() {
-    try { return this.kernel.storage.load(RECENT_KEY) || []; }
-    catch { return []; }
-  }
-
-  _getValidRecents() {
-    return this._getRecents().filter((r) => this.fs?.exists(r.path));
-  }
-
-  async _openRecent(recent) {
-    const file = this.fs?.read(recent.path);
-    if (file && file.content) {
-      this._openedFromFiles = true;
-      this._currentPath = recent.path;
-      await this._loadFromDataUrl(file.content, recent.name, recent.path);
-      this._addToRecents(recent.name, recent.path);
+    async _openFromDataUrl(dataUrl, name) {
+        try {
+            const res = await fetch(dataUrl);
+            const blob = await res.blob();
+            const verdict = await vetImport(blob, name);
+            if (verdict.needsConfirm) {
+                if (!window.confirm(`${verdict.reason}\n\nImport anyway?`)) {
+                    this._showLibrary();
+                    return;
+                }
+            }
+            const meta = await importBlob({
+                pdfStore: this.pdfStore, blob, name,
+                persistRequested: this._persistRequested,
+            });
+            await this._openDocId(meta.id);
+        } catch (e) {
+            this.kernel?.emit?.('toast', { message: e.message || 'Import failed', type: 'error' });
+            this._showLibrary();
+        }
     }
-  }
 
-  _formatDate(timestamp) {
-    const d = new Date(timestamp);
-    const now = new Date();
-    const diffDays = Math.floor((now - d) / 86400000);
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return d.toLocaleDateString();
-  }
+    async _mountReader(doc) {
+        this._teardownReader();
 
-  // ── Keyboard ──
+        this._titleBarTitle.textContent = doc.name || 'Document';
+        this._titleBar.style.display = '';
+        this._libraryHost.style.display = 'none';
+        this._readerHost.style.display = '';
 
-  _onKeydown(e) {
-    const appLayer = this.root?.closest('.m-app-layer');
-    if (!appLayer || appLayer.hidden) return;
-    const tag = (e.target?.tagName || '').toUpperCase();
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    if (!this._codex || !this._codex.getDocId()) return;
+        this._reader = buildCodex({
+            getStreakStrip: () => densityStrip(this._streak, 14),
+            getStreakDays: () => currentStreak(this._streak),
+            getBookmarks: (docId) => listBookmarks(this.kernel, docId),
+            getHighlightsOnPage: (docId, page) => listHighlightsOnPage(this.kernel, docId, page),
+            onAddBookmark: ({ docId, page, label, color }) => {
+                addBookmark(this.kernel, docId, { page, label, color });
+                this._reader.refreshRail();
+            },
+            onAddHighlight: ({ docId, page, text, color }) => {
+                addHighlight(this.kernel, docId, { page, text, color });
+            },
+            onRemoveBookmark: (b) => {
+                const docId = this._reader.getDocId();
+                if (!docId) return;
+                removeBookmark(this.kernel, docId, b.page, b.label);
+                this._reader.refreshRail();
+            },
+            onSendToNotes: () => { /* clipboard handled inside codex */ },
+            onRecordOpen: () => {
+                this._streak = recordOpen(this.kernel);
+            },
+            onToast: (t) => this.kernel?.emit?.('toast', t),
+        });
+        this._readerHost.appendChild(this._reader.root);
 
-    if (e.key === 'ArrowLeft' || e.key === 'PageUp')        { this._codex.keyMove(-1); e.preventDefault(); }
-    else if (e.key === 'ArrowRight' || e.key === 'PageDown') { this._codex.keyMove(1);  e.preventDefault(); }
-    else if (e.key === 'Home')                               { this._codex.keyJump('first'); e.preventDefault(); }
-    else if (e.key === 'End')                                { this._codex.keyJump('last');  e.preventDefault(); }
-  }
+        // Convert blob → data URL for the existing codex (which calls
+        // pdf.js with `getDocument({ url })`). We could feed pdf.js a
+        // Uint8Array instead, but the existing codex API takes `source`
+        // shaped as `{ url } | { data }` — both work. Pass a blob URL
+        // for memory efficiency (no base64 expansion).
+        const blob = doc.blob || (await this.pdfStore.readBlob(doc.id));
+        const blobUrl = URL.createObjectURL(blob);
+        this._currentBlobUrl = blobUrl;
 
-  // ── Drag & drop ──
+        try {
+            await this._reader.load({
+                source: { url: blobUrl },
+                name: doc.name,
+                id: doc.id,
+            });
+            // Bookkeeping: also bump pdfStore.viewState.lastOpenedAt so the
+            // Library knows this is a "reading-now" doc on next render.
+            try { await this.pdfStore.saveViewState(doc.id, { docId: doc.id }); } catch { /* ignore */ }
+        } catch (e) {
+            console.error('[PdfReaderApp] reader.load failed:', e);
+            this.kernel?.emit?.('toast', { message: `Couldn't open document`, type: 'error' });
+            this._closeReader();
+        }
+    }
 
-  _bindDragDrop() {
-    let dragCounter = 0;
-    this.root.addEventListener('dragenter', (e) => {
-      e.preventDefault();
-      dragCounter++;
-      this._dropOverlay.classList.add('is-visible');
-    });
-    this.root.addEventListener('dragleave', (e) => {
-      e.preventDefault();
-      dragCounter--;
-      if (dragCounter <= 0) {
-        dragCounter = 0;
-        this._dropOverlay.classList.remove('is-visible');
-      }
-    });
-    this.root.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'copy';
-    });
-    this.root.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dragCounter = 0;
-      this._dropOverlay.classList.remove('is-visible');
-      const file = [...e.dataTransfer.files].find((f) =>
-        f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
-      );
-      if (file) this._loadFromFile(file);
-    });
-  }
+    _teardownReader() {
+        if (this._reader) {
+            try { this._reader.destroy(); } catch { /* ignore */ }
+            this._reader = null;
+        }
+        if (this._readerHost) {
+            this._readerHost.innerHTML = '';
+        }
+        if (this._currentBlobUrl) {
+            URL.revokeObjectURL(this._currentBlobUrl);
+            this._currentBlobUrl = null;
+        }
+    }
 
-  _basename(path) { return (path || '').split('/').pop() || ''; }
+    _closeReader() {
+        this._teardownReader();
+        this._currentDocId = null;
+        this._currentDoc = null;
+        this._showLibrary();
+    }
+
+    // ── per-doc actions ────────────────────────────────────────
+
+    async _downloadCurrent() {
+        if (!this._currentDocId) return;
+        try {
+            const blob = await this.pdfStore.readBlob(this._currentDocId);
+            if (!blob) throw new Error('blob unavailable');
+            const a = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            a.href = url;
+            a.download = this._currentDoc?.name || 'document.pdf';
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 200);
+        } catch (e) {
+            this.kernel?.emit?.('toast', { message: `Download failed: ${e.message || e}`, type: 'error' });
+        }
+    }
+
+    async _exportCurrent() {
+        if (!this._currentDocId) return;
+        try {
+            const { exportToFilesApp } = await import('./pdf/library/importExport.js');
+            const { path } = await exportToFilesApp({
+                pdfStore: this.pdfStore, fs: this.fs, docId: this._currentDocId,
+            });
+            this.kernel?.emit?.('toast', { message: `Exported to ${path}`, type: 'success' });
+        } catch (e) {
+            this.kernel?.emit?.('toast', { message: e.message || 'Export failed', type: 'error' });
+        }
+    }
+
+    // ── Keyboard ───────────────────────────────────────────────
+
+    _onKeydown(e) {
+        const appLayer = this.root?.closest('.m-app-layer');
+        if (!appLayer || appLayer.hidden) return;
+        const tag = (e.target?.tagName || '').toUpperCase();
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+        // Reader-mode arrows / page-jump.
+        if (this._reader && this._reader.getDocId()) {
+            if (e.key === 'ArrowLeft' || e.key === 'PageUp')         { this._reader.keyMove(-1); e.preventDefault(); }
+            else if (e.key === 'ArrowRight' || e.key === 'PageDown') { this._reader.keyMove(1);  e.preventDefault(); }
+            else if (e.key === 'Home')                               { this._reader.keyJump('first'); e.preventDefault(); }
+            else if (e.key === 'End')                                { this._reader.keyJump('last');  e.preventDefault(); }
+        }
+    }
 }
 
-function blobToDataUrl(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+function stripBlob(d) {
+    if (!d) return d;
+    const { blob: _b, ...rest } = d;
+    return rest;
 }

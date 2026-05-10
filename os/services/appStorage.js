@@ -641,12 +641,39 @@ const REGISTRY = {
     },
 
     // ── PDF Reader ──
+    // Note: PDF blobs + per-doc viewState + annotations + searchIndex live
+    // in IndexedDB (see os/services/pdfStore.js). Only small sync-friendly
+    // metadata lives here.
     yancotab_pdf_recent: {
+        // Mixed shape: legacy v1 entries are { name, path, openedAt } where
+        // `path` references FilesApp; v2 entries are { docId, openedAt }
+        // where `docId` references pdfStore (IDB). The async migration in
+        // os/apps/pdf/library/migration.js converts v1 to v2 on first v2
+        // launch. AppStorage's validator just checks "array of objects".
         storageClass: 'volatile',
         syncPolicy: 'never',
         version: 1,
         default: [],
         validate: (v) => Array.isArray(v),
+    },
+    yancotab_pdf_recent_pre_v2: {
+        // Paranoid backup of the v1 recents list, written once during
+        // migration. Never read by app code; exists so a user can recover
+        // if the v2 migration goes wrong.
+        storageClass: 'volatile',
+        syncPolicy: 'never',
+        version: 1,
+        default: null,
+        validate: (v) => v === null || Array.isArray(v),
+    },
+    yancotab_pdf_migrated_v2: {
+        // Idempotency flag — set after the v1→v2 migration runs. We never
+        // re-run migration once this is true.
+        storageClass: 'preferences',
+        syncPolicy: 'never',
+        version: 1,
+        default: false,
+        validate: (v) => typeof v === 'boolean',
     },
     yancotab_pdf_streak_v1: {
         storageClass: 'volatile',
@@ -657,6 +684,8 @@ const REGISTRY = {
             && v.days && typeof v.days === 'object',
     },
     yancotab_pdf_bookmarks_v1: {
+        // Map keyed by docId (or legacy FilesApp path; entries get migrated
+        // to docId keys on first v2 launch).
         storageClass: 'user-data',
         syncPolicy: 'conditional',
         version: 1,
@@ -664,11 +693,42 @@ const REGISTRY = {
         validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
     },
     yancotab_pdf_highlights_v1: {
+        // Legacy (v1) highlights map keyed by docId/path. v2 reads
+        // highlights from the IDB `annotations` store; this key is kept
+        // only as a paranoid backup until everyone has migrated.
         storageClass: 'user-data',
         syncPolicy: 'conditional',
         version: 1,
         default: {},
         validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
+    },
+    yancotab_pdf_settings_v1: {
+        // App-level PDF Reader prefs (not per-doc). Per-doc state lives
+        // in pdfStore.viewState.
+        storageClass: 'preferences',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: {
+            defaultMode: 'auto',         // 'auto' | 'single' | 'continuous' | 'spread' | 'book'
+            defaultZoom: 'fit-width',    // 'fit-width' | 'fit-page' | 'actual' | number
+            theme: 'auto',               // 'auto' | 'dark' | 'light' page rendering
+            findCaseSensitive: false,
+            findWholeWord: false,
+            ocrAutoPrompt: true,
+            showStreakInBar: true,
+        },
+        validate: (v) => v && typeof v === 'object',
+    },
+    yancotab_pdf_library_view_v1: {
+        // Last-used Library filter / sort / grid-vs-list.
+        storageClass: 'preferences',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { filter: 'all', sort: 'lastOpened', viewMode: 'grid' },
+        validate: (v) => v && typeof v === 'object'
+            && typeof v.filter === 'string'
+            && typeof v.sort === 'string'
+            && typeof v.viewMode === 'string',
     },
 };
 

@@ -9,6 +9,7 @@ import { ClockService } from './services/clockService.js';
 import { WeatherService } from './services/weatherService.js';
 import { FileSystemService } from './services/fileSystemService.js';
 import { AppStorage } from './services/appStorage.js';
+import { PdfStore } from './services/pdfStore.js';
 import { VERSION, BUILD } from './version.js';
 
 // Trusted system events that only the kernel should emit
@@ -154,6 +155,14 @@ export class Kernel {
             this.registerService('fs', fs);
         } catch (e) {
             console.error('[Kernel] FileSystemService init failed:', e);
+        }
+
+        try {
+            // PdfStore is lazy — DB opens on first call. We just register the
+            // singleton here so apps can grab it via kernel.getService('pdfStore').
+            this.registerService('pdfStore', new PdfStore());
+        } catch (e) {
+            console.error('[Kernel] PdfStore init failed:', e);
         }
     }
 

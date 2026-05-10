@@ -1,0 +1,535 @@
+/* ─────────────────────────────────────────────────────────────
+   PDF Library — cosmic glass grid view
+   Rendered when no PDF is open. Replaces the v1 single-button
+   empty state with a real Library shell.
+   ───────────────────────────────────────────────────────────── */
+
+/* App-window scaffold — the PdfReaderApp uses .app-pdf as its root.
+   Library and Reader hosts swap visibility via inline display style. */
+.app-pdf {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--text-bright);
+    font-family: var(--font-sans);
+    height: 100%;
+}
+.pdf-lib-host,
+.pdf-reader-host {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+}
+.pdf-reader-host {
+    flex-direction: column;
+}
+
+/* ── Library root ───────────────────────────────────────────── */
+.pdf-lib {
+    flex: 1;
+    display: grid;
+    grid-template-rows: auto auto 1fr auto;
+    grid-template-areas:
+        'topbar'
+        'filter'
+        'content'
+        'gauge';
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(0, 229, 193, 0.04) 0%, transparent 50%),
+        var(--bg);
+    color: var(--text-bright);
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Top bar ────────────────────────────────────────────────── */
+.pdf-lib-topbar {
+    grid-area: topbar;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-lg) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-glass);
+    backdrop-filter: var(--glass-blur);
+}
+.pdf-lib-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--font-lg);
+    font-weight: 600;
+    letter-spacing: 0.4px;
+}
+.pdf-lib-title-icon { font-size: 22px; }
+.pdf-lib-topbar-actions {
+    display: flex;
+    gap: var(--space-sm);
+}
+.pdf-lib-btn {
+    height: 32px;
+    padding: 0 var(--space-md);
+    border-radius: var(--radius-sm);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    color: var(--text-bright);
+    font: inherit;
+    font-size: var(--font-sm);
+    cursor: pointer;
+    transition: background 150ms ease-out, border-color 150ms ease-out, transform 80ms ease-out;
+}
+.pdf-lib-btn:hover {
+    background: var(--accent-bg);
+    border-color: var(--border-accent);
+}
+.pdf-lib-btn:active { transform: scale(0.98); }
+.pdf-lib-btn.is-primary {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    border-color: transparent;
+    font-weight: 600;
+}
+.pdf-lib-btn.is-primary:hover {
+    background: var(--accent-bright);
+    box-shadow: var(--glow-sm);
+}
+
+/* ── Filter row ─────────────────────────────────────────────── */
+.pdf-lib-filter {
+    grid-area: filter;
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    padding: var(--space-md) var(--space-xl);
+    border-bottom: 1px solid var(--border);
+}
+.pdf-lib-filter-pills {
+    display: flex;
+    gap: var(--space-xs);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    padding: 3px;
+    border-radius: var(--radius-pill);
+}
+.pdf-lib-pill {
+    padding: 4px var(--space-md);
+    background: transparent;
+    color: var(--text);
+    border: none;
+    border-radius: var(--radius-pill);
+    font: inherit;
+    font-size: var(--font-sm);
+    cursor: pointer;
+    transition: background 150ms ease-out, color 150ms ease-out;
+}
+.pdf-lib-pill:hover { color: var(--text-bright); }
+.pdf-lib-pill.is-active {
+    background: var(--accent);
+    color: var(--accent-contrast);
+    font-weight: 600;
+}
+.pdf-lib-filter-search {
+    flex: 1;
+    height: 32px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: 0 var(--space-md);
+    color: var(--text-bright);
+    font: inherit;
+    font-size: var(--font-sm);
+    transition: border-color 150ms ease-out;
+}
+.pdf-lib-filter-search:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+.pdf-lib-filter-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+}
+.pdf-lib-filter-sort-label {
+    color: var(--text);
+    font-size: var(--font-sm);
+}
+.pdf-lib-filter-sort {
+    height: 30px;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    color: var(--text-bright);
+    font: inherit;
+    font-size: var(--font-sm);
+    padding: 0 var(--space-sm);
+    cursor: pointer;
+}
+.pdf-lib-view-toggle {
+    display: flex;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+.pdf-lib-view-btn {
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 14px;
+    cursor: pointer;
+}
+.pdf-lib-view-btn:hover { color: var(--text-bright); }
+.pdf-lib-view-btn.is-active {
+    background: var(--accent-bg);
+    color: var(--accent);
+}
+
+/* ── Grid ──────────────────────────────────────────────────── */
+.pdf-lib-grid {
+    grid-area: content;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: var(--space-xl);
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: var(--space-xl);
+    align-content: start;
+}
+.pdf-lib-grid.is-list {
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+}
+
+/* ── Card ──────────────────────────────────────────────────── */
+.pdf-lib-card {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 200ms ease-out, border-color 200ms ease-out, box-shadow 200ms ease-out;
+    text-align: left;
+    color: inherit;
+    backdrop-filter: var(--glass-blur-sm);
+}
+.pdf-lib-card:hover {
+    transform: translateY(-3px);
+    border-color: var(--border-accent);
+    box-shadow: var(--glow-sm);
+}
+.pdf-lib-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+.pdf-lib-card-thumb {
+    aspect-ratio: 5 / 7;
+    background: var(--bg-elevated);
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--border);
+}
+.pdf-lib-card-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.pdf-lib-card-thumb-empty {
+    font-size: 56px;
+    opacity: 0.3;
+}
+.pdf-lib-card-progress {
+    height: 3px;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.04);
+}
+.pdf-lib-card-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 200ms ease-out;
+}
+.pdf-lib-card-name {
+    padding: var(--space-sm) var(--space-md) 2px;
+    font-size: var(--font-sm);
+    font-weight: 500;
+    line-height: 1.3;
+    color: var(--text-bright);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 34px;
+}
+.pdf-lib-card-meta {
+    padding: 0 var(--space-md);
+    font-size: var(--font-xs);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.pdf-lib-card-footer {
+    padding: var(--space-xs) var(--space-md) var(--space-sm);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-xs);
+    color: var(--text);
+}
+.pdf-lib-card-cta {
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+/* List view tweaks */
+.pdf-lib-grid.is-list .pdf-lib-card {
+    flex-direction: row;
+    align-items: stretch;
+    height: 80px;
+}
+.pdf-lib-grid.is-list .pdf-lib-card-thumb {
+    width: 60px;
+    aspect-ratio: auto;
+    flex-shrink: 0;
+    border-bottom: none;
+    border-right: 1px solid var(--border);
+}
+.pdf-lib-grid.is-list .pdf-lib-card-progress {
+    width: 4px;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.04);
+    flex-shrink: 0;
+}
+.pdf-lib-grid.is-list .pdf-lib-card-progress-fill {
+    width: 100% !important;
+    height: var(--progress, 0);
+}
+
+/* ── Empty state ───────────────────────────────────────────── */
+.pdf-lib-empty {
+    grid-area: content;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-3xl, 48px) var(--space-xl);
+    text-align: center;
+    gap: var(--space-md);
+    color: var(--text);
+}
+.pdf-lib-empty-icon {
+    font-size: 64px;
+    opacity: 0.4;
+    margin-bottom: var(--space-md);
+}
+.pdf-lib-empty-title {
+    font-size: var(--font-xl);
+    font-weight: 600;
+    color: var(--text-bright);
+}
+.pdf-lib-empty-hint { font-size: var(--font-base); }
+.pdf-lib-empty-actions {
+    display: flex;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+}
+
+/* ── Storage gauge footer ──────────────────────────────────── */
+.pdf-lib-gauge {
+    grid-area: gauge;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-xl);
+    background: var(--bg-glass);
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-size: var(--font-xs);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+}
+.pdf-lib-gauge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 10px var(--accent-glow);
+}
+.pdf-lib-gauge-dot[data-level='warn']     { background: var(--warning, #ff9500); box-shadow: 0 0 10px rgba(255, 149, 0, 0.4); }
+.pdf-lib-gauge-dot[data-level='critical'] { background: var(--danger, #ff3b30); box-shadow: 0 0 10px rgba(255, 59, 48, 0.4); }
+.pdf-lib-gauge-dot[data-level='unknown']  { background: var(--text-dim); box-shadow: none; }
+.pdf-lib-gauge-text { flex: 1; }
+.pdf-lib-gauge-manage {
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-bright);
+    border-radius: var(--radius-xs);
+    padding: 2px var(--space-sm);
+    font-family: inherit;
+    font-size: var(--font-xs);
+    cursor: pointer;
+}
+.pdf-lib-gauge-manage:hover {
+    border-color: var(--border-accent);
+    background: var(--accent-bg);
+}
+
+/* ── Drop overlay ──────────────────────────────────────────── */
+.pdf-lib-drop-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 229, 193, 0.08);
+    backdrop-filter: blur(8px);
+    border: 2px dashed var(--accent);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 20;
+    border-radius: inherit;
+}
+.pdf-lib-drop-overlay.is-visible { display: flex; }
+.pdf-lib-drop-content {
+    text-align: center;
+    color: var(--accent);
+    font-size: var(--font-xl);
+    font-weight: 600;
+}
+.pdf-lib-drop-icon {
+    font-size: 56px;
+    margin-bottom: var(--space-sm);
+    text-shadow: 0 0 30px var(--accent-glow);
+}
+
+/* ── Card right-click menu ─────────────────────────────────── */
+.pdf-lib-cardmenu {
+    position: fixed;
+    z-index: 1000;
+    min-width: 180px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    backdrop-filter: var(--glass-blur);
+    box-shadow: var(--shadow-lg);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+}
+.pdf-lib-cardmenu-item {
+    background: transparent;
+    border: none;
+    color: var(--text-bright);
+    text-align: left;
+    padding: 6px var(--space-md);
+    border-radius: var(--radius-xs);
+    font: inherit;
+    font-size: var(--font-sm);
+    cursor: pointer;
+}
+.pdf-lib-cardmenu-item:hover { background: var(--accent-bg); }
+.pdf-lib-cardmenu-item.is-danger { color: var(--danger, #ff3b30); }
+.pdf-lib-cardmenu-item.is-danger:hover { background: rgba(255, 59, 48, 0.1); }
+
+/* ── Modal (Import-from-Files picker) ──────────────────────── */
+.pdf-lib-modal-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 30;
+}
+.pdf-lib-modal {
+    width: min(420px, 90%);
+    max-height: 70%;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.pdf-lib-modal-h {
+    padding: var(--space-md) var(--space-lg);
+    border-bottom: 1px solid var(--border);
+    font-size: var(--font-md);
+    font-weight: 600;
+}
+.pdf-lib-modal-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--space-sm);
+}
+.pdf-lib-modal-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    width: 100%;
+    padding: var(--space-sm) var(--space-md);
+    background: transparent;
+    border: none;
+    color: var(--text-bright);
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--font-sm);
+}
+.pdf-lib-modal-item:hover { background: var(--accent-bg); }
+.pdf-lib-modal-icon { font-size: 18px; }
+.pdf-lib-modal-name { flex: 1; }
+.pdf-lib-modal-close {
+    margin: var(--space-sm);
+}
+
+/* ── Reader title bar additions (already mostly in pdf-codex.css) ── */
+.cx-titlebar-title {
+    flex: 1;
+    text-align: center;
+    font-size: var(--font-base);
+    color: var(--text-bright);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 var(--space-md);
+}
+
+/* ── Mobile / narrow viewports ─────────────────────────────── */
+@media (max-width: 720px) {
+    .pdf-lib-topbar { padding: var(--space-md); }
+    .pdf-lib-filter {
+        flex-wrap: wrap;
+        padding: var(--space-md);
+    }
+    .pdf-lib-filter-search {
+        order: 3;
+        width: 100%;
+        flex-basis: 100%;
+    }
+    .pdf-lib-grid {
+        padding: var(--space-md);
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: var(--space-md);
+    }
+    .pdf-lib-gauge { padding: var(--space-sm) var(--space-md); }
+}
+
+/* ── Light theme overrides ─────────────────────────────────── */
+body.theme-light .pdf-lib {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(0, 122, 255, 0.04) 0%, transparent 50%),
+        var(--bg);
+}
+body.theme-light .pdf-lib-card-thumb-empty { opacity: 0.5; }
+body.theme-light .pdf-lib-card-progress { background: rgba(0, 0, 0, 0.06); }

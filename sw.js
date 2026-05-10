@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.1.1';
+const CACHE_NAME = 'yancotab-v1.2.0-pdf-library';
 
 const PRECACHE = [
     './',
@@ -219,6 +219,8 @@ const PRECACHE = [
     './os/apps/photos/view/infoPanel.js',
     // PDF Codex
     './css/pdf-codex.css',
+    './css/pdf-library.css',
+    './os/services/pdfStore.js',
     './os/apps/pdf/codex.js',
     './os/apps/pdf/persistence.js',
     './os/apps/pdf/engine/streak.js',
@@ -227,6 +229,14 @@ const PRECACHE = [
     './os/apps/pdf/engine/inlineCalc.js',
     './os/apps/pdf/engine/quote.js',
     './os/apps/pdf/engine/highlights.js',
+    './os/apps/pdf/library/LibraryView.js',
+    './os/apps/pdf/library/LibraryCard.js',
+    './os/apps/pdf/library/LibraryFilter.js',
+    './os/apps/pdf/library/LibraryStorageGauge.js',
+    './os/apps/pdf/library/libraryReducer.js',
+    './os/apps/pdf/library/importExport.js',
+    './os/apps/pdf/library/migration.js',
+    './os/apps/pdf/library/thumbnail.js',
     './os/apps/pdf/view/applyHighlights.js',
     // Files Vault
     './css/files-vault.css',
