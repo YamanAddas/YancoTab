@@ -31,6 +31,16 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
 
   root.append(canvas, textLayerDiv, pageNum, empty);
 
+  // Acrobat-model selection: only allow drag-select to start on actual
+  // text spans, not on empty space inside the layer. Without this guard,
+  // clicking on margins / between paragraphs / between glyphs starts a
+  // browser selection that extends through every text span as the user
+  // drags. We can't use CSS user-select:none on the container because
+  // that breaks selection continuity across gaps once a drag is underway.
+  textLayerDiv.addEventListener('mousedown', (e) => {
+    if (e.target === textLayerDiv) e.preventDefault();
+  });
+
   let renderTask = null;
   let textLayerTask = null;
   let lastRenderedKey = null;

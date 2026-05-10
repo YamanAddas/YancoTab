@@ -369,9 +369,10 @@ body.theme-light .cx-page {
 body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
 
 /* Text layer — transparent spans over the canvas for native text selection.
-   Acrobat-model: only spans are selectable; the empty space between
-   them is not. This stops "click empty space → drag → selects whole
-   page" behavior. */
+   Acrobat-model: starting a drag on empty space does nothing, but
+   starting on text and dragging through gaps continues smoothly. The
+   "block empty-space mousedown" logic lives in pageView.js — CSS just
+   makes the whole layer selectable for drag continuity. */
 .cx-text-layer {
   position: absolute;
   inset: 0;
@@ -383,13 +384,6 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
   forced-color-adjust: none;
   transform-origin: 0 0;
 }
-/* Beat the shell's body.is-mobile [data-allow-context] * opt-in rule
-   (specificity 0,2,1) so empty space in the container can't start a
-   selection. Spans below override this via their own rule. */
-.codex .cx-page .cx-text-layer {
-  -webkit-user-select: none !important;
-  user-select: none !important;
-}
 .cx-text-layer :is(span, br) {
   color: transparent;
   position: absolute;
@@ -397,12 +391,9 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
   cursor: text;
   transform-origin: 0% 0%;
 }
-/* Re-enable selection on text spans. Specificity (0,3,1) beats both
-   the container's user-select: none and the shell's opt-in. */
-.codex .cx-page .cx-text-layer span {
-  -webkit-user-select: text !important;
-  user-select: text !important;
-}
+/* Show grab cursor in margins when hand tool isn't active to hint
+   that empty-area clicks aren't text. Hand-mode override comes later. */
+.codex .cx-page .cx-text-layer { cursor: default; }
 .cx-text-layer ::selection {
   background: rgba(var(--accent-rgb), 0.32);
   color: transparent;

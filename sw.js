@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.4.3-pdf-scale-factor';
+const CACHE_NAME = 'yancotab-v1.4.4-pdf-empty-guard';
 
 const PRECACHE = [
     './',
