@@ -6,6 +6,137 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [Unreleased]
+
+The "PDF Reader v2" wave — the empty-state app from v1.1.1 grew into a
+real reader with an IDB-backed library, four view modes, full-text
+search, multi-color annotations, and Acrobat-style text selection.
+Plus listing prep for the Chrome Web Store.
+
+### Added — PDF Reader v2 (P1: Library + storage)
+
+- **IndexedDB-backed `pdfStore` service** lifts the per-doc ceiling
+  from ~5–10 MB (FilesApp's base64-in-localStorage budget) to
+  gigabytes per file. Stores: `documents` (sourcePath-indexed),
+  `viewState`, `annotations`, `searchIndex`, `quotes` (added in P4).
+  Quota estimation, `navigator.storage.persist()` request, typed
+  `PdfStoreQuotaError`.
+- **PDF Library home screen** (`os/apps/pdf/library/`, 8 files):
+  grid of doc cards with pdf.js-rendered thumbnails cached on the
+  doc record, filter pills (All / Recent / Reading now), sort +
+  search, grid↔list toggle, drag-drop import, Import-from-Files
+  bridge to FilesApp, storage usage gauge, per-card context menu.
+- **One-shot v1→v2 migration** — walks legacy `yancotab_pdf_recent`,
+  decodes FilesApp data-URLs into Blobs, imports into IDB, rewrites
+  recents to use docIds; backs v1 up to `_pre_v2`. Idempotent.
+- Magic-byte vet on import (`%PDF-`), soft-warn at 500 MB, hard
+  refuse at 2 GB.
+
+### Added — PDF Reader v2 (P2: Reader chrome)
+
+- **Zoom controls** — preset ladder (50/75/100/125/150/200/300/400 +
+  Fit width / Fit page / Actual size), step-with-snap, clamp
+  [0.25, 8.0], string parsing, pinch-anchor math. Ctrl+wheel zooms;
+  double-click on empty page area toggles fit-width ↔ actual size.
+- **Four view modes** — Single / Continuous (virtualized scroll
+  list with IntersectionObserver upgrades) / Spread / Book (cover
+  offset). Default mode picked from stage geometry on first load.
+- **Page rotation** — 0/90/180/270 button; pdf.js's
+  `getViewport({rotation})` handles geometry; render cache key
+  includes rotation.
+- **Reading-position memory** — page, zoom, view-mode, and rotation
+  persist per-doc through `pdfStore.viewState`. Reopening any doc
+  restores the exact reading state. "Resumed on page N" pill fades
+  in for resumed pages > 1. Debounced 500ms write buffer.
+- **Fullscreen** — F11 / titlebar button toggles
+  `document.fullscreenElement` on the codex root. Side rail + info
+  panel hide; stage fills the screen.
+- **Keyboard** — F11 fullscreen, Ctrl+/-/0/1 zoom, arrows/PgUp-Dn
+  page navigation, Home/End jump, T/H text-tool/hand-tool,
+  Ctrl/Cmd+F find.
+- **In-doc search** with "n of m" stepping, regex escape, case +
+  whole-word toggles, persistent search index per doc cached to
+  IDB. **Adobe-style highlights**: every match on every visible page
+  gets a yellow tint, the current match gets bright orange + outline
+  + glow; smooth-scrolls into view on step.
+- **Print** (current page / page range / all), **Download** /
+  **Export to Files**, **Dark pages** (CSS filter for dark-mode
+  reading), **Link layer** (clickable cross-refs + URI links from
+  PDF annotations), **More menu** (⋯).
+
+### Added — PDF Reader v2 (P3: Annotations)
+
+- **PDF-aware right-click menu** with five hit classifications:
+  selection / annotation / link / page / shell. Selection menu has
+  5-color highlight palette + Add note here + Send to Notes (primary)
+  + Calc-on-numeric + Bookmark + Search inside doc + Search web. Page
+  menu has Add note / Bookmark / Go to / Rotate / Fit / Copy page
+  text. Annotation menu has Change color (5 swatches) + Delete. Link
+  menu has Open / Copy. Position-clamped, dismiss on outside-click +
+  Esc + scroll.
+- **Multi-color highlights** — 5 swatches (teal/amber/rose/violet/
+  blue), click-to-edit, delete via context menu.
+- **Sticky notes** — `kind: 'note'` rows in `pdfStore.annotations`
+  with body + 0..1 fractional coords (resilient across pdf.js
+  versions). Pip rendered after every render; popover editor with
+  Save / Delete / Close.
+- **`mobileShell` opt-out** — `data-allow-context="true"` attribute
+  on the PDF stage stops the shell's bubble-phase contextmenu
+  preventDefault, and the capture-phase `selectstart` handler
+  honors the same opt-out so text selection works inside the reader.
+
+### Added — PDF Reader v2 (P4: Differentiators)
+
+- **Quote Vault** — `pdfStore` v2 adds a `quotes` IDB store; context
+  menu's "Save to vault" persists selected text + page citation.
+  Side rail SAVED QUOTES section shows last 5 entries; click p.N to
+  jump; × removes.
+- **Bookmark Constellation** — when ≥3 bookmarks exist, an SVG
+  star-chart timeline appears above the bookmark list. Stars
+  positioned proportionally (page / totalPages), alternate above/
+  below baseline; click to jump.
+- **Auto-OCR for scanned PDFs** — pages with <5 chars after pdf.js
+  text extraction are rendered to OffscreenCanvas at 1.5× scale and
+  passed through tesseract-wasm. OCR results merge into the search
+  index so scanned PDFs become searchable.
+
+### Added — Final polish
+
+- **Export Annotations as Markdown** — ⋯ menu collects all bookmarks,
+  highlights, sticky notes, and saved quotes for the open doc,
+  formats them sorted by page, and downloads as
+  `<title>-annotations.md`.
+- **Acrobat-style text selection + hand tool** — text-tool (Ꮖ) drags
+  to select text across span boundaries (uses pdf.js's official
+  `endOfContent` div trick to bridge gaps between spans during a
+  drag). Hand-tool (✋) drags to pan/scroll the page; pointer-capture
+  + grab/grabbing cursors. Toggle via toolbar button or T/H keys.
+
+### Fixed
+
+- **Selection bug from manual span loop** — replaced 24-line manual
+  `<span>` builder in `pageView.js` with `pdfjsLib.TextLayer`. The
+  manual version skipped the per-glyph `scaleX` transform that
+  pdf.js computes from font metrics, so span hit-areas didn't match
+  rendered glyph widths and drag-selection skipped words / jumped
+  erratically.
+
+### Tests
+
++128 tests since v1.1.1 (1337 → 1465+ depending on which P-phase
+counter you trust): `pdf-zoom`, `pdf-viewport`, `pdf-reading`,
+`pdf-search`, `pdf-notes-engine`, `pdf-libraryReducer`,
+`pdf-migration`, `pdf-import-vet`, `ocr-service`.
+
+### Service worker
+
+Cache name evolved through the buildout:
+`yancotab-v1.2.0-pdf-library` → `v1.2.1-pdf-zoom-modes` →
+`v1.2.2-pdf-resume-fullscreen` → `v1.2.3-pdf-search` →
+`v1.3.0-pdf-annotations` → `v1.4.0-pdf-tools`.
+
+---
+
 ## [1.1.1] — 2026-05-08
 
 Pre-CWS audit pass. Fixed real user-visible bugs in shipped v1.1.0,
