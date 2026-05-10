@@ -84,6 +84,12 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
     canvas.height = Math.floor(viewport.height * dpr);
     canvas.style.width = `${viewport.width}px`;
     canvas.style.height = `${viewport.height}px`;
+    // pdf.js v4 TextLayer needs --scale-factor on the container so its
+    // inline `width: round(var(--scale-factor) * 595px, 1px)` and per-span
+    // percentage positioning resolve correctly. Without this, spans render
+    // at coordinates totally unrelated to where the canvas drew the glyphs,
+    // so visible text has no clickable span underneath it.
+    textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
     textLayerDiv.style.width = `${viewport.width}px`;
     textLayerDiv.style.height = `${viewport.height}px`;
     root.style.width = `${viewport.width}px`;
