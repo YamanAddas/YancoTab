@@ -1065,3 +1065,184 @@ body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 23
   background: rgba(var(--accent-rgb), 0.18);
   outline: 1px solid var(--accent);
 }
+
+/* ── PDF context menu (right-click) ─────────────────────── */
+.cx-ctx-menu {
+  position: fixed;
+  z-index: 1100;
+  min-width: 220px;
+  max-width: 320px;
+  background: var(--bg-panel, rgba(8, 15, 28, 0.97));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.cx-ctx-item {
+  background: transparent;
+  border: none;
+  color: var(--text-bright);
+  padding: 7px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  font: inherit;
+}
+.cx-ctx-item:hover:not(:disabled):not(.is-disabled) {
+  background: rgba(var(--accent-rgb), 0.10);
+  color: var(--accent);
+}
+.cx-ctx-item.is-primary { color: var(--accent); font-weight: 600; }
+.cx-ctx-item.is-danger  { color: var(--danger, #ff3b30); }
+.cx-ctx-item.is-danger:hover  { background: rgba(255, 59, 48, 0.10); }
+.cx-ctx-item.is-dim, .cx-ctx-item.is-disabled {
+  color: var(--text-dim); cursor: default;
+  font-size: 11px; padding: 4px 12px;
+}
+.cx-ctx-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 6px;
+}
+.cx-ctx-color-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 12px;
+  gap: 10px;
+}
+.cx-ctx-color-label {
+  color: var(--text);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+.cx-ctx-color-swatches { display: flex; gap: 4px; }
+.cx-ctx-color-swatch {
+  width: 18px; height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.cx-ctx-color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 0 8px rgba(var(--accent-rgb), 0.4);
+}
+.cx-ctx-swatch-accent { background: var(--accent); }
+.cx-ctx-swatch-warm   { background: #ffb84a; }
+.cx-ctx-swatch-rose   { background: #ff6f8b; }
+.cx-ctx-swatch-violet { background: #9b7bff; }
+.cx-ctx-swatch-cool   { background: #5aa8ff; }
+
+/* ── Sticky-note pips ──────────────────────────────────── */
+.cx-note-pip {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -11px 0 0 -11px;       /* center the pip on (x,y) */
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  background: var(--note-bg, #ffb84a);
+  color: rgba(0, 0, 0, 0.85);
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  z-index: 5;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.cx-note-pip:hover {
+  transform: scale(1.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+}
+.cx-note-warm   { --note-bg: #ffb84a; }
+.cx-note-rose   { --note-bg: #ff6f8b; }
+.cx-note-violet { --note-bg: #9b7bff; }
+.cx-note-cool   { --note-bg: #5aa8ff; }
+.cx-note-accent { --note-bg: var(--accent); }
+
+/* ── Sticky-note popover ────────────────────────────────── */
+.cx-note-popover {
+  z-index: 1100;
+  width: 260px;
+  background: var(--bg-panel, rgba(8, 15, 28, 0.97));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--text-bright);
+}
+.cx-note-popover-h {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.cx-note-popover-body {
+  width: 100%;
+  min-height: 80px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--text-bright);
+  font: inherit;
+  font-family: var(--font-sans);
+  resize: vertical;
+}
+.cx-note-popover-body:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.cx-note-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.cx-note-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
+  color: var(--text-bright);
+  padding: 5px 10px;
+  border-radius: 5px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+.cx-note-btn:hover {
+  border-color: rgba(var(--accent-rgb), 0.30);
+  color: var(--accent);
+}
+.cx-note-btn.is-danger { color: var(--danger, #ff3b30); }
+.cx-note-btn.is-danger:hover { border-color: rgba(255, 59, 48, 0.30); }
+
+/* ── Selection enable on opted-in elements ────────────────
+   The shell sets `user-select: none` on <body> and on every
+   descendant of body.is-mobile. The PDF text layer needs real
+   selection so users can drag-select quotes; opt back in via
+   the [data-allow-context="true"] gate. Specificity bumped
+   with the `body` ancestor so we win over `body.is-mobile *`. */
+body [data-allow-context="true"],
+body [data-allow-context="true"] *,
+body.is-mobile [data-allow-context="true"],
+body.is-mobile [data-allow-context="true"] * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}

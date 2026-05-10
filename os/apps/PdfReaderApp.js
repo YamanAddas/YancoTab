@@ -20,7 +20,7 @@ import { buildCodex } from './pdf/codex.js';
 import {
     recordOpen, loadStreak,
     addBookmark, removeBookmark, listBookmarks,
-    addHighlight, listHighlightsOnPage,
+    addHighlight, removeHighlight, listHighlightsOnPage,
 } from './pdf/persistence.js';
 import { densityStrip, currentStreak } from './pdf/engine/streak.js';
 import { buildLibraryView } from './pdf/library/LibraryView.js';
@@ -245,6 +245,9 @@ export class PdfReaderApp extends App {
             },
             onAddHighlight: ({ docId, page, text, color }) => {
                 addHighlight(this.kernel, docId, { page, text, color });
+            },
+            onRemoveHighlight: ({ docId, page, text }) => {
+                removeHighlight(this.kernel, docId, page, text);
             },
             onRemoveBookmark: (b) => {
                 const docId = this._reader.getDocId();

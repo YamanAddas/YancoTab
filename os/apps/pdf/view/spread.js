@@ -77,14 +77,14 @@ export function buildSpread({ onLinkInternal, onLinkExternal } = {}) {
         right.render(null);
         return;
       }
-      await left.render(firstPage, { cssWidth: cssPerPage, label: `— ${leftPage} —`, rotation });
+      await left.render(firstPage, { cssWidth: cssPerPage, label: `— ${leftPage} —`, rotation, pageNum: leftPage });
     } else {
       left.render(null);
     }
 
     if (useSpread && Number.isFinite(rightPage) && rightPage >= 1 && rightPage <= pdfDoc.numPages && cssPerPage > 0) {
       const p = await pdfDoc.getPage(rightPage);
-      await right.render(p, { cssWidth: cssPerPage, label: `— ${rightPage} —`, rotation });
+      await right.render(p, { cssWidth: cssPerPage, label: `— ${rightPage} —`, rotation, pageNum: rightPage });
     } else {
       right.render(null);
     }

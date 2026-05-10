@@ -19,11 +19,14 @@ import { buildInfoPanel } from './view/infoPanel.js';
 import { setPdfJsModule } from './view/pageView.js';
 
 import { stepZoom, clampZoom, formatLevel as fmtZoom } from './engine/zoom.js';
-import { pickDefaultMode } from './engine/viewport.js';
-import { createReadingMemory, resolveViewState, isResumable } from './engine/reading.js';
+import { createReadingMemory } from './engine/reading.js';
 import { createSelectionController } from './codexSelection.js';
 import { createSearchController } from './codexSearch.js';
-import { resolveOutline, resolveLinkDestination, openExternalUrl } from './codexLoad.js';
+import { createAnnotationsController } from './codexAnnotations.js';
+import {
+  resolveOutline, resolveLinkDestination, openExternalUrl,
+  restoreViewState, ensureDefaultMode,
+} from './codexLoad.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -45,7 +48,7 @@ async function loadPdfJs() {
 export function buildCodex({
   getStreakStrip, getStreakDays,
   getBookmarks, getHighlightsOnPage,
-  onAddBookmark, onRemoveBookmark, onAddHighlight,
+  onAddBookmark, onRemoveBookmark, onAddHighlight, onRemoveHighlight,
   onSendToNotes, onRecordOpen, onToast,
   pdfStore,    // used for viewState (reading-position memory)
 } = {}) {
@@ -92,29 +95,32 @@ export function buildCodex({
     getZoom: () => userZoom,
   });
 
-  const stage = el('div', { class: 'cx-stage', tabindex: '0' });
+  const stage = el('div', {
+    class: 'cx-stage',
+    tabindex: '0',
+    // Opt out of the shell's global contextmenu suppression + selectstart
+    // suppression. Required for the PDF context menu and for drag-to-select
+    // text inside the text layer.
+    'data-allow-context': 'true',
+  });
   const empty = el('div', { class: 'cx-stage-empty' }, [
     el('div', { class: 'cx-stage-empty-title' }, 'No PDF open'),
     el('div', { class: 'cx-stage-empty-hint' }, 'Drop a PDF here or use the Open button.'),
   ]);
-  // Link-layer handlers — delegate to pure helpers, then nav.
-  const followInternalLink = async ({ dest }) => {
-    const target = await resolveLinkDestination(pdfDoc, dest);
-    if (target) goToPage(target);
+  const linkCallbacks = {
+    onLinkInternal: async ({ dest }) => {
+      const t = await resolveLinkDestination(pdfDoc, dest);
+      if (t) goToPage(t);
+    },
+    onLinkExternal: openExternalUrl,
   };
-  const followExternalLink = (url) => openExternalUrl(url);
-
-  const spread = buildSpread({
-    onLinkInternal: followInternalLink,
-    onLinkExternal: followExternalLink,
-  });
+  const spread = buildSpread(linkCallbacks);
   const strip = buildPageStrip({
+    ...linkCallbacks,
     onCurrentPageChange: (n) => {
       currentPage = n; renderRail(); renderBar();
       memory?.save(docId, { page: currentPage, scrollY: stage.scrollTop });
     },
-    onLinkInternal: followInternalLink,
-    onLinkExternal: followExternalLink,
   });
   spread.root.style.display = 'none';
   strip.root.style.display = 'none';
@@ -164,6 +170,33 @@ export function buildCodex({
     onChangeQuotes: (q) => { todaysQuotes = q; },
     onChangeCalc: (c) => { calcResult = c; },
     onRefreshInfo: () => renderInfo(),
+  });
+
+  // PDF-aware right-click + multi-color highlights + sticky notes.
+  const ann = createAnnotationsController({
+    stage, pdfStore,
+    getDocId: () => docId,
+    getDocTitle: () => docTitle,
+    getCurrentPage: () => currentPage,
+    getSelectionRect: () => {
+      const s = sel.getLastSelection();
+      return s.text ? { text: s.text, page: s.page, rect: s.rect } : null;
+    },
+    getHighlightsOnPage,
+    onAddBookmark: (b) => { onAddBookmark?.(b); renderRail(); },
+    onAddHighlight, onRemoveHighlight,
+    onJumpToPage: (n) => goToPage(n),
+    onCopyClipboard: (t) => { try { navigator.clipboard.writeText(t); } catch {} },
+    onSendToNotesText: ({ text, page }) => {
+      // Reuse the existing selection-controller's sendToNotes path so
+      // quote vault behavior stays consistent.
+      sel.sendToNotes();
+    },
+    onToast,
+    onRotatePage: (dir) => { rotation = (rotation + (dir > 0 ? 90 : -90) + 360) % 360; renderStage(); },
+    onFitWidth: () => setZoom('fit-width'),
+    onFitPage:  () => setZoom('fit-page'),
+    onSearchOpen: (q) => search.open?.(q),
   });
 
   // ── Mode helpers ──
@@ -228,6 +261,8 @@ export function buildCodex({
       });
       sel.applyHighlightsToVisiblePages();
     }
+    // Place sticky-note pips after pages render.
+    ann?.renderNotePips?.();
   }
 
   async function resolveZoom() {
@@ -291,14 +326,9 @@ export function buildCodex({
   }
 
   function getProperties() {
-    return {
-      title: docTitle,
-      pages: totalPages,
-      docId,
-      mode: viewMode,
+    return { title: docTitle, pages: totalPages, docId, mode: viewMode,
       zoom: typeof userZoom === 'number' ? `${Math.round(userZoom * 100)}%` : userZoom,
-      rotation: `${rotation}°`,
-    };
+      rotation: `${rotation}°` };
   }
 
   document.addEventListener('fullscreenchange', () => {
@@ -364,17 +394,10 @@ export function buildCodex({
   // ── Resume pill (transient overlay shown on auto-resume) ──
 
   function showResumePill(page) {
-    if (resumePill) { resumePill.remove(); resumePill = null; }
-    resumePill = el('div', {
-      class: 'cx-resume-pill',
-      onclick: () => resumePill?.remove(),
-    }, `Resumed on page ${page}`);
+    if (resumePill) resumePill.remove();
+    resumePill = el('div', { class: 'cx-resume-pill', onclick: () => resumePill?.remove() }, `Resumed on page ${page}`);
     root.appendChild(resumePill);
-    setTimeout(() => {
-      if (!resumePill) return;
-      resumePill.classList.add('is-fading');
-      setTimeout(() => { resumePill?.remove(); resumePill = null; }, 500);
-    }, 2500);
+    setTimeout(() => { resumePill?.classList.add('is-fading'); setTimeout(() => { resumePill?.remove(); resumePill = null; }, 500); }, 2500);
   }
 
   // ── Loading ──
@@ -390,43 +413,18 @@ export function buildCodex({
 
     outline = await resolveOutline(pdfDoc);
 
-    // Try to restore reading position before computing the default mode.
-    let resumed = null;
-    if (memory && docId) {
-      const saved = await memory.load(docId);
-      const v = resolveViewState(saved);
-      if (v) {
-        if (v.mode) viewMode = v.mode;
-        if (v.zoom) userZoom = v.zoom;
-        if (v.rotation) rotation = v.rotation;
-        if (Number.isFinite(v.page)) currentPage = clampPage(v.page);
-        // Only show the resume pill if the saved page actually
-        // landed on something past the first page after clamp.
-        if (isResumable(saved) && currentPage > 1) resumed = currentPage;
-      }
-    }
-    if (!resumed && !memory) {
-      try {
-        const firstPage = await pdfDoc.getPage(1);
-        const baseViewport = firstPage.getViewport({ scale: 1 });
-        viewMode = pickDefaultMode({
-          stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
-          pageBaseViewport: baseViewport,
-        });
-      } catch { /* leave default */ }
-    } else if (!resumed) {
-      // viewMode came back as null from saved? Pick a default.
-      try {
-        const firstPage = await pdfDoc.getPage(1);
-        const baseViewport = firstPage.getViewport({ scale: 1 });
-        if (!viewMode) viewMode = pickDefaultMode({
-          stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
-          pageBaseViewport: baseViewport,
-        });
-      } catch { /* leave default */ }
-    }
+    // Restore saved view state if present.
+    const stateRef = { viewMode, userZoom, rotation, currentPage };
+    const resumed = await restoreViewState({ memory, docId, state: stateRef, clampPage });
+    viewMode = stateRef.viewMode;
+    userZoom = stateRef.userZoom;
+    rotation = stateRef.rotation;
+    currentPage = stateRef.currentPage;
+    if (!resumed) await ensureDefaultMode({ pdfDoc, stage, state: stateRef });
+    viewMode = stateRef.viewMode;
 
     onRecordOpen?.();
+    await ann?.refreshNotes?.();   // pull notes from IDB before first render
     await renderStage();
 
     // After the strip is built, scroll to the resumed page.
@@ -443,6 +441,7 @@ export function buildCodex({
     memory?.flush(docId);
     search.close();
     search.reset();
+    ann?.reset?.();
     pdfDoc = null;
     docId = null;
     docTitle = '';

@@ -652,17 +652,29 @@ export class MobileShell {
     scope().addEventListener('contextmenu', (e) => {
       const t = e.target;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
+      // Apps that handle their own context menu opt out via the
+      // [data-allow-context="true"] attribute on any ancestor of the
+      // right-click target. The PDF reader sets this on its stage so
+      // its own menu fires instead of the desktop grid menu.
+      if (t?.closest?.('[data-allow-context="true"]')) return;
       if (e.cancelable) e.preventDefault();
     }, { passive: false, capture: true });
 
     scope().addEventListener('selectstart', (e) => {
       const t = e.target;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
+      // Allow text selection inside any element (or descendant of an
+      // element) that opts in via [data-allow-context="true"]. The
+      // PDF reader's text-layer needs this so users can drag-select.
+      if (t?.closest?.('[data-allow-context="true"]')) return;
       if (e.cancelable) e.preventDefault();
     }, { passive: false, capture: true });
 
     // Desktop Context Menu (Right Click on background)
     scope().addEventListener('contextmenu', (e) => {
+      // If a descendant called e.preventDefault() in the bubble phase,
+      // it handled the menu itself — don't show the grid menu.
+      if (e.defaultPrevented) return;
       if (e.target.closest('.app-icon') || e.target.closest('.m-dock')) return; // handled by MobileInteraction
       e.preventDefault();
       this.components.contextMenu.show({ type: 'grid', x: e.clientX, y: e.clientY }, e.clientX, e.clientY);

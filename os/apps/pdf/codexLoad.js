@@ -8,6 +8,8 @@
  */
 
 import { flattenOutline, annotateWithPages, destToKey } from './engine/outline.js';
+import { resolveViewState, isResumable } from './engine/reading.js';
+import { pickDefaultMode } from './engine/viewport.js';
 
 /**
  * Pull the doc's outline and resolve every entry to a 1-based page
@@ -49,6 +51,43 @@ export function openExternalUrl(url) {
     if (typeof url !== 'string') return;
     try { window.open(url, '_blank', 'noopener,noreferrer'); }
     catch { /* ignore */ }
+}
+
+/**
+ * Restore saved view state into the orchestrator-mutated state object.
+ * Returns the resumed-page number (or null if not resumable).
+ *
+ * @param {object} args
+ * @param {object} args.memory      — reading-memory controller
+ * @param {string} args.docId
+ * @param {object} args.state       — { viewMode, userZoom, rotation, currentPage } (mutated)
+ * @param {(n:number) => number} args.clampPage
+ * @returns {Promise<number|null>}
+ */
+export async function restoreViewState({ memory, docId, state, clampPage }) {
+    if (!memory || !docId) return null;
+    const saved = await memory.load(docId);
+    const v = resolveViewState(saved);
+    if (!v) return null;
+    if (v.mode) state.viewMode = v.mode;
+    if (v.zoom) state.userZoom = v.zoom;
+    if (v.rotation) state.rotation = v.rotation;
+    if (Number.isFinite(v.page)) state.currentPage = clampPage(v.page);
+    return isResumable(saved) && state.currentPage > 1 ? state.currentPage : null;
+}
+
+/**
+ * Pick a stage-aware default view mode if state.viewMode is empty.
+ */
+export async function ensureDefaultMode({ pdfDoc, stage, state }) {
+    if (state.viewMode) return;
+    try {
+        const baseViewport = (await pdfDoc.getPage(1)).getViewport({ scale: 1 });
+        state.viewMode = pickDefaultMode({
+            stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
+            pageBaseViewport: baseViewport,
+        });
+    } catch { /* leave default */ }
 }
 
 /**

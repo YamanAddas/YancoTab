@@ -43,7 +43,7 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
 
   showEmpty(true);
 
-  async function render(pdfPage, { cssWidth, label, rotation = 0 } = {}) {
+  async function render(pdfPage, { cssWidth, label, rotation = 0, pageNum: pageNumOverride } = {}) {
     if (!pdfPage || !cssWidth || cssWidth <= 0) {
       showEmpty(true);
       return;
@@ -87,6 +87,12 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
     const ctx = canvas.getContext('2d');
 
     showEmpty(false);
+    // Tag the .cx-page root with the page number so context menus and
+    // note-pip layers can locate it without depending on stage-relative
+    // index. The override prop wins over pdfPage.pageNumber when set
+    // (the spread flow passes it explicitly).
+    const num = Number.isFinite(pageNumOverride) ? pageNumOverride : pdfPage.pageNumber;
+    if (Number.isFinite(num)) root.dataset.page = String(num);
     pageNum.textContent = label || `— ${pdfPage.pageNumber} —`;
 
     // Pass DPR via the `transform` param rather than pre-transforming
