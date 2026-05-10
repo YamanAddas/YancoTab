@@ -336,7 +336,19 @@ export class PdfReaderApp extends App {
         const appLayer = this.root?.closest('.m-app-layer');
         if (!appLayer || appLayer.hidden) return;
         const tag = (e.target?.tagName || '').toUpperCase();
-        if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+        const inFindBar = e.target?.closest?.('.cx-find-bar');
+        // Ctrl+F should always trigger search-toggle, even when typing
+        // in inputs (overrides browser's native find).
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'f' || e.key === 'F') && this._reader?.getDocId()) {
+            e.preventDefault();
+            this._reader.toggleSearch?.();
+            return;
+        }
+        if (tag === 'INPUT' || tag === 'TEXTAREA') {
+            // Allow Esc inside the find-bar to fall through to its own handler.
+            if (e.key === 'Escape' && inFindBar) return;
+            return;
+        }
 
         // Reader-mode arrows / page-jump.
         if (this._reader && this._reader.getDocId()) {

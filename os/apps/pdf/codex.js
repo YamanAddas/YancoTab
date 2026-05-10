@@ -23,6 +23,7 @@ import { stepZoom, clampZoom, formatLevel as fmtZoom } from './engine/zoom.js';
 import { pickDefaultMode } from './engine/viewport.js';
 import { createReadingMemory, resolveViewState, isResumable } from './engine/reading.js';
 import { createSelectionController } from './codexSelection.js';
+import { createSearchController } from './codexSearch.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -82,7 +83,7 @@ export function buildCodex({
     onPrev: () => goToPage(currentPage - pageStep()),
     onNext: () => goToPage(currentPage + pageStep()),
     onJumpToPage: (n) => goToPage(n),
-    onToggleSearch: () => onToast?.({ message: 'Search inside coming soon', type: 'info' }),
+    onToggleSearch: () => search.toggle(),
     onZoomStep: (dir) => zoomStep(dir),
     onZoomPick: (level) => setZoom(level),
     onModePick: (mode) => setMode(mode),
@@ -105,6 +106,18 @@ export function buildCodex({
   spread.root.style.display = 'none';
   strip.root.style.display = 'none';
   stage.append(bar.root, empty, spread.root, strip.root);
+
+  // ── Search controller (find-bar lives inside the stage so it
+  //    sits above the page area and dismisses with Esc).
+  const search = createSearchController({
+    stage, pdfStore,
+    getPdfDoc: () => pdfDoc,
+    getDocId: () => docId,
+    getCurrentPage: () => currentPage,
+    onJumpToPage: (n) => goToPage(n),
+    onToast,
+  });
+  stage.appendChild(search.bar.root);
 
   const info = buildInfoPanel({
     onClearTodays: () => { sel.setQuotes([]); renderInfo(); },
@@ -418,6 +431,8 @@ export function buildCodex({
 
   function close() {
     memory?.flush(docId);
+    search.close();
+    search.reset();
     pdfDoc = null;
     docId = null;
     docTitle = '';
@@ -461,6 +476,7 @@ export function buildCodex({
     getCurrentPage() { return currentPage; },
     getDocId() { return docId; },
     setZoom, zoomStep, setMode, rotateRight, toggleFullscreen,
+    toggleSearch: () => search.toggle(),
     getZoomLabel: () => fmtZoom(userZoom),
   };
 }
