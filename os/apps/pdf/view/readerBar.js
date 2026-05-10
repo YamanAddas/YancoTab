@@ -16,7 +16,7 @@ import { buildViewModeMenu, VIEW_MODES } from './viewModeMenu.js';
 export function buildReaderBar({
   onPrev, onNext, onJumpToPage, onToggleSearch,
   onZoomStep, onZoomPick, onModePick, onRotate,
-  getZoom,
+  onToolToggle, getZoom,
 } = {}) {
   const root = el('div', { class: 'cx-reader-bar' });
 
@@ -74,9 +74,30 @@ export function buildReaderBar({
     onclick: () => onToggleSearch?.(),
   }, '⌕');
 
+  let toolMode = 'text';
+  const toolBtn = el('button', {
+    type: 'button', class: 'cx-icbtn cx-tool-btn',
+    title: 'Text select (T) / Hand grab (H)',
+    'aria-label': 'Toggle hand/text tool',
+    onclick: () => {
+      const next = toolMode === 'text' ? 'hand' : 'text';
+      setTool(next);
+      onToolToggle?.(next);
+    },
+  }, 'Ꮖ');
+  function setTool(mode) {
+    toolMode = mode;
+    toolBtn.textContent = mode === 'hand' ? '✋' : 'Ꮖ';
+    toolBtn.classList.toggle('is-active', mode === 'hand');
+    toolBtn.title = mode === 'hand'
+      ? 'Hand tool active — drag to scroll (press T for text select)'
+      : 'Text select — drag to select text (press H for hand tool)';
+  }
+
   root.append(
     prevBtn, title,
     pageCounter,
+    toolBtn,
     modeMenu.root,
     zoom.root,
     rotateBtn,
@@ -104,6 +125,7 @@ export function buildReaderBar({
     },
     setZoomLevel: (level) => zoom.update(level),
     setMode: (mode) => modeMenu.setMode(mode),
+    setToolMode: (mode) => setTool(mode),
     destroy: () => zoom.destroy(),
   };
 }

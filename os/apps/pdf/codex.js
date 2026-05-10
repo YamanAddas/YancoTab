@@ -97,6 +97,7 @@ export function buildCodex({
     onZoomPick: (level) => setZoom(level),
     onModePick: (mode) => setMode(mode),
     onRotate: () => rotateRight(),
+    onToolToggle: (mode) => setHandMode(mode === 'hand'),
     getZoom: () => userZoom,
   });
 
@@ -208,15 +209,10 @@ export function buildCodex({
 
   function isSpreadMode() { return viewMode === 'spread' || viewMode === 'book'; }
   function pageStep() { return isSpreadMode() ? 2 : 1; }
-
   function clampPage(n) {
     if (!Number.isFinite(n)) return 1;
-    const m = Math.floor(n);
-    if (m < 1) return 1;
-    if (m > totalPages) return totalPages;
-    return m;
+    return Math.max(1, Math.min(totalPages, Math.floor(n)));
   }
-
   async function goToPage(n) {
     const next = clampPage(n);
     if (!pdfDoc) return;
@@ -224,8 +220,7 @@ export function buildCodex({
     selMenu.hide();
     if (viewMode === 'continuous') strip.scrollToPage(next, stage);
     else await renderStage();
-    renderRail();
-    renderBar();
+    renderRail(); renderBar();
     memory?.save(docId, { page: currentPage });
   }
 
@@ -291,93 +286,92 @@ export function buildCodex({
   async function setZoom(level) {
     if (typeof level === 'string' && level !== 'fit-width' && level !== 'fit-page') return;
     userZoom = typeof level === 'number' ? clampZoom(level) : level;
-    await renderStage();
-    renderBar();
+    await renderStage(); renderBar();
     memory?.save(docId, { zoom: userZoom });
   }
-
-  async function zoomStep(dir) {
-    const cur = await resolveZoom();
-    await setZoom(stepZoom(cur, dir));
-  }
-
+  async function zoomStep(dir) { await setZoom(stepZoom(await resolveZoom(), dir)); }
   async function setMode(mode) {
     if (!['single', 'continuous', 'spread', 'book'].includes(mode) || mode === viewMode) return;
     viewMode = mode;
-    await renderStage();
-    renderBar();
+    await renderStage(); renderBar();
     memory?.save(docId, { mode: viewMode });
   }
-
   async function rotateRight() {
     rotation = (rotation + 90) % 360;
-    await renderStage();
-    memory?.save(docId, { rotation });
+    await renderStage(); memory?.save(docId, { rotation });
   }
-
   function toggleFullscreen() {
-    if (isFullscreen || document.fullscreenElement) {
-      document.exitFullscreen?.().catch(() => {});
-      return;
-    }
+    if (isFullscreen || document.fullscreenElement) { document.exitFullscreen?.().catch(() => {}); return; }
     root.requestFullscreen?.().catch(() => {});
   }
-
   function toggleDarkPages() {
     darkPages = !darkPages;
     root.classList.toggle('is-dark-pages', darkPages);
     memory?.save(docId, { darkPages });
   }
-
   function getProperties() {
     return { title: docTitle, pages: totalPages, docId, mode: viewMode,
       zoom: typeof userZoom === 'number' ? `${Math.round(userZoom * 100)}%` : userZoom,
       rotation: `${rotation}°` };
   }
-
   document.addEventListener('fullscreenchange', () => {
     isFullscreen = document.fullscreenElement === root;
     root.classList.toggle('is-fullscreen', isFullscreen);
   });
 
   function renderRail() {
-    side.update({
-      outline,
-      bookmarks: getBookmarks?.(docId) || [],
-      currentPage,
-      totalPages,
-      streak: getStreakStrip?.() || [],
-      streakDays: getStreakDays?.() || 0,
-      quotes: ann?.getDocQuotes?.() || [],
-    });
+    side.update({ outline, bookmarks: getBookmarks?.(docId) || [], currentPage, totalPages,
+      streak: getStreakStrip?.() || [], streakDays: getStreakDays?.() || 0,
+      quotes: ann?.getDocQuotes?.() || [] });
   }
-
   function renderBar() {
-    bar.update({
-      docTitle, sectionLabel: activeOutlineLabel(),
-      page: currentPage, totalPages,
-      zoomLevel: userZoom, mode: viewMode,
-    });
+    bar.update({ docTitle, sectionLabel: activeOutlineLabel(),
+      page: currentPage, totalPages, zoomLevel: userZoom, mode: viewMode });
   }
-
   function activeOutlineLabel() {
-    if (!outline.length) return '';
     let best = '';
-    for (const e of outline) {
-      if (Number.isFinite(e.page) && e.page <= currentPage) best = e.title;
-    }
+    for (const e of outline) if (Number.isFinite(e.page) && e.page <= currentPage) best = e.title;
     return best;
   }
-
   function renderInfo() {
-    info.update({
-      selectionText: sel.getLastSelection().text,
-      calc: calcResult,
-      todaysQuotes: sel.getQuotes(),
-    });
+    info.update({ selectionText: sel.getLastSelection().text, calc: calcResult, todaysQuotes: sel.getQuotes() });
   }
-
   function renderAll() { renderRail(); renderBar(); renderInfo(); }
+
+  // ── Text selection: endOfContent + selecting class (pdf.js pattern) ──
+  stage.addEventListener('mousedown', (e) => {
+    if (handMode) return;
+    const tl = e.target.closest('.cx-text-layer');
+    if (tl) tl.classList.add('selecting');
+  });
+  const clearSelecting = () =>
+    stage.querySelectorAll('.cx-text-layer.selecting')
+      .forEach((t) => t.classList.remove('selecting'));
+  document.addEventListener('mouseup', clearSelecting);
+
+  // ── Hand tool (grab-to-pan) ──
+  let handMode = false;
+  let grabState = null;
+  function setHandMode(on) {
+    handMode = on;
+    root.classList.toggle('hand-mode', on);
+    bar.setToolMode?.(on ? 'hand' : 'text');
+  }
+  function endGrab() { grabState = null; root.classList.remove('is-grabbing'); }
+  stage.addEventListener('pointerdown', (e) => {
+    if (!handMode || !pdfDoc || e.target.closest('.cx-reader-bar') || e.button !== 0) return;
+    e.preventDefault();
+    root.classList.add('is-grabbing');
+    grabState = { x: e.clientX, y: e.clientY, sl: stage.scrollLeft, st: stage.scrollTop };
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener('pointermove', (e) => {
+    if (!grabState) return;
+    stage.scrollLeft = grabState.sl - (e.clientX - grabState.x);
+    stage.scrollTop  = grabState.st - (e.clientY - grabState.y);
+  });
+  stage.addEventListener('pointerup', () => { if (grabState) endGrab(); });
+  stage.addEventListener('pointercancel', () => { if (grabState) endGrab(); });
 
   // ── Wheel zoom + double-click toggle ──
 
@@ -473,6 +467,7 @@ export function buildCodex({
 
   function destroy() {
     ro.disconnect();
+    document.removeEventListener('mouseup', clearSelecting);
     spread.destroy();
     strip.destroy();
     bar.destroy?.();
@@ -491,7 +486,7 @@ export function buildCodex({
     getDocId() { return docId; },
     setZoom, zoomStep, setMode, rotateRight, toggleFullscreen,
     toggleSearch: () => search.toggle(),
-    toggleDarkPages,
+    toggleDarkPages, setHandMode,
     isDarkPages: () => darkPages,
     getProperties,
     getZoomLabel: () => fmtZoom(userZoom),

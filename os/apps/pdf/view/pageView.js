@@ -125,6 +125,7 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
     // Build text layer via pdf.js TextLayer — handles scaleX per glyph
     // so span hit-areas match canvas rendering, making drag-selection accurate.
     textLayerDiv.innerHTML = '';
+    textLayerDiv.classList.remove('selecting');
     if (typeof pdfjsLib.TextLayer === 'function') {
       const task = new pdfjsLib.TextLayer({
         textContentSource: pdfPage.streamTextContent(),
@@ -139,6 +140,12 @@ export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
       } finally {
         if (textLayerTask === task) textLayerTask = null;
       }
+      // endOfContent div (pdf.js viewer pattern): during a drag it
+      // expands to fill the page so the pointer never enters a gap
+      // between spans and breaks the selection range.
+      const eoc = document.createElement('div');
+      eoc.className = 'cx-end-of-content';
+      textLayerDiv.append(eoc);
     }
 
     // Link annotations (clickable cross-refs + URI links).

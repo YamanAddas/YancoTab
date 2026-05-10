@@ -423,6 +423,8 @@ export class PdfReaderApp extends App {
             else if ((e.ctrlKey || e.metaKey) && e.key === '-')      { this._reader.zoomStep?.(-1); e.preventDefault(); }
             else if ((e.ctrlKey || e.metaKey) && e.key === '0')      { this._reader.setZoom?.('fit-width'); e.preventDefault(); }
             else if ((e.ctrlKey || e.metaKey) && e.key === '1')      { this._reader.setZoom?.(1.0); e.preventDefault(); }
+            else if (e.key === 'h' || e.key === 'H')                 { this._reader.setHandMode?.(true); }
+            else if (e.key === 't' || e.key === 'T')                 { this._reader.setHandMode?.(false); }
         }
     }
 }
