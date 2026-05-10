@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.3.0-pdf-annotations';
+const CACHE_NAME = 'yancotab-v1.4.0-pdf-vault';
 
 const PRECACHE = [
     './',

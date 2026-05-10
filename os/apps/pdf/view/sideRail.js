@@ -1,14 +1,18 @@
 /**
- * pdf/view/sideRail.js — outline + bookmarks + reading streak.
+ * pdf/view/sideRail.js — outline + bookmarks + reading streak +
+ * saved-quote vault + bookmark constellation.
  *
  * Outline entries are flat (depth + title + page); rendered with a
  * vertical accent rule and hex bullets per the Codex mock. Active
- * entry is the deepest one whose page ≤ currentPage. Bookmarks
- * have a small per-color hex glyph next to the title. The streak
- * strip is a 14-cell hex grid.
+ * entry is the deepest one whose page ≤ currentPage. Bookmarks have
+ * a small per-color hex glyph. The constellation is an SVG star-map
+ * timeline shown when ≥3 bookmarks exist. The vault shows the most
+ * recent quotes saved from this doc.
  */
 
 import { el } from '../../../utils/dom.js';
+
+const MAX_VAULT_VISIBLE = 5;
 
 function colorVar(c) {
   switch (c) {
@@ -20,7 +24,7 @@ function colorVar(c) {
   }
 }
 
-export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
+export function buildSideRail({ onJumpToPage, onRemoveBookmark, onDeleteQuote } = {}) {
   const root = el('aside', { class: 'cx-side' });
 
   const outlineHead = el('h4', { class: 'cx-side-h' }, 'OUTLINE');
@@ -29,15 +33,26 @@ export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
   outlineEmpty.style.display = 'none';
 
   const bmHead = el('h4', { class: 'cx-side-h' }, 'BOOKMARKS');
+  const constellWrap = el('div', { class: 'cx-constellation-wrap' });
   const bmList = el('div', { class: 'cx-bookmarks' });
   const bmEmpty = el('p', { class: 'cx-side-empty' }, 'No bookmarks yet.');
 
   const streakHead = el('h4', { class: 'cx-side-h cx-streak-h' });
   const streakStrip = el('div', { class: 'cx-streak-strip' });
 
-  root.append(outlineHead, outlineList, outlineEmpty,
-    bmHead, bmList, bmEmpty,
-    streakHead, streakStrip);
+  const vaultHead = el('div', { class: 'cx-side-row' }, [
+    el('h4', { class: 'cx-side-h cx-side-h-inline' }, 'SAVED QUOTES'),
+  ]);
+  const vaultList = el('div', { class: 'cx-vault-list' });
+  const vaultEmpty = el('p', { class: 'cx-side-empty' },
+    'Select text and choose "Save to vault" to keep a quote here.');
+
+  root.append(
+    outlineHead, outlineList, outlineEmpty,
+    bmHead, constellWrap, bmList, bmEmpty,
+    streakHead, streakStrip,
+    vaultHead, vaultList, vaultEmpty,
+  );
 
   function findActiveIdx(outline, currentPage) {
     if (!Array.isArray(outline) || !Number.isFinite(currentPage)) return -1;
@@ -49,9 +64,64 @@ export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
     return best;
   }
 
+  function renderConstellation(bookmarks, totalPages) {
+    constellWrap.innerHTML = '';
+    if (!bookmarks || bookmarks.length < 3 || !totalPages) return;
+
+    const W = 200, H = 52, PAD = 12;
+    const ns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(ns, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    svg.setAttribute('class', 'cx-constellation');
+    svg.setAttribute('aria-hidden', 'true');
+
+    // Baseline connector
+    const line = document.createElementNS(ns, 'line');
+    line.setAttribute('x1', PAD); line.setAttribute('y1', H / 2);
+    line.setAttribute('x2', W - PAD); line.setAttribute('y2', H / 2);
+    line.setAttribute('class', 'cx-const-line');
+    svg.appendChild(line);
+
+    for (let i = 0; i < bookmarks.length; i++) {
+      const b = bookmarks[i];
+      const x = PAD + ((b.page - 1) / Math.max(totalPages - 1, 1)) * (W - PAD * 2);
+      // Alternate above/below baseline for visual interest
+      const y = (i % 2 === 0) ? H * 0.28 : H * 0.72;
+
+      const spoke = document.createElementNS(ns, 'line');
+      spoke.setAttribute('x1', x); spoke.setAttribute('y1', H / 2);
+      spoke.setAttribute('x2', x); spoke.setAttribute('y2', y);
+      spoke.setAttribute('class', 'cx-const-spoke');
+      svg.appendChild(spoke);
+
+      const star = document.createElementNS(ns, 'circle');
+      star.setAttribute('cx', x); star.setAttribute('cy', y); star.setAttribute('r', '4');
+      star.setAttribute('class', `cx-const-star cx-const-star-${b.color || 'accent'}`);
+      star.setAttribute('role', 'button');
+      star.setAttribute('tabindex', '0');
+      star.setAttribute('aria-label', `${b.label}, page ${b.page}`);
+      star.style.cursor = 'pointer';
+      star.addEventListener('click', () => onJumpToPage?.(b.page));
+      star.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') onJumpToPage?.(b.page); });
+      svg.appendChild(star);
+
+      // Page label below/above star
+      const lbl = document.createElementNS(ns, 'text');
+      lbl.setAttribute('x', x); lbl.setAttribute('y', i % 2 === 0 ? y - 6 : y + 10);
+      lbl.setAttribute('class', 'cx-const-label');
+      lbl.setAttribute('text-anchor', 'middle');
+      lbl.textContent = String(b.page);
+      svg.appendChild(lbl);
+    }
+
+    constellWrap.appendChild(svg);
+  }
+
   return {
     root,
-    update({ outline = [], bookmarks = [], currentPage = 1, streak = [], streakDays = 0 } = {}) {
+    update({ outline = [], bookmarks = [], currentPage = 1, totalPages = 0,
+             streak = [], streakDays = 0, quotes = [] } = {}) {
+
       // ── Outline ──
       outlineList.innerHTML = '';
       outlineEmpty.style.display = outline.length ? 'none' : '';
@@ -76,7 +146,8 @@ export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
         outlineList.appendChild(item);
       });
 
-      // ── Bookmarks ──
+      // ── Bookmark constellation + list ──
+      renderConstellation(bookmarks, totalPages);
       bmList.innerHTML = '';
       bmEmpty.style.display = bookmarks.length ? 'none' : '';
       for (const b of bookmarks) {
@@ -86,10 +157,7 @@ export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
         const pg = el('span', { class: 'cx-ol-pg' }, String(b.page));
         item.append(dot, title, pg);
         item.addEventListener('click', (e) => {
-          if (e.target === dot) {
-            onRemoveBookmark?.(b);
-            return;
-          }
+          if (e.target === dot) { onRemoveBookmark?.(b); return; }
           onJumpToPage?.(b.page);
         });
         bmList.appendChild(item);
@@ -105,6 +173,33 @@ export function buildSideRail({ onJumpToPage, onRemoveBookmark } = {}) {
         pip.style.setProperty('--a', String(b.density || 0));
         pip.title = b.key;
         streakStrip.appendChild(pip);
+      }
+
+      // ── Saved Quotes vault ──
+      vaultList.innerHTML = '';
+      const visible = (quotes || []).slice(0, MAX_VAULT_VISIBLE);
+      vaultEmpty.style.display = visible.length ? 'none' : '';
+      for (const q of visible) {
+        const item = el('div', { class: 'cx-vault-item' });
+        const text = el('div', { class: 'cx-vault-text' },
+          q.text.length > 120 ? q.text.slice(0, 120) + '…' : q.text);
+        const meta = el('div', { class: 'cx-vault-meta' });
+        if (q.page) {
+          const pgBtn = el('button', {
+            type: 'button', class: 'cx-vault-pg',
+            title: `Jump to page ${q.page}`,
+            onclick: () => onJumpToPage?.(q.page),
+          }, `p.${q.page}`);
+          meta.appendChild(pgBtn);
+        }
+        const delBtn = el('button', {
+          type: 'button', class: 'cx-vault-del', title: 'Remove quote',
+          onclick: () => onDeleteQuote?.(q),
+        }, '×');
+        meta.appendChild(delBtn);
+        item.append(text, meta);
+        item.style.borderLeftColor = colorVar(q.color || 'accent');
+        vaultList.appendChild(item);
       }
     },
   };

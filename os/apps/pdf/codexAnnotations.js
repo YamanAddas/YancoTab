@@ -30,6 +30,7 @@ export function createAnnotationsController({
     onRotatePage, onFitWidth, onFitPage, onSearchOpen,
 } = {}) {
     let notesByPage = new Map();   // page → notes[]   (in-memory cache)
+    let docQuotes = [];            // vault quotes for current doc
     let activeNoteEditor = null;
 
     // ── Context menu controller ──
@@ -44,6 +45,7 @@ export function createAnnotationsController({
         onStrike:    (payload, color) => addHighlight(payload, color, 'strike'),
         onAddNote: (payload) => createNoteFromSelection(payload),
         onSendToNotes: (payload) => sendToNotes(payload),
+        onSaveToVault: (payload) => saveToVault(payload),
         onCalc: (payload) => calcSelection(payload),
         onBookmark: (payload) => bookmarkSelection(payload),
         onSearchSelection: (payload) => onSearchOpen?.(payload?.text),
@@ -148,6 +150,23 @@ export function createAnnotationsController({
         onSendToNotesText?.(payload);
     }
 
+    async function saveToVault(payload) {
+        if (!pdfStore || !payload?.text) return;
+        const docId = getDocId();
+        if (!docId) return;
+        try {
+            await pdfStore.saveQuote(docId, {
+                text: payload.text,
+                page: payload.page || getCurrentPage(),
+                docTitle: getDocTitle(),
+            });
+            docQuotes = await pdfStore.listQuotes(docId);
+            onToast?.({ message: 'Quote saved to vault', type: 'success' });
+        } catch (e) {
+            onToast?.({ message: `Vault save failed: ${e?.message || e}`, type: 'error' });
+        }
+    }
+
     function calcSelection(payload) {
         if (!payload?.text) return;
         // Use a tiny eval; Calc engine is more robust but this is just
@@ -224,6 +243,9 @@ export function createAnnotationsController({
         } catch (e) {
             console.warn('[pdf] notes refresh failed:', e);
         }
+        try {
+            docQuotes = await pdfStore.listQuotes(docId);
+        } catch { docQuotes = []; }
     }
 
     function renderNotePips() {
@@ -382,6 +404,7 @@ export function createAnnotationsController({
 
     function reset() {
         notesByPage = new Map();
+        docQuotes = [];
         closeNotePopover();
         ctx.close();
     }
@@ -393,5 +416,6 @@ export function createAnnotationsController({
         renderNotePips,
         applyHighlightsToVisiblePages,
         reset,
+        getDocQuotes: () => docQuotes,
     };
 }

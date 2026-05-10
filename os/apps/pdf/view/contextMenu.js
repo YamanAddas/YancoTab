@@ -89,7 +89,7 @@ export function classifyTarget({ event, stage, getSelection } = {}) {
 export function buildContextMenu({
     stage, getSelection,
     onCopy, onCopyLink, onOpenLink, onSearchSelection, onSearchWeb,
-    onHighlight, onUnderline, onStrike, onAddNote, onSendToNotes,
+    onHighlight, onUnderline, onStrike, onAddNote, onSendToNotes, onSaveToVault,
     onCalc, onCite, onBookmark,
     onChangeAnnotationColor, onDeleteAnnotation, onEditNote,
     onJumpToPage, onRotatePage, onFitWidth, onFitPage, onCopyPageText,
@@ -159,6 +159,7 @@ export function buildContextMenu({
         addItem(root, 'Add note here', () => onAddNote?.(payload));
         addSep(root);
         addItem(root, 'Send to Notes', () => onSendToNotes?.(payload), { primary: true });
+        addItem(root, 'Save to vault', () => onSaveToVault?.(payload));
         const numeric = /^[\s\d.,+\-*/()×÷^%]+$/.test(payload?.text || '');
         if (numeric) addItem(root, 'Calc', () => onCalc?.(payload));
         addItem(root, 'Bookmark page', () => onBookmark?.(payload));

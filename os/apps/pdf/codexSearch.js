@@ -18,6 +18,28 @@ import {
     findMatches, startCursorIndex, stepCursor, extractText,
 } from './engine/search.js';
 
+// Lazy-load OCR service — silently skipped if unavailable.
+let _ocrSvc = null;
+async function getOcrService() {
+    if (_ocrSvc !== null) return _ocrSvc;
+    try {
+        const mod = await import('../../../services/ocrService.js');
+        _ocrSvc = mod.ocrService || null;
+    } catch { _ocrSvc = false; }
+    return _ocrSvc || null;
+}
+
+/** Render a pdf.js page to an ImageBitmap for OCR. */
+async function renderPageToBitmap(pdfDoc, pageNum) {
+    const page = await pdfDoc.getPage(pageNum);
+    const vp = page.getViewport({ scale: 1.5 });
+    const canvas = new OffscreenCanvas(Math.round(vp.width), Math.round(vp.height));
+    const ctx = canvas.getContext('2d');
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    try { page.cleanup?.(); } catch { /* ignore */ }
+    return createImageBitmap(canvas);
+}
+
 export function createSearchController({
     stage, pdfStore,
     getPdfDoc, getDocId, getCurrentPage,
@@ -62,6 +84,28 @@ export function createSearchController({
         bar.setMatches({ indexing: true });
         try {
             pages = await extractText(pdfDoc);
+
+            // Auto-OCR: for pages with no extractable text (scanned PDFs),
+            // render to canvas and run tesseract. Silently skipped if the
+            // OCR service is unavailable or the canvas render fails.
+            const emptyIdxs = pages
+                .map((t, i) => (t.trim().length < 5 ? i : -1))
+                .filter((i) => i >= 0);
+            if (emptyIdxs.length > 0) {
+                const ocr = await getOcrService();
+                if (ocr) {
+                    for (const idx of emptyIdxs) {
+                        bar.setMatches({ indexing: true, ocrPage: idx + 1 });
+                        try {
+                            const bmp = await renderPageToBitmap(pdfDoc, idx + 1);
+                            const { text } = await ocr.recognize(bmp);
+                            pages[idx] = (text || '').toLowerCase();
+                            bmp.close?.();
+                        } catch { /* non-fatal */ }
+                    }
+                }
+            }
+
             pagesIndexedFor = docId;
             if (pdfStore?.saveSearchIndex) {
                 try { await pdfStore.saveSearchIndex(docId, pages); }

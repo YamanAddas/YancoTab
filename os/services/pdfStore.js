@@ -21,12 +21,13 @@
  */
 
 const DB_NAME = 'yancotab_pdf_v1';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORE_DOCUMENTS    = 'documents';
 const STORE_VIEW_STATE   = 'viewState';
 const STORE_ANNOTATIONS  = 'annotations';
 const STORE_SEARCH_INDEX = 'searchIndex';
+const STORE_QUOTES       = 'quotes';
 
 export class PdfStoreQuotaError extends Error {
     constructor(message, cause) {
@@ -95,6 +96,11 @@ export class PdfStore {
             anns.createIndex('byKind', ['docId', 'kind']);
 
             db.createObjectStore(STORE_SEARCH_INDEX, { keyPath: 'docId' });
+        }
+        if (oldVersion < 2) {
+            const q = db.createObjectStore(STORE_QUOTES, { keyPath: 'id', autoIncrement: true });
+            q.createIndex('byDoc', 'docId');
+            q.createIndex('byAddedAt', 'addedAt');
         }
     }
 
@@ -247,24 +253,19 @@ export class PdfStore {
     async deleteDocument(id) {
         if (!id) return false;
         await this._tx(
-            [STORE_DOCUMENTS, STORE_VIEW_STATE, STORE_ANNOTATIONS, STORE_SEARCH_INDEX],
+            [STORE_DOCUMENTS, STORE_VIEW_STATE, STORE_ANNOTATIONS, STORE_SEARCH_INDEX, STORE_QUOTES],
             'readwrite',
             async (tx) => {
                 await this._request(tx.objectStore(STORE_DOCUMENTS).delete(id));
                 await this._request(tx.objectStore(STORE_VIEW_STATE).delete(id));
                 await this._request(tx.objectStore(STORE_SEARCH_INDEX).delete(id));
-                // annotations: cursor-walk byDoc index and delete
-                const idx = tx.objectStore(STORE_ANNOTATIONS).index('byDoc');
-                await new Promise((resolve, reject) => {
-                    const req = idx.openCursor(IDBKeyRange.only(id));
-                    req.onsuccess = () => {
-                        const cur = req.result;
-                        if (!cur) { resolve(); return; }
-                        cur.delete();
-                        cur.continue();
-                    };
+                const walkByDoc = (storeName) => new Promise((resolve, reject) => {
+                    const req = tx.objectStore(storeName).index('byDoc').openCursor(IDBKeyRange.only(id));
+                    req.onsuccess = () => { const c = req.result; if (!c) { resolve(); return; } c.delete(); c.continue(); };
                     req.onerror = () => reject(this._wrapError(req.error));
                 });
+                await walkByDoc(STORE_ANNOTATIONS);
+                await walkByDoc(STORE_QUOTES);
             },
         );
         return true;
@@ -421,6 +422,55 @@ export class PdfStore {
             }
         } catch { /* ignore */ }
         return false;
+    }
+
+    // ─── quote vault ────────────────────────────────────────────
+
+    /**
+     * Save a quoted passage to the vault.
+     * @param {string} docId
+     * @param {{ text, page, docTitle, color? }} entry
+     * @returns {Promise<object>} saved record with auto-assigned id
+     */
+    async saveQuote(docId, entry) {
+        if (!docId || !entry?.text) return null;
+        const VALID_COLORS = ['accent', 'warm', 'rose', 'violet', 'cool'];
+        return this._tx(STORE_QUOTES, 'readwrite', async (tx) => {
+            const record = {
+                docId,
+                docTitle: String(entry.docTitle || '').trim(),
+                page: Number.isFinite(entry.page) ? Math.floor(entry.page) : null,
+                text: String(entry.text).slice(0, 1200).trim(),
+                color: VALID_COLORS.includes(entry.color) ? entry.color : 'accent',
+                addedAt: Date.now(),
+            };
+            const id = await this._request(tx.objectStore(STORE_QUOTES).add(record));
+            return { ...record, id };
+        });
+    }
+
+    /**
+     * List saved quotes, newest first.
+     * @param {string} [docId] — if provided, filter to one doc; otherwise all docs
+     */
+    async listQuotes(docId) {
+        return this._tx(STORE_QUOTES, 'readonly', async (tx) => {
+            let records;
+            if (docId) {
+                const idx = tx.objectStore(STORE_QUOTES).index('byDoc');
+                records = await this._request(idx.getAll(IDBKeyRange.only(docId)));
+            } else {
+                records = await this._request(tx.objectStore(STORE_QUOTES).getAll());
+            }
+            return records.slice().sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
+        });
+    }
+
+    async deleteQuote(id) {
+        if (!id) return false;
+        await this._tx(STORE_QUOTES, 'readwrite', (tx) =>
+            this._request(tx.objectStore(STORE_QUOTES).delete(id)));
+        return true;
     }
 }
 

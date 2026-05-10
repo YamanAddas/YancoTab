@@ -77,10 +77,15 @@ export function buildCodex({
     saveViewState: (id, patch) => pdfStore.saveViewState(id, patch),
   }) : null;
 
-  // ── DOM scaffold ──
   const side = buildSideRail({
     onJumpToPage: (n) => goToPage(n),
     onRemoveBookmark: (b) => onRemoveBookmark?.(b),
+    onDeleteQuote: async (q) => {
+      if (pdfStore && q?.id) {
+        try { await pdfStore.deleteQuote(q.id); await ann?.refreshNotes?.(); } catch { /* ignore */ }
+        renderRail();
+      }
+    },
   });
 
   const bar = buildReaderBar({
@@ -95,14 +100,8 @@ export function buildCodex({
     getZoom: () => userZoom,
   });
 
-  const stage = el('div', {
-    class: 'cx-stage',
-    tabindex: '0',
-    // Opt out of the shell's global contextmenu suppression + selectstart
-    // suppression. Required for the PDF context menu and for drag-to-select
-    // text inside the text layer.
-    'data-allow-context': 'true',
-  });
+  // data-allow-context opts out of the shell's contextmenu + selectstart suppression.
+  const stage = el('div', { class: 'cx-stage', tabindex: '0', 'data-allow-context': 'true' });
   const empty = el('div', { class: 'cx-stage-empty' }, [
     el('div', { class: 'cx-stage-empty-title' }, 'No PDF open'),
     el('div', { class: 'cx-stage-empty-hint' }, 'Drop a PDF here or use the Open button.'),
@@ -269,8 +268,6 @@ export function buildCodex({
     }
     // Place sticky-note pips after pages render.
     ann?.renderNotePips?.();
-    // Re-apply find-bar match highlights (lazy renders may have replaced
-    // the previous text-layer DOM).
     search?.redecorate?.();
   }
 
@@ -290,8 +287,6 @@ export function buildCodex({
       return clampZoom(innerW / vp.width);
     } catch { return 1.0; }
   }
-
-  // ── Zoom / Mode / Rotation actions ──
 
   async function setZoom(level) {
     if (typeof level === 'string' && level !== 'fit-width' && level !== 'fit-page') return;
@@ -345,15 +340,15 @@ export function buildCodex({
     root.classList.toggle('is-fullscreen', isFullscreen);
   });
 
-  // ── Side rail / bar / info ──
-
   function renderRail() {
     side.update({
       outline,
       bookmarks: getBookmarks?.(docId) || [],
       currentPage,
+      totalPages,
       streak: getStreakStrip?.() || [],
       streakDays: getStreakDays?.() || 0,
+      quotes: ann?.getDocQuotes?.() || [],
     });
   }
 
