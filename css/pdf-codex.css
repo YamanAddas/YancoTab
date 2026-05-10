@@ -388,18 +388,6 @@ body.theme-light .cx-page-num { color: rgba(0,0,0,0.35); }
   cursor: text;
   transform-origin: 0% 0%;
 }
-/* endOfContent trick from pdf.js — during a drag the div expands to
-   cover gaps between spans so the browser never loses the selection. */
-.codex .cx-text-layer .cx-end-of-content {
-  display: block;
-  position: absolute;
-  inset: 100% 0 0;
-  z-index: 0;
-  cursor: default;
-  -webkit-user-select: none !important;
-  user-select: none !important;
-}
-.cx-text-layer.selecting .cx-end-of-content { top: 0; }
 .cx-text-layer ::selection {
   background: rgba(var(--accent-rgb), 0.32);
   color: transparent;

@@ -338,17 +338,6 @@ export function buildCodex({
   }
   function renderAll() { renderRail(); renderBar(); renderInfo(); }
 
-  // ── Text selection: endOfContent + selecting class (pdf.js pattern) ──
-  stage.addEventListener('mousedown', (e) => {
-    if (handMode) return;
-    const tl = e.target.closest('.cx-text-layer');
-    if (tl) tl.classList.add('selecting');
-  });
-  const clearSelecting = () =>
-    stage.querySelectorAll('.cx-text-layer.selecting')
-      .forEach((t) => t.classList.remove('selecting'));
-  document.addEventListener('mouseup', clearSelecting);
-
   // ── Hand tool (grab-to-pan) ──
   let handMode = false;
   let grabState = null;
@@ -467,7 +456,6 @@ export function buildCodex({
 
   function destroy() {
     ro.disconnect();
-    document.removeEventListener('mouseup', clearSelecting);
     spread.destroy();
     strip.destroy();
     bar.destroy?.();
