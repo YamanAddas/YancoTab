@@ -221,6 +221,94 @@ function blobToDataUrl(blob) {
     });
 }
 
+/**
+ * Collect all annotations for a document and trigger a Markdown file download.
+ *
+ * @param {object} opts
+ * @param {string} opts.docTitle   — display name of the document
+ * @param {string} [opts.fileName] — base file name; defaults to docTitle
+ * @param {Array}  opts.bookmarks  — [{ page, label, color }]
+ * @param {Array}  opts.highlights — [{ page, text, color }]
+ * @param {Array}  opts.notes      — [{ page, body?, text?, createdAt? }]
+ * @param {Array}  opts.quotes     — [{ page, text }]
+ */
+export function exportAnnotationsMarkdown({
+    docTitle = 'Document', fileName,
+    bookmarks = [], highlights = [], notes = [], quotes = [],
+} = {}) {
+    const date = new Date().toISOString().slice(0, 10);
+    const lines = [
+        `# ${docTitle}`,
+        `*Exported from YancoTab PDF Reader · ${date}*`,
+        '',
+    ];
+
+    if (bookmarks.length) {
+        lines.push(`## Bookmarks (${bookmarks.length})`, '');
+        const sorted = [...bookmarks].sort((a, b) => (a.page || 0) - (b.page || 0));
+        for (const b of sorted) lines.push(`- **p.${b.page}** — ${b.label || 'Bookmark'}`);
+        lines.push('');
+    }
+
+    if (highlights.length) {
+        lines.push(`## Highlights (${highlights.length})`, '');
+        const sorted = [...highlights].sort((a, b) => (a.page || 0) - (b.page || 0));
+        let lastPage = -1;
+        for (const h of sorted) {
+            if (h.page !== lastPage) {
+                if (lastPage >= 0) lines.push('');
+                lines.push(`### Page ${h.page}`);
+                lastPage = h.page;
+            }
+            lines.push(`> ${String(h.text || '').replace(/\n/g, ' ')}`);
+        }
+        lines.push('');
+    }
+
+    if (notes.length) {
+        lines.push(`## Notes (${notes.length})`, '');
+        const sorted = [...notes].sort((a, b) => (a.page || 0) - (b.page || 0));
+        let lastPage = -1;
+        for (const n of sorted) {
+            if (n.page !== lastPage) {
+                if (lastPage >= 0) lines.push('');
+                const ts = n.createdAt ? ` *(${new Date(n.createdAt).toLocaleDateString()})*` : '';
+                lines.push(`### Page ${n.page}${ts}`);
+                lastPage = n.page;
+            }
+            lines.push(String(n.body || n.text || '').replace(/\n/g, '\n\n'));
+        }
+        lines.push('');
+    }
+
+    if (quotes.length) {
+        lines.push(`## Saved Quotes (${quotes.length})`, '');
+        const sorted = [...quotes].sort((a, b) => (a.page || 0) - (b.page || 0));
+        let lastPage = -1;
+        for (const q of sorted) {
+            if (q.page !== lastPage) {
+                if (lastPage >= 0) lines.push('');
+                lines.push(`### Page ${q.page}`);
+                lastPage = q.page;
+            }
+            lines.push(`> ${String(q.text || '').replace(/\n/g, ' ')}`);
+        }
+        lines.push('');
+    }
+
+    if (!bookmarks.length && !highlights.length && !notes.length && !quotes.length) {
+        lines.push('*No annotations in this document yet.*', '');
+    }
+
+    const markdown = lines.join('\n');
+    const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
+    const stem = (fileName || docTitle || 'document')
+        .replace(/\.pdf$/i, '')
+        .replace(/[<>:"/\\|?*]/g, '')
+        .trim() || 'document';
+    downloadBlob(blob, `${stem}-annotations.md`);
+}
+
 export const __TEST__ = Object.freeze({
     PDF_MAGIC, SOFT_WARN_BYTES, HARD_LIMIT_BYTES, FS_EXPORT_LIMIT_BYTES,
 });

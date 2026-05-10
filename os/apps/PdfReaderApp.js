@@ -20,12 +20,12 @@ import { buildCodex } from './pdf/codex.js';
 import {
     recordOpen, loadStreak,
     addBookmark, removeBookmark, listBookmarks,
-    addHighlight, removeHighlight, listHighlightsOnPage,
+    addHighlight, removeHighlight, listHighlights, listHighlightsOnPage,
 } from './pdf/persistence.js';
 import { densityStrip, currentStreak } from './pdf/engine/streak.js';
 import { buildLibraryView } from './pdf/library/LibraryView.js';
 import { migrateIfNeeded } from './pdf/library/migration.js';
-import { importFromFilesApp, importBlob, vetImport } from './pdf/library/importExport.js';
+import { importFromFilesApp, importBlob, vetImport, exportAnnotationsMarkdown } from './pdf/library/importExport.js';
 import { buildMoreMenu } from './pdf/view/moreMenu.js';
 import { printPdf } from './pdf/view/printDoc.js';
 
@@ -118,6 +118,7 @@ export class PdfReaderApp extends App {
             onToggleDark: () => this._reader?.toggleDarkPages?.(),
             getDarkMode: () => this._reader?.isDarkPages?.() || false,
             onShowProperties: () => this._showProperties(),
+            onExportAnnotations: () => this._exportAnnotationsCurrent(),
         });
         this._moreMenu.trigger.classList.add('cx-titlebar-btn');
         this._titleBarActions.append(this._btnDownload, this._btnExport, this._btnFullscreen, this._moreMenu.trigger);
@@ -355,6 +356,27 @@ export class PdfReaderApp extends App {
         ].filter(Boolean);
         // Use a simple alert for v2; a glass modal can land later.
         window.alert(lines.join('\n'));
+    }
+
+    async _exportAnnotationsCurrent() {
+        const docId = this._reader?.getDocId?.() || this._currentDocId;
+        if (!docId) return;
+        try {
+            const [notes, quotes] = await Promise.all([
+                this.pdfStore?.listAnnotationsByKind(docId, 'note') || [],
+                this.pdfStore?.listQuotes(docId) || [],
+            ]);
+            exportAnnotationsMarkdown({
+                docTitle: this._currentDoc?.name || 'Document',
+                bookmarks:  listBookmarks(this.kernel, docId),
+                highlights: listHighlights(this.kernel, docId),
+                notes,
+                quotes,
+            });
+            this.kernel?.emit?.('toast', { message: 'Annotations exported', type: 'success' });
+        } catch (e) {
+            this.kernel?.emit?.('toast', { message: `Export failed: ${e.message || e}`, type: 'error' });
+        }
     }
 
     async _exportCurrent() {

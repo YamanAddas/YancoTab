@@ -7,7 +7,7 @@
 
 import { el } from '../../../utils/dom.js';
 
-export function buildMoreMenu({ onPrint, onToggleDark, onShowProperties, getDarkMode } = {}) {
+export function buildMoreMenu({ onPrint, onToggleDark, onShowProperties, getDarkMode, onExportAnnotations } = {}) {
     const trigger = el('button', {
         type: 'button',
         class: 'cx-icbtn',
@@ -28,10 +28,11 @@ export function buildMoreMenu({ onPrint, onToggleDark, onShowProperties, getDark
         popover = el('div', { class: 'cx-more-popover', role: 'menu' });
         const isDark = !!getDarkMode?.();
 
-        addItem(popover, '🖨', 'Print',          () => { close(); onPrint?.(); });
+        addItem(popover, '🖨', 'Print',              () => { close(); onPrint?.(); });
         addItem(popover, '🌙', isDark ? 'Light pages' : 'Dark pages',
                 () => { close(); onToggleDark?.(); });
-        addItem(popover, 'ℹ',  'Properties',     () => { close(); onShowProperties?.(); });
+        addItem(popover, 'ℹ',  'Properties',         () => { close(); onShowProperties?.(); });
+        addItem(popover, '⬇', 'Export annotations',  () => { close(); onExportAnnotations?.(); });
 
         const rect = trigger.getBoundingClientRect();
         popover.style.position = 'fixed';
