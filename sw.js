@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.2.1-pdf-zoom-modes';
+const CACHE_NAME = 'yancotab-v1.2.2-pdf-resume-fullscreen';
 
 const PRECACHE = [
     './',
@@ -222,7 +222,9 @@ const PRECACHE = [
     './css/pdf-library.css',
     './os/services/pdfStore.js',
     './os/apps/pdf/codex.js',
+    './os/apps/pdf/codexSelection.js',
     './os/apps/pdf/persistence.js',
+    './os/apps/pdf/engine/reading.js',
     './os/apps/pdf/engine/streak.js',
     './os/apps/pdf/engine/bookmarks.js',
     './os/apps/pdf/engine/outline.js',

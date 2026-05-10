@@ -858,3 +858,46 @@ body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 23
 .cx-spread.is-book .cx-page:first-child {
   /* Cover sits centered when alone; spread.js hides right when needed */
 }
+
+/* ── Resume pill (transient on auto-resume) ──────────────── */
+.cx-resume-pill {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
+  background: rgba(var(--accent-rgb), 0.18);
+  color: var(--accent);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-pill);
+  padding: 6px 12px;
+  font-size: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  cursor: pointer;
+  backdrop-filter: blur(20px);
+  box-shadow: var(--glow-sm);
+  opacity: 0;
+  animation: cx-resume-in 300ms ease-out forwards;
+}
+.cx-resume-pill.is-fading { animation: cx-resume-out 500ms ease-in forwards; }
+@keyframes cx-resume-in {
+  from { transform: translateY(-8px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes cx-resume-out {
+  to { opacity: 0; }
+}
+
+/* ── Fullscreen ──────────────────────────────────────────── */
+.codex.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+}
+.codex.is-fullscreen .cx-side,
+.codex.is-fullscreen .cx-info {
+  display: none;
+}
+.codex.is-fullscreen .cx-stage {
+  grid-column: 1 / -1;
+}

@@ -1,12 +1,12 @@
 /**
  * pdf/codex.js — Codex orchestrator.
  *
- * Owns the loaded pdf.js doc, current page, outline, bookmarks, the
- * in-session "Today's quotes" list, plus v2 view state: user zoom,
- * view mode (single/continuous/spread/book), and rotation.
+ * Owns the loaded pdf.js doc, current page, outline, bookmarks,
+ * v2 view state (zoom, view-mode, rotation), and reading-position
+ * memory persisted via pdfStore.viewState.
  *
- * Lazy-loads pdf.js on first `load()` call so the rest of the app
- * isn't penalized by the worker startup cost.
+ * Selection handling lives in `codexSelection.js` to keep this file
+ * under the 500-line cap.
  */
 
 import { el } from '../../utils/dom.js';
@@ -17,13 +17,12 @@ import { buildPageStrip } from './view/pageStrip.js';
 import { buildSelectionMenu } from './view/selectionMenu.js';
 import { buildInfoPanel } from './view/infoPanel.js';
 import { setPdfJsModule } from './view/pageView.js';
-import { applyHighlights } from './view/applyHighlights.js';
 
 import { flattenOutline, annotateWithPages, destToKey } from './engine/outline.js';
-import { evaluate, looksNumeric, format as formatCalc } from './engine/inlineCalc.js';
-import { formatQuote, formatQuoteMarkdown } from './engine/quote.js';
 import { stepZoom, clampZoom, formatLevel as fmtZoom } from './engine/zoom.js';
 import { pickDefaultMode } from './engine/viewport.js';
+import { createReadingMemory, resolveViewState, isResumable } from './engine/reading.js';
+import { createSelectionController } from './codexSelection.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -47,6 +46,7 @@ export function buildCodex({
   getBookmarks, getHighlightsOnPage,
   onAddBookmark, onRemoveBookmark, onAddHighlight,
   onSendToNotes, onRecordOpen, onToast,
+  pdfStore,    // used for viewState (reading-position memory)
 } = {}) {
   const root = el('div', { class: 'codex' });
 
@@ -56,15 +56,23 @@ export function buildCodex({
   let outline = [];
   let currentPage = 1;
   let totalPages = 0;
-  let lastSelection = { text: '', rect: null, page: null };
   let calcResult = null;
   let todaysQuotes = [];
 
-  // ── v2 state ──
-  let userZoom = 'fit-width';     // number | 'fit-width' | 'fit-page'
-  let viewMode = 'continuous';    // 'single' | 'continuous' | 'spread' | 'book'
-  let rotation = 0;               // 0 | 90 | 180 | 270
+  let userZoom = 'fit-width';
+  let viewMode = 'continuous';
+  let rotation = 0;
 
+  let isFullscreen = false;
+  let resumePill = null;
+
+  // Reading-position memory.
+  const memory = pdfStore ? createReadingMemory({
+    loadViewState: (id) => pdfStore.getViewState(id),
+    saveViewState: (id, patch) => pdfStore.saveViewState(id, patch),
+  }) : null;
+
+  // ── DOM scaffold ──
   const side = buildSideRail({
     onJumpToPage: (n) => goToPage(n),
     onRemoveBookmark: (b) => onRemoveBookmark?.(b),
@@ -89,27 +97,48 @@ export function buildCodex({
   ]);
   const spread = buildSpread();
   const strip = buildPageStrip({
-    onCurrentPageChange: (n) => { currentPage = n; renderRail(); renderBar(); },
+    onCurrentPageChange: (n) => {
+      currentPage = n; renderRail(); renderBar();
+      memory?.save(docId, { page: currentPage, scrollY: stage.scrollTop });
+    },
   });
   spread.root.style.display = 'none';
   strip.root.style.display = 'none';
   stage.append(bar.root, empty, spread.root, strip.root);
 
   const info = buildInfoPanel({
-    onClearTodays: () => { todaysQuotes = []; renderInfo(); },
+    onClearTodays: () => { sel.setQuotes([]); renderInfo(); },
     onJumpToQuote: (q) => q.page && goToPage(q.page),
   });
 
+  // Late-bound: the selMenu's callbacks call into `sel` which is
+  // constructed below; closure sees it once defined.
+  let sel;
   const selMenu = buildSelectionMenu({
-    onCopy: () => copySelection(false),
-    onSendToNotes: () => sendToNotes(),
-    onCalc: () => evalSelectionAsCalc(),
-    onCite: () => copyCitation(),
-    onBookmark: () => bookmarkSelection(),
-    onHighlight: () => highlightSelection(),
+    onCopy:        () => sel.copy(),
+    onSendToNotes: () => sel.sendToNotes(),
+    onCalc:        () => sel.evalCalc(),
+    onCite:        () => sel.copyCitation(),
+    onBookmark:    () => sel.bookmark(),
+    onHighlight:   () => sel.highlight(),
   });
 
   root.append(side.root, stage, info.root, selMenu.root);
+
+  sel = createSelectionController({
+    stage, selMenu,
+    onAddBookmark: (b) => { onAddBookmark?.(b); renderRail(); },
+    onAddHighlight,
+    onSendToNotes,
+    onToast,
+    getDocId: () => docId,
+    getDocTitle: () => docTitle,
+    getCurrentPage: () => currentPage,
+    getHighlightsOnPage,
+    onChangeQuotes: (q) => { todaysQuotes = q; },
+    onChangeCalc: (c) => { calcResult = c; },
+    onRefreshInfo: () => renderInfo(),
+  });
 
   // ── Mode helpers ──
 
@@ -129,13 +158,11 @@ export function buildCodex({
     if (!pdfDoc) return;
     currentPage = next;
     selMenu.hide();
-    if (viewMode === 'continuous') {
-      strip.scrollToPage(next, stage);
-    } else {
-      await renderStage();
-    }
+    if (viewMode === 'continuous') strip.scrollToPage(next, stage);
+    else await renderStage();
     renderRail();
     renderBar();
+    memory?.save(docId, { page: currentPage });
   }
 
   // ── Stage rendering ──
@@ -154,12 +181,8 @@ export function buildCodex({
       spread.root.style.display = 'none';
       strip.root.style.display = '';
       stage.classList.add('is-continuous');
-      // For continuous, zoom needs to be a number. Resolve fit-width
-      // against the first-page intrinsic viewport.
       const zoomNumber = await resolveZoom();
-      await strip.render({
-        pdfDoc, scrollHost: stage, zoom: zoomNumber, docId,
-      });
+      await strip.render({ pdfDoc, scrollHost: stage, zoom: zoomNumber, docId });
     } else {
       spread.root.style.display = '';
       strip.root.style.display = 'none';
@@ -167,7 +190,6 @@ export function buildCodex({
       const stageWidth = stage.clientWidth || 800;
       const stageHeight = stage.clientHeight || 600;
       const useSpread = isSpreadMode();
-      // Book mode: page 1 alone, then page 2 left + page 3 right, etc.
       const left = currentPage;
       const right = useSpread
         ? (viewMode === 'book' && currentPage === 1 ? null : currentPage + 1)
@@ -178,11 +200,10 @@ export function buildCodex({
         gapPx: 14, paddingPx: 24,
         docId, mode: viewMode, zoom: userZoom, rotation,
       });
-      applyHighlightsToVisiblePages();
+      sel.applyHighlightsToVisiblePages();
     }
   }
 
-  /** Resolve zoom keyword to numeric using current page geometry. */
   async function resolveZoom() {
     if (typeof userZoom === 'number') return clampZoom(userZoom);
     if (!pdfDoc) return 1.0;
@@ -196,7 +217,6 @@ export function buildCodex({
         const innerH = Math.max(0, stageH - 48);
         return clampZoom(Math.min(innerW / vp.width, innerH / vp.height));
       }
-      // fit-width
       return clampZoom(innerW / vp.width);
     } catch { return 1.0; }
   }
@@ -208,30 +228,40 @@ export function buildCodex({
     userZoom = typeof level === 'number' ? clampZoom(level) : level;
     await renderStage();
     renderBar();
+    memory?.save(docId, { zoom: userZoom });
   }
 
   async function zoomStep(dir) {
     const cur = await resolveZoom();
-    const next = stepZoom(cur, dir);
-    await setZoom(next);
+    await setZoom(stepZoom(cur, dir));
   }
 
   async function setMode(mode) {
-    if (!['single', 'continuous', 'spread', 'book'].includes(mode)) return;
-    if (mode === viewMode) return;
+    if (!['single', 'continuous', 'spread', 'book'].includes(mode) || mode === viewMode) return;
     viewMode = mode;
     await renderStage();
     renderBar();
+    memory?.save(docId, { mode: viewMode });
   }
 
   async function rotateRight() {
     rotation = (rotation + 90) % 360;
     await renderStage();
+    memory?.save(docId, { rotation });
   }
 
-  function getZoomLabel() {
-    return fmtZoom(userZoom);
+  function toggleFullscreen() {
+    if (isFullscreen || document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+      return;
+    }
+    root.requestFullscreen?.().catch(() => {});
   }
+
+  document.addEventListener('fullscreenchange', () => {
+    isFullscreen = document.fullscreenElement === root;
+    root.classList.toggle('is-fullscreen', isFullscreen);
+  });
 
   // ── Side rail / bar / info ──
 
@@ -263,130 +293,14 @@ export function buildCodex({
   }
 
   function renderInfo() {
-    info.update({ selectionText: lastSelection.text, calc: calcResult, todaysQuotes });
+    info.update({
+      selectionText: sel.getLastSelection().text,
+      calc: calcResult,
+      todaysQuotes: sel.getQuotes(),
+    });
   }
 
   function renderAll() { renderRail(); renderBar(); renderInfo(); }
-
-  // ── Selection ──
-
-  function getSelectionRectInsideStage() {
-    const sel = window.getSelection();
-    if (!sel || sel.rangeCount === 0 || sel.isCollapsed) return null;
-    const range = sel.getRangeAt(0);
-    if (!range || range.collapsed) return null;
-    const ancestor = range.commonAncestorContainer;
-    const node = ancestor.nodeType === 1 ? ancestor : ancestor.parentElement;
-    if (!node || !stage.contains(node)) return null;
-    const rect = range.getBoundingClientRect();
-    if (!rect || rect.width === 0 && rect.height === 0) return null;
-    return { rect, text: sel.toString(), node };
-  }
-
-  function pageElementOf(node) {
-    let p = node;
-    while (p && p !== stage) {
-      if (p.classList?.contains('cx-page')) return p;
-      p = p.parentElement;
-    }
-    return null;
-  }
-
-  function pageNumberFromElement(pageEl) {
-    if (!pageEl) return null;
-    const dataPage = pageEl.closest?.('[data-page]')?.dataset?.page;
-    if (dataPage) return Number(dataPage);
-    const idx = [...stage.querySelectorAll('.cx-page')].indexOf(pageEl);
-    if (idx < 0) return null;
-    return idx === 0 ? currentPage : currentPage + 1;
-  }
-
-  function refreshSelection() {
-    const s = getSelectionRectInsideStage();
-    if (!s) {
-      lastSelection = { text: '', rect: null, page: null };
-      calcResult = null;
-      selMenu.hide();
-      renderInfo();
-      return;
-    }
-    lastSelection = {
-      text: s.text, rect: s.rect,
-      page: pageNumberFromElement(pageElementOf(s.node)),
-    };
-    selMenu.setCalcAvailable(looksNumeric(s.text));
-    selMenu.show(s.rect);
-    calcResult = null;
-    renderInfo();
-  }
-
-  document.addEventListener('selectionchange', () => {
-    requestAnimationFrame(() => refreshSelection());
-  });
-
-  // ── Selection actions ──
-
-  async function copyToClipboard(text) {
-    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
-  }
-
-  function copySelection() {
-    if (!lastSelection.text) return;
-    copyToClipboard(formatQuote({ text: lastSelection.text, docTitle, page: lastSelection.page }));
-    onToast?.({ message: 'Quote copied', type: 'success' });
-  }
-
-  function copyCitation() {
-    if (!lastSelection.text) return;
-    copyToClipboard(`— ${docTitle.replace(/\.pdf$/i, '')}, p.${lastSelection.page || '?'}`);
-    onToast?.({ message: 'Citation copied', type: 'success' });
-  }
-
-  function sendToNotes() {
-    if (!lastSelection.text) return;
-    const md = formatQuoteMarkdown({ text: lastSelection.text, docTitle, page: lastSelection.page });
-    copyToClipboard(md);
-    todaysQuotes.unshift({ text: lastSelection.text.slice(0, 240), docTitle, page: lastSelection.page, ts: Date.now() });
-    todaysQuotes = todaysQuotes.slice(0, 32);
-    onSendToNotes?.(md);
-    renderInfo();
-    onToast?.({ message: 'Quote copied — paste into Notes', type: 'success' });
-  }
-
-  function evalSelectionAsCalc() {
-    if (!lastSelection.text) return;
-    const r = evaluate(lastSelection.text);
-    if (!r.ok) { onToast?.({ message: r.reason || 'Not a valid expression', type: 'error' }); calcResult = null; }
-    else { calcResult = { ...r, formattedValue: formatCalc(r.value) }; }
-    renderInfo();
-  }
-
-  function bookmarkSelection() {
-    if (!docId || !Number.isFinite(lastSelection.page)) return;
-    const label = lastSelection.text ? lastSelection.text.slice(0, 80) : `Page ${lastSelection.page}`;
-    onAddBookmark?.({ docId, page: lastSelection.page, label, color: 'accent' });
-    onToast?.({ message: 'Bookmark added', type: 'success' });
-    renderRail();
-  }
-
-  function highlightSelection() {
-    if (!docId || !Number.isFinite(lastSelection.page) || !lastSelection.text) return;
-    onAddHighlight?.({ docId, page: lastSelection.page, text: lastSelection.text, color: 'accent' });
-    onToast?.({ message: 'Highlight saved', type: 'success' });
-    applyHighlightsToVisiblePages();
-  }
-
-  function applyHighlightsToVisiblePages() {
-    if (!docId) return;
-    const pages = stage.querySelectorAll('.cx-page');
-    pages.forEach((pageEl) => {
-      const pageNum = Number(pageEl.closest('[data-page]')?.dataset?.page) || pageNumberFromElement(pageEl);
-      const textLayer = pageEl.querySelector('.cx-text-layer');
-      if (!textLayer || !pageNum) return;
-      const highlights = getHighlightsOnPage?.(docId, pageNum) || [];
-      applyHighlights(textLayer, highlights);
-    });
-  }
 
   // ── Wheel zoom + double-click toggle ──
 
@@ -403,6 +317,22 @@ export function buildCodex({
     if (typeof userZoom === 'number') setZoom('fit-width');
     else setZoom(1.0);
   });
+
+  // ── Resume pill (transient overlay shown on auto-resume) ──
+
+  function showResumePill(page) {
+    if (resumePill) { resumePill.remove(); resumePill = null; }
+    resumePill = el('div', {
+      class: 'cx-resume-pill',
+      onclick: () => resumePill?.remove(),
+    }, `Resumed on page ${page}`);
+    root.appendChild(resumePill);
+    setTimeout(() => {
+      if (!resumePill) return;
+      resumePill.classList.add('is-fading');
+      setTimeout(() => { resumePill?.remove(); resumePill = null; }, 500);
+    }, 2500);
+  }
 
   // ── Loading ──
 
@@ -437,23 +367,57 @@ export function buildCodex({
     }
     outline = annotateWithPages(flat, pageByDestKey);
 
-    // Pick a default view mode based on stage geometry + page aspect.
-    try {
-      const firstPage = await pdfDoc.getPage(1);
-      const baseViewport = firstPage.getViewport({ scale: 1 });
-      viewMode = pickDefaultMode({
-        stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
-        pageBaseViewport: baseViewport,
-      });
-    } catch { /* leave default */ }
+    // Try to restore reading position before computing the default mode.
+    let resumed = null;
+    if (memory && docId) {
+      const saved = await memory.load(docId);
+      const v = resolveViewState(saved);
+      if (v) {
+        if (v.mode) viewMode = v.mode;
+        if (v.zoom) userZoom = v.zoom;
+        if (v.rotation) rotation = v.rotation;
+        if (Number.isFinite(v.page)) currentPage = clampPage(v.page);
+        // Only show the resume pill if the saved page actually
+        // landed on something past the first page after clamp.
+        if (isResumable(saved) && currentPage > 1) resumed = currentPage;
+      }
+    }
+    if (!resumed && !memory) {
+      try {
+        const firstPage = await pdfDoc.getPage(1);
+        const baseViewport = firstPage.getViewport({ scale: 1 });
+        viewMode = pickDefaultMode({
+          stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
+          pageBaseViewport: baseViewport,
+        });
+      } catch { /* leave default */ }
+    } else if (!resumed) {
+      // viewMode came back as null from saved? Pick a default.
+      try {
+        const firstPage = await pdfDoc.getPage(1);
+        const baseViewport = firstPage.getViewport({ scale: 1 });
+        if (!viewMode) viewMode = pickDefaultMode({
+          stage: { width: stage.clientWidth || 800, height: stage.clientHeight || 600 },
+          pageBaseViewport: baseViewport,
+        });
+      } catch { /* leave default */ }
+    }
 
     onRecordOpen?.();
     await renderStage();
+
+    // After the strip is built, scroll to the resumed page.
+    if (viewMode === 'continuous' && currentPage > 1) {
+      requestAnimationFrame(() => strip.scrollToPage(currentPage, stage));
+    }
     renderAll();
+
+    if (resumed) showResumePill(resumed);
     onToast?.({ message: `Opened "${docTitle}"`, type: 'success' });
   }
 
   function close() {
+    memory?.flush(docId);
     pdfDoc = null;
     docId = null;
     docTitle = '';
@@ -461,6 +425,7 @@ export function buildCodex({
     currentPage = 1;
     totalPages = 0;
     todaysQuotes = [];
+    sel.setQuotes([]);
     spread.destroy();
     strip.destroy();
     renderAll();
@@ -482,6 +447,7 @@ export function buildCodex({
     spread.destroy();
     strip.destroy();
     bar.destroy?.();
+    memory?.flushAll();
   }
 
   return {
@@ -494,7 +460,7 @@ export function buildCodex({
     refreshRail() { renderAll(); },
     getCurrentPage() { return currentPage; },
     getDocId() { return docId; },
-    setZoom, zoomStep, setMode, rotateRight,
-    getZoomLabel,
+    setZoom, zoomStep, setMode, rotateRight, toggleFullscreen,
+    getZoomLabel: () => fmtZoom(userZoom),
   };
 }

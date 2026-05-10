@@ -106,7 +106,12 @@ export class PdfReaderApp extends App {
             title: 'Export a copy to /home/documents',
             onclick: () => this._exportCurrent(),
         }, 'Export to Files');
-        this._titleBarActions.append(this._btnDownload, this._btnExport);
+        this._btnFullscreen = el('button', {
+            type: 'button', class: 'cx-titlebar-btn',
+            title: 'Fullscreen (F11)',
+            onclick: () => this._reader?.toggleFullscreen?.(),
+        }, '⛶ Fullscreen');
+        this._titleBarActions.append(this._btnDownload, this._btnExport, this._btnFullscreen);
         this._titleBar.append(this._titleBarLibBtn, this._titleBarTitle, this._titleBarActions);
 
         this._libraryHost = el('div', { class: 'pdf-lib-host' });
@@ -220,6 +225,7 @@ export class PdfReaderApp extends App {
         this._readerHost.style.display = '';
 
         this._reader = buildCodex({
+            pdfStore: this.pdfStore,
             getStreakStrip: () => densityStrip(this._streak, 14),
             getStreakDays: () => currentStreak(this._streak),
             getBookmarks: (docId) => listBookmarks(this.kernel, docId),
@@ -338,6 +344,11 @@ export class PdfReaderApp extends App {
             else if (e.key === 'ArrowRight' || e.key === 'PageDown') { this._reader.keyMove(1);  e.preventDefault(); }
             else if (e.key === 'Home')                               { this._reader.keyJump('first'); e.preventDefault(); }
             else if (e.key === 'End')                                { this._reader.keyJump('last');  e.preventDefault(); }
+            else if (e.key === 'F11')                                { this._reader.toggleFullscreen?.(); e.preventDefault(); }
+            else if ((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')) { this._reader.zoomStep?.(1);  e.preventDefault(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === '-')      { this._reader.zoomStep?.(-1); e.preventDefault(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === '0')      { this._reader.setZoom?.('fit-width'); e.preventDefault(); }
+            else if ((e.ctrlKey || e.metaKey) && e.key === '1')      { this._reader.setZoom?.(1.0); e.preventDefault(); }
         }
     }
 }
