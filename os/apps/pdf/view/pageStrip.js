@@ -20,8 +20,9 @@ const OVERSCAN_PAGES = 1;          // render visible ± this many pages
 const PAGE_GAP_PX = 14;             // vertical spacing between pages
 const PADDING_PX = 24;
 
-export function buildPageStrip({ onCurrentPageChange } = {}) {
+export function buildPageStrip({ onCurrentPageChange, onLinkInternal, onLinkExternal } = {}) {
     const root = el('div', { class: 'cx-strip' });
+    const linkOpts = { onLinkInternal, onLinkExternal };
 
     let pdfDoc = null;
     let pageBoxes = [];         // [{ container, view, page, dims, rendered }]
@@ -72,7 +73,7 @@ export function buildPageStrip({ onCurrentPageChange } = {}) {
                 'data-page': String(i),
                 style: { marginBottom: `${gapPx}px` },
             });
-            const view = buildPageView();
+            const view = buildPageView(linkOpts);
             view.root.classList.add('cx-strip-page-inner');
             box.appendChild(view.root);
             root.appendChild(box);

@@ -18,12 +18,12 @@ import { buildSelectionMenu } from './view/selectionMenu.js';
 import { buildInfoPanel } from './view/infoPanel.js';
 import { setPdfJsModule } from './view/pageView.js';
 
-import { flattenOutline, annotateWithPages, destToKey } from './engine/outline.js';
 import { stepZoom, clampZoom, formatLevel as fmtZoom } from './engine/zoom.js';
 import { pickDefaultMode } from './engine/viewport.js';
 import { createReadingMemory, resolveViewState, isResumable } from './engine/reading.js';
 import { createSelectionController } from './codexSelection.js';
 import { createSearchController } from './codexSearch.js';
+import { resolveOutline, resolveLinkDestination, openExternalUrl } from './codexLoad.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -66,6 +66,7 @@ export function buildCodex({
 
   let isFullscreen = false;
   let resumePill = null;
+  let darkPages = false;
 
   // Reading-position memory.
   const memory = pdfStore ? createReadingMemory({
@@ -96,12 +97,24 @@ export function buildCodex({
     el('div', { class: 'cx-stage-empty-title' }, 'No PDF open'),
     el('div', { class: 'cx-stage-empty-hint' }, 'Drop a PDF here or use the Open button.'),
   ]);
-  const spread = buildSpread();
+  // Link-layer handlers — delegate to pure helpers, then nav.
+  const followInternalLink = async ({ dest }) => {
+    const target = await resolveLinkDestination(pdfDoc, dest);
+    if (target) goToPage(target);
+  };
+  const followExternalLink = (url) => openExternalUrl(url);
+
+  const spread = buildSpread({
+    onLinkInternal: followInternalLink,
+    onLinkExternal: followExternalLink,
+  });
   const strip = buildPageStrip({
     onCurrentPageChange: (n) => {
       currentPage = n; renderRail(); renderBar();
       memory?.save(docId, { page: currentPage, scrollY: stage.scrollTop });
     },
+    onLinkInternal: followInternalLink,
+    onLinkExternal: followExternalLink,
   });
   spread.root.style.display = 'none';
   strip.root.style.display = 'none';
@@ -271,6 +284,23 @@ export function buildCodex({
     root.requestFullscreen?.().catch(() => {});
   }
 
+  function toggleDarkPages() {
+    darkPages = !darkPages;
+    root.classList.toggle('is-dark-pages', darkPages);
+    memory?.save(docId, { darkPages });
+  }
+
+  function getProperties() {
+    return {
+      title: docTitle,
+      pages: totalPages,
+      docId,
+      mode: viewMode,
+      zoom: typeof userZoom === 'number' ? `${Math.round(userZoom * 100)}%` : userZoom,
+      rotation: `${rotation}°`,
+    };
+  }
+
   document.addEventListener('fullscreenchange', () => {
     isFullscreen = document.fullscreenElement === root;
     root.classList.toggle('is-fullscreen', isFullscreen);
@@ -358,27 +388,7 @@ export function buildCodex({
     totalPages = pdfDoc.numPages;
     currentPage = 1;
 
-    // Outline + page resolution
-    let rawOutline = [];
-    try { rawOutline = await pdfDoc.getOutline(); } catch { /* ignore */ }
-    const flat = flattenOutline(rawOutline || []);
-    const pageByDestKey = new Map();
-    for (const entry of flat) {
-      const key = destToKey(entry.dest);
-      if (!key) continue;
-      try {
-        let dest = entry.dest;
-        if (typeof dest === 'string') {
-          dest = await pdfDoc.getDestination(dest);
-          if (!dest) continue;
-        }
-        const ref = Array.isArray(dest) ? dest[0] : null;
-        if (!ref) continue;
-        const idx = await pdfDoc.getPageIndex(ref);
-        if (Number.isFinite(idx)) pageByDestKey.set(key, idx + 1);
-      } catch { /* ignore */ }
-    }
-    outline = annotateWithPages(flat, pageByDestKey);
+    outline = await resolveOutline(pdfDoc);
 
     // Try to restore reading position before computing the default mode.
     let resumed = null;
@@ -477,6 +487,9 @@ export function buildCodex({
     getDocId() { return docId; },
     setZoom, zoomStep, setMode, rotateRight, toggleFullscreen,
     toggleSearch: () => search.toggle(),
+    toggleDarkPages,
+    isDarkPages: () => darkPages,
+    getProperties,
     getZoomLabel: () => fmtZoom(userZoom),
   };
 }

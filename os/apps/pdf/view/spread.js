@@ -19,10 +19,10 @@ import { zoomToFit } from '../engine/zoom.js';
 
 const SPREAD_MIN_PX = 920; // for the legacy auto-mode
 
-export function buildSpread() {
+export function buildSpread({ onLinkInternal, onLinkExternal } = {}) {
   const root = el('div', { class: 'cx-spread' });
-  const left = buildPageView();
-  const right = buildPageView();
+  const left = buildPageView({ onLinkInternal, onLinkExternal });
+  const right = buildPageView({ onLinkInternal, onLinkExternal });
   root.append(left.root, right.root);
 
   let lastDocId = null;

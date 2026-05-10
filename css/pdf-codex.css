@@ -1000,3 +1000,68 @@ body.theme-light .cx-text-layer span.cx-hl-cool   { background: rgba(45, 130, 23
   border-radius: 2px;
   color: transparent;
 }
+
+/* ── Dark-pages mode ───────────────────────────────────────
+   Inverts the canvas (and the text-layer stays on top in normal
+   black-on-white). Hue-rotate keeps reds reddish instead of cyan. */
+.codex.is-dark-pages .cx-page-canvas {
+  filter: invert(0.92) hue-rotate(180deg);
+}
+.codex.is-dark-pages .cx-text-layer span {
+  /* Text-layer is invisible by default (color: transparent) so no
+     change needed. But .cx-find-match has color: transparent inverted
+     by the canvas filter; nothing to do here. */
+}
+
+/* ── More-menu popover ─────────────────────────────────── */
+.cx-more-popover {
+  z-index: 1000;
+  min-width: 180px;
+  background: var(--bg-panel, rgba(8, 15, 28, 0.97));
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(20px);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+}
+.cx-more-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  padding: 7px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 5px;
+  font: inherit;
+}
+.cx-more-item:hover {
+  background: rgba(var(--accent-rgb), 0.10);
+  color: var(--accent);
+}
+.cx-more-glyph {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+}
+.cx-more-label { letter-spacing: 0.04em; }
+
+/* ── Link-annotation rects ─────────────────────────────── */
+.cx-page { position: relative; }
+.cx-link-layer { z-index: 4; }
+.cx-link-rect {
+  display: block;
+  border-radius: 2px;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.cx-link-rect:hover {
+  background: rgba(var(--accent-rgb), 0.18);
+  outline: 1px solid var(--accent);
+}

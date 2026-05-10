@@ -26,6 +26,8 @@ import { densityStrip, currentStreak } from './pdf/engine/streak.js';
 import { buildLibraryView } from './pdf/library/LibraryView.js';
 import { migrateIfNeeded } from './pdf/library/migration.js';
 import { importFromFilesApp, importBlob, vetImport } from './pdf/library/importExport.js';
+import { buildMoreMenu } from './pdf/view/moreMenu.js';
+import { printPdf } from './pdf/view/printDoc.js';
 
 export class PdfReaderApp extends App {
     constructor(kernel, pid) {
@@ -111,7 +113,14 @@ export class PdfReaderApp extends App {
             title: 'Fullscreen (F11)',
             onclick: () => this._reader?.toggleFullscreen?.(),
         }, '⛶ Fullscreen');
-        this._titleBarActions.append(this._btnDownload, this._btnExport, this._btnFullscreen);
+        this._moreMenu = buildMoreMenu({
+            onPrint: () => this._printCurrent(),
+            onToggleDark: () => this._reader?.toggleDarkPages?.(),
+            getDarkMode: () => this._reader?.isDarkPages?.() || false,
+            onShowProperties: () => this._showProperties(),
+        });
+        this._moreMenu.trigger.classList.add('cx-titlebar-btn');
+        this._titleBarActions.append(this._btnDownload, this._btnExport, this._btnFullscreen, this._moreMenu.trigger);
         this._titleBar.append(this._titleBarLibBtn, this._titleBarTitle, this._titleBarActions);
 
         this._libraryHost = el('div', { class: 'pdf-lib-host' });
@@ -315,6 +324,34 @@ export class PdfReaderApp extends App {
         } catch (e) {
             this.kernel?.emit?.('toast', { message: `Download failed: ${e.message || e}`, type: 'error' });
         }
+    }
+
+    async _printCurrent() {
+        if (!this._currentDocId) return;
+        try {
+            const blob = await this.pdfStore.readBlob(this._currentDocId);
+            await printPdf(blob, (msg) => this.kernel?.emit?.('toast', { message: msg, type: 'info' }));
+        } catch (e) {
+            this.kernel?.emit?.('toast', { message: `Print failed: ${e.message || e}`, type: 'error' });
+        }
+    }
+
+    _showProperties() {
+        const props = this._reader?.getProperties?.();
+        if (!props) return;
+        const meta = this._currentDoc;
+        const sizeMB = meta?.sizeBytes ? (meta.sizeBytes / 1024 / 1024).toFixed(2) : '?';
+        const lines = [
+            `Title: ${props.title}`,
+            `Pages: ${props.pages}`,
+            `Size: ${sizeMB} MB`,
+            `View: ${props.mode}`,
+            `Zoom: ${props.zoom}`,
+            `Rotation: ${props.rotation}`,
+            meta?.importedAt ? `Imported: ${new Date(meta.importedAt).toLocaleString()}` : null,
+        ].filter(Boolean);
+        // Use a simple alert for v2; a glass modal can land later.
+        window.alert(lines.join('\n'));
     }
 
     async _exportCurrent() {

@@ -12,6 +12,7 @@
  */
 
 import { el } from '../../../utils/dom.js';
+import { applyLinkLayer } from './linkLayer.js';
 
 let pdfjsLib = null;
 
@@ -20,7 +21,7 @@ export function setPdfJsModule(mod) { pdfjsLib = mod; }
 
 const DPR_CAP = 2; // never render past 2× CSS pixels — keeps memory sane
 
-export function buildPageView() {
+export function buildPageView({ onLinkInternal, onLinkExternal } = {}) {
   const root = el('div', { class: 'cx-page' });
   const canvas = document.createElement('canvas');
   canvas.className = 'cx-page-canvas';
@@ -139,6 +140,17 @@ export function buildPageView() {
       frag.appendChild(span);
     }
     textLayerDiv.appendChild(frag);
+
+    // Link annotations (clickable cross-refs + URI links).
+    if (onLinkInternal || onLinkExternal) {
+      try {
+        const annotations = await pdfPage.getAnnotations();
+        applyLinkLayer({
+          pageEl: root, viewport, annotations,
+          onInternal: onLinkInternal, onExternal: onLinkExternal,
+        });
+      } catch { /* ignore link-layer failures — pages still render */ }
+    }
   }
 
   function destroy() {
