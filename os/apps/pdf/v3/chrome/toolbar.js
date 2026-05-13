@@ -71,18 +71,22 @@ export function buildToolbar({
 
   // ── Tools cluster ──
   const textToolBtn = toolBtn('text', ICONS.text, 'Text select (T)');
+  const handToolBtn = toolBtn('hand', ICONS.hand, 'Hand — pan-scroll (H)');
   const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw');
   const shapeToolBtn = toolBtn('shape', ICONS.shape, 'Shape (rect / ellipse / arrow / line)');
   const signToolBtn = toolBtn('sign', ICONS.signature, 'Sign — drop a saved signature');
   const toolBtns = new Map([
     ['text', textToolBtn],
+    ['hand', handToolBtn],
     ['ink', inkToolBtn],
     ['shape', shapeToolBtn],
     ['sign', signToolBtn],
   ]);
   // Default: text is active.
   textToolBtn.classList.add('is-active');
-  const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [textToolBtn, inkToolBtn, shapeToolBtn, signToolBtn]);
+  const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [
+    textToolBtn, handToolBtn, inkToolBtn, shapeToolBtn, signToolBtn,
+  ]);
 
   // ── Edit cluster (undo / redo) ──
   const undoBtn = iconBtn(ICONS.undo, 'Undo (Ctrl+Z)', () => onUndo?.());

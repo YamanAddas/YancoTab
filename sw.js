@@ -281,6 +281,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/shapeTool.js',
     './os/apps/pdf/v3/tools/signTool.js',
     './os/apps/pdf/v3/tools/toolDispatcher.js',
+    './os/apps/pdf/v3/tools/handTool.js',
     './os/apps/pdf/v3/readerTools.js',
     './os/apps/pdf/v3/readerPageOps.js',
     './os/apps/pdf/v3/readerMarkActions.js',

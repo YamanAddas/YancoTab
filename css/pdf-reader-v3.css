@@ -80,6 +80,11 @@ body:not(.theme-light) .pdf-reader-v3 {
 .pdf-stage.tool-ink .pdf-textlayer,
 .pdf-stage.tool-shape .pdf-textlayer,
 .pdf-stage.tool-redact .pdf-textlayer { pointer-events: none; }
+.pdf-stage.tool-hand { cursor: grab; }
+.pdf-stage.tool-hand.is-grabbing { cursor: grabbing; }
+.pdf-stage.tool-hand .pdf-textlayer { pointer-events: none; }
+.pdf-stage.tool-note { cursor: copy; }
+.pdf-stage.tool-note .pdf-textlayer { pointer-events: none; }
 
 /* ── Toolbar ──────────────────────────────────────────────────────── */
 .pdf-toolbar {

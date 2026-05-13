@@ -494,6 +494,6 @@ export function buildReader({
     toggleDarkPages: () => { /* phase C */ },
     isDarkPages: () => false,
     getProperties,
-    setHandMode: () => { /* phase C */ },
+    setHandMode: (on) => tools.dispatcher.setActive(on ? 'hand' : 'text'),
   };
 }

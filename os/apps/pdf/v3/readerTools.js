@@ -20,6 +20,7 @@ import { buildSignatureModal } from './chrome/signatureModal.js';
 import { createInkTool } from './tools/inkTool.js';
 import { createShapeTool } from './tools/shapeTool.js';
 import { createSignTool } from './tools/signTool.js';
+import { createHandTool } from './tools/handTool.js';
 import { createToolDispatcher } from './tools/toolDispatcher.js';
 
 const SIG_STORAGE_KEY = 'yancotab_pdf_signatures';
@@ -199,6 +200,14 @@ export function setupTools({
     },
   });
   dispatcher.register('text', {});
+  const handTool = createHandTool({ getStage: () => stage });
+  dispatcher.register('hand', {
+    setActive: (on) => handTool.setActive(on),
+    onPointerDown:   (e) => handTool.onPointerDown(e),
+    onPointerMove:   (e) => handTool.onPointerMove(e),
+    onPointerUp:     (e) => handTool.onPointerUp(e),
+    onPointerCancel: (e) => handTool.onPointerCancel(e),
+  });
   dispatcher.register('ink', {
     setActive: (on) => inkTool.setActive(on),
     onPointerDown:   (e) => inkTool.onPointerDown(e),
