@@ -1,10 +1,16 @@
 version: 2
 # YancoTab has zero runtime dependencies (CLAUDE.md non-negotiable #1) and
-# pins no npm devDependencies in package.json. Dependabot stays configured
-# so GitHub-native dependency-update tooling is recognized and so any
-# future devDep additions get picked up automatically.
+# pins no npm devDependencies in package.json. Both ecosystems are listed so
+# GitHub-native dependency-update tooling is recognized and any future
+# devDep additions get picked up automatically.
 updates:
   - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
