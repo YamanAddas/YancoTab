@@ -580,3 +580,119 @@ body:not(.theme-light) .pdf-reader-v3 {
 }
 .pdf-bookmark-row:hover .pdf-bookmark-del { opacity: 1; }
 .pdf-bookmark-del:hover { background: rgba(255,69,58,0.15); color: #ff453a; }
+
+/* ── Mark popover (click an existing highlight) ───────────────────── */
+.pdf-mark-popover {
+  position: fixed;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 22px;
+  box-shadow: var(--pdf-pill-shadow);
+  z-index: 1001;
+}
+.pdf-mark-chips { display: inline-flex; gap: 2px; }
+.pdf-mark-chip {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.10);
+  padding: 0;
+  margin: 0 1px;
+  cursor: pointer;
+  transition: transform 120ms;
+}
+.pdf-mark-chip:hover { transform: scale(1.12); }
+.pdf-mark-del-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  background: rgba(255,69,58,0.10);
+  color: #ff453a;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-mark-del-btn:hover { background: rgba(255,69,58,0.18); }
+
+/* ── Find / search bar ────────────────────────────────────────────── */
+.pdf-find-bar {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 8px;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 24px;
+  box-shadow: var(--pdf-pill-shadow);
+  z-index: 999;
+  width: 320px;
+  max-width: calc(100% - 32px);
+}
+.pdf-find-input {
+  flex: 1;
+  min-width: 0;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  outline: none;
+  font-size: 13px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--pdf-toolbar-text);
+  padding: 4px 6px;
+}
+.pdf-find-input::placeholder { color: var(--pdf-toolbar-text-dim); }
+.pdf-find-counter {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--pdf-toolbar-text-dim);
+  padding: 0 4px;
+  min-width: 60px;
+  text-align: right;
+  white-space: nowrap;
+}
+.pdf-find-counter.is-empty { color: #ff453a; }
+.pdf-find-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pdf-toolbar-text-dim);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.pdf-find-btn:hover {
+  background: var(--pdf-btn-hover);
+  color: var(--pdf-toolbar-text);
+}
+.pdf-find-btn svg { width: 16px; height: 16px; }
+
+/* Find-match decorations (applied via highlightRender.applySearchMatches) */
+.pdf-textlayer mark.pdf-find {
+  color: transparent;
+  background: rgba(255, 222, 89, 0.55);   /* all matches: yellow */
+  mix-blend-mode: multiply;
+  border-radius: 1px;
+  pointer-events: none;
+}
+.pdf-textlayer mark.pdf-find-current {
+  background: rgba(255, 149, 0, 0.65);    /* current match: orange */
+  outline: 2px solid #ff9500;
+  outline-offset: 1px;
+  box-shadow: 0 0 14px rgba(255,149,0,0.45);
+}

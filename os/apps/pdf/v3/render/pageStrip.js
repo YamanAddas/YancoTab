@@ -15,11 +15,15 @@
 
 import { el } from '../../../utils/dom.js';
 import { buildPageView } from './pageView.js';
-import { applyHighlights, clearHighlights } from './highlightRender.js';
+import {
+  applyHighlights, clearHighlights,
+  applySearchMatches, clearSearchMatches,
+} from './highlightRender.js';
 
 export function buildPageStrip({
-  getHighlightsForPage,   // async (page) → highlight[]  (offset-shape)
-  onPageMounted,          // (pageNum, pageEl) called after first render
+  getHighlightsForPage,    // async (page) → highlight[]  (offset-shape)
+  getSearchMatchesForPage, // (page) → { matches, currentMatch }
+  onPageMounted,           // (pageNum, pageEl) called after first render
 } = {}) {
   const root = el('div', { class: 'pdf-strip' });
   const slots = new Map();       // pageNum → { el, view, rendered, observer }
@@ -114,6 +118,27 @@ export function buildPageStrip({
       highlights = (await getHighlightsForPage?.(pageNum)) || [];
     } catch { /* best-effort */ }
     applyHighlights(layer, idx, highlights);
+    // Re-apply search-match decorations too, since applyHighlights cleared
+    // them along with the highlights.
+    refreshSearchMatchesForPage(pageNum);
+  }
+
+  function refreshSearchMatchesForPage(pageNum) {
+    const slot = slots.get(pageNum);
+    if (!slot || !slot.view) return;
+    const layer = slot.view.getTextLayer();
+    const idx = slot.view.getIndex();
+    if (!layer || !idx) return;
+    if (!getSearchMatchesForPage) {
+      clearSearchMatches(layer);
+      return;
+    }
+    const { matches, currentMatch } = getSearchMatchesForPage(pageNum) || {};
+    applySearchMatches(layer, idx, matches || [], currentMatch);
+  }
+
+  function refreshAllSearchMatches() {
+    for (const p of slots.keys()) refreshSearchMatchesForPage(p);
   }
 
   async function refreshAllHighlights() {
@@ -163,6 +188,8 @@ export function buildPageStrip({
     prepareSlots,
     refreshHighlightsForPage,
     refreshAllHighlights,
+    refreshSearchMatchesForPage,
+    refreshAllSearchMatches,
     scrollToPage,
     getPageNumberForElement,
     getPageIndexForElement,

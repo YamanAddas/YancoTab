@@ -30,6 +30,7 @@ import { segmentByOffsets } from '../select/offsetRanges.js';
 
 const HL_TAG = 'mark';
 const HL_BASE_CLASS = 'pdf-hl';
+const FIND_BASE_CLASS = 'pdf-find';
 
 /**
  * @param {HTMLElement} textLayerEl  the .cx-text-layer / .pdf-textlayer div
@@ -84,11 +85,13 @@ export function clearHighlights(textLayerEl) {
  * a prior highlight), we walk the descendants to find the text node
  * containing those positions.
  *
- * Class shape:
- *   <mark class="pdf-hl pdf-hl-yellow pdf-hl-kind-highlight"
- *         data-ann-id="42">
+ * `decoration` controls class shape:
+ *   { kind: 'highlight'|'underline'|'strike', color, id } →
+ *     "pdf-hl pdf-hl-<color> pdf-hl-kind-<kind>"
+ *   { kind: 'find', color: 'all'|'current', id }         →
+ *     "pdf-find pdf-find-<color>"
  */
-function wrapSpanRange(span, startInSpan, endInSpan, highlight) {
+function wrapSpanRange(span, startInSpan, endInSpan, decoration) {
   if (endInSpan <= startInSpan) return;
   const text = collectText(span);
   if (text.length === 0) return;
@@ -128,8 +131,12 @@ function wrapSpanRange(span, startInSpan, endInSpan, highlight) {
   range.setEnd(endNode, endOffset);
 
   const mark = (startNode.ownerDocument || document).createElement(HL_TAG);
-  mark.className = `${HL_BASE_CLASS} ${HL_BASE_CLASS}-${highlight.color || 'yellow'} ${HL_BASE_CLASS}-kind-${highlight.kind || 'highlight'}`;
-  if (Number.isFinite(highlight.id)) mark.dataset.annId = String(highlight.id);
+  if (decoration.kind === 'find') {
+    mark.className = `${FIND_BASE_CLASS} ${FIND_BASE_CLASS}-${decoration.color || 'all'}`;
+  } else {
+    mark.className = `${HL_BASE_CLASS} ${HL_BASE_CLASS}-${decoration.color || 'yellow'} ${HL_BASE_CLASS}-kind-${decoration.kind || 'highlight'}`;
+  }
+  if (Number.isFinite(decoration.id)) mark.dataset.annId = String(decoration.id);
 
   try {
     // Range.surroundContents throws on partial-node boundaries; fall
@@ -140,6 +147,50 @@ function wrapSpanRange(span, startInSpan, endInSpan, highlight) {
     mark.appendChild(frag);
     range.insertNode(mark);
   }
+}
+
+/**
+ * Apply search-result highlights to a rendered text layer. Uses the
+ * same wrap-by-segments approach as applyHighlights, but with a
+ * different class prefix and a "current" variant for the active match.
+ *
+ * Idempotent: clears previous `pdf-find` wrappers first.
+ */
+export function applySearchMatches(textLayerEl, pageIndex, matches, currentMatch) {
+  if (!textLayerEl) return;
+  clearSearchMatches(textLayerEl);
+  if (!pageIndex || !Array.isArray(matches) || matches.length === 0) return;
+  const spans = textLayerEl.querySelectorAll('span');
+  if (spans.length === 0) return;
+  for (const m of matches) {
+    const segs = segmentByOffsets(pageIndex, m.charStart, m.charEnd);
+    if (segs.length === 0) continue;
+    const isCurrent = currentMatch
+      && m.charStart === currentMatch.charStart
+      && m.charEnd === currentMatch.charEnd
+      && m.page === currentMatch.page;
+    for (const seg of segs) {
+      const span = spans[seg.spanIdx];
+      if (!span) continue;
+      wrapSpanRange(span, seg.startInSpan, seg.endInSpan, {
+        kind: 'find',
+        color: isCurrent ? 'current' : 'all',
+        id: NaN,
+      });
+    }
+  }
+}
+
+export function clearSearchMatches(textLayerEl) {
+  if (!textLayerEl) return;
+  const marks = textLayerEl.querySelectorAll(`${HL_TAG}.${FIND_BASE_CLASS}`);
+  marks.forEach((m) => {
+    const parent = m.parentNode;
+    if (!parent) return;
+    while (m.firstChild) parent.insertBefore(m.firstChild, m);
+    parent.removeChild(m);
+    parent.normalize?.();
+  });
 }
 
 function collectText(el) {

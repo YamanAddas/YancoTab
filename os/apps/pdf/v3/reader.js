@@ -25,6 +25,10 @@ import { setPdfJsModule } from './render/pageView.js';
 import { createSelectionWatcher } from './select/selectionWatcher.js';
 import { createAnnotationStore } from './ops/annotationStore.js';
 import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
+import { buildMarkPopover } from './chrome/markPopover.js';
+import { buildSearchBar } from './chrome/searchBar.js';
+import { createSearchController } from './ops/searchController.js';
+import { migrateDocHighlights } from './migrate/highlightsV1ToV2.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -120,8 +124,44 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   ]);
   stage.appendChild(empty);
 
+  // ── Search ──
+  // Build the search controller first so we can pass its match-lookup
+  // into the page strip below.
+  const search = createSearchController({
+    getPdfDoc: () => pdfDoc,
+    onResults: ({ matches, total, done }) => {
+      searchBar.setCounter({ idx: search.getCursorIdx(), total: matches.length, done });
+      strip.refreshAllSearchMatches();
+    },
+    onCursor: ({ idx, match }) => {
+      searchBar.setCounter({ idx, total: search.getMatchCount(), done: true });
+      strip.refreshAllSearchMatches();
+      if (match && Number.isFinite(match.page)) {
+        currentPage = match.page;
+        toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
+        sidebar.updateTab('thumbs', { totalPages, currentPage });
+        strip.scrollToPage(match.page, stage);
+      }
+    },
+  });
+
+  const searchBar = buildSearchBar({
+    onChange: (q) => search.search(q),
+    onPrev: () => search.step(-1),
+    onNext: () => search.step(1),
+    onClose: () => {
+      searchBar.hide();
+      searchBar.clear();
+      search.clear();
+    },
+  });
+
   const strip = buildPageStrip({
     getHighlightsForPage: (page) => annStore.listTextAnchoredOnPage(docId, page),
+    getSearchMatchesForPage: (page) => ({
+      matches: search.matchesOnPage(page),
+      currentMatch: search.getCurrent(),
+    }),
     onPageMounted: (pageNum) => {
       // Update toolbar's page indicator using the most-visible page.
       // For simplicity, we report the latest-mounted page as "current."
@@ -132,7 +172,29 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
   stage.appendChild(strip.root);
+  stage.appendChild(searchBar.root);
   strip.root.style.display = 'none';
+
+  // ── Mark popover (click on existing highlight) ──
+  const markPopover = buildMarkPopover({
+    onChangeColor: async (annId, color) => {
+      try {
+        await annStore.updateColor(annId, color);
+        // Refresh the page that owned the mark. We don't track which page
+        // hosts which annotation in this controller; refresh all visible.
+        await strip.refreshAllHighlights();
+      } catch { /* best-effort */ }
+    },
+    onDelete: async (annId) => {
+      try {
+        await annStore.deleteOne(annId);
+        await strip.refreshAllHighlights();
+        onToast?.({ message: 'Highlight deleted', type: 'success' });
+      } catch {
+        onToast?.({ message: 'Delete failed', type: 'error' });
+      }
+    },
+  });
 
   // ── Selection pill ──
   const pill = buildSelectionPill({
@@ -152,7 +214,33 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   // Layout: toolbar on top, then a flex row with sidebar + stage.
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
-  root.append(toolbar.root, main, pill.root);
+  root.append(toolbar.root, main, pill.root, markPopover.root);
+
+  // ── Search toggle ──
+  function toggleSearch() {
+    if (searchBar.isOpen()) {
+      searchBar.hide();
+      searchBar.clear();
+      search.clear();
+    } else {
+      searchBar.show();
+    }
+  }
+
+  // ── Click-existing-highlight to edit/delete ──
+  // Delegated capture-phase handler — fires before the textLayer's own
+  // selection start, lets us preventDefault on mark clicks.
+  stage.addEventListener('pointerdown', (e) => {
+    const mark = e.target?.closest?.('mark.pdf-hl');
+    if (!mark) return;
+    const annIdStr = mark.dataset?.annId;
+    const annId = annIdStr ? Number(annIdStr) : null;
+    if (!Number.isFinite(annId)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = mark.getBoundingClientRect();
+    markPopover.show(annId, rect);
+  }, true);
 
   // ── Selection watcher ──
   const watcher = createSelectionWatcher({
@@ -290,6 +378,25 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     strip.root.style.display = '';
     toolbar.setTitle(docTitle);
 
+    // One-shot v1→v2 highlight migration. Idempotent + lazy: only runs
+    // on first v3 open of this doc. Pages with legacy highlights are
+    // re-anchored to offset-shape; failures stay as legacy entries.
+    if (kernel) {
+      try {
+        const result = await migrateDocHighlights({
+          pdfDoc, docId, pdfStore, kernel, annotationStore: annStore,
+        });
+        if (result && !result.skipped && result.migrated > 0) {
+          onToast?.({
+            message: `Migrated ${result.migrated} highlight${result.migrated === 1 ? '' : 's'}`,
+            type: 'success',
+          });
+        }
+      } catch (e) {
+        console.warn('[pdf-v3] highlight migration failed:', e);
+      }
+    }
+
     // Restore reading position if any.
     let resumePage = 1;
     let resumeZoom = userZoom;
@@ -320,6 +427,9 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
 
   function close() {
     if (docId) memory.flush(docId);
+    search.reset();
+    searchBar.hide();
+    searchBar.clear();
     strip.destroy();
     pdfDoc = null;
     docId = null;
@@ -341,6 +451,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     stage.removeEventListener('scroll', onScroll);
     memory.flushAll();
     watcher.destroy();
+    markPopover.destroy();
     sidebar.destroy();
     strip.destroy();
   }
@@ -356,7 +467,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     getCurrentPage() { return currentPage; },
     getDocId() { return docId; },
     setZoom, zoomStep: (d) => setZoom(userZoom * (d > 0 ? 1.2 : 1 / 1.2)),
-    toggleSearch: () => { /* phase C */ },
+    toggleSearch,
     toggleFullscreen: () => { /* phase C */ },
     toggleDarkPages: () => { /* phase C */ },
     isDarkPages: () => false,
