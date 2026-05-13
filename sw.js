@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.3-pdf-redact';
+const CACHE_NAME = 'yancotab-v1.6.4-pdf-compare';
 
 const PRECACHE = [
     './',
@@ -296,6 +296,8 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/redactTool.js',
     './os/apps/pdf/v3/ops/redactBake.js',
     './os/apps/pdf/v3/readerRedact.js',
+    './os/apps/pdf/v3/chrome/comparePicker.js',
+    './os/apps/pdf/v3/readerCompare.js',
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerTools.js',

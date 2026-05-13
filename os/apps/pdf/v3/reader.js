@@ -226,13 +226,16 @@ export function buildReader({
   });
   const markPopover = createMarkActions({ annStore, strip, undoStack, onToast });
   const ops = createReaderOps({
-    pdfStore, onToast, onOpenDoc, getDocId: () => docId,
-    getDocTitle: () => docTitle, getTotalPages: () => totalPages,
+    pdfStore, stage, onToast, onOpenDoc,
+    getDocId: () => docId, getDocTitle: () => docTitle,
+    getTotalPages: () => totalPages,
+    getLeftStrip: () => strip, getPdfJs: loadPdfJs,
   });
   const morePopover = createReaderMore({
     getDocId: () => docId, getProperties,
     onShowProperties, onExportAnnotations,
     onMerge: () => ops.openMerge(), onSplit: () => ops.openSplit(),
+    onCompare: () => ops.openCompare(),
     onRedactMode: () => tools.dispatcher.setActive('redact'),
     onBakeRedactions: () => tools.bakeRedactions(),
   });
@@ -365,14 +368,10 @@ export function buildReader({
         pdfDoc, docId, pdfStore, kernel, annotationStore: annStore,
       });
       if (r && !r.skipped && r.migrated > 0) {
-        onToast?.({
-          message: `Migrated ${r.migrated} highlight${r.migrated === 1 ? '' : 's'}`,
-          type: 'success',
-        });
+        const msg = `Migrated ${r.migrated} highlight${r.migrated === 1 ? '' : 's'}`;
+        onToast?.({ message: msg, type: 'success' });
       }
-    } catch (e) {
-      console.warn('[pdf-v3] highlight migration failed:', e);
-    }
+    } catch (e) { console.warn('[pdf-v3] highlight migration failed:', e); }
   }
 
   async function load({ source, name, id }) {

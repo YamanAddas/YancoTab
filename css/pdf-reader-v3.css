@@ -1773,3 +1773,89 @@ body.is-mobile [data-allow-context="true"] * {
 .pdf-redact-preview {
   pointer-events: none;
 }
+
+/* ── Compare picker modal ────────────────────────────────────────── */
+.pdf-compare-modal { min-height: 320px; }
+.pdf-compare-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pdf-compare-item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.pdf-compare-item:hover { background: var(--pdf-btn-hover); }
+.pdf-compare-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pdf-compare-empty {
+  display: none;
+  padding: 30px 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--pdf-toolbar-text-dim);
+}
+
+/* ── Compare view (side-by-side panes inside the stage) ──────────── */
+.pdf-stage.is-comparing { padding: 0; }
+.pdf-compare-wrap {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  height: 100%;
+  background: var(--pdf-toolbar-border);
+}
+.pdf-compare-pane {
+  overflow: auto;
+  background: var(--pdf-stage-bg);
+  padding: 16px 0;
+}
+.pdf-compare-exitbar {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: var(--pdf-pill-bg);
+  border-top: 1px solid var(--pdf-pill-border);
+  z-index: 10;
+}
+.pdf-compare-exitbar-label {
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+}
+.pdf-compare-exitbar-btn {
+  appearance: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--pdf-btn-active-fg);
+  background: var(--pdf-btn-active-bg);
+  color: var(--pdf-btn-active-fg);
+  border-radius: 7px;
+  cursor: pointer;
+  font-family: inherit;
+}
+.pdf-compare-exitbar-btn:hover { filter: brightness(1.1); }
