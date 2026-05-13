@@ -24,7 +24,7 @@ const COLOR_LABELS = {
 };
 const MARGIN = 8;
 
-export function buildSelectionPill({ onColor, onCopy, onUnderline, onStrike } = {}) {
+export function buildSelectionPill({ onColor, onCopy, onUnderline, onStrike, onNote } = {}) {
   const root = el('div', { class: 'pdf-sel-pill', role: 'toolbar' });
   root.style.display = 'none';
 
@@ -54,9 +54,11 @@ export function buildSelectionPill({ onColor, onCopy, onUnderline, onStrike } = 
 
   const divider2 = el('span', { class: 'pdf-sel-div' });
 
+  const noteBtn = miniBtn('Note', 'Highlight + attach a comment', () => onNote?.());
+  if (!onNote) noteBtn.style.display = 'none';
   const copyBtn = miniBtn('Copy', 'Copy selection', () => onCopy?.());
 
-  root.append(...chips, divider1, underlineBtn, strikeBtn, divider2, copyBtn);
+  root.append(...chips, divider1, underlineBtn, strikeBtn, divider2, noteBtn, copyBtn);
 
   function miniBtn(label, title, handler) {
     const b = el('button', {

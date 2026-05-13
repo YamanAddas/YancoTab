@@ -20,7 +20,7 @@ export async function commitSelectionAsHighlight({
   onToast, onPillHide,
   undoStack,
 } = {}) {
-  if (!docId || !selection) return;
+  if (!docId || !selection) return null;
   try {
     if (!selection.multiPage) {
       const args = {
@@ -48,6 +48,10 @@ export async function commitSelectionAsHighlight({
           },
         });
       }
+      onPillHide?.();
+      try { window.getSelection()?.removeAllRanges(); } catch { /* best-effort */ }
+      onToast?.({ message: 'Highlight saved', type: 'success' });
+      return rec ? { id: rec.id, page: args.page, multiPage: false } : null;
     } else if (Array.isArray(selection.segments)) {
       const groupId = `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       const segs = selection.segments.map((seg) => ({
@@ -85,11 +89,14 @@ export async function commitSelectionAsHighlight({
         });
       }
     }
+    // Multi-page path falls through to here; single-page path returns early above.
     onPillHide?.();
     try { window.getSelection()?.removeAllRanges(); } catch { /* best-effort */ }
     onToast?.({ message: 'Highlight saved', type: 'success' });
+    return { multiPage: true };
   } catch (e) {
     console.error('[pdf-v3] highlight save failed:', e);
     onToast?.({ message: 'Highlight save failed', type: 'error' });
+    return null;
   }
 }

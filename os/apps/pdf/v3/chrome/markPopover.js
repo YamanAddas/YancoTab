@@ -14,7 +14,7 @@ import { el } from '../../../../utils/dom.js';
 
 const COLORS = ['yellow', 'green', 'blue', 'pink', 'purple'];
 
-export function buildMarkPopover({ onChangeColor, onDelete } = {}) {
+export function buildMarkPopover({ onChangeColor, onDelete, onAddNote } = {}) {
   const root = el('div', { class: 'pdf-mark-popover', role: 'dialog' });
   root.style.display = 'none';
 
@@ -33,6 +33,17 @@ export function buildMarkPopover({ onChangeColor, onDelete } = {}) {
     chipsRow.appendChild(chip);
   }
   const divider = el('span', { class: 'pdf-sel-div' });
+  const noteBtn = el('button', {
+    type: 'button',
+    class: 'pdf-mark-note-btn',
+    title: 'Add or edit comment on this highlight',
+    'aria-label': 'Add or edit comment on this highlight',
+  }, 'Note');
+  noteBtn.addEventListener('click', () => {
+    if (activeId) onAddNote?.(activeId, lastAnchorRect);
+    hide();
+  });
+  const divider2 = el('span', { class: 'pdf-sel-div' });
   const delBtn = el('button', {
     type: 'button',
     class: 'pdf-mark-del-btn',
@@ -43,14 +54,20 @@ export function buildMarkPopover({ onChangeColor, onDelete } = {}) {
     if (activeId) onDelete?.(activeId);
     hide();
   });
-  root.append(chipsRow, divider, delBtn);
+  if (!onAddNote) {
+    noteBtn.style.display = 'none';
+    divider2.style.display = 'none';
+  }
+  root.append(chipsRow, divider, noteBtn, divider2, delBtn);
 
   let activeId = null;
+  let lastAnchorRect = null;
   let outsideHandler = null;
   let escHandler = null;
 
   function show(annId, anchorRect) {
     activeId = annId;
+    lastAnchorRect = anchorRect || null;
     root.style.display = 'inline-flex';
     // Position above the rect, clamped to viewport.
     const pr = root.getBoundingClientRect();

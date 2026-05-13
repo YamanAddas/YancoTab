@@ -273,6 +273,9 @@ export function setupTools({
     subToolbarNodes: [inkToolbar.root, shapeToolbar.root, signToolbar.root],
     /** Callback the page strip routes note-pip clicks into. */
     onNotePipClick: notes.onPipClick,
+    /** Open the note popover anchored to an existing highlight to add /
+     *  edit its attached comment body. */
+    openNoteForHighlight: notes.openForHighlight,
     /** Bake-redactions action surfaced to the More menu. */
     bakeRedactions: () => redact.bake(),
     destroy,

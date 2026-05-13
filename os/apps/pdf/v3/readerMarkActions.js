@@ -18,8 +18,22 @@ export function createMarkActions({
   strip,
   undoStack,
   onToast,
+  onAddNote,    // (annId, anchorRect) → opens the note popover for this highlight
 }) {
   const popover = buildMarkPopover({
+    onAddNote: async (annId, anchorRect) => {
+      if (!Number.isFinite(annId)) return;
+      try {
+        const rec = await annStore.getOne(annId);
+        if (!rec) return;
+        onAddNote?.({
+          annId,
+          page: rec.page,
+          body: rec.body || '',
+          rect: anchorRect,
+        });
+      } catch { /* best-effort */ }
+    },
     onChangeColor: async (annId, color) => {
       try {
         const prev = await annStore.getOne(annId);

@@ -137,6 +137,7 @@ function wrapSpanRange(span, startInSpan, endInSpan, decoration) {
     mark.className = `${HL_BASE_CLASS} ${HL_BASE_CLASS}-${decoration.color || 'yellow'} ${HL_BASE_CLASS}-kind-${decoration.kind || 'highlight'}`;
   }
   if (Number.isFinite(decoration.id)) mark.dataset.annId = String(decoration.id);
+  if (decoration.body) mark.dataset.hasNote = '1';
 
   try {
     // Range.surroundContents throws on partial-node boundaries; fall

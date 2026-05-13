@@ -32,6 +32,7 @@ export function createAnnotationStore(pdfStore) {
     docId, page, kind = 'highlight',
     pageStartCharOffset, pageEndCharOffset,
     color = 'yellow', text = '', groupId = null,
+    body = '',
   } = {}) {
     if (!docId || !Number.isFinite(page)) return null;
     if (!VALID_HL_KINDS.has(kind)) return null;
@@ -40,6 +41,7 @@ export function createAnnotationStore(pdfStore) {
     if (!VALID_HL_COLORS.has(color)) color = 'yellow';
 
     const cleanText = String(text || '').slice(0, TEXT_CACHE_LIMIT);
+    const cleanBody = typeof body === 'string' ? body.trim().slice(0, 2000) : '';
     const record = {
       kind,
       page,
@@ -49,8 +51,19 @@ export function createAnnotationStore(pdfStore) {
       text: cleanText,
       textHash: fnv32(cleanText),
       ...(groupId ? { groupId } : {}),
+      ...(cleanBody ? { body: cleanBody } : {}),
     };
     return pdfStore.addAnnotation(docId, record);
+  }
+
+  /**
+   * Add or update the comment body attached to an existing highlight.
+   * Pass an empty string to clear. Returns the updated record.
+   */
+  async function updateHighlightBody(id, body) {
+    if (!Number.isFinite(id)) return null;
+    const trimmed = typeof body === 'string' ? body.trim().slice(0, 2000) : '';
+    return pdfStore.updateAnnotation(id, { body: trimmed });
   }
 
   /**
@@ -206,6 +219,7 @@ export function createAnnotationStore(pdfStore) {
     deleteOne,
     updateColor,
     updateNoteBody,
+    updateHighlightBody,
     // expose constants for view code that needs to validate locally
     VALID_HL_COLORS,
     VALID_HL_KINDS,

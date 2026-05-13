@@ -11,18 +11,16 @@
 
 import { el } from '../../../utils/dom.js';
 import { buildToolbar } from './chrome/toolbar.js';
-import { buildSelectionPill } from './chrome/selectionPill.js';
 import { buildSidebar } from './chrome/sidebar.js';
 import { buildThumbnailsTab } from './chrome/tabThumbnails.js';
 import { buildOutlineTab } from './chrome/tabOutline.js';
 import { buildBookmarksTab } from './chrome/tabBookmarks.js';
 import { buildPageStrip } from './render/pageStrip.js';
 import { setPdfJsModule } from './render/pageView.js';
-import { createSelectionWatcher } from './select/selectionWatcher.js';
 import { createAnnotationStore } from './ops/annotationStore.js';
-import { commitSelectionAsHighlight } from './ops/highlightCommit.js';
 import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
 import { createMarkActions } from './readerMarkActions.js';
+import { createSelectionLayer } from './readerSelection.js';
 import { buildSearchBar } from './chrome/searchBar.js';
 import { createSearchController } from './ops/searchController.js';
 import { setupTools } from './readerTools.js';
@@ -72,8 +70,6 @@ export function buildReader({
   let totalPages = 0;
   let currentPage = 1;
   let userZoom = 1.0;
-  let lastSelection = null;   // { page, charStart, charEnd, text } | { segments: [...] }
-  let selectionRectScreen = null;
   let pageOps = emptyPageOps();   // { pageRotations, pageOmits, pageOrder }
   let viewMode = 'continuous';
 
@@ -224,7 +220,6 @@ export function buildReader({
     saveMode: (m) => { viewMode = m; if (docId) memory.save(docId, { mode: m }); },
     initial: viewMode,
   });
-  const markPopover = createMarkActions({ annStore, strip, undoStack, onToast });
   const ops = createReaderOps({
     pdfStore, stage, onToast, onOpenDoc,
     getDocId: () => docId, getDocTitle: () => docTitle,
@@ -240,19 +235,6 @@ export function buildReader({
     onBakeRedactions: () => tools.bakeRedactions(),
   });
   document.body.appendChild(morePopover.root);
-  const pill = buildSelectionPill({
-    onColor: (color) => {
-      colorCtrl?.setColor?.(color);
-      commitHighlight(color);
-    },
-    onCopy: () => {
-      const text = lastSelection?.text || '';
-      if (text) {
-        try { navigator.clipboard.writeText(text); } catch { /* best-effort */ }
-        onToast?.({ message: 'Selection copied', type: 'success' });
-      }
-    },
-  });
 
   const tools = setupTools({
     stage, strip, annStore, pdfStore, toolbar, kernel, onToast,
@@ -260,9 +242,21 @@ export function buildReader({
     onOpenDoc, undoStack,
   });
   const dispatcher = tools.dispatcher;
+  const selectionLayer = createSelectionLayer({
+    stage, strip, annStore, undoStack, onToast,
+    getDocId: () => docId,
+    getColor: () => colorCtrl?.getColor?.(),
+    setColor: (c) => colorCtrl?.setColor?.(c),
+    openNoteForHighlight: tools.openNoteForHighlight,
+  });
+  const commitHighlight = selectionLayer.commitHighlight;
+  const markPopover = createMarkActions({
+    annStore, strip, undoStack, onToast,
+    onAddNote: (payload) => tools.openNoteForHighlight(payload),
+  });
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
-  root.append(toolbar.root, ...tools.subToolbarNodes, main, pill.root, markPopover.root);
+  root.append(toolbar.root, ...tools.subToolbarNodes, main, selectionLayer.pillRoot, markPopover.root);
   function toggleSearch() {
     if (searchBar.isOpen()) {
       searchBar.hide();
@@ -287,22 +281,6 @@ export function buildReader({
     markPopover.show(annId, rect);
   }, true);
 
-  const watcher = createSelectionWatcher({
-    stage,
-    getPageIndexForElement: (pageEl) => strip.getPageIndexForElement(pageEl),
-    getPageNumberForElement: (pageEl) => strip.getPageNumberForElement(pageEl),
-    onChange: (update) => {
-      lastSelection = update;
-      selectionRectScreen = update.rect || null;
-      if (selectionRectScreen) pill.show(selectionRectScreen);
-    },
-    onCleared: () => {
-      lastSelection = null;
-      selectionRectScreen = null;
-      pill.hide();
-    },
-  });
-
   function goToPage(n) {
     if (!pdfDoc || !Number.isFinite(n)) return;
     const next = Math.max(1, Math.min(totalPages || 1, Math.floor(n)));
@@ -310,7 +288,7 @@ export function buildReader({
     strip.scrollToPage(next, stage);
     toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
     sidebar.updateTab('thumbs', { totalPages, currentPage });
-    pill.hide();
+    selectionLayer.hidePill();
     if (docId) memory.save(docId, { page: currentPage });
   }
 
@@ -331,15 +309,6 @@ export function buildReader({
   document.addEventListener('fullscreenchange', onFullscreenChange);
 
   const setZoom = (z) => zoomCtrl.set(z);
-
-  function commitHighlight(color) {
-    return commitSelectionAsHighlight({
-      selection: lastSelection, docId, color,
-      annotationStore: annStore, strip,
-      onToast, onPillHide: () => pill.hide(),
-      undoStack,
-    });
-  }
 
   const pageOpsCtrl = createPageOpsController({
     pdfStore,
@@ -432,11 +401,9 @@ export function buildReader({
     docTitle = '';
     totalPages = 0;
     currentPage = 1;
-    lastSelection = null;
-    selectionRectScreen = null;
+    selectionLayer.clear();
     pageOps = emptyPageOps();
     undoStack.clear();
-    pill.hide();
     toolbar.update({ page: 1, totalPages: 0, zoom: userZoom });
     sidebar.updateTab('thumbs', { totalPages: 0 });
     sidebar.updateTab('bookmarks', {});
@@ -450,7 +417,7 @@ export function buildReader({
     scrollTracker.destroy();
     document.removeEventListener('fullscreenchange', onFullscreenChange);
     memory.flushAll();
-    watcher.destroy();
+    selectionLayer.destroy();
     tools.destroy();
     markPopover.destroy();
     morePopover.destroy();

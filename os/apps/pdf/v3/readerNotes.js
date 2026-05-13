@@ -26,18 +26,28 @@ export function createNotesSubsystem({
 }) {
   const popover = buildNotePopover({
     onSave: async (payload) => {
+      if (highlightContext) {
+        await saveHighlightBody(payload.body);
+        return;
+      }
       if (payload?.id) await editExisting(payload);
       else await saveNewPending(payload);
     },
     onDelete: async (id) => {
+      if (highlightContext) {
+        await saveHighlightBody('');   // clearing the body = "remove note"
+        return;
+      }
       if (Number.isFinite(id)) await deleteOne(id);
     },
     onCancel: () => {
       pendingPlacement = null;
+      highlightContext = null;
     },
   });
 
   let pendingPlacement = null;   // { page, x, y } from the noteTool click
+  let highlightContext = null;   // { annId, page, prevBody } — set when popover is opened for a highlight
 
   const tool = createNoteTool({
     onPlace: ({ page, x, y, clientX, clientY }) => {
@@ -48,12 +58,70 @@ export function createNotesSubsystem({
 
   function onPipClick(note, rect) {
     pendingPlacement = null;
+    highlightContext = null;
     popover.showAt({
       clientX: rect.right + 8,
       clientY: rect.top,
       page: note.page,
       note,
     });
+  }
+
+  /**
+   * Open the popover anchored next to an existing highlight, to add
+   * or edit the comment body attached to it. `rect` is the highlight's
+   * screen-coord bounding box; the popover renders to the right of it.
+   *
+   * The `body` arg is the current body (empty for "add note" flow).
+   */
+  async function openForHighlight({ annId, page, body = '', rect }) {
+    if (!Number.isFinite(annId)) return;
+    pendingPlacement = null;
+    highlightContext = { annId, page, prevBody: body || '' };
+    popover.showAt({
+      clientX: rect ? rect.right + 8 : window.innerWidth / 2,
+      clientY: rect ? rect.top : window.innerHeight / 2,
+      page,
+      // Reuse the popover's "edit" mode visuals (Delete button visible).
+      note: { id: annId, page, body },
+    });
+  }
+
+  async function saveHighlightBody(body) {
+    const ctx = highlightContext;
+    highlightContext = null;
+    if (!ctx) return;
+    const docId = getDocId();
+    if (!docId) return;
+    const trimmed = typeof body === 'string' ? body.trim() : '';
+    if (trimmed === ctx.prevBody) return;
+    try {
+      await annStore.updateHighlightBody(ctx.annId, trimmed);
+      await strip.refreshHighlightsForPage(ctx.page);
+      onToast?.({
+        message: trimmed ? (ctx.prevBody ? 'Note updated' : 'Note added') : 'Note removed',
+        type: 'success',
+      });
+      if (undoStack) {
+        const annId = ctx.annId;
+        const page = ctx.page;
+        const oldBody = ctx.prevBody;
+        const newBody = trimmed;
+        undoStack.push({
+          label: oldBody ? (newBody ? 'edit highlight note' : 'remove highlight note') : 'add highlight note',
+          undo: async () => {
+            await annStore.updateHighlightBody(annId, oldBody);
+            await strip.refreshHighlightsForPage(page);
+          },
+          redo: async () => {
+            await annStore.updateHighlightBody(annId, newBody);
+            await strip.refreshHighlightsForPage(page);
+          },
+        });
+      }
+    } catch (e) {
+      onToast?.({ message: `Note save failed: ${e?.message || e}`, type: 'error' });
+    }
   }
 
   async function saveNewPending({ body }) {
@@ -153,6 +221,7 @@ export function createNotesSubsystem({
     popoverRoot: popover.root,
     tool,
     onPipClick,
+    openForHighlight,
     destroy,
   };
 }

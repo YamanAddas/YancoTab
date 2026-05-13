@@ -725,6 +725,29 @@ body.is-mobile .pdf-reader-v3 .pdf-textlayer * {
   transition: background 120ms;
 }
 .pdf-mark-del-btn:hover { background: rgba(255,69,58,0.18); }
+.pdf-mark-note-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 6px;
+  background: var(--pdf-btn-active-bg);
+  color: var(--pdf-btn-active-fg);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-mark-note-btn:hover { filter: brightness(1.1); }
+
+/* "Has note" indicator on highlights that carry a comment body.
+   A thin teal underline drawn inside the mark so users can tell at
+   a glance which highlights have a note attached. The mark itself
+   already has color: transparent and mix-blend-mode: multiply, so
+   the underline is drawn via box-shadow inset (not text decoration)
+   to stay visible regardless of the highlight color underneath. */
+.pdf-textlayer mark.pdf-hl[data-has-note="1"] {
+  box-shadow: inset 0 -1.5px 0 0 rgba(0, 122, 255, 0.75);
+}
 
 /* ── Find / search bar ────────────────────────────────────────────── */
 .pdf-find-bar {

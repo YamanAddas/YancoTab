@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.5-pdf-select-fix';
+const CACHE_NAME = 'yancotab-v1.6.6-pdf-highlight-notes';
 
 const PRECACHE = [
     './',
@@ -300,6 +300,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/readerCompare.js',
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
+    './os/apps/pdf/v3/readerSelection.js',
     './os/apps/pdf/v3/readerTools.js',
     './os/apps/pdf/v3/readerPageOps.js',
     './os/apps/pdf/v3/readerMarkActions.js',
