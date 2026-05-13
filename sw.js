@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.4.4-pdf-empty-guard';
+const CACHE_NAME = 'yancotab-v1.4.5-pdf-reader-v3-phase-b';
 
 const PRECACHE = [
     './',
@@ -255,6 +255,19 @@ const PRECACHE = [
     './os/apps/pdf/library/migration.js',
     './os/apps/pdf/library/thumbnail.js',
     './os/apps/pdf/view/applyHighlights.js',
+    // PDF Reader v3 (feature-flagged behind yancotab_pdf_reader_v3)
+    './css/pdf-reader-v3.css',
+    './os/apps/pdf/v3/reader.js',
+    './os/apps/pdf/v3/chrome/toolbar.js',
+    './os/apps/pdf/v3/chrome/selectionPill.js',
+    './os/apps/pdf/v3/chrome/icons.js',
+    './os/apps/pdf/v3/render/pageView.js',
+    './os/apps/pdf/v3/render/pageStrip.js',
+    './os/apps/pdf/v3/render/highlightRender.js',
+    './os/apps/pdf/v3/select/pageTextIndex.js',
+    './os/apps/pdf/v3/select/offsetRanges.js',
+    './os/apps/pdf/v3/select/selectionWatcher.js',
+    './os/apps/pdf/v3/ops/annotationStore.js',
     // Files Vault
     './css/files-vault.css',
     './os/apps/files/vault.js',

@@ -17,6 +17,7 @@
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
 import { buildCodex } from './pdf/codex.js';
+import { buildReader as buildReaderV3 } from './pdf/v3/reader.js';
 import {
     recordOpen, loadStreak,
     addBookmark, removeBookmark, listBookmarks,
@@ -50,8 +51,10 @@ export class PdfReaderApp extends App {
     }
 
     async init(options = {}) {
+        // Feature flag for v3 reader. Default off until v1.3.0 cutover.
+        this._useV3 = this.kernel?.storage?.load?.('yancotab_pdf_reader_v3') === true;
         this._styleLinks = [
-            cssLink('css/pdf-codex.css'),
+            this._useV3 ? cssLink('css/pdf-reader-v3.css') : cssLink('css/pdf-codex.css'),
             cssLink('css/pdf-library.css'),
         ];
         this._styleLinks.forEach((l) => document.head.appendChild(l));
@@ -230,38 +233,45 @@ export class PdfReaderApp extends App {
         this._teardownReader();
 
         this._titleBarTitle.textContent = doc.name || 'Document';
-        this._titleBar.style.display = '';
+        // v3 has its own toolbar with a Close button; hide the v2 titlebar.
+        this._titleBar.style.display = this._useV3 ? 'none' : '';
         this._libraryHost.style.display = 'none';
         this._readerHost.style.display = '';
 
-        this._reader = buildCodex({
-            pdfStore: this.pdfStore,
-            getStreakStrip: () => densityStrip(this._streak, 14),
-            getStreakDays: () => currentStreak(this._streak),
-            getBookmarks: (docId) => listBookmarks(this.kernel, docId),
-            getHighlightsOnPage: (docId, page) => listHighlightsOnPage(this.kernel, docId, page),
-            onAddBookmark: ({ docId, page, label, color }) => {
-                addBookmark(this.kernel, docId, { page, label, color });
-                this._reader.refreshRail();
-            },
-            onAddHighlight: ({ docId, page, text, color }) => {
-                addHighlight(this.kernel, docId, { page, text, color });
-            },
-            onRemoveHighlight: ({ docId, page, text }) => {
-                removeHighlight(this.kernel, docId, page, text);
-            },
-            onRemoveBookmark: (b) => {
-                const docId = this._reader.getDocId();
-                if (!docId) return;
-                removeBookmark(this.kernel, docId, b.page, b.label);
-                this._reader.refreshRail();
-            },
-            onSendToNotes: () => { /* clipboard handled inside codex */ },
-            onRecordOpen: () => {
-                this._streak = recordOpen(this.kernel);
-            },
-            onToast: (t) => this.kernel?.emit?.('toast', t),
-        });
+        this._reader = this._useV3
+            ? buildReaderV3({
+                pdfStore: this.pdfStore,
+                onToast: (t) => this.kernel?.emit?.('toast', t),
+                onClose: () => this._closeReader(),
+            })
+            : buildCodex({
+                pdfStore: this.pdfStore,
+                getStreakStrip: () => densityStrip(this._streak, 14),
+                getStreakDays: () => currentStreak(this._streak),
+                getBookmarks: (docId) => listBookmarks(this.kernel, docId),
+                getHighlightsOnPage: (docId, page) => listHighlightsOnPage(this.kernel, docId, page),
+                onAddBookmark: ({ docId, page, label, color }) => {
+                    addBookmark(this.kernel, docId, { page, label, color });
+                    this._reader.refreshRail();
+                },
+                onAddHighlight: ({ docId, page, text, color }) => {
+                    addHighlight(this.kernel, docId, { page, text, color });
+                },
+                onRemoveHighlight: ({ docId, page, text }) => {
+                    removeHighlight(this.kernel, docId, page, text);
+                },
+                onRemoveBookmark: (b) => {
+                    const docId = this._reader.getDocId();
+                    if (!docId) return;
+                    removeBookmark(this.kernel, docId, b.page, b.label);
+                    this._reader.refreshRail();
+                },
+                onSendToNotes: () => { /* clipboard handled inside codex */ },
+                onRecordOpen: () => {
+                    this._streak = recordOpen(this.kernel);
+                },
+                onToast: (t) => this.kernel?.emit?.('toast', t),
+            });
         this._readerHost.appendChild(this._reader.root);
 
         // Convert blob → data URL for the existing codex (which calls

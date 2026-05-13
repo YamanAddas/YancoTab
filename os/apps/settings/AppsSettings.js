@@ -17,6 +17,8 @@ const PHOTOS_SORT = 'yancotab_photos_sort';
 
 const ALARM_TONES = ['pulse', 'chime', 'soft'];
 
+const PDF_READER_V3_KEY = 'yancotab_pdf_reader_v3';
+
 const FILE_SORT_OPTIONS = [
   { key: 'name', label: 'Name A-Z' },
   { key: 'name-desc', label: 'Name Z-A' },
@@ -53,8 +55,24 @@ export function renderApps(container, app) {
 
   _clock(container, storage, app, rerender);
   _weather(container, storage, app);
+  _pdfReader(container, storage, app);
   _files(container, storage, app, rerender);
   _photos(container, storage, app, rerender);
+}
+
+/* ── PDF Reader ── */
+
+function _pdfReader(container, storage, app) {
+  const v3On = load(storage, PDF_READER_V3_KEY, false) === true;
+
+  container.appendChild(app._group('PDF Reader', [
+    app._toggleRow(
+      'Use new PDF reader (beta)',
+      'Adobe-style toolbar, offset-based highlights, fixes selection bugs',
+      v3On,
+      (next) => { storage.save(PDF_READER_V3_KEY, !!next); },
+    ),
+  ]));
 }
 
 /* ── Clock ── */

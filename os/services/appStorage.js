@@ -730,6 +730,23 @@ const REGISTRY = {
             && typeof v.sort === 'string'
             && typeof v.viewMode === 'string',
     },
+    yancotab_pdf_reader_v3: {
+        // Feature flag for the v3 Adobe-style reader rewrite.
+        // Default off through one full release cycle (see PDF_READER_V3_DESIGN.md §9).
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: false,
+        validate: (v) => typeof v === 'boolean',
+    },
+    yancotab_pdf_highlight_color: {
+        // Last-used highlight color in the v3 selection pill.
+        storageClass: 'preferences',
+        syncPolicy: 'always',
+        version: 1,
+        default: 'yellow',
+        validate: (v) => ['yellow', 'green', 'blue', 'pink', 'purple'].includes(v),
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────
