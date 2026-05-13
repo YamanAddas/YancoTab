@@ -210,7 +210,9 @@ export class Board {
       pileEl.style.height = `${L.cardH}px`;
       pileEl.style.zIndex = String(800 + i);
       // Minimal back-only card element, reusing the same back gradient classes.
-      pileEl.innerHTML = '<div class="cosmic-card-inner"><div class="cosmic-card-face cosmic-card-back"></div></div>';
+      const cardInner = el('div', { class: 'cosmic-card-inner' });
+      cardInner.appendChild(el('div', { class: 'cosmic-card-face cosmic-card-back' }));
+      pileEl.appendChild(cardInner);
       this.boardEl.append(pileEl);
       this.stockPileEls.push(pileEl);
     }

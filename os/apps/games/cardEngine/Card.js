@@ -34,15 +34,20 @@ export class Card {
     renderFront() {
         // Top Left Corner
         const corner = el('div', { class: 'card-corner top-left' });
-        corner.innerHTML = `<span>${this.getRankSymbol()}</span><span class="suit">${this.getSuitSymbol()}</span>`;
+        const rankTL = el('span', {}); rankTL.textContent = String(this.getRankSymbol());
+        const suitTL = el('span', { class: 'suit' }); suitTL.textContent = this.getSuitSymbol();
+        corner.append(rankTL, suitTL);
 
         // Center content (Simplified for now, can be complex SVG later)
         const center = el('div', { class: 'card-center' });
-        center.innerHTML = `<span class="suit-large">${this.getSuitSymbol()}</span>`;
+        const suitC = el('span', { class: 'suit-large' }); suitC.textContent = this.getSuitSymbol();
+        center.append(suitC);
 
         // Bottom Right Corner (Rotated)
         const cornerBR = el('div', { class: 'card-corner bottom-right' });
-        cornerBR.innerHTML = `<span>${this.getRankSymbol()}</span><span class="suit">${this.getSuitSymbol()}</span>`;
+        const rankBR = el('span', {}); rankBR.textContent = String(this.getRankSymbol());
+        const suitBR = el('span', { class: 'suit' }); suitBR.textContent = this.getSuitSymbol();
+        cornerBR.append(rankBR, suitBR);
 
         this.front.className = `card-front ${this.color}`;
         this.front.append(corner, center, cornerBR);

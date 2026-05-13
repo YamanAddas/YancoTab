@@ -4,7 +4,7 @@
 // becomes the primary action. Difficulty is chosen here so the user starts
 // exactly the game they want — no mid-deal difficulty switch required.
 
-import { el } from '../../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../../utils/dom.js';
 import { mountOverlay } from '../../shared/overlay.js';
 
 // Same arabesque flourish as Solitaire's StartScreen. Inline SVG is trusted
@@ -68,9 +68,9 @@ export function showStartScreen(root, { hasSave = false, difficulty = 1 } = {}, 
   buttons.push(btn('Settings',   handlers.onSettings, { keepOpen: true }));
 
   const ornamentTop = el('div', { class: 'cosmic-start-ornament' });
-  ornamentTop.innerHTML = ORNAMENT_SVG;
+  setLiteralHtml(ornamentTop, ORNAMENT_SVG);
   const ornamentBot = el('div', { class: 'cosmic-start-ornament' });
-  ornamentBot.innerHTML = ORNAMENT_SVG;
+  setLiteralHtml(ornamentBot, ORNAMENT_SVG);
 
   const card = el('div', { class: 'cosmic-win-card cosmic-start-card' }, [
     ornamentTop,

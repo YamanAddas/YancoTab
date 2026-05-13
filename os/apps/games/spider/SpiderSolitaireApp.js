@@ -185,12 +185,12 @@ export class SpiderSolitaireApp extends App {
     // filled for remaining deals, dimmed for spent ones.
     const dealsRemaining = Math.max(0, Math.floor(stockLeft / 10));
     const dealsTotal = 5;
-    let html = '';
+    const pipChildren = [];
     for (let i = 0; i < dealsTotal; i++) {
-      html += `<i class="cosmic-deals-pip-i${i < dealsRemaining ? '' : ' is-spent'}"></i>`;
+      pipChildren.push(el('i', { class: `cosmic-deals-pip-i${i < dealsRemaining ? '' : ' is-spent'}` }));
     }
-    html += ` <strong>${dealsRemaining}</strong>`;
-    this.dealsPip.innerHTML = html;
+    pipChildren.push(document.createTextNode(' '), el('strong', {}, String(dealsRemaining)));
+    this.dealsPip.replaceChildren(...pipChildren);
     this.dealsPip.style.display = state ? '' : 'none';
   }
 
@@ -264,9 +264,9 @@ export class SpiderSolitaireApp extends App {
   _updateStats(state) {
     this.stats.moves = state.moves;
     this.stats.score = state.score;
-    this.statMoves.innerHTML = `Moves <strong>${state.moves}</strong>`;
-    this.statScore.innerHTML = `Score <strong>${state.score}</strong>`;
-    this.statSuits.innerHTML = `Suits <strong>${state.foundation.length}/8</strong>`;
+    this.statMoves.replaceChildren('Moves ', el('strong', {}, String(state.moves)));
+    this.statScore.replaceChildren('Score ', el('strong', {}, String(state.score)));
+    this.statSuits.replaceChildren('Suits ', el('strong', {}, `${state.foundation.length}/8`));
     this._renderTime();
     this._renderDifficultyPills(state);
     this._renderDealsPip(state);
@@ -280,7 +280,7 @@ export class SpiderSolitaireApp extends App {
     const s = this.stats.time;
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    this.statTime.innerHTML = `Time <strong>${mm}:${ss}</strong>`;
+    this.statTime.replaceChildren('Time ', el('strong', {}, `${mm}:${ss}`));
   }
 
   _togglePause() {

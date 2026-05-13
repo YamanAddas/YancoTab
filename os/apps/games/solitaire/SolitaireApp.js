@@ -223,8 +223,8 @@ export class SolitaireApp extends App {
   _updateStats(state) {
     this.stats.moves = state.moves;
     this.stats.score = state.score;
-    this.statMoves.innerHTML = `Moves <strong>${state.moves}</strong>`;
-    this.statScore.innerHTML = `Score <strong>${state.score}</strong>`;
+    this.statMoves.replaceChildren('Moves ', el('strong', {}, String(state.moves)));
+    this.statScore.replaceChildren('Score ', el('strong', {}, String(state.score)));
     this._renderTime();
     this._renderSeed(state);
     if (this._autoBtn) this._autoBtn.disabled = !isAutoFinishReady(state);
@@ -239,7 +239,7 @@ export class SolitaireApp extends App {
     // 8-hex display so seeds round-trip with the Custom Seed input.
     const hex = (seed >>> 0).toString(16).toUpperCase().padStart(8, '0');
     this.statSeed.style.display = '';
-    this.statSeed.innerHTML = `Seed <strong>${hex}</strong>`;
+    this.statSeed.replaceChildren('Seed ', el('strong', {}, hex));
     this.statSeed.title = `Click to copy seed · ${hex}`;
     this.statSeed.style.cursor = 'pointer';
     if (!this._statSeedClickBound) {
@@ -265,7 +265,7 @@ export class SolitaireApp extends App {
     const s = this.stats.time;
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
-    this.statTime.innerHTML = `Time <strong>${mm}:${ss}</strong>`;
+    this.statTime.replaceChildren('Time ', el('strong', {}, `${mm}:${ss}`));
   }
 
   // Pause freezes the clock and opens the Main Menu — Continue/Stats/Settings/

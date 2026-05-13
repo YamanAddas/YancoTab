@@ -8,7 +8,7 @@
 // is styled as an arabesque italic serif with a decorative flourish above
 // and below — see .cosmic-start-title / .cosmic-start-ornament in the CSS.
 
-import { el } from '../../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../../utils/dom.js';
 import { mountOverlay } from '../../shared/overlay.js';
 
 // Inline arabesque flourish: dashed side-rules, two small dots, and a
@@ -60,11 +60,11 @@ export function showStartScreen(root, { hasSave = false } = {}, handlers = {}) {
   buttons.push(btn('Statistics',      handlers.onStats,    { keepOpen: true }));
   buttons.push(btn('Settings',        handlers.onSettings, { keepOpen: true }));
 
-  // Inline SVG (trusted, no scripts/externals) — safe to set via innerHTML.
+  // Inline SVG (trusted, no scripts/externals) — parsed via inert <template>.
   const ornamentTop = el('div', { class: 'cosmic-start-ornament' });
-  ornamentTop.innerHTML = ORNAMENT_SVG;
+  setLiteralHtml(ornamentTop, ORNAMENT_SVG);
   const ornamentBot = el('div', { class: 'cosmic-start-ornament' });
-  ornamentBot.innerHTML = ORNAMENT_SVG;
+  setLiteralHtml(ornamentBot, ORNAMENT_SVG);
 
   const card = el('div', { class: 'cosmic-win-card cosmic-start-card' }, [
     ornamentTop,
