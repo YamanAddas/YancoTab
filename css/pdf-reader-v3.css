@@ -807,3 +807,80 @@ body:not(.theme-light) .pdf-reader-v3 {
   transition: background 120ms;
 }
 .pdf-ink-tb-close:hover { background: var(--pdf-btn-hover); }
+
+/* ── Shape sub-toolbar ────────────────────────────────────────────── */
+.pdf-shape-toolbar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--pdf-toolbar-bg);
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+  height: 40px;
+  box-sizing: border-box;
+  flex-wrap: wrap;
+}
+.pdf-shape-picker { display: inline-flex; gap: 4px; }
+.pdf-shape-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 26px;
+  background: transparent;
+  color: var(--pdf-toolbar-text-dim);
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms, border-color 120ms;
+}
+.pdf-shape-btn:hover { background: var(--pdf-btn-hover); color: var(--pdf-toolbar-text); }
+.pdf-shape-btn.is-active {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+}
+.pdf-shape-fill-btn {
+  appearance: none;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-shape-fill-btn:hover { background: var(--pdf-btn-hover); }
+.pdf-shape-fill-btn.is-active {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+}
+.pdf-shape-dash-picker {
+  display: inline-flex;
+  gap: 4px;
+  padding-left: 8px;
+  border-left: 1px solid var(--pdf-toolbar-border);
+}
+.pdf-shape-dash-btn {
+  appearance: none;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--pdf-toolbar-text-dim);
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.pdf-shape-dash-btn:hover { background: var(--pdf-btn-hover); color: var(--pdf-toolbar-text); }
+.pdf-shape-dash-btn.is-active {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+}

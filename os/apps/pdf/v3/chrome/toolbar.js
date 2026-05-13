@@ -64,14 +64,16 @@ export function buildToolbar({
 
   // ── Tools cluster ──
   const textToolBtn = toolBtn('text', ICONS.text, 'Text select (T)');
-  const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw (Phase D2)');
+  const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw');
+  const shapeToolBtn = toolBtn('shape', ICONS.shape, 'Shape (rect / ellipse / arrow / line)');
   const toolBtns = new Map([
     ['text', textToolBtn],
     ['ink', inkToolBtn],
+    ['shape', shapeToolBtn],
   ]);
   // Default: text is active.
   textToolBtn.classList.add('is-active');
-  const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [textToolBtn, inkToolBtn]);
+  const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [textToolBtn, inkToolBtn, shapeToolBtn]);
 
   // ── Actions cluster ──
   const closeBtn = iconBtn(ICONS.close, 'Close PDF', () => onClose?.());

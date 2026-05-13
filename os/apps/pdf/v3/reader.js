@@ -28,10 +28,8 @@ import { commitSelectionAsHighlight } from './ops/highlightCommit.js';
 import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
 import { buildMarkPopover } from './chrome/markPopover.js';
 import { buildSearchBar } from './chrome/searchBar.js';
-import { buildInkToolbar } from './chrome/inkToolbar.js';
 import { createSearchController } from './ops/searchController.js';
-import { createInkTool } from './tools/inkTool.js';
-import { createToolDispatcher } from './tools/toolDispatcher.js';
+import { setupTools } from './readerTools.js';
 import { migrateDocHighlights } from './migrate/highlightsV1ToV2.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
@@ -217,50 +215,17 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
 
-  // ── Ink tool + sub-toolbar ──
-  const inkToolbar = buildInkToolbar({
-    onChange: ({ color, width }) => { /* ink tool reads on each stroke */ },
-    onCancel: () => dispatcher.setActive('text'),
+  // ── Tools (ink, shape later, signature later) ──
+  const tools = setupTools({
+    stage, strip, annStore, toolbar,
+    getDocId: () => docId,
   });
-  const inkTool = createInkTool({
-    getStripRoot: () => strip.root,
-    getPageLayer: (pageEl) => {
-      const pn = Number(pageEl?.dataset?.page);
-      if (!Number.isFinite(pn)) return null;
-      return strip.getAnnotationLayerForPage(pn);
-    },
-    getActiveColor: () => inkToolbar.getColor(),
-    getActiveWidth: () => inkToolbar.getWidth(),
-    onCommit: async ({ page, points, color, width }) => {
-      if (!docId) return;
-      await annStore.addInk({ docId, page, points, color, width });
-      await strip.refreshNonTextAnnotationsForPage(page);
-    },
-  });
+  const dispatcher = tools.dispatcher;
 
-  // ── Tool dispatcher ──
-  const dispatcher = createToolDispatcher({
-    stage,
-    setStripToolsActive: (active) => strip.setAllToolsActive(active),
-    onActiveChange: (toolId) => {
-      toolbar.setActiveTool?.(toolId);
-      if (toolId === 'ink') inkToolbar.show();
-      else inkToolbar.hide();
-    },
-  });
-  dispatcher.register('text', {});
-  dispatcher.register('ink', {
-    setActive: (on) => inkTool.setActive(on),
-    onPointerDown: (e) => inkTool.onPointerDown(e),
-    onPointerMove: (e) => inkTool.onPointerMove(e),
-    onPointerUp:   (e) => inkTool.onPointerUp(e),
-    onPointerCancel: (e) => inkTool.onPointerCancel(e),
-  });
-
-  // Layout: toolbar on top, ink sub-toolbar below it, then sidebar + stage.
+  // Layout: toolbar + (per-tool sub-toolbars) + sidebar/stage row.
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
-  root.append(toolbar.root, inkToolbar.root, main, pill.root, markPopover.root);
+  root.append(toolbar.root, ...tools.subToolbarNodes, main, pill.root, markPopover.root);
 
   // ── Search toggle ──
   function toggleSearch() {
@@ -468,7 +433,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     stage.removeEventListener('scroll', onScroll);
     memory.flushAll();
     watcher.destroy();
-    dispatcher.destroy();
+    tools.destroy();
     markPopover.destroy();
     sidebar.destroy();
     strip.destroy();

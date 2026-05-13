@@ -17,6 +17,7 @@
  */
 
 import { buildPathFromFractional } from './inkRender.js';
+import { buildShapeElement } from './shapeRender.js';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -83,31 +84,8 @@ export function buildAnnotationLayer({ viewBoxWidth, viewBoxHeight }) {
   }
 
   function renderShape(ann) {
-    // Phase D3 fills this in. Stub keeps the kind round-trip safe.
-    const x = (ann.x || 0) * viewBoxWidth;
-    const y = (ann.y || 0) * viewBoxHeight;
-    const w = (ann.w || 0) * viewBoxWidth;
-    const h = (ann.h || 0) * viewBoxHeight;
-    if (w === 0 || h === 0) return;
-    let node;
-    if (ann.shape === 'ellipse') {
-      node = document.createElementNS(SVG_NS, 'ellipse');
-      node.setAttribute('cx', String(x + w / 2));
-      node.setAttribute('cy', String(y + h / 2));
-      node.setAttribute('rx', String(Math.abs(w / 2)));
-      node.setAttribute('ry', String(Math.abs(h / 2)));
-    } else {
-      node = document.createElementNS(SVG_NS, 'rect');
-      node.setAttribute('x', String(Math.min(x, x + w)));
-      node.setAttribute('y', String(Math.min(y, y + h)));
-      node.setAttribute('width', String(Math.abs(w)));
-      node.setAttribute('height', String(Math.abs(h)));
-    }
-    node.setAttribute('class', `pdf-ann-shape pdf-ann-color-${ann.color || 'red'}`);
-    node.setAttribute('stroke-width', String(ann.width || 2));
-    node.setAttribute('fill', ann.fill || 'none');
-    if (Number.isFinite(ann.id)) node.dataset.annId = String(ann.id);
-    annsG.appendChild(node);
+    const node = buildShapeElement(ann, viewBoxWidth, viewBoxHeight);
+    if (node) annsG.appendChild(node);
   }
 
   function renderSignature(ann) {
