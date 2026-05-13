@@ -228,7 +228,10 @@ export class TrixApp extends App {
     } catch (err) {
       console.error('[TrixApp] render crash', err);
       const msg = (err?.stack || err?.message || String(err));
-      this.root.innerHTML = `<div style="padding:16px;color:#fff;font-family:monospace;white-space:pre-wrap;font-size:12px;">${String(msg).replace(/</g, '&lt;')}</div>`;
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'padding:16px;color:#fff;font-family:monospace;white-space:pre-wrap;font-size:12px;';
+      errDiv.textContent = String(msg);
+      this.root.replaceChildren(errDiv);
     }
   }
 
