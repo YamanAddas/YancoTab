@@ -55,7 +55,7 @@ body:not(.theme-light) .pdf-reader-v3 {
   width: 100%;
   height: 100%;
   display: grid;
-  grid-template-rows: 48px 1fr;
+  grid-template-rows: 48px auto 1fr;
   overflow: hidden;
   border-radius: 18px;
   background: var(--pdf-stage-bg);
@@ -74,6 +74,12 @@ body:not(.theme-light) .pdf-reader-v3 {
 .pdf-reader-v3.sidebar-collapsed .pdf-main {
   grid-template-columns: 0 1fr;
 }
+.pdf-stage.tool-ink,
+.pdf-stage.tool-shape,
+.pdf-stage.tool-redact { cursor: crosshair; }
+.pdf-stage.tool-ink .pdf-textlayer,
+.pdf-stage.tool-shape .pdf-textlayer,
+.pdf-stage.tool-redact .pdf-textlayer { pointer-events: none; }
 
 /* ── Toolbar ──────────────────────────────────────────────────────── */
 .pdf-toolbar {
@@ -696,3 +702,108 @@ body:not(.theme-light) .pdf-reader-v3 {
   outline-offset: 1px;
   box-shadow: 0 0 14px rgba(255,149,0,0.45);
 }
+
+/* ── Annotation layer (SVG) ───────────────────────────────────────── */
+.pdf-annlayer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 3;
+  pointer-events: none;
+}
+.pdf-annlayer.is-tool-active {
+  pointer-events: all;
+}
+.pdf-ann-ink { fill: none; }
+.pdf-ann-shape { fill: none; }
+
+/* Annotation color palette (stroke for ink + shapes). */
+.pdf-ann-color-red    { stroke: #ff453a; }
+.pdf-ann-color-orange { stroke: #ff9500; }
+.pdf-ann-color-yellow { stroke: #ffde59; }
+.pdf-ann-color-green  { stroke: #34c759; }
+.pdf-ann-color-blue   { stroke: #007aff; }
+.pdf-ann-color-purple { stroke: #af52de; }
+.pdf-ann-color-black  { stroke: #111111; }
+
+/* ── Ink sub-toolbar ──────────────────────────────────────────────── */
+.pdf-ink-toolbar {
+  display: none;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--pdf-toolbar-bg);
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+  height: 40px;
+  box-sizing: border-box;
+}
+.pdf-ink-tb-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pdf-toolbar-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.pdf-ink-tb-colors {
+  display: inline-flex;
+  gap: 4px;
+}
+.pdf-ink-chip {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 120ms, border-color 120ms;
+}
+.pdf-ink-chip:hover { transform: scale(1.12); }
+.pdf-ink-chip.is-active {
+  border-color: var(--pdf-toolbar-text);
+  transform: scale(1.12);
+}
+.pdf-ink-tb-widths {
+  display: inline-flex;
+  gap: 4px;
+  padding-left: 12px;
+  border-left: 1px solid var(--pdf-toolbar-border);
+}
+.pdf-ink-width-btn {
+  appearance: none;
+  width: 32px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms;
+}
+.pdf-ink-width-btn:hover { background: var(--pdf-btn-hover); }
+.pdf-ink-width-btn.is-active {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+}
+.pdf-ink-width-dot {
+  display: inline-block;
+  background: var(--pdf-toolbar-text);
+  border-radius: 50%;
+}
+.pdf-ink-tb-close {
+  margin-left: auto;
+  appearance: none;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-ink-tb-close:hover { background: var(--pdf-btn-hover); }

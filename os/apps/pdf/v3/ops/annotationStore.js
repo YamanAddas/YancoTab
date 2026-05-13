@@ -89,9 +89,66 @@ export function createAnnotationStore(pdfStore) {
     return pdfStore.updateAnnotation(id, { color });
   }
 
+  // ── Ink annotations (Phase D2) ──────────────────────────────
+
+  async function addInk({ docId, page, points, color = 'red', width = 2 } = {}) {
+    if (!docId || !Number.isFinite(page)) return null;
+    if (!Array.isArray(points) || points.length < 2) return null;
+    return pdfStore.addAnnotation(docId, {
+      kind: 'ink',
+      page,
+      points,
+      color,
+      width: Math.max(0.5, Math.min(24, Number(width) || 2)),
+    });
+  }
+
+  // ── Shape annotations (Phase D3) ────────────────────────────
+
+  async function addShape({ docId, page, shape, x, y, w, h, color = 'red', width = 2, fill = 'none', dash = 'solid' } = {}) {
+    if (!docId || !Number.isFinite(page)) return null;
+    if (!['rect', 'ellipse', 'arrow', 'line'].includes(shape)) return null;
+    if (![x, y, w, h].every(Number.isFinite)) return null;
+    return pdfStore.addAnnotation(docId, {
+      kind: 'shape',
+      page, shape, x, y, w, h, color,
+      width: Math.max(0.5, Math.min(24, Number(width) || 2)),
+      fill, dash,
+    });
+  }
+
+  // ── Signature instances (Phase D4) ──────────────────────────
+
+  async function addSignature({ docId, page, imageDataUrl, x, y, w, h } = {}) {
+    if (!docId || !Number.isFinite(page)) return null;
+    if (typeof imageDataUrl !== 'string') return null;
+    if (!imageDataUrl.startsWith('data:image/png;base64,')) return null;
+    if (![x, y, w, h].every(Number.isFinite)) return null;
+    return pdfStore.addAnnotation(docId, {
+      kind: 'signature', page, imageDataUrl, x, y, w, h,
+    });
+  }
+
+  // ── Generic list ──────────────────────────────────────────
+
+  async function listAllOnPage(docId, page) {
+    if (!docId || !Number.isFinite(page)) return [];
+    return pdfStore.listAnnotationsOnPage(docId, page);
+  }
+
+  async function listNonTextOnPage(docId, page) {
+    const all = await listAllOnPage(docId, page);
+    return all.filter((a) => a && ['ink', 'shape', 'signature', 'redact'].includes(a.kind));
+  }
+
   return {
     addHighlight,
+    addInk,
+    addShape,
+    addSignature,
     listTextAnchoredOnPage,
+    listAllOnPage,
+    listNonTextOnPage,
     listAllForDoc,
     deleteOne,
     updateColor,

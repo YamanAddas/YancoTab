@@ -18,6 +18,7 @@ export function buildToolbar({
   onPrev, onNext, onJumpToPage,
   onZoomIn, onZoomOut, onZoomReset,
   onClose, onToggleSidebar,
+  onSelectTool,
 } = {}) {
   const root = el('div', { class: 'pdf-toolbar' });
 
@@ -61,11 +62,33 @@ export function buildToolbar({
   // ── Title (centered) ──
   const titleEl = el('div', { class: 'pdf-tb-title' });
 
-  // ── Actions cluster (Phase B: just close) ──
+  // ── Tools cluster ──
+  const textToolBtn = toolBtn('text', ICONS.text, 'Text select (T)');
+  const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw (Phase D2)');
+  const toolBtns = new Map([
+    ['text', textToolBtn],
+    ['ink', inkToolBtn],
+  ]);
+  // Default: text is active.
+  textToolBtn.classList.add('is-active');
+  const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [textToolBtn, inkToolBtn]);
+
+  // ── Actions cluster ──
   const closeBtn = iconBtn(ICONS.close, 'Close PDF', () => onClose?.());
   const actCluster = el('div', { class: 'pdf-tb-cluster' }, [closeBtn]);
 
-  root.append(sidebarCluster, divider(), navCluster, divider(), zoomCluster, titleEl, actCluster);
+  root.append(
+    sidebarCluster, divider(),
+    navCluster, divider(),
+    zoomCluster, divider(),
+    toolsCluster, titleEl, actCluster,
+  );
+
+  function toolBtn(toolId, svgHtml, title) {
+    const b = iconBtn(svgHtml, title, () => onSelectTool?.(toolId));
+    b.dataset.tool = toolId;
+    return b;
+  }
 
   function divider() { return el('span', { class: 'pdf-tb-divider' }); }
 
@@ -94,5 +117,8 @@ export function buildToolbar({
       nextBtn.disabled = !page || !totalPages || page >= totalPages;
     },
     setTitle(t) { titleEl.textContent = t || ''; },
+    setActiveTool(toolId) {
+      for (const [id, btn] of toolBtns) btn.classList.toggle('is-active', id === toolId);
+    },
   };
 }

@@ -22,6 +22,7 @@ import {
 
 export function buildPageStrip({
   getHighlightsForPage,    // async (page) → highlight[]  (offset-shape)
+  getNonTextAnnotationsForPage, // async (page) → annotation[]  (ink/shape/sign)
   getSearchMatchesForPage, // (page) → { matches, currentMatch }
   onPageMounted,           // (pageNum, pageEl) called after first render
 } = {}) {
@@ -101,6 +102,8 @@ export function buildPageStrip({
       onPageMounted?.(pageNum, view.root);
       // Apply any pre-existing highlights for this page.
       await refreshHighlightsForPage(pageNum);
+      // And any non-text annotations (ink/shape/signature).
+      await refreshNonTextAnnotationsForPage(pageNum);
     } catch (e) {
       console.warn('[pdf-v3] mount slot failed:', pageNum, e);
       slot.rendered = false;  // allow retry on next intersect
@@ -147,6 +150,36 @@ export function buildPageStrip({
     await Promise.all(pending);
   }
 
+  async function refreshNonTextAnnotationsForPage(pageNum) {
+    const slot = slots.get(pageNum);
+    if (!slot || !slot.view) return;
+    const annLayer = slot.view.getAnnotationLayer?.();
+    if (!annLayer) return;
+    let annotations = [];
+    try {
+      annotations = (await getNonTextAnnotationsForPage?.(pageNum)) || [];
+    } catch { /* best-effort */ }
+    annLayer.renderAnnotations(annotations);
+  }
+
+  async function refreshAllNonTextAnnotations() {
+    const pending = [];
+    for (const p of slots.keys()) pending.push(refreshNonTextAnnotationsForPage(p));
+    await Promise.all(pending);
+  }
+
+  function getAnnotationLayerForPage(pageNum) {
+    const slot = slots.get(pageNum);
+    return slot?.view?.getAnnotationLayer?.() || null;
+  }
+
+  function setAllToolsActive(active) {
+    for (const slot of slots.values()) {
+      const ann = slot?.view?.getAnnotationLayer?.();
+      if (ann) ann.setToolActive(active);
+    }
+  }
+
   function scrollToPage(pageNum, host = scrollHost) {
     const slot = slots.get(pageNum);
     if (!slot || !host) return;
@@ -190,6 +223,10 @@ export function buildPageStrip({
     refreshAllHighlights,
     refreshSearchMatchesForPage,
     refreshAllSearchMatches,
+    refreshNonTextAnnotationsForPage,
+    refreshAllNonTextAnnotations,
+    getAnnotationLayerForPage,
+    setAllToolsActive,
     scrollToPage,
     getPageNumberForElement,
     getPageIndexForElement,

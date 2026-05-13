@@ -24,10 +24,14 @@ import { buildPageStrip } from './render/pageStrip.js';
 import { setPdfJsModule } from './render/pageView.js';
 import { createSelectionWatcher } from './select/selectionWatcher.js';
 import { createAnnotationStore } from './ops/annotationStore.js';
+import { commitSelectionAsHighlight } from './ops/highlightCommit.js';
 import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
 import { buildMarkPopover } from './chrome/markPopover.js';
 import { buildSearchBar } from './chrome/searchBar.js';
+import { buildInkToolbar } from './chrome/inkToolbar.js';
 import { createSearchController } from './ops/searchController.js';
+import { createInkTool } from './tools/inkTool.js';
+import { createToolDispatcher } from './tools/toolDispatcher.js';
 import { migrateDocHighlights } from './migrate/highlightsV1ToV2.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
@@ -79,6 +83,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     onZoomReset: () => setZoom(1.0),
     onClose: () => onClose?.(),
     onToggleSidebar: () => toggleSidebar(),
+    onSelectTool: (toolId) => dispatcher.setActive(toolId),
   });
 
   // ── Sidebar ──
@@ -158,6 +163,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
 
   const strip = buildPageStrip({
     getHighlightsForPage: (page) => annStore.listTextAnchoredOnPage(docId, page),
+    getNonTextAnnotationsForPage: (page) => annStore.listNonTextOnPage(docId, page),
     getSearchMatchesForPage: (page) => ({
       matches: search.matchesOnPage(page),
       currentMatch: search.getCurrent(),
@@ -211,10 +217,50 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
 
-  // Layout: toolbar on top, then a flex row with sidebar + stage.
+  // ── Ink tool + sub-toolbar ──
+  const inkToolbar = buildInkToolbar({
+    onChange: ({ color, width }) => { /* ink tool reads on each stroke */ },
+    onCancel: () => dispatcher.setActive('text'),
+  });
+  const inkTool = createInkTool({
+    getStripRoot: () => strip.root,
+    getPageLayer: (pageEl) => {
+      const pn = Number(pageEl?.dataset?.page);
+      if (!Number.isFinite(pn)) return null;
+      return strip.getAnnotationLayerForPage(pn);
+    },
+    getActiveColor: () => inkToolbar.getColor(),
+    getActiveWidth: () => inkToolbar.getWidth(),
+    onCommit: async ({ page, points, color, width }) => {
+      if (!docId) return;
+      await annStore.addInk({ docId, page, points, color, width });
+      await strip.refreshNonTextAnnotationsForPage(page);
+    },
+  });
+
+  // ── Tool dispatcher ──
+  const dispatcher = createToolDispatcher({
+    stage,
+    setStripToolsActive: (active) => strip.setAllToolsActive(active),
+    onActiveChange: (toolId) => {
+      toolbar.setActiveTool?.(toolId);
+      if (toolId === 'ink') inkToolbar.show();
+      else inkToolbar.hide();
+    },
+  });
+  dispatcher.register('text', {});
+  dispatcher.register('ink', {
+    setActive: (on) => inkTool.setActive(on),
+    onPointerDown: (e) => inkTool.onPointerDown(e),
+    onPointerMove: (e) => inkTool.onPointerMove(e),
+    onPointerUp:   (e) => inkTool.onPointerUp(e),
+    onPointerCancel: (e) => inkTool.onPointerCancel(e),
+  });
+
+  // Layout: toolbar on top, ink sub-toolbar below it, then sidebar + stage.
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
-  root.append(toolbar.root, main, pill.root, markPopover.root);
+  root.append(toolbar.root, inkToolbar.root, main, pill.root, markPopover.root);
 
   // ── Search toggle ──
   function toggleSearch() {
@@ -315,8 +361,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     const clamped = Math.max(0.25, Math.min(8, z));
     if (clamped === userZoom) return;
     userZoom = clamped;
-    // Phase B: zoom triggers a full re-prepare. Phase D will hold
-    // already-rendered pages and just rescale.
+    // Zoom currently triggers a full re-prepare; later phases can rescale in place.
     if (pdfDoc) {
       await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
       strip.scrollToPage(currentPage, stage);
@@ -327,39 +372,27 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
 
   // ── Highlighting ──
 
-  async function commitHighlight(color) {
-    if (!docId || !lastSelection) return;
+  function commitHighlight(color) {
+    return commitSelectionAsHighlight({
+      selection: lastSelection, docId, color,
+      annotationStore: annStore, strip,
+      onToast, onPillHide: () => pill.hide(),
+    });
+  }
+
+  async function runMigration() {
     try {
-      if (!lastSelection.multiPage) {
-        await annStore.addHighlight({
-          docId, page: lastSelection.page,
-          pageStartCharOffset: lastSelection.charStart,
-          pageEndCharOffset: lastSelection.charEnd,
-          color, text: lastSelection.text,
+      const r = await migrateDocHighlights({
+        pdfDoc, docId, pdfStore, kernel, annotationStore: annStore,
+      });
+      if (r && !r.skipped && r.migrated > 0) {
+        onToast?.({
+          message: `Migrated ${r.migrated} highlight${r.migrated === 1 ? '' : 's'}`,
+          type: 'success',
         });
-        await strip.refreshHighlightsForPage(lastSelection.page);
-      } else if (Array.isArray(lastSelection.segments)) {
-        // Cross-page: emit one annotation per page, share groupId.
-        const groupId = `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
-        for (const seg of lastSelection.segments) {
-          await annStore.addHighlight({
-            docId, page: seg.page,
-            pageStartCharOffset: seg.charStart,
-            pageEndCharOffset: seg.charEnd,
-            color, text: '', groupId,
-          });
-        }
-        for (const seg of lastSelection.segments) {
-          await strip.refreshHighlightsForPage(seg.page);
-        }
       }
-      pill.hide();
-      // Clear native selection so the highlight is the only visible mark.
-      try { window.getSelection()?.removeAllRanges(); } catch { /* best-effort */ }
-      onToast?.({ message: 'Highlight saved', type: 'success' });
     } catch (e) {
-      console.error('[pdf-v3] highlight save failed:', e);
-      onToast?.({ message: 'Highlight save failed', type: 'error' });
+      console.warn('[pdf-v3] highlight migration failed:', e);
     }
   }
 
@@ -378,24 +411,8 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     strip.root.style.display = '';
     toolbar.setTitle(docTitle);
 
-    // One-shot v1→v2 highlight migration. Idempotent + lazy: only runs
-    // on first v3 open of this doc. Pages with legacy highlights are
-    // re-anchored to offset-shape; failures stay as legacy entries.
-    if (kernel) {
-      try {
-        const result = await migrateDocHighlights({
-          pdfDoc, docId, pdfStore, kernel, annotationStore: annStore,
-        });
-        if (result && !result.skipped && result.migrated > 0) {
-          onToast?.({
-            message: `Migrated ${result.migrated} highlight${result.migrated === 1 ? '' : 's'}`,
-            type: 'success',
-          });
-        }
-      } catch (e) {
-        console.warn('[pdf-v3] highlight migration failed:', e);
-      }
-    }
+    // One-shot v1→v2 highlight migration (lazy + idempotent).
+    if (kernel) await runMigration();
 
     // Restore reading position if any.
     let resumePage = 1;
@@ -451,6 +468,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     stage.removeEventListener('scroll', onScroll);
     memory.flushAll();
     watcher.destroy();
+    dispatcher.destroy();
     markPopover.destroy();
     sidebar.destroy();
     strip.destroy();

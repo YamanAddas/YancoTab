@@ -16,6 +16,7 @@
 
 import { el } from '../../../utils/dom.js';
 import { buildPageTextIndex } from '../select/pageTextIndex.js';
+import { buildAnnotationLayer } from './annotationLayer.js';
 
 let pdfjsLib = null;
 export function setPdfJsModule(mod) { pdfjsLib = mod; }
@@ -29,6 +30,10 @@ export function buildPageView() {
   const textLayerDiv = el('div', { class: 'pdf-textlayer' });
   const pageNum = el('div', { class: 'pdf-page-num' });
   const empty = el('div', { class: 'pdf-page-empty' }, '—');
+
+  // The annotation layer is created lazily on first render, when we
+  // know the page's intrinsic dimensions.
+  let annLayerApi = null;
 
   root.append(canvas, textLayerDiv, pageNum, empty);
 
@@ -87,6 +92,17 @@ export function buildPageView() {
     const num = Number.isFinite(pageNumOverride) ? pageNumOverride : pdfPage.pageNumber;
     if (Number.isFinite(num)) root.dataset.page = String(num);
     pageNum.textContent = label || `— ${num} —`;
+
+    // Build / refresh the annotation layer at the page's INTRINSIC
+    // viewport (zoom 1.0) so stored fractional coords are stable.
+    const intrinsicVp = pdfPage.getViewport({ scale: 1, rotation: rot });
+    if (!annLayerApi) {
+      annLayerApi = buildAnnotationLayer({
+        viewBoxWidth: intrinsicVp.width,
+        viewBoxHeight: intrinsicVp.height,
+      });
+      root.appendChild(annLayerApi.root);
+    }
 
     const ctx = canvas.getContext('2d');
     const renderTransform = dpr === 1 ? null : [dpr, 0, 0, dpr, 0, 0];
@@ -149,11 +165,16 @@ export function buildPageView() {
     canvas.width = 0;
     canvas.height = 0;
     textLayerDiv.innerHTML = '';
+    if (annLayerApi) {
+      annLayerApi.root.remove();
+      annLayerApi = null;
+    }
     pageTextIndex = null;
   }
 
   function getIndex() { return pageTextIndex; }
   function getTextLayer() { return textLayerDiv; }
+  function getAnnotationLayer() { return annLayerApi; }
 
-  return { root, render, destroy, getIndex, getTextLayer };
+  return { root, render, destroy, getIndex, getTextLayer, getAnnotationLayer };
 }
