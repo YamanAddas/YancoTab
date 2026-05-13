@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.4.5-pdf-reader-v3-phase-b';
+const CACHE_NAME = 'yancotab-v1.4.6-pdf-reader-v3-phase-c1';
 
 const PRECACHE = [
     './',
@@ -261,6 +261,10 @@ const PRECACHE = [
     './os/apps/pdf/v3/chrome/toolbar.js',
     './os/apps/pdf/v3/chrome/selectionPill.js',
     './os/apps/pdf/v3/chrome/icons.js',
+    './os/apps/pdf/v3/chrome/sidebar.js',
+    './os/apps/pdf/v3/chrome/tabThumbnails.js',
+    './os/apps/pdf/v3/chrome/tabOutline.js',
+    './os/apps/pdf/v3/chrome/tabBookmarks.js',
     './os/apps/pdf/v3/render/pageView.js',
     './os/apps/pdf/v3/render/pageStrip.js',
     './os/apps/pdf/v3/render/highlightRender.js',

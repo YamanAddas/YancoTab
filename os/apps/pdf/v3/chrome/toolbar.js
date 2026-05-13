@@ -17,9 +17,13 @@ import { ICONS } from './icons.js';
 export function buildToolbar({
   onPrev, onNext, onJumpToPage,
   onZoomIn, onZoomOut, onZoomReset,
-  onClose,
+  onClose, onToggleSidebar,
 } = {}) {
   const root = el('div', { class: 'pdf-toolbar' });
+
+  // ── Sidebar toggle ──
+  const sidebarBtn = iconBtn(ICONS.sidebar, 'Toggle sidebar', () => onToggleSidebar?.());
+  const sidebarCluster = el('div', { class: 'pdf-tb-cluster' }, [sidebarBtn]);
 
   // ── Navigation cluster ──
   const prevBtn = iconBtn(ICONS.prev, 'Previous page', () => onPrev?.());
@@ -61,7 +65,7 @@ export function buildToolbar({
   const closeBtn = iconBtn(ICONS.close, 'Close PDF', () => onClose?.());
   const actCluster = el('div', { class: 'pdf-tb-cluster' }, [closeBtn]);
 
-  root.append(navCluster, divider(), zoomCluster, titleEl, actCluster);
+  root.append(sidebarCluster, divider(), navCluster, divider(), zoomCluster, titleEl, actCluster);
 
   function divider() { return el('span', { class: 'pdf-tb-divider' }); }
 

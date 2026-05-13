@@ -16,10 +16,15 @@
 import { el } from '../../utils/dom.js';
 import { buildToolbar } from './chrome/toolbar.js';
 import { buildSelectionPill } from './chrome/selectionPill.js';
+import { buildSidebar } from './chrome/sidebar.js';
+import { buildThumbnailsTab } from './chrome/tabThumbnails.js';
+import { buildOutlineTab } from './chrome/tabOutline.js';
+import { buildBookmarksTab } from './chrome/tabBookmarks.js';
 import { buildPageStrip } from './render/pageStrip.js';
 import { setPdfJsModule } from './render/pageView.js';
 import { createSelectionWatcher } from './select/selectionWatcher.js';
 import { createAnnotationStore } from './ops/annotationStore.js';
+import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -37,7 +42,7 @@ async function loadPdfJs() {
   return pdfjsModulePromise;
 }
 
-export function buildReader({ pdfStore, onToast, onClose } = {}) {
+export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   if (!pdfStore) throw new Error('pdfStore required');
   const root = el('div', { class: 'pdf-reader-v3', tabindex: '0' });
 
@@ -55,6 +60,10 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
   let selectionRectScreen = null;
 
   const annStore = createAnnotationStore(pdfStore);
+  const memory = createReadingMemory({
+    loadViewState: (id) => pdfStore.getViewState(id),
+    saveViewState: (id, patch) => pdfStore.saveViewState(id, patch),
+  });
 
   // ── Toolbar ──
   const toolbar = buildToolbar({
@@ -65,7 +74,39 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
     onZoomOut: () => setZoom(userZoom / 1.2),
     onZoomReset: () => setZoom(1.0),
     onClose: () => onClose?.(),
+    onToggleSidebar: () => toggleSidebar(),
   });
+
+  // ── Sidebar ──
+  const thumbsTab = buildThumbnailsTab({
+    getPdfDoc: () => pdfDoc,
+    onJumpToPage: (n) => goToPage(n),
+  });
+  const outlineTab = buildOutlineTab({
+    getPdfDoc: () => pdfDoc,
+    onJumpToPage: (n) => goToPage(n),
+  });
+  const bookmarksTab = buildBookmarksTab({
+    kernel,
+    getDocId: () => docId,
+    getCurrentPage: () => currentPage,
+    onJumpToPage: (n) => goToPage(n),
+    onToast,
+  });
+  const sidebar = buildSidebar({
+    tabs: [
+      { id: 'thumbs', label: 'Thumbnails', icon: 'thumbs', mount: thumbsTab.mount },
+      { id: 'outline', label: 'Outline', icon: 'outline', mount: outlineTab.mount },
+      { id: 'bookmarks', label: 'Bookmarks', icon: 'bookmark', mount: bookmarksTab.mount },
+    ],
+    initial: 'thumbs',
+  });
+  let sidebarCollapsed = false;
+  function toggleSidebar() {
+    sidebarCollapsed = !sidebarCollapsed;
+    sidebar.setCollapsed(sidebarCollapsed);
+    root.classList.toggle('sidebar-collapsed', sidebarCollapsed);
+  }
 
   // ── Stage + Page Strip ──
   const stage = el('div', {
@@ -108,7 +149,10 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
     },
   });
 
-  root.append(toolbar.root, stage, pill.root);
+  // Layout: toolbar on top, then a flex row with sidebar + stage.
+  const main = el('div', { class: 'pdf-main' });
+  main.append(sidebar.root, stage);
+  root.append(toolbar.root, main, pill.root);
 
   // ── Selection watcher ──
   const watcher = createSelectionWatcher({
@@ -139,21 +183,58 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
     currentPage = next;
     strip.scrollToPage(next, stage);
     toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
+    sidebar.updateTab('thumbs', { totalPages, currentPage });
     pill.hide();
+    if (docId) memory.save(docId, { page: currentPage });
   }
+
+  // ── Current-page tracking on scroll ──
+  // The page whose top edge is closest to (but at or above) the
+  // stage's vertical midline is the "current" page. Throttled via rAF.
+  let scrollRaf = 0;
+  function onScroll() {
+    if (scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      scrollRaf = 0;
+      if (!pdfDoc) return;
+      const stageRect = stage.getBoundingClientRect();
+      const midline = stageRect.top + stageRect.height * 0.35;
+      const pageEls = strip.root.querySelectorAll('.pdf-strip-slot[data-page]');
+      let best = currentPage;
+      let bestDist = Infinity;
+      for (const pe of pageEls) {
+        const r = pe.getBoundingClientRect();
+        // Skip pages entirely off-screen.
+        if (r.bottom < stageRect.top || r.top > stageRect.bottom) continue;
+        const dist = Math.abs(r.top - midline);
+        if (dist < bestDist) {
+          bestDist = dist;
+          const n = Number(pe.dataset.page);
+          if (Number.isFinite(n)) best = n;
+        }
+      }
+      if (best !== currentPage) {
+        currentPage = best;
+        toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
+        sidebar.updateTab('thumbs', { totalPages, currentPage });
+        if (docId) memory.save(docId, { page: currentPage, scrollY: stage.scrollTop });
+      }
+    });
+  }
+  stage.addEventListener('scroll', onScroll, { passive: true });
 
   async function setZoom(z) {
     const clamped = Math.max(0.25, Math.min(8, z));
     if (clamped === userZoom) return;
     userZoom = clamped;
-    // Phase B: zoom triggers a full re-prepare. Phase C will hold
+    // Phase B: zoom triggers a full re-prepare. Phase D will hold
     // already-rendered pages and just rescale.
     if (pdfDoc) {
       await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
-      // Re-scroll to keep the user near where they were.
       strip.scrollToPage(currentPage, stage);
     }
     toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
+    if (docId) memory.save(docId, { zoom: userZoom });
   }
 
   // ── Highlighting ──
@@ -209,13 +290,36 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
     strip.root.style.display = '';
     toolbar.setTitle(docTitle);
 
-    await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
-    toolbar.update({ page: 1, totalPages, zoom: userZoom, title: docTitle });
+    // Restore reading position if any.
+    let resumePage = 1;
+    let resumeZoom = userZoom;
+    try {
+      const saved = await memory.load(docId);
+      const v = resolveViewState(saved);
+      if (v) {
+        if (typeof v.zoom === 'number') resumeZoom = v.zoom;
+        if (isResumable(v)) resumePage = v.page;
+      }
+    } catch { /* best-effort */ }
+    userZoom = resumeZoom;
+    currentPage = Math.min(resumePage, totalPages);
 
-    onToast?.({ message: `Opened "${docTitle}"`, type: 'success' });
+    await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
+    toolbar.update({ page: currentPage, totalPages, zoom: userZoom, title: docTitle });
+    sidebar.updateTab('thumbs', { totalPages, currentPage });
+    sidebar.updateTab('outline', { totalPages });
+    sidebar.updateTab('bookmarks', {});
+
+    if (currentPage > 1) {
+      requestAnimationFrame(() => strip.scrollToPage(currentPage, stage));
+      onToast?.({ message: `Resumed on page ${currentPage}`, type: 'info' });
+    } else {
+      onToast?.({ message: `Opened "${docTitle}"`, type: 'success' });
+    }
   }
 
   function close() {
+    if (docId) memory.flush(docId);
     strip.destroy();
     pdfDoc = null;
     docId = null;
@@ -226,12 +330,18 @@ export function buildReader({ pdfStore, onToast, onClose } = {}) {
     selectionRectScreen = null;
     pill.hide();
     toolbar.update({ page: 1, totalPages: 0, zoom: userZoom });
+    sidebar.updateTab('thumbs', { totalPages: 0 });
+    sidebar.updateTab('bookmarks', {});
     empty.style.display = 'flex';
     strip.root.style.display = 'none';
   }
 
   function destroy() {
+    if (scrollRaf) cancelAnimationFrame(scrollRaf);
+    stage.removeEventListener('scroll', onScroll);
+    memory.flushAll();
     watcher.destroy();
+    sidebar.destroy();
     strip.destroy();
   }
 

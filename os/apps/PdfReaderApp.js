@@ -241,6 +241,7 @@ export class PdfReaderApp extends App {
         this._reader = this._useV3
             ? buildReaderV3({
                 pdfStore: this.pdfStore,
+                kernel: this.kernel,
                 onToast: (t) => this.kernel?.emit?.('toast', t),
                 onClose: () => this._closeReader(),
             })
