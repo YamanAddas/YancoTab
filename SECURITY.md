@@ -51,3 +51,14 @@ YancoTab enforces a strict CSP via Manifest V3:
 |---------|-----------|
 | 2.x.x   | Yes      |
 | < 2.0   | No       |
+
+
+## OpenSSF Scorecard Notes
+
+YancoTab scores well on most [OpenSSF Scorecard](https://securityscorecards.dev/) checks. One check is intentionally not applicable:
+
+### Fuzzing (not applicable)
+
+YancoTab is a **browser extension** — it has no server endpoints, no binary protocol parsers, and no network-facing attack surface that fuzzing could exercise. OSS-Fuzz requires a C/C++/Go/Rust/Java target with a `LLVMFuzzerTestOneInput` harness or equivalent. A pure-JavaScript Chrome extension with no native code has no compatible fuzzing target. This is a structural limitation of the Scorecard's fuzzing check, not a security gap.
+
+All input-handling code (URL validation, file imports, JSON parsing, annotation data) is covered by the `node --test` unit suite in `tests/`.
