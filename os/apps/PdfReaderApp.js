@@ -248,6 +248,7 @@ export class PdfReaderApp extends App {
                 onDownload: () => this._downloadCurrent(),
                 onExportAnnotations: () => this._exportAnnotationsCurrent(),
                 onShowProperties: (props) => this._showProperties(props),
+                onOpenDoc: (docId) => this._openDocId(docId),
             })
             : buildCodex({
                 pdfStore: this.pdfStore,

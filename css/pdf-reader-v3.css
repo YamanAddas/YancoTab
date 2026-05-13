@@ -1492,3 +1492,218 @@ body.is-mobile [data-allow-context="true"] * {
   box-shadow: none !important;
   pointer-events: none;
 }
+
+/* ── Generic modal (used by Merge/Split/Compare/Redact) ──────────── */
+.pdf-modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
+  z-index: 2000;
+}
+.pdf-modal {
+  width: min(560px, 92vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 12px;
+  box-shadow: var(--pdf-pill-shadow);
+  overflow: hidden;
+  position: relative;
+}
+.pdf-modal-h {
+  padding: 18px 20px 8px;
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+}
+.pdf-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--pdf-toolbar-text);
+}
+.pdf-modal-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+}
+.pdf-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--pdf-toolbar-border);
+}
+.pdf-modal-btn {
+  appearance: none;
+  padding: 7px 14px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-modal-btn:hover:not(:disabled) { background: var(--pdf-btn-hover); }
+.pdf-modal-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.pdf-modal-btn-primary {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+  font-weight: 600;
+}
+.pdf-modal-btn-primary:hover:not(:disabled) { filter: brightness(1.1); }
+
+/* ── Merge modal ─────────────────────────────────────────────────── */
+.pdf-merge-modal { min-height: 380px; }
+.pdf-merge-sources {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+}
+.pdf-merge-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  background: var(--pdf-page-bg);
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 8px;
+}
+.pdf-merge-row-ordinal {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pdf-btn-active-bg);
+  color: var(--pdf-btn-active-fg);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.pdf-merge-row-name {
+  flex: 1;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pdf-merge-row-ctrls { display: flex; gap: 2px; }
+.pdf-merge-row-btn {
+  appearance: none;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: var(--pdf-toolbar-text-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.pdf-merge-row-btn:hover:not(:disabled) {
+  background: var(--pdf-btn-hover);
+  color: var(--pdf-toolbar-text);
+}
+.pdf-merge-row-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.pdf-merge-row-rm:hover:not(:disabled) { background: rgba(255,69,58,0.12); color: #ff453a; }
+.pdf-merge-add-btn {
+  appearance: none;
+  margin: 0 20px 8px;
+  padding: 9px 12px;
+  border: 1px dashed var(--pdf-toolbar-border);
+  background: transparent;
+  color: var(--pdf-btn-active-fg);
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: center;
+}
+.pdf-merge-add-btn:hover:not(:disabled) { background: var(--pdf-btn-hover); }
+.pdf-merge-name-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 20px 0;
+}
+.pdf-merge-name-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pdf-toolbar-text-dim);
+  text-transform: uppercase;
+}
+.pdf-merge-name-input {
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 13px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 7px;
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  outline: none;
+}
+.pdf-merge-name-input:focus { border-color: var(--pdf-btn-active-fg); }
+.pdf-merge-progress {
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+}
+
+/* ── Merge picker subview (overlay inside the modal) ─────────────── */
+.pdf-merge-picker {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  background: var(--pdf-pill-bg);
+  border-radius: 12px;
+}
+.pdf-merge-picker-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pdf-merge-picker-item {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+.pdf-merge-picker-item:hover { background: var(--pdf-btn-hover); }
+.pdf-merge-picker-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pdf-merge-picker-empty {
+  padding: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--pdf-toolbar-text-dim);
+}

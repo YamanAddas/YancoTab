@@ -41,6 +41,7 @@ import { createScrollTracker } from './readerScroll.js';
 import { createColorController } from './readerColor.js';
 import { createZoomController } from './readerZoom.js';
 import { createViewModeController } from './readerViewMode.js';
+import { createMergeController } from './readerMerge.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -60,6 +61,7 @@ async function loadPdfJs() {
 export function buildReader({
   pdfStore, kernel, onToast, onClose,
   onPrint, onDownload, onExportAnnotations, onShowProperties,
+  onOpenDoc,   // (docId) → switch the reader to this doc
 } = {}) {
   if (!pdfStore) throw new Error('pdfStore required');
   const root = el('div', { class: 'pdf-reader-v3', tabindex: '0' });
@@ -218,21 +220,18 @@ export function buildReader({
 
   const viewModeCtrl = createViewModeController({
     toolbar, strip, stage,
-    getPdfDoc: () => pdfDoc,
-    getCurrentPage: () => currentPage,
+    getPdfDoc: () => pdfDoc, getCurrentPage: () => currentPage,
     saveMode: (m) => { viewMode = m; if (docId) memory.save(docId, { mode: m }); },
     initial: viewMode,
   });
-
-  const markPopover = createMarkActions({
-    annStore, strip, undoStack, onToast,
+  const markPopover = createMarkActions({ annStore, strip, undoStack, onToast });
+  const mergeCtrl = createMergeController({
+    pdfStore, getDocId: () => docId, onToast, onOpenDoc,
   });
-
   const morePopover = createReaderMore({
-    getDocId: () => docId,
-    getProperties,
-    onShowProperties,
-    onExportAnnotations,
+    getDocId: () => docId, getProperties,
+    onShowProperties, onExportAnnotations,
+    onMerge: () => mergeCtrl.open(),
   });
   document.body.appendChild(morePopover.root);
 
@@ -455,6 +454,7 @@ export function buildReader({
     tools.destroy();
     markPopover.destroy();
     morePopover.destroy();
+    mergeCtrl?.destroy?.();
     colorCtrl?.destroy?.();
     zoomCtrl?.destroy?.();
     sidebar.destroy();
