@@ -31,7 +31,6 @@ export async function commitSelectionAsHighlight({
     } else if (Array.isArray(selection.segments)) {
       const groupId = `g${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
       for (const seg of selection.segments) {
-        // eslint-disable-next-line no-await-in-loop
         await annotationStore.addHighlight({
           docId,
           page: seg.page,
@@ -43,7 +42,6 @@ export async function commitSelectionAsHighlight({
         });
       }
       for (const seg of selection.segments) {
-        // eslint-disable-next-line no-await-in-loop
         await strip.refreshHighlightsForPage(seg.page);
       }
     }

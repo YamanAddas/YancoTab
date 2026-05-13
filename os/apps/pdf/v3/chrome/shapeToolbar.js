@@ -28,6 +28,8 @@ const COLORS = [
 const WIDTHS = [1.5, 3, 6];
 const DASHES = ['solid', 'dashed', 'dotted'];
 
+const _svgParser = new DOMParser();
+
 export function buildShapeToolbar({ onCancel } = {}) {
   let activeShape = 'rect';
   let activeColor = 'red';
@@ -50,7 +52,7 @@ export function buildShapeToolbar({ onCancel } = {}) {
       title: s.label,
       'aria-label': s.label,
     });
-    btn.innerHTML = s.svg;
+    btn.appendChild(_svgParser.parseFromString(s.svg, 'image/svg+xml').documentElement);
     btn.addEventListener('click', () => { activeShape = s.id; refresh(); });
     shapeBtns.set(s.id, btn);
     shapeRow.appendChild(btn);
