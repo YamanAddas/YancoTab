@@ -17,6 +17,7 @@ import { ICONS } from './icons.js';
 export function buildToolbar({
   onPrev, onNext, onJumpToPage,
   onZoomIn, onZoomOut, onZoomReset,
+  onPickZoom,
   onClose, onToggleSidebar,
   onSelectTool,
   onUndo, onRedo,
@@ -61,8 +62,11 @@ export function buildToolbar({
   const zoomOutBtn = iconBtn(ICONS.zoomOut, 'Zoom out', () => onZoomOut?.());
   const zoomLabel = el('button', {
     type: 'button', class: 'pdf-tb-btn pdf-tb-zoom-label',
-    title: 'Reset zoom',
-    onclick: () => onZoomReset?.(),
+    title: 'Zoom level',
+    onclick: () => {
+      if (typeof onPickZoom === 'function') onPickZoom(zoomLabel);
+      else onZoomReset?.();
+    },
   }, '100%');
   const zoomInBtn = iconBtn(ICONS.zoomIn, 'Zoom in', () => onZoomIn?.());
   const zoomCluster = el('div', { class: 'pdf-tb-cluster' }, [zoomOutBtn, zoomLabel, zoomInBtn]);

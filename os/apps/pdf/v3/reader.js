@@ -39,10 +39,10 @@ import { createUndoStack } from './ops/undoStack.js';
 import { createReaderMore } from './readerMore.js';
 import { createScrollTracker } from './readerScroll.js';
 import { createColorController } from './readerColor.js';
+import { createZoomController } from './readerZoom.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
-
 let pdfjsModulePromise = null;
 async function loadPdfJs() {
   if (!pdfjsModulePromise) {
@@ -90,6 +90,7 @@ export function buildReader({
     onZoomIn: () => setZoom(userZoom * 1.2),
     onZoomOut: () => setZoom(userZoom / 1.2),
     onZoomReset: () => setZoom(1.0),
+    onPickZoom: (anchor) => zoomCtrl.toggleNear(anchor),
     onClose: () => onClose?.(),
     onToggleSidebar: () => toggleSidebar(),
     onSelectTool: (toolId) => dispatcher.setActive(toolId),
@@ -108,6 +109,7 @@ export function buildReader({
   });
   toolbar.setActionsEnabled(false);  // no doc loaded yet
   colorCtrl = createColorController({ kernel, toolbar });
+  let zoomCtrl = null;   // forward-declared; built after strip below
 
   const thumbsTab = buildThumbnailsTab({
     getPdfDoc: () => pdfDoc,
@@ -203,6 +205,15 @@ export function buildReader({
   stage.appendChild(strip.root);
   stage.appendChild(searchBar.root);
   strip.root.style.display = 'none';
+
+  zoomCtrl = createZoomController({
+    toolbar, stage, strip,
+    getPdfDoc: () => pdfDoc,
+    getCurrentPage: () => currentPage,
+    getTotalPages: () => totalPages,
+    saveZoom: (z) => { userZoom = z; if (docId) memory.save(docId, { zoom: z }); },
+    initialZoom: userZoom,
+  });
 
   const markPopover = createMarkActions({
     annStore, strip, undoStack, onToast,
@@ -315,17 +326,7 @@ export function buildReader({
   }
   document.addEventListener('fullscreenchange', onFullscreenChange);
 
-  async function setZoom(z) {
-    const clamped = Math.max(0.25, Math.min(8, z));
-    if (clamped === userZoom) return;
-    userZoom = clamped;
-    if (pdfDoc) {
-      await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
-      strip.scrollToPage(currentPage, stage);
-    }
-    toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
-    if (docId) memory.save(docId, { zoom: userZoom });
-  }
+  const setZoom = (z) => zoomCtrl.set(z);
 
   function commitHighlight(color) {
     return commitSelectionAsHighlight({
@@ -396,16 +397,14 @@ export function buildReader({
 
     // Restore reading position if any.
     let resumePage = 1;
-    let resumeZoom = userZoom;
     try {
       const saved = await memory.load(docId);
       const v = resolveViewState(saved);
       if (v) {
-        if (typeof v.zoom === 'number') resumeZoom = v.zoom;
+        if (typeof v.zoom === 'number') userZoom = v.zoom;
         if (isResumable(v)) resumePage = v.page;
       }
     } catch { /* best-effort */ }
-    userZoom = resumeZoom;
     currentPage = Math.min(resumePage, totalPages);
 
     await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
@@ -457,6 +456,7 @@ export function buildReader({
     markPopover.destroy();
     morePopover.destroy();
     colorCtrl?.destroy?.();
+    zoomCtrl?.destroy?.();
     sidebar.destroy();
     strip.destroy();
   }
