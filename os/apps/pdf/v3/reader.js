@@ -31,6 +31,14 @@ import { buildSearchBar } from './chrome/searchBar.js';
 import { createSearchController } from './ops/searchController.js';
 import { setupTools } from './readerTools.js';
 import { migrateDocHighlights } from './migrate/highlightsV1ToV2.js';
+import {
+  loadPageOps,
+  rotatePage as rotatePageOp,
+  deletePage as deletePageOp,
+  restorePage as restorePageOp,
+  emptyPageOps,
+} from './ops/pageOps.js';
+import { createPageOpsController } from './readerPageOps.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -64,6 +72,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   let userZoom = 1.0;
   let lastSelection = null;   // { page, charStart, charEnd, text } | { segments: [...] }
   let selectionRectScreen = null;
+  let pageOps = emptyPageOps();   // { pageRotations, pageOmits, pageOrder }
 
   const annStore = createAnnotationStore(pdfStore);
   const memory = createReadingMemory({
@@ -88,6 +97,10 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   const thumbsTab = buildThumbnailsTab({
     getPdfDoc: () => pdfDoc,
     onJumpToPage: (n) => goToPage(n),
+    getPageOps: () => pageOps,
+    onRotatePage: (p) => mutatePageOps((s) => rotatePageOp(s, p, 90)),
+    onDeletePage: (p) => mutatePageOps((s) => deletePageOp(s, p)),
+    onRestorePage: (p) => mutatePageOps((s) => restorePageOp(s, p)),
   });
   const outlineTab = buildOutlineTab({
     getPdfDoc: () => pdfDoc,
@@ -166,6 +179,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
       matches: search.matchesOnPage(page),
       currentMatch: search.getCurrent(),
     }),
+    getPageOps: () => pageOps,
     onPageMounted: (pageNum) => {
       // Update toolbar's page indicator using the most-visible page.
       // For simplicity, we report the latest-mounted page as "current."
@@ -345,6 +359,20 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     });
   }
 
+  // ── Page ops (rotate / delete / restore) ──
+  const pageOpsCtrl = createPageOpsController({
+    pdfStore,
+    getDocId: () => docId,
+    getPageOps: () => pageOps,
+    setPageOps: (s) => { pageOps = s; },
+    getTotalPages: () => totalPages,
+    getCurrentPage: () => currentPage,
+    setCurrentPage: (n) => { currentPage = n; },
+    strip, sidebar, stage, toolbar,
+    getZoom: () => userZoom,
+  });
+  const mutatePageOps = pageOpsCtrl.mutate;
+
   async function runMigration() {
     try {
       const r = await migrateDocHighlights({
@@ -371,6 +399,11 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     pdfDoc = await pdfjs.getDocument({ ...source, isEvalSupported: false }).promise;
     totalPages = pdfDoc.numPages;
     currentPage = 1;
+
+    // Load per-page rotations / omits BEFORE prepareSlots so the strip
+    // and thumbs render with the saved mutations on first paint.
+    try { pageOps = await loadPageOps(pdfStore, docId); }
+    catch { pageOps = emptyPageOps(); }
 
     empty.style.display = 'none';
     strip.root.style.display = '';
@@ -420,6 +453,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     currentPage = 1;
     lastSelection = null;
     selectionRectScreen = null;
+    pageOps = emptyPageOps();
     pill.hide();
     toolbar.update({ page: 1, totalPages: 0, zoom: userZoom });
     sidebar.updateTab('thumbs', { totalPages: 0 });

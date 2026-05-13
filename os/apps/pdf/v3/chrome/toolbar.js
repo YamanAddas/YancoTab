@@ -14,7 +14,11 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
-const _svgParser = new DOMParser();
+let _svgParserInstance = null;
+function svgParser() {
+  if (!_svgParserInstance) _svgParserInstance = new DOMParser();
+  return _svgParserInstance;
+}
 
 export function buildToolbar({
   onPrev, onNext, onJumpToPage,
@@ -103,7 +107,7 @@ export function buildToolbar({
       type: 'button', class: 'pdf-tb-btn',
       title, 'aria-label': title,
     });
-    if (svgHtml) b.appendChild(_svgParser.parseFromString(svgHtml, 'image/svg+xml').documentElement);
+    if (svgHtml) b.appendChild(svgParser().parseFromString(svgHtml, 'image/svg+xml').documentElement);
     b.addEventListener('click', handler);
     return b;
   }

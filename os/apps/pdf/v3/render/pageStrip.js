@@ -25,6 +25,7 @@ export function buildPageStrip({
   getNonTextAnnotationsForPage, // async (page) → annotation[]  (ink/shape/sign)
   getSearchMatchesForPage, // (page) → { matches, currentMatch }
   onPageMounted,           // (pageNum, pageEl) called after first render
+  getPageOps,              // () → { pageRotations, pageOmits, pageOrder } | null
 } = {}) {
   const root = el('div', { class: 'pdf-strip' });
   const slots = new Map();       // pageNum → { el, view, rendered, observer }
@@ -33,6 +34,19 @@ export function buildPageStrip({
   let observer = null;
   let pdfDoc = null;
   let lastZoom = 1.0;
+
+  function currentOps() {
+    try { return getPageOps?.() || null; } catch { return null; }
+  }
+  function isOmitted(p) {
+    const ops = currentOps();
+    return !!(ops && Array.isArray(ops.pageOmits) && ops.pageOmits.includes(p));
+  }
+  function rotationFor(p) {
+    const ops = currentOps();
+    return (ops && ops.pageRotations && ops.pageRotations[p]) || 0;
+  }
+
   async function prepareSlots(doc, hostEl, { zoom = 1.0 } = {}) {
     pdfDoc = doc;
     scrollHost = hostEl;
@@ -50,6 +64,7 @@ export function buildPageStrip({
 
     const total = pdfDoc.numPages;
     for (let p = 1; p <= total; p++) {
+      if (isOmitted(p)) continue;  // skip pages the user deleted
       const slotEl = el('div', { class: 'pdf-strip-slot', 'data-pending': '1' });
       slotEl.style.width = `${slotW}px`;
       slotEl.style.height = `${slotH}px`;
@@ -86,10 +101,12 @@ export function buildPageStrip({
       slot.el.innerHTML = '';
       slot.el.removeAttribute('data-pending');
       slot.el.appendChild(view.root);
-      const baseVp = pdfPage.getViewport({ scale: lastZoom });
+      const rotation = rotationFor(pageNum);
+      const baseVp = pdfPage.getViewport({ scale: lastZoom, rotation });
       await view.render(pdfPage, {
         cssWidth: baseVp.width,
         pageNum,
+        rotation,
       });
       // Correct slot size to actual page size (in case of mixed-size docs).
       slot.el.style.width = `${baseVp.width}px`;
@@ -213,9 +230,19 @@ export function buildPageStrip({
     root.innerHTML = '';
   }
 
+  /**
+   * Rebuild the strip after pageOps changes (rotate/delete/restore).
+   * Re-uses the stored pdfDoc + scrollHost + zoom.
+   */
+  async function rebuildForOpsChange() {
+    if (!pdfDoc || !scrollHost) return;
+    await prepareSlots(pdfDoc, scrollHost, { zoom: lastZoom });
+  }
+
   return {
     root,
     prepareSlots,
+    rebuildForOpsChange,
     refreshHighlightsForPage,
     refreshAllHighlights,
     refreshSearchMatchesForPage,

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.3-pdf-reader-v3-fix-user-select';
+const CACHE_NAME = 'yancotab-v1.5.4-pdf-page-ops';
 
 const PRECACHE = [
     './',
@@ -282,6 +282,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/signTool.js',
     './os/apps/pdf/v3/tools/toolDispatcher.js',
     './os/apps/pdf/v3/readerTools.js',
+    './os/apps/pdf/v3/readerPageOps.js',
     './os/apps/pdf/v3/render/annotationLayer.js',
     './os/apps/pdf/v3/render/inkRender.js',
     './os/apps/pdf/v3/render/shapeRender.js',
@@ -292,6 +293,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/select/offsetRanges.js',
     './os/apps/pdf/v3/select/selectionWatcher.js',
     './os/apps/pdf/v3/ops/annotationStore.js',
+    './os/apps/pdf/v3/ops/pageOps.js',
     // Files Vault
     './css/files-vault.css',
     './os/apps/files/vault.js',
