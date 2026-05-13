@@ -330,7 +330,11 @@ export class NotesApp extends App {
       status: 'draft',
     });
     this.kernel.emit?.('notes:changed', { path });
-    this.kernel.emit?.('app:open', 'notes', { mode: 'editor', path, autofocus: 'title' });
+    try {
+      await this.kernel.processManager?.spawn?.('notes', { mode: 'editor', path, autofocus: 'title' });
+    } catch (e) {
+      this.kernel?.emit?.('toast', { message: `Couldn't open editor: ${e?.message || e}`, type: 'error' });
+    }
   }
 
   _openEditor(path) {
@@ -339,17 +343,24 @@ export class NotesApp extends App {
     if (this._mode === 'library') {
       // Visual feedback before the window opens.
       this._renderAll();
-      this.kernel.emit?.('app:open', 'notes', { mode: 'editor', path });
+      // kernel.emit's CustomEvent only carries a single `detail` so a
+      // third arg would be dropped. Spawn through processManager
+      // directly — that's how FilesApp opens specific paths too.
+      try {
+        this.kernel.processManager?.spawn?.('notes', { mode: 'editor', path });
+      } catch (e) {
+        this.kernel?.emit?.('toast', { message: `Couldn't open: ${e?.message || e}`, type: 'error' });
+      }
     }
   }
 
   async _deleteNote(path) {
     const note = this._notes.find((n) => n.path === path) || this._loadOneNote(path);
-    if (!note) return;
+    if (!note) return false;
     const ok = await showConfirm('Delete note',
       `Delete "${note.title || 'Untitled'}"? This can't be undone.`,
       { danger: true });
-    if (!ok) return;
+    if (!ok) return false;
     try { this.fs?.remove?.(path); } catch { /* ignore */ }
     removeEntry(this.kernel, path);
     this.kernel.emit?.('notes:changed', { path });
@@ -358,10 +369,14 @@ export class NotesApp extends App {
       if (this._selectedPath === path) this._selectedPath = this._notes[0]?.path || null;
       this._renderAll();
     }
+    return true;
   }
 
-  _deleteAndClose(path) {
-    this._deleteNote(path).then(() => { try { this.close?.(); } catch { /* ignore */ } });
+  async _deleteAndClose(path) {
+    const ok = await this._deleteNote(path);
+    if (ok) {
+      try { this.close?.(); } catch { /* ignore */ }
+    }
   }
 
   _uniquePath(title) {

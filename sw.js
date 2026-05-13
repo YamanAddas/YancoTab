@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.9-notes-windows';
+const CACHE_NAME = 'yancotab-v1.6.10-notes-spawn-fix';
 
 const PRECACHE = [
     './',
