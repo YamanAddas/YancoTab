@@ -23,7 +23,7 @@ function variantClass(meta = {}) {
   return '';
 }
 
-export function buildStar(note, { onSelect, isSelected, onMove, stageEl } = {}) {
+export function buildStar(note, { onSelect, onContext, isSelected, onMove, stageEl } = {}) {
   const meta = note.meta || {};
   const cls = ['nc-star', variantClass(meta), isSelected ? 'is-selected' : ''].filter(Boolean).join(' ');
   const root = el('div', {
@@ -51,6 +51,11 @@ export function buildStar(note, { onSelect, isSelected, onMove, stageEl } = {}) 
       e.preventDefault();
       trigger();
     }
+  });
+  root.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onContext?.(note, e.clientX, e.clientY);
   });
 
   if (onMove && stageEl) {

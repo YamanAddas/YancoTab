@@ -18,7 +18,7 @@ function clampVisibleNotes(notes) {
   return notes.filter((n) => n?.meta && Number.isFinite(n.meta.x) && Number.isFinite(n.meta.y));
 }
 
-export function buildCosmosStage({ onSelectStar, onSearch, onMoveStar }) {
+export function buildCosmosStage({ onSelectStar, onContextStar, onSearch, onMoveStar }) {
   const root = el('div', { class: 'nc-stage' });
 
   // Toolbar pill (Cosmos / Cluster / Timeline) — only Cosmos wired in PR-2.
@@ -103,6 +103,7 @@ export function buildCosmosStage({ onSelectStar, onSearch, onMoveStar }) {
       for (const n of visible) {
         starsLayer.appendChild(buildStar(n, {
           onSelect: onSelectStar,
+          onContext: onContextStar,
           isSelected: n.path === selectedPath,
           onMove: onMoveStar,
           stageEl: starsLayer,

@@ -749,9 +749,10 @@ export class MobileShell {
         const info = kernel.processManager.getProcessInfo(this.state.activePid);
         if (info?.name === 'notes') {
           const inst = kernel.processManager.getInstance(this.state.activePid);
-          if (typeof inst?._createDocument === 'function') {
+          const fn = inst?._createNote || inst?._createDocument;
+          if (typeof fn === 'function') {
             e.preventDefault();
-            inst._createDocument();
+            fn.call(inst);
           }
         }
         return;

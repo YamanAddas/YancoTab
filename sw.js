@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.8-pdf-note-drag';
+const CACHE_NAME = 'yancotab-v1.6.9-notes-windows';
 
 const PRECACHE = [
     './',
@@ -97,6 +97,8 @@ const PRECACHE = [
     './os/apps/memory/engine.js',
     './os/apps/memory/view.js',
     './os/apps/NotesApp.js',
+    './os/apps/notes/view/editorFrame.js',
+    './os/apps/notes/view/notesContextMenu.js',
     './os/apps/SettingsApp.js',
     './os/apps/settings/AppearanceSettings.js',
     './os/apps/settings/HomeSettings.js',

@@ -16,7 +16,7 @@ const COLS = [
   { id: 'updated', label: 'Edited', width: '22%' },
 ];
 
-export function buildListTab({ onSelectPath } = {}) {
+export function buildListTab({ onSelectPath, onContextNote } = {}) {
   const root = el('div', { class: 'nc-list' });
 
   let sortBy = 'updated';
@@ -104,6 +104,11 @@ export function buildListTab({ onSelectPath } = {}) {
       row.appendChild(el('div', { class: 'nc-list-cell nc-list-updated', style: { width: COLS[3].width } },
         u > 0 ? formatDate(u) : '—'));
       row.addEventListener('click', () => onSelectPath?.(n.path));
+      row.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextNote?.(n, e.clientX, e.clientY);
+      });
       body.appendChild(row);
     }
   }

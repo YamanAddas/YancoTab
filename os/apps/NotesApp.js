@@ -1,19 +1,20 @@
 /**
- * NotesApp — "Constellation" redesign.
+ * NotesApp — dual-mode notes app.
  *
- * 3-column layout: Smart/tags/mood sidebar + cosmic stage + detail
- * panel. Notes from /home/documents/*.txt are loaded once on init,
- * combined with metadata from kernel.storage[yancotab_notes_meta_v2],
- * and rendered as positioned hex-stars. SVG threads connect notes
- * that link to each other via [[Title]] wikilinks.
+ *   mode: 'library' (default) — list / cosmos / calendar / timeline.
+ *                                Right-click row → open / pin / delete.
+ *                                Click a note → opens a separate
+ *                                editor window for that note.
+ *   mode: 'editor'             — single-note floating window: title +
+ *                                tags + body. No library chrome.
  *
- * PR-3: drag-to-move stars, inline body editing, List/Calendar/
- * Timeline tabs.
+ * Multiple editor windows can be open at once. Library and editors
+ * sync via the kernel `notes:changed` event.
  */
 
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
-import { showConfirm } from '../ui/components/YancoModal.js';
+import { showConfirm, showPrompt } from '../ui/components/YancoModal.js';
 import {
   sanitizeTitle, titleFromPath, extractTags,
 } from '../utils/notes-utils.js';
@@ -25,15 +26,15 @@ import { applyFilter, emptyFilter } from './notes/engine/filters.js';
 
 import { buildSideRail } from './notes/view/sideRail.js';
 import { buildCosmosStage } from './notes/view/cosmosStage.js';
-import { buildDetailPanel } from './notes/view/detailPanel.js';
 import { buildListTab } from './notes/view/listTab.js';
 import { buildCalendarTab } from './notes/view/calendarTab.js';
 import { buildTimelineTab } from './notes/view/timelineTab.js';
+import { buildEditorFrame } from './notes/view/editorFrame.js';
+import { buildNotesContextMenu } from './notes/view/notesContextMenu.js';
 
-const TABS = ['Cosmos', 'List', 'Calendar', 'Timeline'];
+const TABS = ['List', 'Cosmos', 'Calendar', 'Timeline'];
 const DOCS_PATH = '/home/documents';
 const EXT = '.txt';
-
 
 export class NotesApp extends App {
   constructor(kernel, pid) {
@@ -43,21 +44,47 @@ export class NotesApp extends App {
     this._notes = [];
     this._filter = emptyFilter();
     this._selectedPath = null;
-    this._activeTab = 'Cosmos';
+    this._activeTab = 'List';
     this._views = {};
     this._styleLinks = [];
+    this._mode = 'library';
+    this._editorPath = null;
+    this._changeUnsub = null;
   }
 
   async init(payload = {}) {
     this._styleLinks = [cssLink('css/notes.css')];
     this._styleLinks.forEach((l) => document.head.appendChild(l));
-
     if (this.fs && !this.fs.exists(DOCS_PATH)) this.fs.mkdir(DOCS_PATH);
+    this._mode = payload?.mode === 'editor' ? 'editor' : 'library';
+    if (this._mode === 'editor') return this._initEditor(payload);
+    return this._initLibrary(payload);
+  }
 
+  destroy() {
+    try { this._views.editor?.flushAll?.(); } catch { /* ignore */ }
+    if (this._changeUnsub) {
+      try { this._changeUnsub(); } catch { /* ignore */ }
+      this._changeUnsub = null;
+    }
+    try { this._ctxMenu?.destroy?.(); } catch { /* ignore */ }
+    if (this._styleLinks) {
+      for (const l of this._styleLinks) l.remove();
+      this._styleLinks = [];
+    }
+    super.destroy();
+  }
+
+  // ── Library mode ───────────────────────────────────────────────
+
+  _initLibrary(payload) {
     this._notes = this._loadNotes();
-
-    this.root = el('div', { class: 'app-window app-notes-constellation', tabindex: '0' });
-    this.root.appendChild(this._buildFrame());
+    this.root = el('div', {
+      class: 'app-window app-notes-constellation is-library',
+      tabindex: '0',
+      'data-allow-context': 'true',
+    });
+    this.root.appendChild(this._buildLibraryFrame());
 
     if (payload?.path && this._notes.find((n) => n.path === payload.path)) {
       this._selectedPath = payload.path;
@@ -68,29 +95,18 @@ export class NotesApp extends App {
 
     this._renderAll();
 
-    // ⌘/ to focus the search beam.
+    this._changeUnsub = this.kernel.on?.('notes:changed', ({ path } = {}) => this._onExternalChange(path));
+
     this.root.addEventListener('keydown', (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
-        this._views.stage?.setSearch('');
+        this._views.stage?.setSearch?.('');
         requestAnimationFrame(() => this.root.querySelector('.nc-search-input')?.focus());
       }
     });
   }
 
-  destroy() {
-    // Make sure any pending body edit lands before we tear down.
-    try { this._views.detail?.flushPendingSave?.(); } catch { /* ignore */ }
-    if (this._styleLinks) {
-      for (const l of this._styleLinks) l.remove();
-      this._styleLinks = [];
-    }
-    super.destroy();
-  }
-
-  // ── Frame ──────────────────────────────────────────────────────
-
-  _buildFrame() {
+  _buildLibraryFrame() {
     const titlebar = el('div', { class: 'nc-titlebar' });
     const tabs = el('div', { class: 'nc-tabs' });
     for (const name of TABS) {
@@ -102,7 +118,9 @@ export class NotesApp extends App {
       t.addEventListener('click', () => this._setTab(name));
       tabs.appendChild(t);
     }
-    titlebar.appendChild(tabs);
+    const newBtn = el('button', { type: 'button', class: 'nc-titlebar-new' }, '+ New note');
+    newBtn.addEventListener('click', () => this._createNote());
+    titlebar.append(tabs, newBtn);
 
     this._views.side = buildSideRail({
       onPickSmart: (id) => this._setFilter({ smart: this._filter.smart === id ? null : id }),
@@ -110,51 +128,125 @@ export class NotesApp extends App {
       onPickMood:  (status) => this._setFilter({ status: this._filter.status === status ? null : status }),
       onClearFilters: () => this._setFilter(emptyFilter(), true),
     });
-
     this._views.stage = buildCosmosStage({
-      onSelectStar: (path) => this._select(path),
+      onSelectStar: (path) => this._openEditor(path),
+      onContextStar: (note, x, y) => this._ctxMenu.showForNote(note, x, y),
       onSearch: (q) => this._setFilter({ search: q }),
       onMoveStar: (path, x, y) => this._patchMeta(path, { x, y }),
     });
-
-    this._views.detail = buildDetailPanel({
-      onPin: (path, pinned) => this._patchMeta(path, { pinned }),
-      onSetStatus: (path, status) => this._patchMeta(path, { status }),
-      onDelete: (path) => this._deleteNote(path),
-      onCreate: () => this._createNote(),
-      onSelectPath: (path) => this._selectFromAnywhere(path),
-      onSaveBody: (path, content) => this._saveBody(path, content),
-    });
-
     this._views.list = buildListTab({
-      onSelectPath: (path) => this._selectFromAnywhere(path),
+      onSelectPath: (path) => this._openEditor(path),
+      onContextNote: (note, x, y) => this._ctxMenu.showForNote(note, x, y),
     });
-    this._views.calendar = buildCalendarTab({
-      onSelectPath: (path) => this._selectFromAnywhere(path),
-    });
-    this._views.timeline = buildTimelineTab({
-      onSelectPath: (path) => this._selectFromAnywhere(path),
-    });
-
-    // Hide non-Cosmos panels by default.
-    this._views.list.root.style.display = 'none';
+    this._views.calendar = buildCalendarTab({ onSelectPath: (path) => this._openEditor(path) });
+    this._views.timeline = buildTimelineTab({ onSelectPath: (path) => this._openEditor(path) });
     this._views.calendar.root.style.display = 'none';
     this._views.timeline.root.style.display = 'none';
+    this._views.stage.root.style.display = 'none';
+
+    this._ctxMenu = buildNotesContextMenu({
+      onOpen: (n) => this._openEditor(n.path),
+      onOpenInNewWindow: (n) => this._openEditor(n.path),
+      onTogglePin: (n) => this._patchMeta(n.path, { pinned: !n.meta?.pinned }),
+      onRename: (n) => this._renameNote(n),
+      onCopyTitle: (n) => {
+        try { navigator.clipboard.writeText(n.title || ''); } catch { /* ignore */ }
+        this.kernel?.emit?.('toast', { message: 'Title copied', type: 'success' });
+      },
+      onDelete: (n) => this._deleteNote(n.path),
+      onCreate: () => this._createNote(),
+    });
 
     const center = el('div', { class: 'nc-center' }, [
-      this._views.stage.root,
-      this._views.list.root,
-      this._views.calendar.root,
-      this._views.timeline.root,
+      this._views.stage.root, this._views.list.root,
+      this._views.calendar.root, this._views.timeline.root,
     ]);
+    center.addEventListener('contextmenu', (e) => {
+      // Only fire the canvas menu when the right-click DIDN'T hit a row
+      // (rows preventDefault + stopPropagation in their own handler).
+      e.preventDefault();
+      this._ctxMenu.showForCanvas(e.clientX, e.clientY);
+    });
 
-    const layout = el('div', { class: 'nc-layout' }, [
-      this._views.side.root,
-      center,
-      this._views.detail.root,
+    const layout = el('div', { class: 'nc-layout is-library' }, [
+      this._views.side.root, center,
     ]);
-
     return el('div', { class: 'nc-frame' }, [titlebar, layout]);
+  }
+
+  // ── Editor mode ────────────────────────────────────────────────
+
+  _initEditor(payload) {
+    this._editorPath = payload?.path || null;
+    this.root = el('div', {
+      class: 'app-window app-notes-constellation is-editor',
+      tabindex: '0',
+      'data-allow-context': 'true',
+    });
+    const note = this._loadOneNote(this._editorPath);
+    if (!note) {
+      this.root.appendChild(el('div', { class: 'nc-editor-missing' }, [
+        el('h3', {}, 'Note not found'),
+        el('p', {}, 'It may have been deleted.'),
+      ]));
+      return;
+    }
+    this._views.editor = buildEditorFrame({
+      onSaveBody:  (path, body) => this._saveBody(path, body, /*notify*/ true),
+      onSaveTitle: (path, title) => this._saveTitle(path, title),
+      onSaveTags:  (path, tags) => this._saveTags(path, tags),
+      onTogglePin: (path, pinned) => this._patchMeta(path, { pinned }),
+      onSetStatus: (path, status) => this._patchMeta(path, { status }),
+      onDelete:    (path) => this._deleteAndClose(path),
+    });
+    this.root.appendChild(this._views.editor.root);
+    this._views.editor.update(note);
+    this._updateWindowTitle(note.title || 'Untitled');
+
+    this._changeUnsub = this.kernel.on?.('notes:changed', ({ path } = {}) => {
+      if (path !== this._editorPath) return;
+      const fresh = this._loadOneNote(this._editorPath);
+      if (!fresh) {
+        // Note was deleted from elsewhere — close this editor window.
+        try { this.close?.(); } catch { /* ignore */ }
+        return;
+      }
+      this._views.editor.update(fresh);
+      this._updateWindowTitle(fresh.title || 'Untitled');
+    });
+
+    if (payload?.autofocus === 'title') {
+      requestAnimationFrame(() => this._views.editor.focusTitle());
+    } else {
+      requestAnimationFrame(() => this._views.editor.focusBody());
+    }
+  }
+
+  _updateWindowTitle(title) {
+    // The window chrome was rendered before we knew the note title.
+    // Patch the DOM title node directly — it's set at mount time and
+    // has no programmatic setter on WindowChrome.
+    try {
+      const titleEl = this.root?.closest?.('.window-chrome')
+        ?.querySelector?.('.window-chrome__title');
+      if (titleEl) titleEl.textContent = title;
+    } catch { /* ignore */ }
+  }
+
+  _loadOneNote(path) {
+    if (!path || !this.fs) return null;
+    const raw = this.fs.read(path);
+    if (!raw) return null;
+    const body = typeof raw?.content === 'string' ? raw.content : '';
+    const meta = loadMeta(this.kernel);
+    const fallbackTitle = sanitizeTitle(titleFromPath(path));
+    const baseEntry = meta[path] || {
+      title: fallbackTitle, created: raw?.created || Date.now(),
+      updated: raw?.modified || Date.now(), pinned: false, tags: extractTags(body),
+    };
+    const norm = normalizeMetaEntry({ ...baseEntry }, { x: baseEntry.x, y: baseEntry.y });
+    if (norm.status === null) norm.status = inferStatus(norm);
+    return { path, title: norm.title, body, meta: norm };
   }
 
   // ── State ──────────────────────────────────────────────────────
@@ -167,8 +259,7 @@ export class NotesApp extends App {
       .filter((e) => e && e.type === 'file' && typeof e.path === 'string'
         && e.path.toLowerCase().endsWith(EXT))
       .map((e) => e.path);
-
-    const notes = files.map((path, i) => {
+    return files.map((path, i) => {
       const raw = this.fs.read(path);
       const body = typeof raw?.content === 'string' ? raw.content : '';
       const fallbackTitle = sanitizeTitle(titleFromPath(path));
@@ -176,83 +267,84 @@ export class NotesApp extends App {
       const rawCreated = raw?.meta?.created || raw?.created || Date.now();
       const rawModified = raw?.meta?.modified || raw?.modified || rawCreated;
       const baseEntry = meta[path] || {
-        title: fallbackTitle,
-        created: rawCreated,
-        updated: rawModified,
-        pinned: false,
-        tags: fallbackTags,
+        title: fallbackTitle, created: rawCreated, updated: rawModified,
+        pinned: false, tags: fallbackTags,
       };
       const grid = gridPosition(i);
       const norm = normalizeMetaEntry({ ...baseEntry, x: baseEntry.x ?? grid.x, y: baseEntry.y ?? grid.y }, grid);
       if (norm.status === null) norm.status = inferStatus(norm);
       return { path, title: norm.title, body, meta: norm };
     });
-
-    return notes;
   }
 
   _patchMeta(path, patch) {
     if (!path || !patch) return;
-    this._notes = this._notes.map((n) => {
-      if (n.path !== path) return n;
-      const merged = normalizeMetaEntry({ ...n.meta, ...patch }, { x: n.meta.x, y: n.meta.y });
-      return { ...n, meta: merged, title: merged.title };
-    });
     setEntry(this.kernel, path, patch);
-    this._renderAll();
+    this.kernel.emit?.('notes:changed', { path });
+    if (this._mode === 'library') {
+      this._notes = this._loadNotes();
+      this._renderAll();
+    }
   }
 
-  /**
-   * Save body content for a note. Updates internal model + tags +
-   * updated timestamp, persists to fs + meta. Does a partial render
-   * (side rail + active tab) but skips the detail panel so the user's
-   * textarea cursor isn't disturbed.
-   */
-  _saveBody(path, content) {
+  _saveBody(path, content, notify = true) {
     if (!path) return;
     const now = Date.now();
     const newTags = extractTags(content);
-    this._notes = this._notes.map((n) => {
-      if (n.path !== path) return n;
-      const merged = normalizeMetaEntry(
-        { ...n.meta, tags: newTags, updated: now },
-        { x: n.meta.x, y: n.meta.y },
-      );
-      return { ...n, body: content, meta: merged };
-    });
     try { this.fs?.write?.(path, content, { modified: now }); } catch { /* ignore */ }
     setEntry(this.kernel, path, { tags: newTags, updated: now });
+    if (notify) this.kernel.emit?.('notes:changed', { path });
+  }
 
-    // Partial re-render: side rail counts may have shifted; threads in
-    // the cosmos stage may need redrawing. Skip detail panel.
-    this._views.side.update(this._notes, this._filter);
-    const visible = applyFilter(this._notes, this._filter);
-    this._views.stage.update(visible, this._notes, this._selectedPath);
-    if (this._activeTab === 'List')     this._views.list.update(visible, this._selectedPath);
-    if (this._activeTab === 'Calendar') this._views.calendar.update(visible, this._selectedPath);
-    if (this._activeTab === 'Timeline') this._views.timeline.update(visible, this._selectedPath);
+  _saveTitle(path, title) {
+    if (!path) return;
+    const clean = String(title || 'Untitled').trim() || 'Untitled';
+    setEntry(this.kernel, path, { title: clean, updated: Date.now() });
+    this.kernel.emit?.('notes:changed', { path });
+  }
+
+  _saveTags(path, tags) {
+    if (!path) return;
+    setEntry(this.kernel, path, { tags: Array.isArray(tags) ? tags : [], updated: Date.now() });
+    this.kernel.emit?.('notes:changed', { path });
+  }
+
+  async _renameNote(note) {
+    if (!note) return;
+    const ans = await showPrompt('Rename note', 'New title:', note.title || '');
+    if (typeof ans !== 'string') return;
+    const clean = sanitizeTitle(ans.trim());
+    if (!clean || clean === note.title) return;
+    this._saveTitle(note.path, clean);
   }
 
   async _createNote() {
     if (!this.fs) return;
-    const title = sanitizeTitle(`Untitled ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
-    const path = this._uniquePath(title);
+    const path = this._uniquePath('Untitled');
     const now = Date.now();
     this.fs.write(path, '', { created: now });
     setEntry(this.kernel, path, {
-      title, created: now, updated: now, pinned: false, tags: [],
-      x: gridPosition(this._notes.length).x,
-      y: gridPosition(this._notes.length).y,
+      title: 'Untitled', created: now, updated: now, pinned: false, tags: [],
+      x: gridPosition((this._notes || []).length).x,
+      y: gridPosition((this._notes || []).length).y,
       status: 'draft',
     });
-    this._notes = this._loadNotes();
+    this.kernel.emit?.('notes:changed', { path });
+    this.kernel.emit?.('app:open', 'notes', { mode: 'editor', path, autofocus: 'title' });
+  }
+
+  _openEditor(path) {
+    if (!path) return;
     this._selectedPath = path;
-    this._renderAll();
-    this.kernel?.emit?.('toast', { message: 'New note created', type: 'success' });
+    if (this._mode === 'library') {
+      // Visual feedback before the window opens.
+      this._renderAll();
+      this.kernel.emit?.('app:open', 'notes', { mode: 'editor', path });
+    }
   }
 
   async _deleteNote(path) {
-    const note = this._notes.find((n) => n.path === path);
+    const note = this._notes.find((n) => n.path === path) || this._loadOneNote(path);
     if (!note) return;
     const ok = await showConfirm('Delete note',
       `Delete "${note.title || 'Untitled'}"? This can't be undone.`,
@@ -260,9 +352,16 @@ export class NotesApp extends App {
     if (!ok) return;
     try { this.fs?.remove?.(path); } catch { /* ignore */ }
     removeEntry(this.kernel, path);
-    this._notes = this._notes.filter((n) => n.path !== path);
-    if (this._selectedPath === path) this._selectedPath = this._notes[0]?.path || null;
-    this._renderAll();
+    this.kernel.emit?.('notes:changed', { path });
+    if (this._mode === 'library') {
+      this._notes = this._notes.filter((n) => n.path !== path);
+      if (this._selectedPath === path) this._selectedPath = this._notes[0]?.path || null;
+      this._renderAll();
+    }
+  }
+
+  _deleteAndClose(path) {
+    this._deleteNote(path).then(() => { try { this.close?.(); } catch { /* ignore */ } });
   }
 
   _uniquePath(title) {
@@ -275,62 +374,39 @@ export class NotesApp extends App {
     return candidate;
   }
 
-  _select(path) {
-    if (!this._notes.find((n) => n.path === path)) return;
-    this._selectedPath = path;
-    this._renderAll();
-  }
-
-  /** Select a note from a non-Cosmos tab — also flips back to Cosmos. */
-  _selectFromAnywhere(path) {
-    if (!this._notes.find((n) => n.path === path)) return;
-    this._selectedPath = path;
-    if (this._activeTab !== 'Cosmos') this._activeTab = 'Cosmos';
-    this._renderAll();
-  }
-
   _setFilter(patch, replace = false) {
     this._filter = replace ? patch : { ...this._filter, ...patch };
     this._renderAll();
   }
-
   _setTab(name) {
     if (this._activeTab === name) return;
     this._activeTab = name;
     this._renderAll();
   }
 
-  // ── Render ─────────────────────────────────────────────────────
+  _onExternalChange(_path) {
+    if (this._mode !== 'library') return;
+    this._notes = this._loadNotes();
+    this._renderAll();
+  }
 
   _renderAll() {
-    if (!this.root) return;
-
+    if (!this.root || this._mode !== 'library') return;
     this._views.side.update(this._notes, this._filter);
-
     const visible = applyFilter(this._notes, this._filter);
     this._views.stage.update(visible, this._notes, this._selectedPath);
     this._views.list.update(visible, this._selectedPath);
     this._views.calendar.update(visible, this._selectedPath);
     this._views.timeline.update(visible, this._selectedPath);
-
-    const selected = this._notes.find((n) => n.path === this._selectedPath) || null;
-    this._views.detail.update(selected, this._notes);
-
     this._renderTabState();
   }
-
   _renderTabState() {
     for (const t of this.root.querySelectorAll('[data-tab]')) {
       t.classList.toggle('is-active', t.dataset.tab === this._activeTab);
     }
-    const stage = this._views.stage.root;
-    const list = this._views.list.root;
-    const cal = this._views.calendar.root;
-    const tl = this._views.timeline.root;
-
-    stage.style.display = this._activeTab === 'Cosmos'   ? '' : 'none';
-    list.style.display  = this._activeTab === 'List'     ? '' : 'none';
-    cal.style.display   = this._activeTab === 'Calendar' ? '' : 'none';
-    tl.style.display    = this._activeTab === 'Timeline' ? '' : 'none';
+    this._views.stage.root.style.display    = this._activeTab === 'Cosmos'   ? '' : 'none';
+    this._views.list.root.style.display     = this._activeTab === 'List'     ? '' : 'none';
+    this._views.calendar.root.style.display = this._activeTab === 'Calendar' ? '' : 'none';
+    this._views.timeline.root.style.display = this._activeTab === 'Timeline' ? '' : 'none';
   }
 }
