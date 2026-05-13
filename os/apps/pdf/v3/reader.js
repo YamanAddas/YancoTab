@@ -41,7 +41,7 @@ import { createScrollTracker } from './readerScroll.js';
 import { createColorController } from './readerColor.js';
 import { createZoomController } from './readerZoom.js';
 import { createViewModeController } from './readerViewMode.js';
-import { createMergeController } from './readerMerge.js';
+import { createReaderOps } from './readerOps.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -225,13 +225,14 @@ export function buildReader({
     initial: viewMode,
   });
   const markPopover = createMarkActions({ annStore, strip, undoStack, onToast });
-  const mergeCtrl = createMergeController({
-    pdfStore, getDocId: () => docId, onToast, onOpenDoc,
+  const ops = createReaderOps({
+    pdfStore, onToast, onOpenDoc, getDocId: () => docId,
+    getDocTitle: () => docTitle, getTotalPages: () => totalPages,
   });
   const morePopover = createReaderMore({
     getDocId: () => docId, getProperties,
     onShowProperties, onExportAnnotations,
-    onMerge: () => mergeCtrl.open(),
+    onMerge: () => ops.openMerge(), onSplit: () => ops.openSplit(),
   });
   document.body.appendChild(morePopover.root);
 
@@ -454,7 +455,7 @@ export function buildReader({
     tools.destroy();
     markPopover.destroy();
     morePopover.destroy();
-    mergeCtrl?.destroy?.();
+    ops?.destroy?.();
     colorCtrl?.destroy?.();
     zoomCtrl?.destroy?.();
     sidebar.destroy();

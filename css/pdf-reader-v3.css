@@ -1707,3 +1707,56 @@ body.is-mobile [data-allow-context="true"] * {
   font-size: 13px;
   color: var(--pdf-toolbar-text-dim);
 }
+
+/* ── Split modal ─────────────────────────────────────────────────── */
+.pdf-split-modal { min-height: 280px; }
+.pdf-split-info {
+  padding: 12px 20px;
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+}
+.pdf-split-input-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 20px 6px;
+}
+.pdf-split-input-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pdf-toolbar-text-dim);
+  text-transform: uppercase;
+}
+.pdf-split-input {
+  padding: 9px 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 7px;
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  outline: none;
+}
+.pdf-split-input:focus { border-color: var(--pdf-btn-active-fg); }
+.pdf-split-hint {
+  padding: 0 20px 6px;
+  font-size: 11px;
+  color: var(--pdf-toolbar-text-dim);
+}
+.pdf-split-preview {
+  padding: 10px 20px;
+  font-size: 13px;
+  color: var(--pdf-toolbar-text-dim);
+  border-top: 1px dashed var(--pdf-toolbar-border);
+  border-bottom: 1px dashed var(--pdf-toolbar-border);
+}
+.pdf-split-preview.is-ready {
+  color: var(--pdf-btn-active-fg);
+}
+.pdf-split-progress {
+  padding: 8px 20px;
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+}
