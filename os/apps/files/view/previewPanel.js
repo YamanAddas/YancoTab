@@ -6,7 +6,7 @@
  * synthetic Figma history.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el, cssUrlEscape } from '../../../utils/dom.js';
 import { formatBytes } from '../engine/state.js';
 import { iconOf } from '../engine/fileType.js';
 
@@ -107,7 +107,7 @@ export function buildPreviewPanel({
       img.innerHTML = '';
       img.classList.toggle('is-image', item.category === 'img');
       if (item.category === 'img' && typeof item.content === 'string' && item.content.startsWith('data:')) {
-        img.style.backgroundImage = `url("${item.content.replace(/"/g, '\\"')}")`;
+        img.style.backgroundImage = `url("${cssUrlEscape(item.content)}")`;
         img.style.backgroundSize = 'cover';
         img.style.backgroundPosition = 'center';
       } else {

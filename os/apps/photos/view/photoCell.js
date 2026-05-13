@@ -5,7 +5,7 @@
  * `isActive` highlights the current selection in the grid.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el, cssUrlEscape } from '../../../utils/dom.js';
 
 export function buildPhotoCell(photo, { onSelect, isActive } = {}) {
   const cell = el('div', {
@@ -20,7 +20,7 @@ export function buildPhotoCell(photo, { onSelect, isActive } = {}) {
   // off the same source list than rasterizing full data URLs each time.
   const src = photo.thumbnail || photo.dataUrl;
   if (src) {
-    cell.style.backgroundImage = `url("${escapeAttr(src)}")`;
+    cell.style.backgroundImage = `url("${cssUrlEscape(src)}")`;
   }
 
   if (photo.favorite) {
@@ -37,8 +37,4 @@ export function buildPhotoCell(photo, { onSelect, isActive } = {}) {
   });
 
   return cell;
-}
-
-function escapeAttr(s) {
-  return String(s).replace(/"/g, '\\"');
 }

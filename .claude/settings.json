@@ -14,8 +14,7 @@
       "Bash(git reset --hard origin/main)",
       "Bash(git branch -D main)",
       "Bash(git branch -D master)",
-      "Bash(git checkout -- .)",
-      "Bash(:() :|:&)"
+      "Bash(git checkout -- .)"
     ]
   },
 

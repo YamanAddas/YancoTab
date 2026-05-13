@@ -1,4 +1,4 @@
-import { el } from "../../utils/dom.js";
+import { el, parseSafeSvg } from "../../utils/dom.js";
 import { FolderIcon } from "../components/FolderIcon.js";
 import { GAME_ICONS } from "../components/GameIcons.js";
 import { PHOSPHOR_ICONS } from "../components/PhosphorIcons.js";
@@ -100,15 +100,21 @@ export class SmartIcon {
             container.appendChild(img);
         } else if (this.metadata.icon) {
             try {
-                // Inline HTML/SVG (rare — user-pasted)
+                // Inline SVG (from app metadata or persisted shortcut). Always
+                // sanitize through parseSafeSvg — never raw innerHTML — so a
+                // tampered storage entry can't inject script/handler markup.
                 if (this.metadata.icon.trim().startsWith('<')) {
-                    container.innerHTML = this.metadata.icon;
-                    const svg = container.querySelector('svg');
+                    const svg = parseSafeSvg(this.metadata.icon);
                     if (svg) {
                         svg.style.width = "60%";
                         svg.style.height = "60%";
                         svg.style.color = "#fff";
                         svg.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.2))";
+                        container.appendChild(svg);
+                    } else {
+                        // Malformed SVG — fall through to emoji-style fallback
+                        container.textContent = "📦";
+                        container.style.fontSize = "32px";
                     }
                 } else {
                     // Plain text or emoji

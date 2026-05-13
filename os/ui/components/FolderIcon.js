@@ -1,4 +1,4 @@
-import { el } from '../../utils/dom.js';
+import { el, parseSafeSvg } from '../../utils/dom.js';
 import { GAME_MINI_ICONS } from './GameIcons.js';
 
 /**
@@ -142,10 +142,15 @@ export class FolderIcon {
       return cell;
     }
 
-    // SVG/HTML inline
+    // SVG inline (from storage / game-app metadata). Sanitized through
+    // parseSafeSvg so a tampered grid-state entry can't smuggle <script>
+    // or on*-handler attributes into the home grid.
     if (iconVal && String(iconVal).trim().startsWith('<')) {
-      cell.innerHTML = iconVal;
-      return cell;
+      const svgNode = parseSafeSvg(iconVal);
+      if (svgNode) {
+        cell.appendChild(svgNode);
+        return cell;
+      }
     }
 
     // Emoji or text

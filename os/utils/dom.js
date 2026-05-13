@@ -28,7 +28,7 @@ export function el(tag, props = {}, children = []) {
 
     // Duck-type DOM node check instead of `instanceof Node` so this module
     // stays safe in Node.js test environments where the Node global is absent.
-    if (child !== null && typeof child === 'object' && typeof child.nodeType === 'number') {
+    if (typeof child === 'object' && typeof child.nodeType === 'number') {
       element.appendChild(child);
     } else {
       element.appendChild(document.createTextNode(String(child)));
@@ -62,6 +62,73 @@ export function setLiteralHtml(element, html) {
   const tmpl = document.createElement('template');
   tmpl.innerHTML = html;
   element.replaceChildren(...Array.from(tmpl.content.childNodes));
+}
+
+/**
+ * Parse a string into a sanitized <svg> element. Returns null if the input
+ * isn't a valid SVG root.
+ *
+ * Strips:
+ *   - any `on*` event-handler attribute on any element
+ *   - any `<script>` element
+ *   - `href` / `xlink:href` values that aren't same-document fragment refs
+ *     (i.e. don't start with `#`)
+ *
+ * Use this for SVG strings that came from persisted storage. Inline-string
+ * icons from app code go through this same path so the safe pattern is the
+ * same everywhere.
+ */
+export function parseSafeSvg(input) {
+  if (typeof input !== 'string') return null;
+  const trimmed = input.trim();
+  if (!trimmed.startsWith('<svg')) return null;
+  let doc;
+  try {
+    doc = new DOMParser().parseFromString(trimmed, 'image/svg+xml');
+  } catch {
+    return null;
+  }
+  const root = doc?.documentElement;
+  if (!root || root.nodeName.toLowerCase() !== 'svg') return null;
+  if (root.getElementsByTagName('parsererror').length) return null;
+
+  const walk = (node) => {
+    if (node.nodeType !== 1) return;
+    if (node.nodeName.toLowerCase() === 'script') {
+      node.remove();
+      return;
+    }
+    for (const attr of Array.from(node.attributes)) {
+      const name = attr.name.toLowerCase();
+      if (name.startsWith('on')) {
+        node.removeAttribute(attr.name);
+        continue;
+      }
+      if ((name === 'href' || name === 'xlink:href') && !attr.value.startsWith('#')) {
+        node.removeAttribute(attr.name);
+      }
+    }
+    for (const child of Array.from(node.children)) walk(child);
+  };
+  walk(root);
+
+  return document.importNode(root, true);
+}
+
+/**
+ * Escape a string for safe embedding in a CSS double-quoted token
+ * (typically inside `url("...")`).
+ *
+ * Escapes backslash, double-quote, and newline characters per the CSS
+ * spec. Bare `"` escaping alone is not sufficient — a backslash in the
+ * input lets a `"` slip through unescaped.
+ */
+export function cssUrlEscape(s) {
+  return String(s).replace(/[\\"\n\r]/g, (c) => {
+    if (c === '\\') return '\\\\';
+    if (c === '"') return '\\"';
+    return '\\' + c.charCodeAt(0).toString(16).padStart(2, '0') + ' ';
+  });
 }
 
 /**

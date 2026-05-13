@@ -7,7 +7,7 @@
  * no photo is selected.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el, cssUrlEscape } from '../../../utils/dom.js';
 
 export function buildFocusPreview({ onPrev, onNext, onToggleFav, onSetWallpaper, onEdit } = {}) {
   const root = el('div', { class: 'lb-focus' });
@@ -70,7 +70,7 @@ export function buildFocusPreview({ onPrev, onNext, onToggleFav, onSetWallpaper,
       }
       showEmpty(false);
       const src = photo.dataUrl || photo.thumbnail;
-      img.style.backgroundImage = src ? `url("${String(src).replace(/"/g, '\\"')}")` : '';
+      img.style.backgroundImage = src ? `url("${cssUrlEscape(src)}")` : '';
       favBtn.textContent = photo.favorite ? '♥' : '♡';
       favBtn.classList.toggle('is-fav', !!photo.favorite);
     },

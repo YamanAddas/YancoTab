@@ -55,7 +55,7 @@ export function buildTimerInfo({ onPrimary, onExtend, onSkip, onEnd }) {
       } else if (state.phase === 'focus') {
         const ordinal = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'][state.sessionIndex] || `${state.sessionIndex + 1}th`;
         const last = isLast ? ', long break next' : '';
-        headingEl.replaceChildren("You’re in the ", el(‘b’, {}, ordinal), ` cycle${last}.`);
+        headingEl.replaceChildren('You’re in the ', el('b', {}, ordinal), ` cycle${last}.`);
         subEl.textContent = `When this session ends the shell turns to night for a ${Math.round((isLast ? preset.longBreakMs : preset.breakMs) / 60000)}-minute break.`;
       } else if (state.phase === 'break') {
         setLiteralHtml(headingEl, 'Break time. <b>Stretch.</b>');
