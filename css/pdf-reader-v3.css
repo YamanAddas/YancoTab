@@ -1160,3 +1160,57 @@ body.is-mobile [data-allow-context="true"] * {
   /* Rendered as an SVG <image> element inside the annotation layer.
      Phase D4 doesn't add drag-to-move yet — just persists position. */
 }
+
+/* ── More popover (toolbar ⋯) ─────────────────────────────────────── */
+.pdf-more-popover {
+  position: fixed;
+  min-width: 220px;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 10px;
+  box-shadow: var(--pdf-pill-shadow);
+  padding: 6px;
+  z-index: 1002;
+}
+.pdf-more-row {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 80ms;
+}
+.pdf-more-row:hover:not(:disabled) { background: var(--pdf-btn-hover); }
+.pdf-more-row.is-disabled,
+.pdf-more-row:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pdf-more-row.is-danger { color: #ff453a; }
+.pdf-more-label { flex: 1; }
+.pdf-more-hint,
+.pdf-more-soon {
+  font-size: 11px;
+  color: var(--pdf-toolbar-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+.pdf-more-soon {
+  padding: 1px 6px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 999px;
+  background: transparent;
+}
+.pdf-more-sep {
+  height: 1px;
+  margin: 4px 4px;
+  background: var(--pdf-toolbar-border);
+}

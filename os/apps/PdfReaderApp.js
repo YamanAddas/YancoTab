@@ -244,6 +244,10 @@ export class PdfReaderApp extends App {
                 kernel: this.kernel,
                 onToast: (t) => this.kernel?.emit?.('toast', t),
                 onClose: () => this._closeReader(),
+                onPrint: () => this._printCurrent(),
+                onDownload: () => this._downloadCurrent(),
+                onExportAnnotations: () => this._exportAnnotationsCurrent(),
+                onShowProperties: (props) => this._showProperties(props),
             })
             : buildCodex({
                 pdfStore: this.pdfStore,
@@ -351,8 +355,8 @@ export class PdfReaderApp extends App {
         }
     }
 
-    _showProperties() {
-        const props = this._reader?.getProperties?.();
+    _showProperties(passed) {
+        const props = passed || this._reader?.getProperties?.();
         if (!props) return;
         const meta = this._currentDoc;
         const sizeMB = meta?.sizeBytes ? (meta.sizeBytes / 1024 / 1024).toFixed(2) : '?';

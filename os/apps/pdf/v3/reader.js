@@ -1,16 +1,12 @@
 /**
  * pdf/v3/reader.js — v3 PDF reader orchestrator.
  *
- * Drop-in replacement for v2's `codex.js` orchestrator. Returns the
- * same shape (root, load, close, destroy, keyMove, keyJump, etc.) so
- * PdfReaderApp can route to either without code branching.
+ * Returns the same shape as v2's codex.js (root, load, close, destroy,
+ * keyMove, keyJump, …) so PdfReaderApp can route to either without
+ * code branching. Sub-systems live in readerTools/readerPageOps/
+ * readerMarkActions/readerMore/readerScroll.
  *
- * Phase B scope: continuous-strip-only rendering, offset-range
- * highlights, minimal Adobe-style toolbar, 5-color selection pill.
- * Search, sidebar, bookmarks, info panel, view modes, fullscreen,
- * dark pages, hand tool — all land in Phase C.
- *
- * Target size: ≤ 450 lines.
+ * Target size: ≤ 500 lines.
  */
 
 import { el } from '../../../utils/dom.js';
@@ -40,6 +36,8 @@ import {
 } from './ops/pageOps.js';
 import { createPageOpsController } from './readerPageOps.js';
 import { createUndoStack } from './ops/undoStack.js';
+import { createReaderMore } from './readerMore.js';
+import { createScrollTracker } from './readerScroll.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -57,7 +55,10 @@ async function loadPdfJs() {
   return pdfjsModulePromise;
 }
 
-export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
+export function buildReader({
+  pdfStore, kernel, onToast, onClose,
+  onPrint, onDownload, onExportAnnotations, onShowProperties,
+} = {}) {
   if (!pdfStore) throw new Error('pdfStore required');
   const root = el('div', { class: 'pdf-reader-v3', tabindex: '0' });
 
@@ -85,7 +86,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     onChange: (s) => toolbar?.setUndoState?.(s),
   });
 
-  // ── Toolbar ──
   const toolbar = buildToolbar({
     onPrev: () => goToPage(currentPage - 1),
     onNext: () => goToPage(currentPage + 1),
@@ -98,9 +98,18 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     onSelectTool: (toolId) => dispatcher.setActive(toolId),
     onUndo: () => undoStack.undo(),
     onRedo: () => undoStack.redo(),
+    onSearch: () => toggleSearch(),
+    onRotatePage: () => {
+      if (!docId) return;
+      mutatePageOps((s) => rotatePageOp(s, currentPage, 90));
+    },
+    onFullscreen: () => toggleFullscreen(),
+    onPrint: () => onPrint?.(docId),
+    onDownload: () => onDownload?.(docId),
+    onMore: (anchorBtn) => morePopover.toggleNear(anchorBtn),
   });
+  toolbar.setActionsEnabled(false);  // no doc loaded yet
 
-  // ── Sidebar ──
   const thumbsTab = buildThumbnailsTab({
     getPdfDoc: () => pdfDoc,
     onJumpToPage: (n) => goToPage(n),
@@ -135,7 +144,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     root.classList.toggle('sidebar-collapsed', sidebarCollapsed);
   }
 
-  // ── Stage + Page Strip ──
   const stage = el('div', {
     class: 'pdf-stage',
     tabindex: '0',
@@ -147,7 +155,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   ]);
   stage.appendChild(empty);
 
-  // ── Search ──
   // Build the search controller first so we can pass its match-lookup
   // into the page strip below.
   const search = createSearchController({
@@ -196,12 +203,18 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   stage.appendChild(searchBar.root);
   strip.root.style.display = 'none';
 
-  // ── Mark popover (click on existing highlight) ──
   const markPopover = createMarkActions({
     annStore, strip, undoStack, onToast,
   });
 
-  // ── Selection pill ──
+  const morePopover = createReaderMore({
+    getDocId: () => docId,
+    getProperties,
+    onShowProperties,
+    onExportAnnotations,
+  });
+  document.body.appendChild(morePopover.root);
+
   const pill = buildSelectionPill({
     onColor: (color) => {
       activeColor = color;
@@ -216,7 +229,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
 
-  // ── Tools (ink, shape, sign) ──
   const tools = setupTools({
     stage, strip, annStore, toolbar, kernel, onToast,
     getDocId: () => docId,
@@ -229,18 +241,18 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   main.append(sidebar.root, stage);
   root.append(toolbar.root, ...tools.subToolbarNodes, main, pill.root, markPopover.root);
 
-  // ── Search toggle ──
   function toggleSearch() {
     if (searchBar.isOpen()) {
       searchBar.hide();
       searchBar.clear();
       search.clear();
+      toolbar.setSearchActive?.(false);
     } else {
       searchBar.show();
+      toolbar.setSearchActive?.(true);
     }
   }
 
-  // ── Click-existing-highlight to edit/delete ──
   // Delegated capture-phase handler — fires before the textLayer's own
   // selection start, lets us preventDefault on mark clicks.
   stage.addEventListener('pointerdown', (e) => {
@@ -255,7 +267,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     markPopover.show(annId, rect);
   }, true);
 
-  // ── Selection watcher ──
   const watcher = createSelectionWatcher({
     stage,
     getPageIndexForElement: (pageEl) => strip.getPageIndexForElement(pageEl),
@@ -272,7 +283,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
 
-  // ── Page navigation ──
   function clampPage(n) {
     if (!Number.isFinite(n)) return 1;
     return Math.max(1, Math.min(totalPages || 1, Math.floor(n)));
@@ -289,40 +299,21 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     if (docId) memory.save(docId, { page: currentPage });
   }
 
-  // ── Current-page tracking on scroll ──
-  // The page whose top edge is closest to (but at or above) the
-  // stage's vertical midline is the "current" page. Throttled via rAF.
-  let scrollRaf = 0;
-  function onScroll() {
-    if (scrollRaf) return;
-    scrollRaf = requestAnimationFrame(() => {
-      scrollRaf = 0;
-      if (!pdfDoc) return;
-      const stageRect = stage.getBoundingClientRect();
-      const midline = stageRect.top + stageRect.height * 0.35;
-      const pageEls = strip.root.querySelectorAll('.pdf-strip-slot[data-page]');
-      let best = currentPage;
-      let bestDist = Infinity;
-      for (const pe of pageEls) {
-        const r = pe.getBoundingClientRect();
-        // Skip pages entirely off-screen.
-        if (r.bottom < stageRect.top || r.top > stageRect.bottom) continue;
-        const dist = Math.abs(r.top - midline);
-        if (dist < bestDist) {
-          bestDist = dist;
-          const n = Number(pe.dataset.page);
-          if (Number.isFinite(n)) best = n;
-        }
-      }
-      if (best !== currentPage) {
-        currentPage = best;
-        toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
-        sidebar.updateTab('thumbs', { totalPages, currentPage });
-        if (docId) memory.save(docId, { page: currentPage, scrollY: stage.scrollTop });
-      }
-    });
+  const scrollTracker = createScrollTracker({
+    stage, stripRoot: strip.root,
+    getPdfDoc: () => pdfDoc,
+    getCurrentPage: () => currentPage,
+    setCurrentPage: (n) => { currentPage = n; },
+    getTotalPages: () => totalPages,
+    getZoom: () => userZoom,
+    toolbar, sidebar,
+    saveReading: (patch) => { if (docId) memory.save(docId, patch); },
+  });
+
+  function onFullscreenChange() {
+    toolbar.setFullscreenActive?.(document.fullscreenElement === root);
   }
-  stage.addEventListener('scroll', onScroll, { passive: true });
+  document.addEventListener('fullscreenchange', onFullscreenChange);
 
   async function setZoom(z) {
     const clamped = Math.max(0.25, Math.min(8, z));
@@ -337,8 +328,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     if (docId) memory.save(docId, { zoom: userZoom });
   }
 
-  // ── Highlighting ──
-
   function commitHighlight(color) {
     return commitSelectionAsHighlight({
       selection: lastSelection, docId, color,
@@ -348,7 +337,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     });
   }
 
-  // ── Page ops (rotate / delete / restore) ──
   const pageOpsCtrl = createPageOpsController({
     pdfStore,
     getDocId: () => docId,
@@ -385,8 +373,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
       console.warn('[pdf-v3] highlight migration failed:', e);
     }
   }
-
-  // ── Loading ──
 
   async function load({ source, name, id }) {
     const pdfjs = await loadPdfJs();
@@ -435,6 +421,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     } else {
       onToast?.({ message: `Opened "${docTitle}"`, type: 'success' });
     }
+    toolbar.setActionsEnabled(true);
   }
 
   function close() {
@@ -458,42 +445,55 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     sidebar.updateTab('bookmarks', {});
     empty.style.display = 'flex';
     strip.root.style.display = 'none';
+    toolbar.setActionsEnabled(false);
+    toolbar.setSearchActive?.(false);
   }
 
   function destroy() {
-    if (scrollRaf) cancelAnimationFrame(scrollRaf);
-    stage.removeEventListener('scroll', onScroll);
+    scrollTracker.destroy();
+    document.removeEventListener('fullscreenchange', onFullscreenChange);
     memory.flushAll();
     watcher.destroy();
     tools.destroy();
     markPopover.destroy();
+    morePopover.destroy();
     sidebar.destroy();
     strip.destroy();
+  }
+
+  function getProperties() {
+    const rotKey = pageOps?.pageRotations?.[currentPage] || 0;
+    return {
+      title: docTitle, pages: totalPages, docId,
+      mode: 'continuous',
+      zoom: `${Math.round(userZoom * 100)}%`,
+      rotation: `${rotKey}°`,
+    };
+  }
+
+  function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else root.requestFullscreen?.();
+    } catch (e) {
+      onToast?.({ message: `Fullscreen failed: ${e.message || e}`, type: 'error' });
+    }
   }
 
   return {
     root, load, close, destroy,
     undo: () => undoStack.undo(),
     redo: () => undoStack.redo(),
-    keyMove(delta) { goToPage(currentPage + delta); },
-    keyJump(where) {
-      if (where === 'first') goToPage(1);
-      else if (where === 'last') goToPage(totalPages);
-    },
+    keyMove: (delta) => goToPage(currentPage + delta),
+    keyJump: (w) => goToPage(w === 'first' ? 1 : totalPages),
     refreshRail() { /* phase C */ },
-    getCurrentPage() { return currentPage; },
-    getDocId() { return docId; },
+    getCurrentPage: () => currentPage,
+    getDocId: () => docId,
     setZoom, zoomStep: (d) => setZoom(userZoom * (d > 0 ? 1.2 : 1 / 1.2)),
-    toggleSearch,
-    toggleFullscreen: () => { /* phase C */ },
+    toggleSearch, toggleFullscreen,
     toggleDarkPages: () => { /* phase C */ },
     isDarkPages: () => false,
-    getProperties: () => ({
-      title: docTitle, pages: totalPages, docId,
-      mode: 'continuous',
-      zoom: `${Math.round(userZoom * 100)}%`,
-      rotation: '0°',
-    }),
+    getProperties,
     setHandMode: () => { /* phase C */ },
   };
 }

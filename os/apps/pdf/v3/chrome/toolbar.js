@@ -20,6 +20,12 @@ export function buildToolbar({
   onClose, onToggleSidebar,
   onSelectTool,
   onUndo, onRedo,
+  onSearch,
+  onRotatePage,
+  onFullscreen,
+  onPrint,
+  onDownload,
+  onMore,
 } = {}) {
   const root = el('div', { class: 'pdf-toolbar' });
 
@@ -86,8 +92,16 @@ export function buildToolbar({
   const editCluster = el('div', { class: 'pdf-tb-cluster' }, [undoBtn, redoBtn]);
 
   // ── Actions cluster ──
+  const searchBtn = iconBtn(ICONS.search, 'Find in document (Ctrl+F)', () => onSearch?.());
+  const rotateBtn = iconBtn(ICONS.rotate, 'Rotate current page 90°', () => onRotatePage?.());
+  const fsBtn = iconBtn(ICONS.fullscreen, 'Fullscreen (F11)', () => onFullscreen?.());
+  const printBtn = iconBtn(ICONS.print, 'Print', () => onPrint?.());
+  const downloadBtn = iconBtn(ICONS.download, 'Download', () => onDownload?.());
+  const moreBtn = iconBtn(ICONS.more, 'More', () => onMore?.(moreBtn));
   const closeBtn = iconBtn(ICONS.close, 'Close PDF', () => onClose?.());
-  const actCluster = el('div', { class: 'pdf-tb-cluster' }, [closeBtn]);
+  const actCluster = el('div', { class: 'pdf-tb-cluster' }, [
+    searchBtn, rotateBtn, fsBtn, printBtn, downloadBtn, moreBtn, closeBtn,
+  ]);
 
   root.append(
     sidebarCluster, divider(),
@@ -137,5 +151,14 @@ export function buildToolbar({
       undoBtn.disabled = !canUndo;
       redoBtn.disabled = !canRedo;
     },
+    setSearchActive(active) { searchBtn.classList.toggle('is-active', !!active); },
+    setFullscreenActive(active) { fsBtn.classList.toggle('is-active', !!active); },
+    setActionsEnabled(enabled) {
+      // Disable doc-scoped actions when no document is open.
+      const docButtons = [searchBtn, rotateBtn, printBtn, downloadBtn, moreBtn];
+      for (const b of docButtons) b.disabled = !enabled;
+    },
+    /** Returns the More button DOM ref so the popover can anchor against it. */
+    getMoreBtn() { return moreBtn; },
   };
 }
