@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.4-pdf-compare';
+const CACHE_NAME = 'yancotab-v1.6.5-pdf-select-fix';
 
 const PRECACHE = [
     './',

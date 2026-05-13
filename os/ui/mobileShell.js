@@ -665,9 +665,12 @@ export class MobileShell {
       const t = e.target;
       if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
       // Allow text selection inside any element (or descendant of an
-      // element) that opts in via [data-allow-context="true"]. The
-      // PDF reader's text-layer needs this so users can drag-select.
-      if (t?.closest?.('[data-allow-context="true"]')) return;
+      // element) that opts in via [data-allow-context="true"]. The PDF
+      // reader's text-layer needs this so users can drag-select. The
+      // event target can be a text node (Node.TEXT_NODE === 3); text
+      // nodes have no .closest, so walk to their parentElement first.
+      const probe = t?.nodeType === 3 ? t.parentElement : t;
+      if (probe?.closest?.('[data-allow-context="true"]')) return;
       if (e.cancelable) e.preventDefault();
     }, { passive: false, capture: true });
 

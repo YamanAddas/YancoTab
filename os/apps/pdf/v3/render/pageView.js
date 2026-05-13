@@ -37,12 +37,6 @@ export function buildPageView() {
 
   root.append(canvas, textLayerDiv, pageNum, empty);
 
-  // Acrobat model: clicking empty layer space doesn't start a selection,
-  // but a drag that crosses gaps stays continuous.
-  textLayerDiv.addEventListener('mousedown', (e) => {
-    if (e.target === textLayerDiv) e.preventDefault();
-  });
-
   let renderTask = null;
   let textLayerTask = null;
   let lastRenderedKey = null;

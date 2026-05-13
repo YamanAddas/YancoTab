@@ -85,6 +85,10 @@ body:not(.theme-light) .pdf-reader-v3 {
 .pdf-stage.tool-hand .pdf-textlayer { pointer-events: none; }
 .pdf-stage.tool-note { cursor: copy; }
 .pdf-stage.tool-note .pdf-textlayer { pointer-events: none; }
+/* Default + text-tool: text layer must accept pointer events so drag-
+   select hits transparent glyph spans. */
+.pdf-stage .pdf-textlayer,
+.pdf-stage.tool-text .pdf-textlayer { pointer-events: auto; }
 
 /* ── Toolbar ──────────────────────────────────────────────────────── */
 .pdf-toolbar {
@@ -304,6 +308,18 @@ body [data-allow-context="true"],
 body [data-allow-context="true"] *,
 body.is-mobile [data-allow-context="true"],
 body.is-mobile [data-allow-context="true"] * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+/* Belt-and-suspenders: pin selection on the v3 text layer even if a
+   future shell rule changes the [data-allow-context] cascade. Both the
+   container and its descendant spans/<br>s need user-select: text for
+   drag-select to anchor and extend across glyph gaps. */
+body .pdf-reader-v3 .pdf-textlayer,
+body .pdf-reader-v3 .pdf-textlayer *,
+body.is-mobile .pdf-reader-v3 .pdf-textlayer,
+body.is-mobile .pdf-reader-v3 .pdf-textlayer * {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
