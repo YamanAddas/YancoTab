@@ -215,9 +215,9 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     },
   });
 
-  // ── Tools (ink, shape later, signature later) ──
+  // ── Tools (ink, shape, sign) ──
   const tools = setupTools({
-    stage, strip, annStore, toolbar,
+    stage, strip, annStore, toolbar, kernel, onToast,
     getDocId: () => docId,
   });
   const dispatcher = tools.dispatcher;

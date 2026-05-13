@@ -15,9 +15,14 @@
 
 import { buildInkToolbar } from './chrome/inkToolbar.js';
 import { buildShapeToolbar } from './chrome/shapeToolbar.js';
+import { buildSignToolbar } from './chrome/signToolbar.js';
+import { buildSignatureModal } from './chrome/signatureModal.js';
 import { createInkTool } from './tools/inkTool.js';
 import { createShapeTool } from './tools/shapeTool.js';
+import { createSignTool } from './tools/signTool.js';
 import { createToolDispatcher } from './tools/toolDispatcher.js';
+
+const SIG_STORAGE_KEY = 'yancotab_pdf_signatures';
 
 export function setupTools({
   stage,
@@ -25,6 +30,8 @@ export function setupTools({
   annStore,
   getDocId,
   toolbar,        // main toolbar; we call toolbar.setActiveTool() on tool change
+  kernel,         // for signature storage
+  onToast,
 }) {
   // ── Ink ──
   const inkToolbar = buildInkToolbar({
@@ -72,6 +79,62 @@ export function setupTools({
     },
   });
 
+  // ── Signature ──
+  // Storage helpers (signature library lives in kernel.storage so it's
+  // user-level + sync-capable; instances dropped on pages live in IDB).
+  function loadSigs() {
+    try { return kernel?.storage?.load?.(SIG_STORAGE_KEY) || []; }
+    catch { return []; }
+  }
+  function saveSigs(arr) {
+    try { kernel?.storage?.save?.(SIG_STORAGE_KEY, arr); }
+    catch (e) { onToast?.({ message: `Couldn't save signature: ${e.message || e}`, type: 'error' }); }
+  }
+
+  const signatureModal = buildSignatureModal({
+    onSave: (entry) => {
+      const current = loadSigs();
+      if (current.length >= 3) {
+        onToast?.({ message: 'Signature limit reached (max 3). Delete one first.', type: 'error' });
+        return;
+      }
+      saveSigs([...current, entry]);
+      signToolbar.refresh();
+      signToolbar.setActiveId(entry.id);
+      onToast?.({ message: 'Signature saved', type: 'success' });
+    },
+    onCancel: () => { /* nothing */ },
+  });
+  document.body.appendChild(signatureModal.root);
+
+  const signToolbar = buildSignToolbar({
+    getSavedSignatures: loadSigs,
+    onAddNew: () => signatureModal.open(),
+    onDelete: (id) => {
+      const next = loadSigs().filter((s) => s.id !== id);
+      saveSigs(next);
+      signToolbar.refresh();
+    },
+    onCancel: () => dispatcher.setActive('text'),
+  });
+
+  const signTool = createSignTool({
+    getPageLayer: (pageEl) => {
+      const pn = Number(pageEl?.dataset?.page);
+      if (!Number.isFinite(pn)) return null;
+      return strip.getAnnotationLayerForPage(pn);
+    },
+    getActiveSignature: () => signToolbar.getActive(),
+    onCommit: async ({ page, imageDataUrl, x, y, w, h }) => {
+      const docId = getDocId();
+      if (!docId) return;
+      await annStore.addSignature({ docId, page, imageDataUrl, x, y, w, h });
+      await strip.refreshNonTextAnnotationsForPage(page);
+      onToast?.({ message: 'Signature placed', type: 'success' });
+    },
+    onNoSignaturePrompt: () => signatureModal.open(),
+  });
+
   // ── Dispatcher ──
   const dispatcher = createToolDispatcher({
     stage,
@@ -80,8 +143,10 @@ export function setupTools({
       toolbar?.setActiveTool?.(toolId);
       inkToolbar.hide();
       shapeToolbar.hide();
+      signToolbar.hide();
       if (toolId === 'ink') inkToolbar.show();
       else if (toolId === 'shape') shapeToolbar.show();
+      else if (toolId === 'sign') signToolbar.show();
     },
   });
   dispatcher.register('text', {});
@@ -99,15 +164,23 @@ export function setupTools({
     onPointerUp:     (e) => shapeTool.onPointerUp(e),
     onPointerCancel: (e) => shapeTool.onPointerCancel(e),
   });
+  dispatcher.register('sign', {
+    setActive: (on) => signTool.setActive(on),
+    onPointerDown:   (e) => signTool.onPointerDown(e),
+    onPointerMove:   (e) => signTool.onPointerMove(e),
+    onPointerUp:     (e) => signTool.onPointerUp(e),
+    onPointerCancel: (e) => signTool.onPointerCancel(e),
+  });
 
   function destroy() {
     dispatcher.destroy();
+    signatureModal.destroy();
   }
 
   return {
     dispatcher,
     /** DOM nodes the orchestrator mounts in the reader layout. */
-    subToolbarNodes: [inkToolbar.root, shapeToolbar.root],
+    subToolbarNodes: [inkToolbar.root, shapeToolbar.root, signToolbar.root],
     destroy,
   };
 }

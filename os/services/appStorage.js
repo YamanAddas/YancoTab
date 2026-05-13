@@ -747,6 +747,25 @@ const REGISTRY = {
         default: 'yellow',
         validate: (v) => ['yellow', 'green', 'blue', 'pink', 'purple'].includes(v),
     },
+    yancotab_pdf_signatures: {
+        // User's saved signatures (max 3). Each entry is
+        //   { id, name, imageDataUrl, createdAt }
+        // The imageDataUrl MUST start with the literal prefix
+        // `data:image/png;base64,` (validator enforces) so a bad value
+        // can't sneak in a `data:text/html` payload via storage import.
+        storageClass: 'userdata',
+        syncPolicy: 'always',
+        version: 1,
+        default: [],
+        validate: (v) => Array.isArray(v) && v.length <= 3 && v.every((s) =>
+            s && typeof s.id === 'string'
+            && typeof s.name === 'string'
+            && typeof s.imageDataUrl === 'string'
+            && s.imageDataUrl.startsWith('data:image/png;base64,')
+            && s.imageDataUrl.length < 110000 /* ~80KB base64 → ~108KB string */
+            && Number.isFinite(s.createdAt)
+        ),
+    },
 };
 
 // ─── Internal Constants ──────────────────────────────────────

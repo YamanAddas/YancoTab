@@ -884,3 +884,201 @@ body:not(.theme-light) .pdf-reader-v3 {
   border-color: var(--pdf-btn-active-fg);
   color: var(--pdf-btn-active-fg);
 }
+
+.pdf-stage.tool-sign { cursor: copy; }
+.pdf-stage.tool-sign .pdf-textlayer { pointer-events: none; }
+
+/* ── Sign sub-toolbar ─────────────────────────────────────────────── */
+.pdf-sign-toolbar {
+  display: none;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--pdf-toolbar-bg);
+  border-bottom: 1px solid var(--pdf-toolbar-border);
+  min-height: 40px;
+  box-sizing: border-box;
+}
+.pdf-sign-list {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  flex-wrap: wrap;
+}
+.pdf-sign-empty {
+  font-size: 12px;
+  color: var(--pdf-toolbar-text-dim);
+  font-style: italic;
+}
+.pdf-sign-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  transition: border-color 120ms;
+  background: var(--pdf-page-bg);
+}
+.pdf-sign-item.is-active {
+  border-color: var(--pdf-btn-active-fg);
+  box-shadow: 0 0 0 1px var(--pdf-btn-active-fg);
+}
+.pdf-sign-pick-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 0;
+  background: transparent;
+  padding: 2px 6px;
+  cursor: pointer;
+  color: var(--pdf-toolbar-text);
+}
+.pdf-sign-thumb {
+  height: 22px;
+  width: auto;
+  background: #ffffff;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 3px;
+}
+.pdf-sign-name {
+  font-size: 11px;
+  max-width: 80px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pdf-sign-del {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--pdf-toolbar-text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.pdf-sign-del:hover { background: rgba(255,69,58,0.15); color: #ff453a; }
+.pdf-sign-add-btn {
+  appearance: none;
+  border: 1px dashed var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pdf-btn-active-fg);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-sign-add-btn:hover { background: var(--pdf-btn-hover); }
+
+/* ── Signature draw-pad modal ─────────────────────────────────────── */
+.pdf-sig-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.pdf-sig-modal {
+  background: var(--pdf-toolbar-bg);
+  border-radius: 12px;
+  box-shadow: 0 16px 60px rgba(0,0,0,0.5);
+  padding: 20px;
+  width: 520px;
+  max-width: calc(100% - 32px);
+  color: var(--pdf-toolbar-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+.pdf-sig-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.pdf-sig-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+}
+.pdf-sig-modal-x {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: var(--pdf-toolbar-text-dim);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.pdf-sig-modal-x:hover {
+  background: var(--pdf-btn-hover);
+  color: var(--pdf-toolbar-text);
+}
+.pdf-sig-name-input {
+  width: 100%;
+  padding: 6px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.pdf-sig-name-input:focus { border-color: var(--pdf-btn-active-fg); }
+.pdf-sig-canvas {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: #ffffff;
+  cursor: crosshair;
+  touch-action: none;
+}
+.pdf-sig-hint {
+  margin: 8px 0;
+  font-size: 11px;
+  text-align: center;
+  color: var(--pdf-toolbar-text-dim);
+}
+.pdf-sig-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.pdf-sig-btn {
+  appearance: none;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-sig-btn:hover { background: var(--pdf-btn-hover); }
+.pdf-sig-btn.is-primary {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+}
+.pdf-sig-btn.is-primary:hover { filter: brightness(1.1); }
+
+/* ── Dropped signature on a page ──────────────────────────────────── */
+.pdf-ann-signature {
+  /* Rendered as an SVG <image> element inside the annotation layer.
+     Phase D4 doesn't add drag-to-move yet — just persists position. */
+}
