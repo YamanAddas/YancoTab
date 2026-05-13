@@ -224,7 +224,7 @@ export class MahjongApp extends App {
     // Remove only the tile DOM — preserve the constellation SVG which
     // also lives inside .mj-board-inner.
     for (const t of this.tileEls.values()) {
-      try { t.remove(); } catch {}
+      try { t.remove(); } catch { /* best-effort */ }
     }
     this.tileEls.clear();
 
@@ -372,7 +372,7 @@ export class MahjongApp extends App {
     const elA = this.tileEls.get(pair[0].id);
     const elB = this.tileEls.get(pair[1].id);
     if (elA && elB) {
-      try { this.constellation.drawBetween(elA, elB); } catch {}
+      try { this.constellation.drawBetween(elA, elB); } catch { /* best-effort */ }
     }
   }
 
@@ -493,7 +493,7 @@ export class MahjongApp extends App {
   destroy() {
     this.stopTimer();
     if (this.resizeObserver) this.resizeObserver.disconnect();
-    try { this.constellation?.destroy(); } catch {}
+    try { this.constellation?.destroy(); } catch { /* best-effort */ }
     this.constellation = null;
     super.destroy();
   }

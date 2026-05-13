@@ -87,7 +87,7 @@ export class MahjongConstellation {
     }
 
     const cleanup = setTimeout(() => {
-      try { path.remove(); dotA.remove(); dotB.remove(); } catch {}
+      try { path.remove(); dotA.remove(); dotB.remove(); } catch { /* best-effort */ }
       this._timers.delete(cleanup);
     }, FADE_MS);
     this._timers.add(cleanup);

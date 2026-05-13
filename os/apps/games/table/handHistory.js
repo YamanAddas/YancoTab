@@ -68,7 +68,7 @@ export function createHandHistory(kernel, gameId) {
     clear() {
       try {
         kernel.storage?.save(key, { hands: [] });
-      } catch {}
+      } catch { /* best-effort */ }
     },
   };
 }

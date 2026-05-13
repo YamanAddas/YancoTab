@@ -115,8 +115,8 @@ export class FolderOverlay {
 
   _onContextMenu(e) {
     // Prevent native browser menu and route to OS menu
-    try { if (e && e.cancelable) e.preventDefault(); } catch (err) { }
-    try { if (e) e.stopPropagation(); } catch (err) { }
+    try { if (e && e.cancelable) e.preventDefault(); } catch (err) { /* best-effort */ }
+    try { if (e) e.stopPropagation(); } catch (err) { /* best-effort */ }
 
     const x = (e && typeof e.clientX === 'number') ? e.clientX : 0;
     const y = (e && typeof e.clientY === 'number') ? e.clientY : 0;
@@ -131,7 +131,7 @@ export class FolderOverlay {
           detail: { type: 'desktop', id: id, x: x, y: y },
           bubbles: true
         }));
-      } catch (err) { }
+      } catch (err) { /* best-effort */ }
     } else {
       // Right-click on overlay background: show grid menu
       try {
@@ -139,7 +139,7 @@ export class FolderOverlay {
           detail: { type: 'grid', x: x, y: y },
           bubbles: true
         }));
-      } catch (err) { }
+      } catch (err) { /* best-effort */ }
     }
 
     return false;
@@ -338,8 +338,8 @@ export class FolderOverlay {
 
   _onContextMenu(e) {
     // Desktop/right-click: show OS context menu instead of the browser menu
-    try { if (e && e.cancelable) e.preventDefault(); } catch (err) {}
-    try { if (e) e.stopPropagation(); } catch (err) {}
+    try { if (e && e.cancelable) e.preventDefault(); } catch (err) { /* best-effort */ }
+    try { if (e) e.stopPropagation(); } catch (err) { /* best-effort */ }
     const x = (e && typeof e.clientX === 'number') ? e.clientX : 0;
     const y = (e && typeof e.clientY === 'number') ? e.clientY : 0;
     const t = e && e.target && e.target.closest ? e.target : null;
@@ -368,7 +368,7 @@ export class FolderOverlay {
   hide() {
     if (!this.overlay) return;
     document.removeEventListener('keydown', this.handleKey);
-    try { if (this.overlay) this.overlay.removeEventListener('contextmenu', this._onContextMenu, true); } catch (err) {}
+    try { if (this.overlay) this.overlay.removeEventListener('contextmenu', this._onContextMenu, true); } catch (err) { /* best-effort */ }
     this.overlay.classList.remove('is-visible');
     setTimeout(() => {
       if (this.overlay) {

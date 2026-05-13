@@ -8,6 +8,8 @@
  * - Rename/Move/Delete operations
  */
 
+import { dlog } from '../utils/debugLog.js';
+
 export class FileSystemService {
     constructor() {
         this.prefix = 'yancotab:fs:';
@@ -15,7 +17,7 @@ export class FileSystemService {
     }
 
     init() {
-        console.log('[FileSystem] Initializing...');
+        dlog('[FileSystem] Initializing...');
         this.mkdir('/home');
         this.mkdir('/home/documents');
         this.mkdir('/home/downloads');

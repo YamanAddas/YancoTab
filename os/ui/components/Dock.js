@@ -104,13 +104,13 @@ export class Dock {
     // Desktop right-click context menu
     try {
       dockItem.addEventListener('contextmenu', (ev) => {
-        try { if (ev && ev.cancelable) ev.preventDefault(); } catch (err) { }
-        try { if (ev) ev.stopPropagation(); } catch (err) { }
+        try { if (ev && ev.cancelable) ev.preventDefault(); } catch (err) { /* best-effort */ }
+        try { if (ev) ev.stopPropagation(); } catch (err) { /* best-effort */ }
         longPressTriggered = true;
         this._showContextMenu(item, (typeof ev.clientX === 'number') ? ev.clientX : startX, (typeof ev.clientY === 'number') ? ev.clientY : startY);
         return false;
       }, { capture: true });
-    } catch (err) { }
+    } catch (err) { /* best-effort */ }
 
     const clearLP = () => { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } if (dragArmTimer) { clearTimeout(dragArmTimer); dragArmTimer = null; } };
     const cleanGhost = () => {
@@ -128,7 +128,7 @@ export class Dock {
 
       cleanGhost();
       resetStyles();
-      try { document.body.classList.remove('is-dragging'); } catch { }
+      try { document.body.classList.remove('is-dragging'); } catch { /* best-effort */ }
 
       if (isDragging) {
         if (allowUndock && clearlyAboveDock) {
@@ -156,7 +156,7 @@ export class Dock {
 
     const onDown = (e) => {
       // Desktop mouse: ignore right-click here (handled by contextmenu)
-      try { if (e && e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return; } catch (err) { }
+      try { if (e && e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return; } catch (err) { /* best-effort */ }
       if (!e.isPrimary || active) return;
       if (e.cancelable) e.preventDefault();
       active = true;
@@ -175,9 +175,9 @@ export class Dock {
         dockItem.setPointerCapture(e.pointerId);
         // Force immediate capture acknowledgment (iOS WebKit fix)
         dockItem.getBoundingClientRect();
-      } catch { }
-      try { dockItem.style.touchAction = 'none'; } catch { }
-      try { dockItem.style.userSelect = 'none'; dockItem.style.webkitUserSelect = 'none'; } catch { }
+      } catch { /* best-effort */ }
+      try { dockItem.style.touchAction = 'none'; } catch { /* best-effort */ }
+      try { dockItem.style.userSelect = 'none'; dockItem.style.webkitUserSelect = 'none'; } catch { /* best-effort */ }
       dockItem.style.transform = 'scale(0.96)';
 
       // Arm timer: after 150ms of sustained press WITH any movement, start drag.
@@ -206,7 +206,7 @@ export class Dock {
 
     const startDragVisuals = (clientX, clientY) => {
       if (!active) return;
-      try { document.body.classList.add('is-dragging'); } catch { }
+      try { document.body.classList.add('is-dragging'); } catch { /* best-effort */ }
 
       // Get actual dock icon size from CSS variable
       const iconSize = parseInt(getComputedStyle(dockItem).width) || 56;
@@ -277,7 +277,7 @@ export class Dock {
       if (!active || e.pointerId !== pointerId) return;
       if (e.cancelable) e.preventDefault();
       clearLP();
-      try { dockItem.releasePointerCapture(e.pointerId); } catch { }
+      try { dockItem.releasePointerCapture(e.pointerId); } catch { /* best-effort */ }
 
       // Use lastX/lastY because pointerup can fire with stale coords on some browsers
       lastX = e.clientX || lastX;
@@ -311,7 +311,7 @@ export class Dock {
 
       if (e?.cancelable) e.preventDefault();
       cancel();
-      try { document.body.classList.remove('is-dragging'); } catch { }
+      try { document.body.classList.remove('is-dragging'); } catch { /* best-effort */ }
     };
 
     dockItem.addEventListener('pointerdown', onDown, { passive: false });

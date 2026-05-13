@@ -1,0 +1,29 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "index.html",
+    "landing.html",
+    "privacy.html",
+    "sw.js",
+    "os/boot-loader.js",
+    "os/boot-init.js",
+    "serve.mjs",
+    "scripts/*.{js,mjs}",
+    "tests/*.test.js"
+  ],
+  "project": [
+    "os/**/*.{js,mjs}",
+    "tests/**/*.{js,mjs}",
+    "scripts/**/*.{js,mjs}",
+    "sw.js",
+    "serve.mjs"
+  ],
+  "ignore": [
+    "_locales/**",
+    "assets/**",
+    "vendor/**",
+    "css/**"
+  ],
+  "ignoreDependencies": [],
+  "ignoreExportsUsedInFile": true
+}

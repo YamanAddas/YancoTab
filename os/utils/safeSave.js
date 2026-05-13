@@ -5,7 +5,7 @@
  * The shipped pattern across game persistence (solitaire/spider/mines/
  * tarneeb/trix/mahjong) was:
  *
- *   try { kernel?.storage?.save(KEY, x); } catch {}
+ *   try { kernel?.storage?.save(KEY, x); } catch (_e) { return false; }
  *
  * If localStorage is full mid-game, the user lost progress with no
  * toast, no console signal — pure silent data loss. This helper

@@ -117,7 +117,7 @@ export class BanterDispatcher {
   destroy() {
     this._destroyed = true;
     for (const t of this._echoTimers) {
-      try { clearTimeout(t); } catch {}
+      try { clearTimeout(t); } catch { /* best-effort */ }
     }
     this._echoTimers = [];
     this.feed = [];

@@ -22,7 +22,7 @@ export function buildSettingsBay({ id, title, color, render, app, extraClass = '
     try {
       render(bay.body, app);
     } catch (e) {
-      console.error(`[settings bay ${id}] render failed`, e);
+      console.error('[settings bay]', id, 'render failed:', e);
       bay.body.innerHTML = '';
       const errEl = document.createElement('div');
       errEl.className = 'mc-bay-error';

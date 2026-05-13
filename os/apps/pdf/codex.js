@@ -192,7 +192,7 @@ export function buildCodex({
     onAddBookmark: (b) => { onAddBookmark?.(b); renderRail(); },
     onAddHighlight, onRemoveHighlight,
     onJumpToPage: (n) => goToPage(n),
-    onCopyClipboard: (t) => { try { navigator.clipboard.writeText(t); } catch {} },
+    onCopyClipboard: (t) => { try { navigator.clipboard.writeText(t); } catch { /* best-effort */ } },
     onSendToNotesText: ({ text, page }) => {
       // Reuse the existing selection-controller's sendToNotes path so
       // quote vault behavior stays consistent.

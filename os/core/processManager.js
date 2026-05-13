@@ -16,6 +16,8 @@
  *     allocates a fresh pid + instance so each file gets its own window.
  */
 
+import { dlog } from '../utils/debugLog.js';
+
 const SAFE_SCHEMES = ['https:', 'http:', 'tel:', 'mailto:', 'sms:'];
 const IMPORT_TIMEOUT_MS = 15_000;
 
@@ -140,7 +142,7 @@ export class ProcessManager {
     }
 
     async _doSpawn(appId, config) {
-        console.log(`[ProcessManager] Request to spawn: ${appId}`);
+        dlog(`[ProcessManager] Request to spawn: ${appId}`);
 
         // A. Internal App (OS Process) — try the registry first.
         let AppClass;
@@ -148,7 +150,7 @@ export class ProcessManager {
             AppClass = await this._resolve(appId);
         } catch (e) {
             // Import failed (network, parse error, timeout). Surface to UI.
-            console.error(`[ProcessManager] Import failed for ${appId}:`, e?.message || e);
+            console.error('[ProcessManager] Import failed for', appId, ':', e?.message || e);
             this.kernel.emit('system:app-error', {
                 appId,
                 stage: 'import',
@@ -159,7 +161,7 @@ export class ProcessManager {
 
         if (AppClass) {
             const pid = this.nextPid++;
-            console.log(`[ProcessManager] Spawning Internal ${appId} (PID: ${pid})`);
+            dlog(`[ProcessManager] Spawning Internal ${appId} (PID: ${pid})`);
 
             const process = {
                 pid,
@@ -185,7 +187,7 @@ export class ProcessManager {
                 return pid;
 
             } catch (e) {
-                console.error(`[ProcessManager] Failed to spawn ${appId}:`, e?.message || e);
+                console.error('[ProcessManager] Failed to spawn', appId, ':', e?.message || e);
                 this.kernel.emit('system:app-error', {
                     appId,
                     stage: 'init',
@@ -207,7 +209,7 @@ export class ProcessManager {
                     console.error(`[ProcessManager] Blocked unsafe URL/scheme for ${appId}`);
                     return -1;
                 }
-                console.log(`[ProcessManager] Launching Shortcut: ${appMeta.name}`);
+                dlog(`[ProcessManager] Launching Shortcut: ${appMeta.name}`);
                 window.location.href = appMeta.scheme;
                 // Lazy-import YancoModal so processManager doesn't carry a
                 // hard dependency on the UI module — the modal is only
@@ -234,7 +236,7 @@ export class ProcessManager {
                     console.error(`[ProcessManager] Blocked unsafe scheme for ${appId}`);
                     return -1;
                 }
-                console.log(`[ProcessManager] Native Link: ${appMeta.scheme}`);
+                dlog(`[ProcessManager] Native Link: ${appMeta.scheme}`);
                 window.location.href = appMeta.scheme;
                 return;
             }
@@ -245,7 +247,7 @@ export class ProcessManager {
                     console.error(`[ProcessManager] Blocked unsafe URL for ${appId}`);
                     return -1;
                 }
-                console.log(`[ProcessManager] Web Link: ${appMeta.url}`);
+                dlog(`[ProcessManager] Web Link: ${appMeta.url}`);
                 window.open(appMeta.url, '_blank', 'noopener,noreferrer');
                 return;
             }
@@ -304,7 +306,7 @@ export class ProcessManager {
         const process = this.processes.get(pid);
         if (!process) return false;
 
-        console.log(`[ProcessManager] Killing process ${pid} (${process.name})`);
+        dlog(`[ProcessManager] Killing process ${pid} (${process.name})`);
 
         // Remove first to prevent re-entrance
         this.processes.delete(pid);
@@ -314,7 +316,7 @@ export class ProcessManager {
             try {
                 await process.instance.destroy();
             } catch (e) {
-                console.warn(`[ProcessManager] Error disposing ${pid}: `, e);
+                console.warn('[ProcessManager] Error disposing', pid, ':', e);
             }
         }
 

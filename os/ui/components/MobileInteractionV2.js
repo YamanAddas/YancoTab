@@ -66,8 +66,8 @@ export class MobileInteraction {
         this._onTouchGate = this._onTouchGate.bind(this);
         this._onContextMenu = (e) => {
             // Unify desktop right-click and mobile long-press: always route to OS menus
-            try { if (e && e.cancelable) e.preventDefault(); } catch (err) { }
-            try { if (e) e.stopPropagation(); } catch (err) { }
+            try { if (e && e.cancelable) e.preventDefault(); } catch (err) { /* best-effort */ }
+            try { if (e) e.stopPropagation(); } catch (err) { /* best-effort */ }
 
             const x = (e && typeof e.clientX === 'number') ? e.clientX : 0;
             const y = (e && typeof e.clientY === 'number') ? e.clientY : 0;
@@ -141,7 +141,7 @@ export class MobileInteraction {
         // Desktop mouse: ignore non-left buttons here (right-click handled by contextmenu)
         try {
             if (e && e.pointerType === 'mouse' && typeof e.button === 'number' && e.button !== 0) return;
-        } catch (err) { }
+        } catch (err) { /* best-effort */ }
         // Track all pointers for multi-touch stability
         this._activePointers.add(e.pointerId);
         // If the interaction starts inside the dock OR folder overlay, let them own the gesture.
@@ -153,7 +153,7 @@ export class MobileInteraction {
             if (this._mode === 'DRAGGING' && this._ptr && e.pointerId !== this._ptr.id) {
                 if (!this._assist) {
                     this._assist = { id: e.pointerId, startX: e.clientX, lastX: e.clientX, startTime: performance.now() };
-                    try { this.root.setPointerCapture(e.pointerId); } catch { }
+                    try { this.root.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
                 }
                 if (e.cancelable) e.preventDefault();
             }
@@ -168,7 +168,7 @@ export class MobileInteraction {
             targetId: itemId, targetEl: itemEl, initialPage: this.currentPage,
         };
         this._mode = 'PRESSED';
-        try { this.root.setPointerCapture(e.pointerId); } catch { }
+        try { this.root.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
         if (itemId) this._animatePress(itemEl, true);
         // Long-press is touch-first. On desktop mouse, use right-click for context menu.
         if (e.pointerType !== 'mouse') {
@@ -728,7 +728,7 @@ export class MobileInteraction {
     _clearLPTimer() { if (this._lpTimer) { clearTimeout(this._lpTimer); this._lpTimer = null; } }
 
     _reset() {
-        if (this._ptr?.id != null) { try { this.root.releasePointerCapture(this._ptr.id); } catch { } }
+        if (this._ptr?.id != null) { try { this.root.releasePointerCapture(this._ptr.id); } catch { /* best-effort */ } }
         this._ptr = null;
         this._mode = 'IDLE';
         if (this._editDragTimer) { clearTimeout(this._editDragTimer); this._editDragTimer = null; }

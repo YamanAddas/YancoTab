@@ -116,7 +116,7 @@ export class SnakeApp extends App {
     if (this._ro) this._ro.disconnect();
     if (this._sidePollInterval) { clearInterval(this._sidePollInterval); this._sidePollInterval = null; }
     if (this.game) this.game.stop();
-    for (const l of (this._styleLinks || [])) { try { l.remove(); } catch {} }
+    for (const l of (this._styleLinks || [])) { try { l.remove(); } catch { /* best-effort */ } }
     this._styleLinks = [];
     super.destroy();
   }
@@ -198,7 +198,7 @@ export class SnakeApp extends App {
     arr.sort((a, b) => (b.score || 0) - (a.score || 0));
     while (arr.length > PERSONAL_BESTS_CAP) arr.pop();
     this._personalBests = arr;
-    try { this.kernel.storage.save(PERSONAL_BESTS_KEY, { entries: arr }); } catch {}
+    try { this.kernel.storage.save(PERSONAL_BESTS_KEY, { entries: arr }); } catch { /* best-effort */ }
   }
 
   _runLabel() {

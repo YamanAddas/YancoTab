@@ -11,6 +11,7 @@ import { FileSystemService } from './services/fileSystemService.js';
 import { AppStorage } from './services/appStorage.js';
 import { PdfStore } from './services/pdfStore.js';
 import { VERSION, BUILD } from './version.js';
+import { dlog } from './utils/debugLog.js';
 
 /**
  * Canonical event names used across YancoTab.
@@ -90,7 +91,7 @@ export class Kernel {
     }
 
     async boot() {
-        console.log(`[Kernel] Booting YancoTab ${this.version} (${BUILD})...`);
+        dlog(`[Kernel] Booting YancoTab ${this.version} (${BUILD})...`);
 
         try {
             // 1. Initialize Core Services (individually guarded)
@@ -104,7 +105,7 @@ export class Kernel {
 
             this.state.status = 'ready';
             this.emit('system:ready');
-            console.log('[Kernel] System Ready');
+            dlog('[Kernel] System Ready');
         } catch (e) {
             console.error('[Kernel] Boot Failure:', e);
             this.emit('system:panic', e);

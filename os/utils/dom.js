@@ -52,16 +52,24 @@ export function clamp(n, a, b) {
 
 /**
  * Safely replace an element's children with literal HTML/SVG markup without
- * setting innerHTML on the live DOM tree. Uses a <template> element so the
- * parser evaluates the fragment in an inert context where scripts cannot run.
+ * touching the live DOM tree's innerHTML. The fragment is parsed in an
+ * inert document by DOMParser so any scripts in the markup never execute
+ * and resource references don't fire fetches until the nodes are imported
+ * into the live tree.
  *
- * Use for trusted, static markup constants (decorative SVGs, hard-coded HTML
- * structures). Never pass user-supplied strings here.
+ * Inline <svg> roots inside the HTML body are namespaced correctly by the
+ * HTML5 parser — no separate code path needed.
+ *
+ * Use for trusted, static markup constants (decorative SVGs, hard-coded
+ * HTML structures). Never pass user-supplied strings here.
  */
 export function setLiteralHtml(element, html) {
-  const tmpl = document.createElement('template');
-  tmpl.innerHTML = html;
-  element.replaceChildren(...Array.from(tmpl.content.childNodes));
+  const doc = new DOMParser().parseFromString(
+    `<!doctype html><body>${String(html)}</body>`,
+    'text/html',
+  );
+  const imported = Array.from(doc.body.childNodes).map((n) => document.importNode(n, true));
+  element.replaceChildren(...imported);
 }
 
 /**

@@ -316,8 +316,8 @@ export class Board {
   mount(parent) { parent.append(this.root); }
 
   destroy() {
-    try { this._ro.disconnect(); } catch {}
-    try { this.drag?.destroy(); } catch {}
+    try { this._ro.disconnect(); } catch { /* best-effort */ }
+    try { this.drag?.destroy(); } catch { /* best-effort */ }
     this.boardEl.removeEventListener('click', this._onClick);
     for (const el of this.stockPileEls) el.remove();
     this.stockPileEls = [];

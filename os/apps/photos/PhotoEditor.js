@@ -816,7 +816,7 @@ export class PhotoEditor {
                         if (this._pickedColors.length > 12) this._pickedColors.pop();
                         this._buildColorPanel();
                     }
-                } catch {}
+                } catch { /* best-effort */ }
             },
         }, '\uD83D\uDCA7 Pick from Screen');
     }
@@ -1321,7 +1321,7 @@ export class PhotoEditor {
         if (this._isPinching && this._activePointers.length < 2) this._isPinching = false;
         if (!this._isPointerDown) return;
         this._isPointerDown = false;
-        try { this._canvas.releasePointerCapture(e.pointerId); } catch {}
+        try { this._canvas.releasePointerCapture(e.pointerId); } catch { /* best-effort */ }
 
         if (this._isPanning) { this._isPanning = false; return; }
         if (this._cropHandle) { this._cropHandle = null; this._cropDragInit = null; return; }
@@ -1581,7 +1581,7 @@ export class PhotoEditor {
                         ctx.imageSmoothingEnabled = false;
                         ctx.drawImage(small, 0, 0, sw, sh, tl.x, tl.y, bw, bh);
                         ctx.imageSmoothingEnabled = true;
-                    } catch {}
+                    } catch { /* best-effort */ }
                     break;
                 }
                 case 'step': {

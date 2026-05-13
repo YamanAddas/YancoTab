@@ -102,7 +102,7 @@ export class TrixApp extends App {
     // Optional preset launch via spawn config
     if (config?.preset) {
       const p = TRIX_PRESETS.find((x) => x.id === config.preset);
-      if (p) try { p.apply(this.dispatch.bind(this)); } catch {}
+      if (p) try { p.apply(this.dispatch.bind(this)); } catch { /* best-effort */ }
     }
 
     this._syncAdaptivePrefs({ force: true });
@@ -110,9 +110,9 @@ export class TrixApp extends App {
   }
 
   destroy() {
-    try { this._unsub?.(); } catch {}
-    try { this._vhCleanup?.(); } catch {}
-    try { this._shell?.destroy(); } catch {}
+    try { this._unsub?.(); } catch { /* best-effort */ }
+    try { this._vhCleanup?.(); } catch { /* best-effort */ }
+    try { this._shell?.destroy(); } catch { /* best-effort */ }
     this._vhCleanup = null;
     this._shell = null;
     this._banter = null;
@@ -120,7 +120,7 @@ export class TrixApp extends App {
     if (this._botTimer) { clearTimeout(this._botTimer); this._botTimer = null; }
     if (this._statusTimer) { clearTimeout(this._statusTimer); this._statusTimer = null; }
     if (this._animTimer) { clearTimeout(this._animTimer); this._animTimer = null; }
-    for (const l of this._styleLinks) { try { l.remove(); } catch {} }
+    for (const l of this._styleLinks) { try { l.remove(); } catch { /* best-effort */ } }
     this._styleLinks = []; super.destroy();
   }
 
@@ -135,7 +135,7 @@ export class TrixApp extends App {
       if (d.difficulty && ['easy', 'moderate', 'hard'].includes(d.difficulty)) this._setupDiff = d.difficulty;
       if (d.rules && ['classic', 'jawaker2025'].includes(d.rules)) this._setupRules = d.rules;
       this._stats = { gamesPlayed: d.gamesPlayed || 0, gamesWon: d.gamesWon || 0 };
-    } catch {}
+    } catch { /* best-effort */ }
   }
 
   _savePrefs() {
@@ -205,7 +205,7 @@ export class TrixApp extends App {
 
       // Drop any prior modal overlays before re-rendering them
       const oldModals = this.root.querySelectorAll(':scope > .trix-modal-overlay, :scope > .trix-modal');
-      oldModals.forEach((n) => { try { n.remove(); } catch {} });
+      oldModals.forEach((n) => { try { n.remove(); } catch { /* best-effort */ } });
 
       // Note: while phase === SETUP, the user's local _setup* picks
       // ARE the source of truth — they flow into the START_MATCH
@@ -263,7 +263,7 @@ export class TrixApp extends App {
         this._anim = { zone: 'trick', seat: ev.seat, cardKey: cardKey(ev.card) };
         clearTimeout(this._animTimer);
         this._animTimer = setTimeout(() => { this._anim = null; this.render(this.store.getState()); }, 420);
-        try { navigator.vibrate?.(15); } catch {}
+        try { navigator.vibrate?.(15); } catch { /* best-effort */ }
       } else if (ev.type === 'layout:played') {
         this._anim = { zone: 'layout', seat: ev.seat, cardKey: cardKey(ev.card) };
         clearTimeout(this._animTimer);
@@ -275,7 +275,7 @@ export class TrixApp extends App {
           ? { trick: holdTrick, until: Date.now() + 1100, winner: ev.winner }
           : { trick: null, until: Date.now() + 800, winner: ev.winner };
         this.setStatus(wn === 'You' ? 'You won the trick' : `${wn} won the trick`);
-        try { navigator.vibrate?.([10, 30, 10]); } catch {}
+        try { navigator.vibrate?.([10, 30, 10]); } catch { /* best-effort */ }
       } else if (ev.type === 'deal:start') {
         const meta = this._contractHint(ev.contractId, next);
         if (next.kingdomOwner && next.kingdomOwner !== 'south') {

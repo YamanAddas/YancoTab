@@ -5,6 +5,7 @@ import { initTheme } from './theme/theme.js';
 import { initColorTheme } from './theme/themes.js';
 import { initStarfield } from './ui/starfield.js';
 import { setLiteralHtml } from './utils/dom.js';
+import { dlog } from './utils/debugLog.js';
 
 // Global error handlers to catch any boot-time errors
 window.addEventListener('error', (e) => {
@@ -133,7 +134,7 @@ async function boot() {
   // Additional debug modifications should be removed for production.
 
   const logStatus = (msg) => {
-    console.log(`[Boot] ${msg}`);
+    dlog(`[Boot] ${msg}`);
     if (bootScreen) {
       const statusEl = bootScreen.querySelector('.boot-status') || document.createElement('div');
       statusEl.className = 'boot-status';
@@ -193,7 +194,7 @@ async function boot() {
       kernel.state.isMobile = true;
       document.body.classList.add('is-mobile');
 
-      console.log('[Boot] Using MobileShell (mobile-only mode)');
+      dlog('[Boot] Using MobileShell (mobile-only mode)');
       logStatus("Creating MobileShell...");
       const shell = new MobileShell(appShell);
       logStatus("Initializing MobileShell...");

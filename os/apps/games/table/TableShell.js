@@ -63,7 +63,7 @@ export class TableShell {
       this.cfg.banter.onUpdate = (entries) => {
         this.feed = entries;
         this._renderBanter();
-        try { this._origOnUpdate?.(entries); } catch {}
+        try { this._origOnUpdate?.(entries); } catch { /* best-effort */ }
       };
     }
   }
@@ -112,7 +112,7 @@ export class TableShell {
 
   destroy() {
     this._destroyed = true;
-    try { this.cfg.banter?.destroy(); } catch {}
+    try { this.cfg.banter?.destroy(); } catch { /* best-effort */ }
     if (this.root && this.root.parentNode) this.root.parentNode.removeChild(this.root);
     this.root = null;
     this.refs = {};
@@ -165,9 +165,9 @@ export class TableShell {
     }
     if (SIBLING_GAMES.includes(tab.id)) {
       // Cross-game switch — let kernel close current and spawn the other
-      try { this.kernel?.emit('app:open', tab.id); } catch {}
+      try { this.kernel?.emit('app:open', tab.id); } catch { /* best-effort */ }
       // Best-effort close current — the new spawn will replace the window
-      try { this.cfg.app?.close?.(); } catch {}
+      try { this.cfg.app?.close?.(); } catch { /* best-effort */ }
     }
   }
 
@@ -229,7 +229,7 @@ export class TableShell {
     if (this.activeTab !== 'history') return;
     this.refs.historySlot.innerHTML = '';
     let entries = [];
-    try { entries = this.cfg.history?.load?.() || []; } catch {}
+    try { entries = this.cfg.history?.load?.() || []; } catch { /* best-effort */ }
     this.refs.historySlot.appendChild(buildHistoryView(this.gameId, entries));
   }
 

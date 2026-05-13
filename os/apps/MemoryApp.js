@@ -58,17 +58,17 @@ export class MemoryApp extends App {
 
     this._render();
     this._startTimer();
-    setTimeout(() => { try { this.root?.focus?.(); } catch {} }, 0);
+    setTimeout(() => { try { this.root?.focus?.(); } catch { /* best-effort */ } }, 0);
   }
 
   destroy() {
     if (this._resolveTimer) { clearTimeout(this._resolveTimer); this._resolveTimer = null; }
     if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
     if (this._onKeyDown && this.root) {
-      try { this.root.removeEventListener('keydown', this._onKeyDown); } catch {}
+      try { this.root.removeEventListener('keydown', this._onKeyDown); } catch { /* best-effort */ }
     }
     this._onKeyDown = null;
-    for (const l of this._styleLinks) { try { l.remove(); } catch {} }
+    for (const l of this._styleLinks) { try { l.remove(); } catch { /* best-effort */ } }
     this._styleLinks = [];
     super.destroy();
   }
@@ -166,13 +166,13 @@ export class MemoryApp extends App {
 
   _loadInitialState() {
     let stored = null;
-    try { stored = this.kernel?.storage?.load?.(STORAGE_KEY) || null; } catch {}
+    try { stored = this.kernel?.storage?.load?.(STORAGE_KEY) || null; } catch { /* best-effort */ }
     if (stored && typeof stored === 'object') {
       return memoryReducer(initialState(), { type: 'HYDRATE', state: stored });
     }
     // One-shot migration from the legacy Neon Recall key
     let legacy = null;
-    try { legacy = this.kernel?.storage?.load?.(LEGACY_KEY); } catch {}
+    try { legacy = this.kernel?.storage?.load?.(LEGACY_KEY); } catch { /* best-effort */ }
     if (legacy && typeof legacy === 'object') {
       const migrated = {
         difficulty: ['easy', 'standard', 'hard'].includes(legacy.difficulty) ? legacy.difficulty : 'standard',
@@ -194,14 +194,14 @@ export class MemoryApp extends App {
         }
       }
       const next = memoryReducer(initialState(), { type: 'HYDRATE', state: migrated });
-      try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(next)); } catch {}
+      try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(next)); } catch { /* best-effort */ }
       return next;
     }
     return initialState();
   }
 
   _save() {
-    try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(this._state)); } catch {}
+    try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(this._state)); } catch { /* best-effort */ }
   }
 
   _serialize(state) {

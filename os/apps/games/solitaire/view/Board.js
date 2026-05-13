@@ -264,8 +264,8 @@ export class Board {
 
   mount(parent) { parent.append(this.root); }
   destroy() {
-    try { this._ro.disconnect(); } catch {}
-    try { this.drag?.destroy(); } catch {}
+    try { this._ro.disconnect(); } catch { /* best-effort */ }
+    try { this.drag?.destroy(); } catch { /* best-effort */ }
     this.boardEl.removeEventListener('click', this._onClick);
     this.boardEl.removeEventListener('dblclick', this._onDblClick);
     this.cards.clear();

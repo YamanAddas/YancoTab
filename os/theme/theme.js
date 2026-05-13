@@ -141,7 +141,7 @@ export function initTheme() {
         window.dispatchEvent(new CustomEvent(THEME_CHANGE_EVENT, {
           detail: { mode: isLight ? 'light' : 'dark', stored },
         }));
-      } catch {}
+      } catch { /* best-effort */ }
     };
     if (_osMql.addEventListener) _osMql.addEventListener('change', onChange);
     else if (_osMql.addListener) _osMql.addListener(onChange); // Safari ≤14

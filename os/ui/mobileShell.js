@@ -17,6 +17,7 @@
 
 import { kernel } from '../kernel.js';
 import { el } from '../utils/dom.js';
+import { dlog } from '../utils/debugLog.js';
 import { VERSION } from '../version.js';
 import { AppGrid } from './components/AppGrid.js';
 import { AppDock } from './components/AppDock.js';
@@ -66,7 +67,7 @@ export class MobileShell {
   // ─── Boot ───────────────────────────────────────────────────
 
   init() {
-    console.log(`[MobileShell] Initializing ${VERSION}...`);
+    dlog(`[MobileShell] Initializing ${VERSION}...`);
     document.body.classList.add('is-mobile');
     document.body.classList.toggle('is-landscape', this.state.isLandscape);
     document.body.classList.toggle('is-standalone-webapp', this._isStandaloneWebApp());
@@ -313,7 +314,7 @@ export class MobileShell {
           throw new Error('App root is not a valid DOM element');
         }
       } catch (e) {
-        console.error(`[Shell] ${appName} crashed on mount:`, e);
+        console.error('[Shell]', appName, 'crashed on mount:', e);
         appContent = el('div', {
           class: 'app-crash',
           style: 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:24px;text-align:center;color:var(--text-bright);'
@@ -339,7 +340,7 @@ export class MobileShell {
         this.state.activePid = pid;
         this.setMode('app');
       } catch (e) {
-        console.error(`[Shell] Failed to mount WindowChrome for ${appName}:`, e);
+        console.error('[Shell] Failed to mount WindowChrome for', appName, ':', e);
         kernel.emit('toast', { message: `Couldn't open ${appName}`, type: 'error' });
         try { app.close(); } catch { /* ignore */ }
         this.dom.appLayer.innerHTML = '';
@@ -450,7 +451,7 @@ export class MobileShell {
           hidden: false,
         });
 
-        try { this.components.grid.state.showItem?.(aliasId); } catch { }
+        try { this.components.grid.state.showItem?.(aliasId); } catch { /* best-effort */ }
       } catch (err) {
         console.error('[MobileShell] shortcut:create failed', err);
       }
@@ -470,7 +471,7 @@ export class MobileShell {
       const cx = Math.max(r.left + 2, Math.min(r.right - 2, clientX));
       const cy = Math.max(r.top + 2, Math.min(r.bottom - 2, clientY));
       loc = this.components.grid.getDropLocationFromClient?.(cx, cy);
-    } catch { }
+    } catch { /* best-effort */ }
     if (loc) return loc;
 
     // Attempt 3: first empty slot on current page
@@ -488,7 +489,7 @@ export class MobileShell {
           }
         }
       }
-    } catch { }
+    } catch { /* best-effort */ }
 
     // Final fallback
     return { page: 0, row: 0, col: 0 };
@@ -546,7 +547,7 @@ export class MobileShell {
           try {
             const domain = new URL(appDef.url).hostname;
             iconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
-          } catch { }
+          } catch { /* best-effort */ }
 
           // Only add if not already in state
           if (!grid.state.items.has(childId)) {

@@ -50,22 +50,22 @@ function tapGuard(handler, { movePx = 12 } = {}) {
       moved = false;
       sx = e.clientX;
       sy = e.clientY;
-      try { e.currentTarget?.setPointerCapture?.(e.pointerId); } catch {}
+      try { e.currentTarget?.setPointerCapture?.(e.pointerId); } catch { /* best-effort */ }
     },
     onpointermove(e) {
       if (Math.abs(e.clientX - sx) > movePx || Math.abs(e.clientY - sy) > movePx) moved = true;
     },
     onpointerup(e) {
-      try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch {}
+      try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch { /* best-effort */ }
       if (moved) return;
-      try { e.preventDefault(); } catch {}
+      try { e.preventDefault(); } catch { /* best-effort */ }
       handler(e);
     },
     onpointercancel(e) {
-      try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch {}
+      try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch { /* best-effort */ }
     },
     onclick(e) {
-      try { e.preventDefault(); } catch {}
+      try { e.preventDefault(); } catch { /* best-effort */ }
       handler(e);
     },
   };

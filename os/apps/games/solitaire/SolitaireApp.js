@@ -523,8 +523,8 @@ export class SolitaireApp extends App {
 
   destroy() {
     this._stopTimer();
-    try { this._unbindKeys?.(); } catch {}
-    try { this.board?.destroy(); } catch {}
+    try { this._unbindKeys?.(); } catch { /* best-effort */ }
+    try { this.board?.destroy(); } catch { /* best-effort */ }
     super.destroy();
   }
 }

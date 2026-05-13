@@ -137,6 +137,11 @@ async function setupPage(page) {
 }
 
 async function takeScreenshot(page, name) {
+  // Allowlist: only [A-Za-z0-9_-]. Refuse anything else so an attacker
+  // who controls a caller can't traverse out of OUT_DIR.
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) {
+    throw new Error(`Invalid screenshot name: ${name}`);
+  }
   const path = join(OUT_DIR, `${name}.png`);
   await page.screenshot({ path, type: 'png', clip: { x: 0, y: 0, width: WIDTH, height: HEIGHT } });
   console.log(`  ✓ ${name}.png saved`);

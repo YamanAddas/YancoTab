@@ -130,16 +130,16 @@ export class TarneebApp extends App {
     // Optional preset launch via spawn config
     if (config?.preset) {
       const p = TARNEEB_PRESETS.find((x) => x.id === config.preset);
-      if (p) try { p.apply(this.dispatch.bind(this)); } catch {}
+      if (p) try { p.apply(this.dispatch.bind(this)); } catch { /* best-effort */ }
     }
 
     this.render(this.store.getState());
   }
 
   destroy() {
-    try { this._unsub?.(); } catch {}
-    try { this._vhCleanup?.(); } catch {}
-    try { this._shell?.destroy(); } catch {}
+    try { this._unsub?.(); } catch { /* best-effort */ }
+    try { this._vhCleanup?.(); } catch { /* best-effort */ }
+    try { this._shell?.destroy(); } catch { /* best-effort */ }
     if (this._botTimer) { clearTimeout(this._botTimer); this._botTimer = null; }
     if (this._statusTimer) { clearTimeout(this._statusTimer); this._statusTimer = null; }
     if (this._animTimer) { clearTimeout(this._animTimer); this._animTimer = null; }
@@ -148,7 +148,7 @@ export class TarneebApp extends App {
     this._banter = null;
     this._history = null;
     this._vhCleanup = null;
-    for (const l of this._styleLinks) { try { l.remove(); } catch {} }
+    for (const l of this._styleLinks) { try { l.remove(); } catch { /* best-effort */ } }
     this._styleLinks = [];
     super.destroy();
   }
@@ -168,7 +168,7 @@ export class TarneebApp extends App {
         gamesPlayed: d.gamesPlayed || 0,
         gamesWon: d.gamesWon || 0,
       };
-    } catch {}
+    } catch { /* best-effort */ }
   }
 
   _savePrefs() {
@@ -216,7 +216,7 @@ export class TarneebApp extends App {
       if (opts?.zone) node.dataset.zone = opts.zone;
       const a = this._anim;
       if (a && a.seat === opts?.seat && a.zone === opts?.zone && a.cardKey === cardKey(card)) node.classList.add('is-place-anim');
-    } catch {}
+    } catch { /* best-effort */ }
     return node;
   }
 
@@ -230,7 +230,7 @@ export class TarneebApp extends App {
       // attached to the app root, mirroring the pre-salon behavior. The
       // shell owns the rest of the chrome.
       const oldModals = this.root.querySelectorAll(':scope > .trix-modal-overlay, :scope > .tar-modal-overlay');
-      oldModals.forEach((n) => { try { n.remove(); } catch {} });
+      oldModals.forEach((n) => { try { n.remove(); } catch { /* best-effort */ } });
 
       this._shell?.update(state);
       this._scheduleLayoutFit(state);
@@ -339,7 +339,7 @@ export class TarneebApp extends App {
     if (!events?.length) return;
     for (const ev of events) {
       if (ev.type === 'card:played') {
-        try { navigator.vibrate?.(15); } catch {}
+        try { navigator.vibrate?.(15); } catch { /* best-effort */ }
         this._anim = { zone: 'trick', seat: ev.seat, cardKey: cardKey(ev.card) };
         clearTimeout(this._animTimer);
         this._animTimer = setTimeout(() => {
@@ -347,7 +347,7 @@ export class TarneebApp extends App {
           this.render(this.store.getState());
         }, 360);
       } else if (ev.type === 'trick:won') {
-        try { navigator.vibrate?.([10, 30, 10]); } catch {}
+        try { navigator.vibrate?.([10, 30, 10]); } catch { /* best-effort */ }
         const hold = Array.isArray(ev.trick) ? ev.trick : [];
         this._trickHold = {
           trick: hold,

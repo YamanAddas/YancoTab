@@ -54,7 +54,7 @@ export class TicTacToeApp extends App {
     this._onKeyDown = (e) => this._handleKey(e);
     this.root.tabIndex = 0;
     this.root.addEventListener('keydown', this._onKeyDown);
-    setTimeout(() => { try { this.root?.focus?.(); } catch {} }, 0);
+    setTimeout(() => { try { this.root?.focus?.(); } catch { /* best-effort */ } }, 0);
 
     this._render();
     this._maybeAiMove();
@@ -63,10 +63,10 @@ export class TicTacToeApp extends App {
   destroy() {
     if (this._aiTimer) { clearTimeout(this._aiTimer); this._aiTimer = null; }
     if (this._onKeyDown && this.root) {
-      try { this.root.removeEventListener('keydown', this._onKeyDown); } catch {}
+      try { this.root.removeEventListener('keydown', this._onKeyDown); } catch { /* best-effort */ }
     }
     this._onKeyDown = null;
-    for (const l of this._styleLinks) { try { l.remove(); } catch {} }
+    for (const l of this._styleLinks) { try { l.remove(); } catch { /* best-effort */ } }
     this._styleLinks = [];
     super.destroy();
   }
@@ -165,13 +165,13 @@ export class TicTacToeApp extends App {
 
   _loadInitialState() {
     let stored = null;
-    try { stored = this.kernel?.storage?.load?.(STORAGE_KEY) || null; } catch {}
+    try { stored = this.kernel?.storage?.load?.(STORAGE_KEY) || null; } catch { /* best-effort */ }
     if (stored && typeof stored === 'object') {
       return ttReducer(initialState(), { type: 'HYDRATE', state: stored });
     }
     // Migrate the legacy canvas key once
     let legacy = null;
-    try { legacy = this.kernel?.storage?.load?.(LEGACY_KEY); } catch {}
+    try { legacy = this.kernel?.storage?.load?.(LEGACY_KEY); } catch { /* best-effort */ }
     if (legacy && typeof legacy === 'object') {
       const migrated = {
         mode: 'ai',
@@ -185,14 +185,14 @@ export class TicTacToeApp extends App {
         },
       };
       const next = ttReducer(initialState(), { type: 'HYDRATE', state: migrated });
-      try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(next)); } catch {}
+      try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(next)); } catch { /* best-effort */ }
       return next;
     }
     return initialState();
   }
 
   _save() {
-    try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(this._state)); } catch {}
+    try { this.kernel?.storage?.save?.(STORAGE_KEY, this._serialize(this._state)); } catch { /* best-effort */ }
   }
 
   _serialize(state) {

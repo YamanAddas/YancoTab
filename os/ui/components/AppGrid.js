@@ -533,7 +533,7 @@ export class AppGrid {
       if (e.cancelable) e.preventDefault();
       startX = e.clientX;
       pointerId = e.pointerId;
-      try { this.dotsContainer.setPointerCapture(e.pointerId); } catch { }
+      try { this.dotsContainer.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
       this.dotsContainer.style.transform = 'translateX(-50%) scale(0.9)';
       this.dotsContainer.style.background = 'rgba(0,0,0,0.3)';
     }, { passive: false });
@@ -541,7 +541,7 @@ export class AppGrid {
     this.dotsContainer.addEventListener('pointerup', (e) => {
       e.stopPropagation();
       if (pointerId !== null && e.pointerId !== pointerId) return;
-      try { this.dotsContainer.releasePointerCapture(e.pointerId); } catch { }
+      try { this.dotsContainer.releasePointerCapture(e.pointerId); } catch { /* best-effort */ }
       this.dotsContainer.style.transform = 'translateX(-50%) scale(1)';
       this.dotsContainer.style.background = 'rgba(0,0,0,0.2)';
       pointerId = null;

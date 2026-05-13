@@ -1041,7 +1041,7 @@ export class AppStorage {
                 this.save(key, normalized);
                 result.imported.push(key);
             } catch (e) {
-                console.warn(`[AppStorage] Import failed for ${key}:`, e);
+                console.warn('[AppStorage] Import failed for', key, ':', e);
                 result.errors.push(key);
             }
         }
@@ -1106,7 +1106,7 @@ export class AppStorage {
                     try {
                         data = entry.migrate[v](data);
                     } catch (e) {
-                        console.warn(`[AppStorage] ${key}: migration ${v}→${v + 1} failed (source: ${source}):`, e);
+                        console.warn('[AppStorage]', key, ': migration', v, '→', v + 1, 'failed (source:', source, '):', e);
                         return this._cloneDefault(entry.default);
                     }
                 }
@@ -1247,7 +1247,7 @@ export class AppStorage {
             this._lastSync = Date.now();
             this._syncState = 'active';
         } catch (e) {
-            console.warn(`[AppStorage] Sync write failed for ${key}:`, e);
+            console.warn('[AppStorage] Sync write failed for', key, ':', e);
             this._lastError = e.message;
 
             if (e.message && e.message.includes('QUOTA')) {
@@ -1368,7 +1368,7 @@ export class AppStorage {
         if (subs) {
             for (const cb of subs) {
                 try { cb(detail); } catch (e) {
-                    console.warn(`[AppStorage] Subscriber error for ${key}:`, e);
+                    console.warn('[AppStorage] Subscriber error for', key, ':', e);
                 }
             }
         }
