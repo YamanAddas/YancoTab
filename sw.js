@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.6-pdf-actions';
+const CACHE_NAME = 'yancotab-v1.5.7-pdf-notes';
 
 const PRECACHE = [
     './',
@@ -282,6 +282,10 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/signTool.js',
     './os/apps/pdf/v3/tools/toolDispatcher.js',
     './os/apps/pdf/v3/tools/handTool.js',
+    './os/apps/pdf/v3/tools/noteTool.js',
+    './os/apps/pdf/v3/chrome/notePopover.js',
+    './os/apps/pdf/v3/render/notePipsRender.js',
+    './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerTools.js',
     './os/apps/pdf/v3/readerPageOps.js',
     './os/apps/pdf/v3/readerMarkActions.js',

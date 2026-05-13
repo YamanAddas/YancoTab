@@ -13,6 +13,7 @@
  */
 
 import { fnv32 } from '../select/pageTextIndex.js';
+import { normalizeNote } from '../../engine/notes.js';
 
 const TEXT_CACHE_LIMIT = 240;
 const VALID_HL_COLORS = new Set(['yellow', 'green', 'blue', 'pink', 'purple']);
@@ -144,6 +145,29 @@ export function createAnnotationStore(pdfStore) {
     });
   }
 
+  // ── Notes (sticky comments anchored to fractional page coords) ─
+
+  async function addNote({ docId, page, x, y, body, color } = {}) {
+    const rec = normalizeNote({ docId, page, x, y, body, color });
+    if (!rec) return null;
+    // Strip the docId field — pdfStore.addAnnotation re-injects it from
+    // its arg, and the normalizer keeps it to validate. Avoid duplication.
+    const { docId: _d, ...payload } = rec;
+    return pdfStore.addAnnotation(docId, payload);
+  }
+
+  async function updateNoteBody(id, body) {
+    if (!Number.isFinite(id)) return null;
+    const trimmed = typeof body === 'string' ? body.trim().slice(0, 2000) : '';
+    if (!trimmed) return null;
+    return pdfStore.updateAnnotation(id, { body: trimmed });
+  }
+
+  async function listNotesOnPage(docId, page) {
+    const all = await listAllOnPage(docId, page);
+    return all.filter((a) => a && a.kind === 'note');
+  }
+
   // ── Generic list ──────────────────────────────────────────
 
   async function listAllOnPage(docId, page) {
@@ -161,14 +185,17 @@ export function createAnnotationStore(pdfStore) {
     addInk,
     addShape,
     addSignature,
+    addNote,
     addRaw,
     getOne,
     listTextAnchoredOnPage,
     listAllOnPage,
     listNonTextOnPage,
+    listNotesOnPage,
     listAllForDoc,
     deleteOne,
     updateColor,
+    updateNoteBody,
     // expose constants for view code that needs to validate locally
     VALID_HL_COLORS,
     VALID_HL_KINDS,

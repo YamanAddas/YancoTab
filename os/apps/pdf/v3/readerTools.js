@@ -22,6 +22,7 @@ import { createShapeTool } from './tools/shapeTool.js';
 import { createSignTool } from './tools/signTool.js';
 import { createHandTool } from './tools/handTool.js';
 import { createToolDispatcher } from './tools/toolDispatcher.js';
+import { createNotesSubsystem } from './readerNotes.js';
 
 const SIG_STORAGE_KEY = 'yancotab_pdf_signatures';
 
@@ -230,15 +231,31 @@ export function setupTools({
     onPointerCancel: (e) => signTool.onPointerCancel(e),
   });
 
+  // ── Notes (sticky comments) ──
+  const notes = createNotesSubsystem({
+    annStore, strip, undoStack, onToast, getDocId, dispatcher,
+  });
+  dispatcher.register('note', {
+    setActive: (on) => notes.tool.setActive(on),
+    onPointerDown:   (e) => notes.tool.onPointerDown(e),
+    onPointerMove:   (e) => notes.tool.onPointerMove(e),
+    onPointerUp:     (e) => notes.tool.onPointerUp(e),
+    onPointerCancel: (e) => notes.tool.onPointerCancel(e),
+  });
+  document.body.appendChild(notes.popoverRoot);
+
   function destroy() {
     dispatcher.destroy();
     signatureModal.destroy();
+    notes.destroy();
   }
 
   return {
     dispatcher,
     /** DOM nodes the orchestrator mounts in the reader layout. */
     subToolbarNodes: [inkToolbar.root, shapeToolbar.root, signToolbar.root],
+    /** Callback the page strip routes note-pip clicks into. */
+    onNotePipClick: notes.onPipClick,
     destroy,
   };
 }

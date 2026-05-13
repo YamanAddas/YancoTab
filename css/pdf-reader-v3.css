@@ -1219,3 +1219,99 @@ body.is-mobile [data-allow-context="true"] * {
   margin: 4px 4px;
   background: var(--pdf-toolbar-border);
 }
+
+/* ── Sticky note pips (HTML buttons positioned over .pdf-page) ────── */
+.pdf-note-pip {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin-left: -11px;
+  margin-top: -11px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(0,0,0,0.18);
+  background: #ffd84d;
+  color: #1d1d1f;
+  font-size: 12px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+  padding: 0;
+  z-index: 4;
+  transition: transform 120ms ease-out;
+}
+.pdf-note-pip:hover { transform: scale(1.12); }
+.pdf-note-warm   { background: #ffd84d; }
+.pdf-note-accent { background: #00e5c1; }
+.pdf-note-rose   { background: #ff7eb6; }
+.pdf-note-violet { background: #b594ff; }
+.pdf-note-cool   { background: #7ab8ff; }
+
+/* ── Note popover ─────────────────────────────────────────────────── */
+.pdf-note-popover {
+  position: fixed;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  width: 280px;
+  padding: 10px 12px;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 10px;
+  box-shadow: var(--pdf-pill-shadow);
+  z-index: 1003;
+}
+.pdf-note-popover-h {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--pdf-toolbar-text-dim);
+  text-transform: uppercase;
+}
+.pdf-note-popover-body {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 6px;
+  background: var(--pdf-page-bg);
+  color: var(--pdf-toolbar-text);
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+  box-sizing: border-box;
+}
+.pdf-note-popover-body:focus { border-color: var(--pdf-btn-active-fg); }
+.pdf-note-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.pdf-note-btn {
+  appearance: none;
+  font-size: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--pdf-toolbar-border);
+  background: transparent;
+  color: var(--pdf-toolbar-text);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms;
+}
+.pdf-note-btn:hover { background: var(--pdf-btn-hover); }
+.pdf-note-btn-primary {
+  background: var(--pdf-btn-active-bg);
+  border-color: var(--pdf-btn-active-fg);
+  color: var(--pdf-btn-active-fg);
+  font-weight: 600;
+}
+.pdf-note-btn-primary:hover { filter: brightness(1.1); }
+.pdf-note-btn-danger {
+  color: #ff453a;
+  border-color: rgba(255,69,58,0.30);
+}
+.pdf-note-btn-danger:hover { background: rgba(255,69,58,0.10); }

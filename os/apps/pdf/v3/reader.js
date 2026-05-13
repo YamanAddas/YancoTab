@@ -155,8 +155,6 @@ export function buildReader({
   ]);
   stage.appendChild(empty);
 
-  // Build the search controller first so we can pass its match-lookup
-  // into the page strip below.
   const search = createSearchController({
     getPdfDoc: () => pdfDoc,
     onResults: ({ matches, total, done }) => {
@@ -189,6 +187,7 @@ export function buildReader({
   const strip = buildPageStrip({
     getHighlightsForPage: (page) => annStore.listTextAnchoredOnPage(docId, page),
     getNonTextAnnotationsForPage: (page) => annStore.listNonTextOnPage(docId, page),
+    getNotesForPage: (page) => annStore.listNotesOnPage(docId, page),
     getSearchMatchesForPage: (page) => ({
       matches: search.matchesOnPage(page),
       currentMatch: search.getCurrent(),
@@ -198,6 +197,9 @@ export function buildReader({
       if (pageNum < currentPage) currentPage = pageNum;
       toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
     },
+    // Deferred — tools subsystem is built below; strip only calls this
+    // on a user click after construction is complete.
+    onNotePipClick: (note, rect) => tools?.onNotePipClick?.(note, rect),
   });
   stage.appendChild(strip.root);
   stage.appendChild(searchBar.root);
@@ -253,8 +255,7 @@ export function buildReader({
     }
   }
 
-  // Delegated capture-phase handler — fires before the textLayer's own
-  // selection start, lets us preventDefault on mark clicks.
+  // Capture-phase: fires before the textLayer's selection-start.
   stage.addEventListener('pointerdown', (e) => {
     const mark = e.target?.closest?.('mark.pdf-hl');
     if (!mark) return;
@@ -319,7 +320,6 @@ export function buildReader({
     const clamped = Math.max(0.25, Math.min(8, z));
     if (clamped === userZoom) return;
     userZoom = clamped;
-    // Zoom currently triggers a full re-prepare; later phases can rescale in place.
     if (pdfDoc) {
       await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
       strip.scrollToPage(currentPage, stage);

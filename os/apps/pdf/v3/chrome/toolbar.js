@@ -74,18 +74,20 @@ export function buildToolbar({
   const handToolBtn = toolBtn('hand', ICONS.hand, 'Hand — pan-scroll (H)');
   const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw');
   const shapeToolBtn = toolBtn('shape', ICONS.shape, 'Shape (rect / ellipse / arrow / line)');
+  const noteToolBtn = toolBtn('note', ICONS.note, 'Sticky note — click on a page to add one');
   const signToolBtn = toolBtn('sign', ICONS.signature, 'Sign — drop a saved signature');
   const toolBtns = new Map([
     ['text', textToolBtn],
     ['hand', handToolBtn],
     ['ink', inkToolBtn],
     ['shape', shapeToolBtn],
+    ['note', noteToolBtn],
     ['sign', signToolBtn],
   ]);
   // Default: text is active.
   textToolBtn.classList.add('is-active');
   const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [
-    textToolBtn, handToolBtn, inkToolBtn, shapeToolBtn, signToolBtn,
+    textToolBtn, handToolBtn, inkToolBtn, shapeToolBtn, noteToolBtn, signToolBtn,
   ]);
 
   // ── Edit cluster (undo / redo) ──

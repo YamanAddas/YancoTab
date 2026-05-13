@@ -19,12 +19,15 @@ import {
   applyHighlights,
   applySearchMatches, clearSearchMatches,
 } from './highlightRender.js';
+import { renderNotePips } from './notePipsRender.js';
 
 export function buildPageStrip({
   getHighlightsForPage,    // async (page) → highlight[]  (offset-shape)
   getNonTextAnnotationsForPage, // async (page) → annotation[]  (ink/shape/sign)
+  getNotesForPage,         // async (page) → note[]  (kind='note', fractional coords)
   getSearchMatchesForPage, // (page) → { matches, currentMatch }
   onPageMounted,           // (pageNum, pageEl) called after first render
+  onNotePipClick,          // (note, rect) → open note popover in edit mode
   getPageOps,              // () → { pageRotations, pageOmits, pageOrder } | null
 } = {}) {
   const root = el('div', { class: 'pdf-strip' });
@@ -119,6 +122,8 @@ export function buildPageStrip({
       await refreshHighlightsForPage(pageNum);
       // And any non-text annotations (ink/shape/signature).
       await refreshNonTextAnnotationsForPage(pageNum);
+      // And any sticky notes.
+      await refreshNotesForPage(pageNum);
     } catch (e) {
       console.warn('[pdf-v3] mount slot failed:', pageNum, e);
       slot.rendered = false;  // allow retry on next intersect
@@ -180,6 +185,23 @@ export function buildPageStrip({
   async function refreshAllNonTextAnnotations() {
     const pending = [];
     for (const p of slots.keys()) pending.push(refreshNonTextAnnotationsForPage(p));
+    await Promise.all(pending);
+  }
+
+  async function refreshNotesForPage(pageNum) {
+    const slot = slots.get(pageNum);
+    if (!slot || !slot.view) return;
+    const pageEl = slot.view.root;
+    let notes = [];
+    try {
+      notes = (await getNotesForPage?.(pageNum)) || [];
+    } catch { /* best-effort */ }
+    renderNotePips(pageEl, notes, { onPipClick: onNotePipClick });
+  }
+
+  async function refreshAllNotes() {
+    const pending = [];
+    for (const p of slots.keys()) pending.push(refreshNotesForPage(p));
     await Promise.all(pending);
   }
 
@@ -249,6 +271,8 @@ export function buildPageStrip({
     refreshAllSearchMatches,
     refreshNonTextAnnotationsForPage,
     refreshAllNonTextAnnotations,
+    refreshNotesForPage,
+    refreshAllNotes,
     getAnnotationLayerForPage,
     setAllToolsActive,
     scrollToPage,
