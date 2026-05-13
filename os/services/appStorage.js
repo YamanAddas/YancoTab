@@ -241,6 +241,13 @@ const REGISTRY = {
         default: [],
         validate: (v) => Array.isArray(v),
     },
+    yancotab_notes_history_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'never',   // undo history is local, not sync-worthy
+        version: 1,
+        default: {},
+        validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
+    },
     yancotab_notes_view: {
         storageClass: 'preferences',
         syncPolicy: 'always',

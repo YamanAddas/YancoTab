@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.10-notes-spawn-fix';
+const CACHE_NAME = 'yancotab-v1.6.11-notes-essentials';
 
 const PRECACHE = [
     './',
@@ -98,7 +98,13 @@ const PRECACHE = [
     './os/apps/memory/view.js',
     './os/apps/NotesApp.js',
     './os/apps/notes/view/editorFrame.js',
+    './os/apps/notes/view/editorFindBar.js',
+    './os/apps/notes/view/editorStatusBar.js',
     './os/apps/notes/view/notesContextMenu.js',
+    './os/apps/notes/engine/markdown.js',
+    './os/apps/notes/engine/listAutoContinue.js',
+    './os/apps/notes/engine/historyStack.js',
+    './os/apps/notes/engine/exportPrint.js',
     './os/apps/SettingsApp.js',
     './os/apps/settings/AppearanceSettings.js',
     './os/apps/settings/HomeSettings.js',

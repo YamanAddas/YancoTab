@@ -12,7 +12,7 @@
 
 import { todayKey, daysAgo } from './filterTime.js';
 
-export const SMART_FILTERS = ['pinned', 'recent', 'today', 'done'];
+export const SMART_FILTERS = ['pinned', 'recent', 'today', 'done', 'trash'];
 
 /** Default empty filter — passes everything except archived. */
 export function emptyFilter() {
@@ -42,7 +42,14 @@ export function applyFilter(notes, filter = {}, now = Date.now()) {
 
   return notes.filter((n) => {
     const meta = n?.meta || {};
-    // Archived hidden by default.
+    // Trash filter: ONLY trashed notes. Default view excludes them.
+    const isTrashed = !!meta.trashed;
+    if (f.smart === 'trash') {
+      if (!isTrashed) return false;
+    } else if (isTrashed) {
+      return false;
+    }
+    // Archived hidden by default (separate from trash).
     if (meta.status === 'archived' && f.status !== 'archived') return false;
 
     if (f.smart === 'pinned' && !meta.pinned) return false;
@@ -95,10 +102,11 @@ export function tagCounts(notes) {
  * Used to render the sidebar pill badges.
  */
 export function smartCounts(notes, now = Date.now()) {
-  const out = { pinned: 0, recent: 0, today: 0, done: 0, total: 0 };
+  const out = { pinned: 0, recent: 0, today: 0, done: 0, trash: 0, total: 0 };
   if (!Array.isArray(notes)) return out;
   for (const n of notes) {
     const meta = n?.meta || {};
+    if (meta.trashed) { out.trash++; continue; }
     if (meta.status === 'archived') continue;
     out.total++;
     if (meta.pinned) out.pinned++;

@@ -45,3 +45,39 @@ export function removeEntry(kernel, path) {
     saveMeta(kernel, meta);
   }
 }
+
+// ── Per-note undo history persistence ───────────────────────────────
+const HISTORY_KEY = 'yancotab_notes_history_v1';
+
+function loadAllHistory(kernel) {
+  try {
+    const raw = kernel?.storage?.load?.(HISTORY_KEY);
+    if (raw && typeof raw === 'object') return raw;
+  } catch { /* ignore */ }
+  return {};
+}
+function saveAllHistory(kernel, all) {
+  try { kernel?.storage?.save?.(HISTORY_KEY, all); } catch { /* ignore */ }
+}
+
+export function loadHistoryFor(kernel, path) {
+  if (!path) return null;
+  const all = loadAllHistory(kernel);
+  return all[path] || null;
+}
+
+export function saveHistoryFor(kernel, path, snapshot) {
+  if (!path || !snapshot) return;
+  const all = loadAllHistory(kernel);
+  all[path] = snapshot;
+  saveAllHistory(kernel, all);
+}
+
+export function clearHistoryFor(kernel, path) {
+  if (!path) return;
+  const all = loadAllHistory(kernel);
+  if (path in all) {
+    delete all[path];
+    saveAllHistory(kernel, all);
+  }
+}

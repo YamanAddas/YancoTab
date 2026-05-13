@@ -10,6 +10,7 @@ const SMART_DEFS = [
   { id: 'recent', label: '⏱ Recent' },
   { id: 'done',   label: '✓ Done' },
   { id: 'today',  label: '⚡ Today' },
+  { id: 'trash',  label: '🗑 Trash' },
 ];
 
 const TAG_COLORS = ['accent', 'violet', 'warm', 'rose', 'cool', 'green'];

@@ -19,7 +19,10 @@ import {
   sanitizeTitle, titleFromPath, extractTags,
 } from '../utils/notes-utils.js';
 
-import { loadMeta, setEntry, removeEntry } from './notes/persistence.js';
+import {
+  loadMeta, setEntry, removeEntry,
+  loadHistoryFor, saveHistoryFor, clearHistoryFor,
+} from './notes/persistence.js';
 import { normalizeMetaEntry, inferStatus } from './notes/engine/meta.js';
 import { gridPosition } from './notes/engine/layout.js';
 import { applyFilter, emptyFilter } from './notes/engine/filters.js';
@@ -31,6 +34,8 @@ import { buildCalendarTab } from './notes/view/calendarTab.js';
 import { buildTimelineTab } from './notes/view/timelineTab.js';
 import { buildEditorFrame } from './notes/view/editorFrame.js';
 import { buildNotesContextMenu } from './notes/view/notesContextMenu.js';
+import { exportAsMarkdown, printNote } from './notes/engine/exportPrint.js';
+import { renderMarkdown } from './notes/engine/markdown.js';
 
 const TABS = ['List', 'Cosmos', 'Calendar', 'Timeline'];
 const DOCS_PATH = '/home/documents';
@@ -154,6 +159,9 @@ export class NotesApp extends App {
         this.kernel?.emit?.('toast', { message: 'Title copied', type: 'success' });
       },
       onDelete: (n) => this._deleteNote(n.path),
+      onRestore: (n) => this._restoreNote(n.path),
+      onPurge: (n) => this._purgeNote(n.path),
+      onExport: (n) => this._exportAsMarkdown(n),
       onCreate: () => this._createNote(),
     });
 
@@ -198,6 +206,11 @@ export class NotesApp extends App {
       onTogglePin: (path, pinned) => this._patchMeta(path, { pinned }),
       onSetStatus: (path, status) => this._patchMeta(path, { status }),
       onDelete:    (path) => this._deleteAndClose(path),
+      onExportMd:  (note) => this._exportAsMarkdown(note),
+      onPrint:     (note) => this._printNote(note),
+      onClose:     () => { try { this.close?.(); } catch { /* ignore */ } },
+      loadHistory: (path) => loadHistoryFor(this.kernel, path),
+      saveHistory: (path, snap) => saveHistoryFor(this.kernel, path, snap),
     });
     this.root.appendChild(this._views.editor.root);
     this._views.editor.update(note);
@@ -354,15 +367,40 @@ export class NotesApp extends App {
     }
   }
 
+  /**
+   * "Delete" = move to trash. The file stays on disk and the meta
+   * gains a `trashed: timestamp` marker so the note can be restored
+   * from the Trash filter. Permanent delete happens via
+   * _purgeNote (called only from the trash menu).
+   */
   async _deleteNote(path) {
     const note = this._notes.find((n) => n.path === path) || this._loadOneNote(path);
     if (!note) return false;
-    const ok = await showConfirm('Delete note',
-      `Delete "${note.title || 'Untitled'}"? This can't be undone.`,
+    if (note.meta?.trashed) {
+      // Already in trash → user wants permanent delete.
+      return this._purgeNote(path);
+    }
+    setEntry(this.kernel, path, { trashed: Date.now() });
+    this.kernel.emit?.('notes:changed', { path });
+    this.kernel.emit?.('toast', { message: 'Moved to trash', type: 'success' });
+    if (this._mode === 'library') {
+      this._notes = this._loadNotes();
+      if (this._selectedPath === path) this._selectedPath = null;
+      this._renderAll();
+    }
+    return true;
+  }
+
+  async _purgeNote(path) {
+    const note = this._notes.find((n) => n.path === path) || this._loadOneNote(path);
+    if (!note) return false;
+    const ok = await showConfirm('Permanently delete',
+      `Permanently delete "${note.title || 'Untitled'}"? This can't be undone.`,
       { danger: true });
     if (!ok) return false;
     try { this.fs?.remove?.(path); } catch { /* ignore */ }
     removeEntry(this.kernel, path);
+    clearHistoryFor(this.kernel, path);
     this.kernel.emit?.('notes:changed', { path });
     if (this._mode === 'library') {
       this._notes = this._notes.filter((n) => n.path !== path);
@@ -372,11 +410,30 @@ export class NotesApp extends App {
     return true;
   }
 
+  _restoreNote(path) {
+    if (!path) return;
+    setEntry(this.kernel, path, { trashed: null });
+    this.kernel.emit?.('notes:changed', { path });
+    this.kernel.emit?.('toast', { message: 'Restored from trash', type: 'success' });
+  }
+
   async _deleteAndClose(path) {
     const ok = await this._deleteNote(path);
     if (ok) {
       try { this.close?.(); } catch { /* ignore */ }
     }
+  }
+
+  _exportAsMarkdown(note) {
+    exportAsMarkdown(note, {
+      onToast: (t) => this.kernel?.emit?.('toast', t),
+    });
+  }
+  _printNote(note) {
+    printNote(note, {
+      onToast: (t) => this.kernel?.emit?.('toast', t),
+      renderMarkdown,
+    });
   }
 
   _uniquePath(title) {

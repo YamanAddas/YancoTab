@@ -21,6 +21,9 @@ export function buildNotesContextMenu({
   onTogglePin,
   onRename,
   onDelete,
+  onRestore,
+  onPurge,
+  onExport,
   onCopyTitle,
   onCreate,
 } = {}) {
@@ -55,15 +58,26 @@ export function buildNotesContextMenu({
   function showForNote(note, x, y) {
     close();
     if (!note) return;
+    const trashed = !!note.meta?.trashed;
     menuEl = el('div', { class: 'nc-ctx-menu', role: 'menu' });
-    addItem(menuEl, 'Open', () => onOpen?.(note), { primary: true });
-    addItem(menuEl, 'Open in new window', () => onOpenInNewWindow?.(note));
-    addSep(menuEl);
-    addItem(menuEl, note.meta?.pinned ? 'Unpin' : 'Pin', () => onTogglePin?.(note));
-    addItem(menuEl, 'Rename…', () => onRename?.(note));
-    addItem(menuEl, 'Copy title', () => onCopyTitle?.(note));
-    addSep(menuEl);
-    addItem(menuEl, 'Delete', () => onDelete?.(note), { danger: true });
+    if (trashed) {
+      addItem(menuEl, 'Restore from trash', () => onRestore?.(note), { primary: true });
+      addSep(menuEl);
+      addItem(menuEl, 'Open', () => onOpen?.(note));
+      addItem(menuEl, 'Copy title', () => onCopyTitle?.(note));
+      addSep(menuEl);
+      addItem(menuEl, 'Delete permanently', () => onPurge?.(note), { danger: true });
+    } else {
+      addItem(menuEl, 'Open', () => onOpen?.(note), { primary: true });
+      addItem(menuEl, 'Open in new window', () => onOpenInNewWindow?.(note));
+      addSep(menuEl);
+      addItem(menuEl, note.meta?.pinned ? 'Unpin' : 'Pin', () => onTogglePin?.(note));
+      addItem(menuEl, 'Rename…', () => onRename?.(note));
+      addItem(menuEl, 'Copy title', () => onCopyTitle?.(note));
+      addItem(menuEl, 'Export as Markdown…', () => onExport?.(note));
+      addSep(menuEl);
+      addItem(menuEl, 'Move to trash', () => onDelete?.(note), { danger: true });
+    }
     document.body.appendChild(menuEl);
     positionAt(x, y);
     document.addEventListener('pointerdown', onOutside, true);

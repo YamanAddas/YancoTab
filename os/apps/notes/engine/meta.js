@@ -47,11 +47,13 @@ export function normalizeMetaEntry(raw, fallbackPos = { x: 50, y: 50 }) {
   const x = clamp(Number.isFinite(raw.x) ? raw.x : fallbackPos.x);
   const y = clamp(Number.isFinite(raw.y) ? raw.y : fallbackPos.y);
   const status = STATUSES.includes(raw.status) ? raw.status : null;
+  const trashed = Number.isFinite(raw.trashed) ? raw.trashed : null;
   return {
     title, created, updated,
     pinned: !!raw.pinned,
     tags,
     x, y, status,
+    ...(trashed ? { trashed } : {}),
   };
 }
 
