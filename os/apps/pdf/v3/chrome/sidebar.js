@@ -13,7 +13,7 @@
  * Target size: ≤ 280 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
 export function buildSidebar({ tabs = [], initial = null } = {}) {

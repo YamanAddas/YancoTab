@@ -12,7 +12,7 @@
  * Target size: ≤ 350 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 
 const THUMB_WIDTH = 140;
 const THUMB_DPR = 1;   // thumbs don't need retina; saves memory

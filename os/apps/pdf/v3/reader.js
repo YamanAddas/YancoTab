@@ -13,7 +13,7 @@
  * Target size: ≤ 450 lines.
  */
 
-import { el } from '../../utils/dom.js';
+import { el } from '../../../utils/dom.js';
 import { buildToolbar } from './chrome/toolbar.js';
 import { buildSelectionPill } from './chrome/selectionPill.js';
 import { buildSidebar } from './chrome/sidebar.js';

@@ -10,7 +10,7 @@
  * Target size: ≤ 400 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 
 const PAD_W = 480;
 const PAD_H = 180;

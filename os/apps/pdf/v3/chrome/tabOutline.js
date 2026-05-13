@@ -11,7 +11,7 @@
  * Target size: ≤ 200 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { flattenOutline, annotateWithPages, destToKey } from '../../engine/outline.js';
 
 const INDENT_PX = 12;

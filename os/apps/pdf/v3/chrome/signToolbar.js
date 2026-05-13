@@ -6,7 +6,7 @@
  * Target size: ≤ 250 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 
 export function buildSignToolbar({
   getSavedSignatures,    // () → [{id, name, imageDataUrl, createdAt}]

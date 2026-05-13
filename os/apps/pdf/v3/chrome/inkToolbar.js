@@ -8,7 +8,7 @@
  * Target size: ≤ 200 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 
 const COLORS = [
   { id: 'red',    hex: '#ff453a' },

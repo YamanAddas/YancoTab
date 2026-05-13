@@ -8,7 +8,7 @@
  * Target size: ≤ 250 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { listBookmarks, addBookmark, removeBookmark } from '../../persistence.js';
 
 export function buildBookmarksTab({

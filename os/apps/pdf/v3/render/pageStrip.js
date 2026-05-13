@@ -13,7 +13,7 @@
  * Target size: ≤ 400 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { buildPageView } from './pageView.js';
 import {
   applyHighlights, clearHighlights,

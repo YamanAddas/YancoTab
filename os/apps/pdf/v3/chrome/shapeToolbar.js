@@ -6,7 +6,7 @@
  * Target size: ≤ 250 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 
 const SHAPES = [
   { id: 'rect',    label: 'Rectangle', svg: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="6" width="16" height="12" rx="1"/></svg>' },

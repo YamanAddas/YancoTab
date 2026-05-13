@@ -11,7 +11,7 @@
  * Target size: ≤ 350 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
 export function buildToolbar({

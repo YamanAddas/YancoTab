@@ -9,7 +9,7 @@
  * Target size: ≤ 200 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
 export function buildSearchBar({ onChange, onPrev, onNext, onClose } = {}) {

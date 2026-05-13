@@ -14,7 +14,7 @@
  * Target size: ≤ 350 lines.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el } from '../../../../utils/dom.js';
 import { buildPageTextIndex } from '../select/pageTextIndex.js';
 import { buildAnnotationLayer } from './annotationLayer.js';
 
