@@ -142,7 +142,7 @@ async function takeScreenshot(page, name) {
   if (!/^[A-Za-z0-9_-]+$/.test(name)) {
     throw new Error(`Invalid screenshot name: ${name}`);
   }
-  const path = join(OUT_DIR, `${name}.png`);
+  const path = join(OUT_DIR, `${name}.png`); // nosemgrep: path-join-resolve-traversal — name validated by allowlist regex above
   await page.screenshot({ path, type: 'png', clip: { x: 0, y: 0, width: WIDTH, height: HEIGHT } });
   console.log(`  ✓ ${name}.png saved`);
 }

@@ -9,8 +9,8 @@
  *   - stroke-linecap="round"
  *   - stroke-linejoin="round"
  *
- * Returned as inline SVG strings. Caller uses `el.innerHTML = ICONS.foo`
- * (trusted — strings are author-authored, not user content).
+ * Returned as inline SVG strings. Callers inject them via DOMParser
+ * (see sidebar.js / toolbar.js) — never via innerHTML.
  *
  * Target size: ≤ 400 lines.
  */

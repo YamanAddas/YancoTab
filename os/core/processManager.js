@@ -44,7 +44,7 @@ function isValidScheme(scheme) {
 function isEmptyConfig(config) {
     if (!config) return true;
     if (typeof config !== 'object') return false;
-    for (const _ in config) return false; // eslint-disable-line no-unused-vars
+    for (const _ in config) return false;
     return true;
 }
 

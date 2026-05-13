@@ -16,6 +16,8 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
+const _svgParser = new DOMParser();
+
 export function buildSidebar({ tabs = [], initial = null } = {}) {
   const root = el('div', { class: 'pdf-sidebar' });
   const tabStrip = el('div', { class: 'pdf-sidebar-tabs', role: 'tablist' });
@@ -34,7 +36,8 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
       'aria-label': spec.label,
       title: spec.label,
     });
-    btn.innerHTML = ICONS[spec.icon] || '';   // trusted-svg: authored
+    const svgStr = ICONS[spec.icon];
+    if (svgStr) btn.appendChild(_svgParser.parseFromString(svgStr, 'image/svg+xml').documentElement);
     btn.addEventListener('click', () => activate(spec.id));
     tabButtons.set(spec.id, btn);
     tabStrip.appendChild(btn);

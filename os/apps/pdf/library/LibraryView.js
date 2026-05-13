@@ -294,7 +294,6 @@ export function buildLibraryView({ kernel, onOpenDoc, onToast } = {}) {
             // Sequential to avoid quota churn.
             (async () => {
                 for (const f of files) {
-                    // eslint-disable-next-line no-await-in-loop
                     await importFile(f);
                 }
             })();

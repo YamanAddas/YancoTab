@@ -65,7 +65,6 @@ export function createReadingMemory({
         for (const id of ids) {
             if (seen.has(id)) continue;
             seen.add(id);
-            // eslint-disable-next-line no-await-in-loop
             await flush(id);
         }
     }

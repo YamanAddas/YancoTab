@@ -16,7 +16,7 @@
 import { el } from '../../../../utils/dom.js';
 import { buildPageView } from './pageView.js';
 import {
-  applyHighlights, clearHighlights,
+  applyHighlights,
   applySearchMatches, clearSearchMatches,
 } from './highlightRender.js';
 
@@ -33,8 +33,6 @@ export function buildPageStrip({
   let observer = null;
   let pdfDoc = null;
   let lastZoom = 1.0;
-  let resizeRaf = 0;
-
   async function prepareSlots(doc, hostEl, { zoom = 1.0 } = {}) {
     pdfDoc = doc;
     scrollHost = hostEl;
@@ -213,7 +211,6 @@ export function buildPageStrip({
     }
     slots.clear();
     root.innerHTML = '';
-    if (resizeRaf) { cancelAnimationFrame(resizeRaf); resizeRaf = 0; }
   }
 
   return {

@@ -14,6 +14,8 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
+const _svgParser = new DOMParser();
+
 export function buildToolbar({
   onPrev, onNext, onJumpToPage,
   onZoomIn, onZoomOut, onZoomReset,
@@ -101,7 +103,7 @@ export function buildToolbar({
       type: 'button', class: 'pdf-tb-btn',
       title, 'aria-label': title,
     });
-    b.innerHTML = svgHtml || '';   // trusted-svg: authored in icons.js
+    if (svgHtml) b.appendChild(_svgParser.parseFromString(svgHtml, 'image/svg+xml').documentElement);
     b.addEventListener('click', handler);
     return b;
   }
