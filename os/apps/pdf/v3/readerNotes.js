@@ -63,6 +63,47 @@ export function createNotesSubsystem({
     popover.showAt({ clientX, clientY, page });
   }
 
+  /**
+   * Persist a new fractional position for an existing sticky note,
+   * fired by notePipsRender when the user drags the pip to a new spot
+   * on the same page. Pushes an undo entry that restores the original
+   * coords.
+   */
+  async function moveNote(note, fx, fy) {
+    if (!note || !Number.isFinite(note.id)) return;
+    const newX = Math.max(0, Math.min(1, Number(fx)));
+    const newY = Math.max(0, Math.min(1, Number(fy)));
+    const oldX = Math.max(0, Math.min(1, Number(note.x) || 0));
+    const oldY = Math.max(0, Math.min(1, Number(note.y) || 0));
+    if (Math.abs(newX - oldX) < 1e-4 && Math.abs(newY - oldY) < 1e-4) {
+      // No real movement — pip already in place; nothing to persist.
+      return;
+    }
+    try {
+      await annStore.updateNotePosition(note.id, newX, newY);
+      await strip.refreshNotesForPage(note.page);
+      if (undoStack) {
+        const id = note.id;
+        const page = note.page;
+        undoStack.push({
+          label: 'move note',
+          undo: async () => {
+            await annStore.updateNotePosition(id, oldX, oldY);
+            await strip.refreshNotesForPage(page);
+          },
+          redo: async () => {
+            await annStore.updateNotePosition(id, newX, newY);
+            await strip.refreshNotesForPage(page);
+          },
+        });
+      }
+    } catch (e) {
+      onToast?.({ message: `Couldn't move note: ${e?.message || e}`, type: 'error' });
+      // Refresh so the pip snaps back to its persisted position.
+      try { await strip.refreshNotesForPage(note.page); } catch { /* best-effort */ }
+    }
+  }
+
   const tool = createNoteTool({
     onPlace: ({ page, x, y, clientX, clientY }) => {
       pendingPlacement = { page, x, y };
@@ -237,6 +278,7 @@ export function createNotesSubsystem({
     onPipClick,
     openForHighlight,
     placeNewNote,
+    moveNote,
     destroy,
   };
 }

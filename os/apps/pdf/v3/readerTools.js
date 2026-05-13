@@ -279,6 +279,9 @@ export function setupTools({
     /** Open the "new sticky note" popover at the given page-fractional
      *  coords, without requiring the user to switch to the note tool. */
     placeNewNote: notes.placeNewNote,
+    /** Persist a new fractional position for a sticky note. Fired by
+     *  the page strip when the user drags a pip to a new spot. */
+    moveNote: notes.moveNote,
     /** Bake-redactions action surfaced to the More menu. */
     bakeRedactions: () => redact.bake(),
     destroy,

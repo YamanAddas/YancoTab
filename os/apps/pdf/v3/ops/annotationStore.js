@@ -185,6 +185,18 @@ export function createAnnotationStore(pdfStore) {
     return pdfStore.updateAnnotation(id, { body: trimmed });
   }
 
+  /**
+   * Move a sticky note to new fractional page coords. x and y are
+   * clamped to [0, 1]. Used when the user drags the note pip.
+   */
+  async function updateNotePosition(id, x, y) {
+    if (!Number.isFinite(id)) return null;
+    const fx = Math.max(0, Math.min(1, Number(x)));
+    const fy = Math.max(0, Math.min(1, Number(y)));
+    if (!Number.isFinite(fx) || !Number.isFinite(fy)) return null;
+    return pdfStore.updateAnnotation(id, { x: fx, y: fy });
+  }
+
   async function listNotesOnPage(docId, page) {
     const all = await listAllOnPage(docId, page);
     return all.filter((a) => a && a.kind === 'note');
@@ -219,6 +231,7 @@ export function createAnnotationStore(pdfStore) {
     deleteOne,
     updateColor,
     updateNoteBody,
+    updateNotePosition,
     updateHighlightBody,
     // expose constants for view code that needs to validate locally
     VALID_HL_COLORS,

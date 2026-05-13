@@ -201,6 +201,7 @@ export function buildReader({
       toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
     },
     onNotePipClick: (note, rect) => tools?.onNotePipClick?.(note, rect),
+    onNotePipDragEnd: (note, fx, fy) => tools?.moveNote?.(note, fx, fy),
   });
   stage.appendChild(strip.root);
   stage.appendChild(searchBar.root);

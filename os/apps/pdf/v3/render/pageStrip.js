@@ -28,6 +28,7 @@ export function buildPageStrip({
   getSearchMatchesForPage, // (page) → { matches, currentMatch }
   onPageMounted,           // (pageNum, pageEl) called after first render
   onNotePipClick,          // (note, rect) → open note popover in edit mode
+  onNotePipDragEnd,        // (note, fx, fy) → persist new position
   getPageOps,              // () → { pageRotations, pageOmits, pageOrder } | null
   getLayoutMode,           // () → 'single' | 'continuous' | 'spread' | 'book'
 } = {}) {
@@ -247,7 +248,10 @@ export function buildPageStrip({
     try {
       notes = (await getNotesForPage?.(pageNum)) || [];
     } catch { /* best-effort */ }
-    renderNotePips(pageEl, notes, { onPipClick: onNotePipClick });
+    renderNotePips(pageEl, notes, {
+      onPipClick: onNotePipClick,
+      onPipDragEnd: onNotePipDragEnd,
+    });
   }
 
   async function refreshAllNotes() {

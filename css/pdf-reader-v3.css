@@ -1282,6 +1282,13 @@ body.is-mobile .pdf-reader-v3 .pdf-textlayer * {
   transition: transform 120ms ease-out;
 }
 .pdf-note-pip:hover { transform: scale(1.12); }
+.pdf-note-pip.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.18);
+  transition: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.30);
+  z-index: 5;
+}
 .pdf-note-warm   { background: #ffd84d; }
 .pdf-note-accent { background: #00e5c1; }
 .pdf-note-rose   { background: #ff7eb6; }

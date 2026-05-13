@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.7-pdf-context-menu';
+const CACHE_NAME = 'yancotab-v1.6.8-pdf-note-drag';
 
 const PRECACHE = [
     './',
