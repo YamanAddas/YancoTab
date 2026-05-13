@@ -10,7 +10,7 @@
  *   • idle   — future session
  */
 
-import { el } from '../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../utils/dom.js';
 import { todaysSessions } from '../engine/history.js';
 
 function formatHm(ts) {
@@ -50,18 +50,18 @@ export function buildTimerInfo({ onPrimary, onExtend, onSkip, onEnd }) {
       // ── Heading + sub copy ──
       const isLast = state.sessionIndex >= preset.sessions - 1 && state.phase === 'focus';
       if (state.phase === 'idle') {
-        headingEl.innerHTML = `Ready when <b>you are</b>.`;
+        setLiteralHtml(headingEl, 'Ready when <b>you are</b>.');
         subEl.textContent = `${preset.name} · ${preset.sessions} focus sessions, ${Math.round(preset.focusMs / 60000)} min each.`;
       } else if (state.phase === 'focus') {
         const ordinal = ['first', 'second', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth'][state.sessionIndex] || `${state.sessionIndex + 1}th`;
         const last = isLast ? ', long break next' : '';
-        headingEl.innerHTML = `You’re in the <b>${ordinal}</b> cycle${last}.`;
+        headingEl.replaceChildren("You’re in the ", el(‘b’, {}, ordinal), ` cycle${last}.`);
         subEl.textContent = `When this session ends the shell turns to night for a ${Math.round((isLast ? preset.longBreakMs : preset.breakMs) / 60000)}-minute break.`;
       } else if (state.phase === 'break') {
-        headingEl.innerHTML = `Break time. <b>Stretch.</b>`;
+        setLiteralHtml(headingEl, 'Break time. <b>Stretch.</b>');
         subEl.textContent = `Stars are out, dock dims, notifications restored. Next focus picks up the cycle from session ${state.sessionIndex + 1}.`;
       } else if (state.phase === 'longBreak') {
-        headingEl.innerHTML = `Cycle complete. <b>Long break.</b>`;
+        setLiteralHtml(headingEl, 'Cycle complete. <b>Long break.</b>');
         subEl.textContent = `${Math.round(preset.longBreakMs / 60000)} minutes. After this you’re back to idle — ready to start a fresh cycle.`;
       }
 
