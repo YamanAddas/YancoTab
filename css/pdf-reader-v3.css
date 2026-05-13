@@ -1315,3 +1315,58 @@ body.is-mobile [data-allow-context="true"] * {
   border-color: rgba(255,69,58,0.30);
 }
 .pdf-note-btn-danger:hover { background: rgba(255,69,58,0.10); }
+
+/* ── Toolbar highlight-color button + popover ─────────────────────── */
+.pdf-tb-hl-color {
+  position: relative;
+  width: 32px;
+  height: 32px;
+}
+.pdf-tb-hl-swatch {
+  display: block;
+  width: 18px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.15);
+  background: var(--swatch-color, #ffde59);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.05);
+}
+.pdf-tb-hl-color[data-color="yellow"] .pdf-tb-hl-swatch { --swatch-color: #ffde59; }
+.pdf-tb-hl-color[data-color="green"]  .pdf-tb-hl-swatch { --swatch-color: #b1e5a0; }
+.pdf-tb-hl-color[data-color="blue"]   .pdf-tb-hl-swatch { --swatch-color: #a3c5ff; }
+.pdf-tb-hl-color[data-color="pink"]   .pdf-tb-hl-swatch { --swatch-color: #ffb1c9; }
+.pdf-tb-hl-color[data-color="purple"] .pdf-tb-hl-swatch { --swatch-color: #d9b3ff; }
+
+.pdf-color-picker-popover {
+  position: fixed;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--pdf-pill-bg);
+  border: 1px solid var(--pdf-pill-border);
+  border-radius: 22px;
+  box-shadow: var(--pdf-pill-shadow);
+  z-index: 1002;
+}
+.pdf-color-chip {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.10);
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  transition: transform 120ms, border-color 120ms;
+}
+.pdf-color-chip:hover { transform: scale(1.12); }
+.pdf-color-chip.is-active {
+  border-color: var(--pdf-btn-active-fg);
+  box-shadow: 0 0 0 2px var(--pdf-btn-active-bg);
+}
+.pdf-sel-chip-yellow { background: #ffde59; }
+.pdf-sel-chip-green  { background: #b1e5a0; }
+.pdf-sel-chip-blue   { background: #a3c5ff; }
+.pdf-sel-chip-pink   { background: #ffb1c9; }
+.pdf-sel-chip-purple { background: #d9b3ff; }

@@ -26,6 +26,7 @@ export function buildToolbar({
   onPrint,
   onDownload,
   onMore,
+  onPickHighlightColor,
 } = {}) {
   const root = el('div', { class: 'pdf-toolbar' });
 
@@ -72,6 +73,15 @@ export function buildToolbar({
   // ── Tools cluster ──
   const textToolBtn = toolBtn('text', ICONS.text, 'Text select (T)');
   const handToolBtn = toolBtn('hand', ICONS.hand, 'Hand — pan-scroll (H)');
+  const highlightColorBtn = el('button', {
+    type: 'button',
+    class: 'pdf-tb-btn pdf-tb-hl-color',
+    title: 'Highlight color',
+    'aria-label': 'Highlight color',
+    'data-color': 'yellow',
+  });
+  highlightColorBtn.appendChild(el('span', { class: 'pdf-tb-hl-swatch' }));
+  highlightColorBtn.addEventListener('click', () => onPickHighlightColor?.(highlightColorBtn));
   const inkToolBtn = toolBtn('ink', ICONS.ink, 'Ink / draw');
   const shapeToolBtn = toolBtn('shape', ICONS.shape, 'Shape (rect / ellipse / arrow / line)');
   const noteToolBtn = toolBtn('note', ICONS.note, 'Sticky note — click on a page to add one');
@@ -87,7 +97,8 @@ export function buildToolbar({
   // Default: text is active.
   textToolBtn.classList.add('is-active');
   const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [
-    textToolBtn, handToolBtn, inkToolBtn, shapeToolBtn, noteToolBtn, signToolBtn,
+    textToolBtn, handToolBtn, highlightColorBtn,
+    inkToolBtn, shapeToolBtn, noteToolBtn, signToolBtn,
   ]);
 
   // ── Edit cluster (undo / redo) ──
@@ -159,9 +170,13 @@ export function buildToolbar({
     },
     setSearchActive(active) { searchBtn.classList.toggle('is-active', !!active); },
     setFullscreenActive(active) { fsBtn.classList.toggle('is-active', !!active); },
+    setHighlightColor(color) {
+      if (typeof color !== 'string') return;
+      highlightColorBtn.dataset.color = color;
+    },
     setActionsEnabled(enabled) {
       // Disable doc-scoped actions when no document is open.
-      const docButtons = [searchBtn, rotateBtn, printBtn, downloadBtn, moreBtn];
+      const docButtons = [searchBtn, rotateBtn, printBtn, downloadBtn, moreBtn, highlightColorBtn];
       for (const b of docButtons) b.disabled = !enabled;
     },
     /** Returns the More button DOM ref so the popover can anchor against it. */

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.7-pdf-notes';
+const CACHE_NAME = 'yancotab-v1.5.8-pdf-color-picker';
 
 const PRECACHE = [
     './',
@@ -284,6 +284,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/handTool.js',
     './os/apps/pdf/v3/tools/noteTool.js',
     './os/apps/pdf/v3/chrome/notePopover.js',
+    './os/apps/pdf/v3/chrome/colorPickerPopover.js',
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerTools.js',

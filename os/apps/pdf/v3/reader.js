@@ -38,6 +38,7 @@ import { createPageOpsController } from './readerPageOps.js';
 import { createUndoStack } from './ops/undoStack.js';
 import { createReaderMore } from './readerMore.js';
 import { createScrollTracker } from './readerScroll.js';
+import { createColorController } from './readerColor.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -61,11 +62,7 @@ export function buildReader({
 } = {}) {
   if (!pdfStore) throw new Error('pdfStore required');
   const root = el('div', { class: 'pdf-reader-v3', tabindex: '0' });
-
-  // Pre-allocate the active highlight color from storage if available.
-  let activeColor = 'yellow';
-
-  // Construction-time state.
+  let colorCtrl = null;   // constructed after toolbar; see below
   let pdfDoc = null;
   let docId = null;
   let docTitle = '';
@@ -107,8 +104,10 @@ export function buildReader({
     onPrint: () => onPrint?.(docId),
     onDownload: () => onDownload?.(docId),
     onMore: (anchorBtn) => morePopover.toggleNear(anchorBtn),
+    onPickHighlightColor: (anchorBtn) => colorCtrl.toggleNear(anchorBtn),
   });
   toolbar.setActionsEnabled(false);  // no doc loaded yet
+  colorCtrl = createColorController({ kernel, toolbar });
 
   const thumbsTab = buildThumbnailsTab({
     getPdfDoc: () => pdfDoc,
@@ -219,7 +218,7 @@ export function buildReader({
 
   const pill = buildSelectionPill({
     onColor: (color) => {
-      activeColor = color;
+      colorCtrl?.setColor?.(color);
       commitHighlight(color);
     },
     onCopy: () => {
@@ -457,6 +456,7 @@ export function buildReader({
     tools.destroy();
     markPopover.destroy();
     morePopover.destroy();
+    colorCtrl?.destroy?.();
     sidebar.destroy();
     strip.destroy();
   }
