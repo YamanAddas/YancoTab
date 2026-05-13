@@ -16,12 +16,6 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
-let _svgParserInstance = null;
-function svgParser() {
-  if (!_svgParserInstance) _svgParserInstance = new DOMParser();
-  return _svgParserInstance;
-}
-
 export function buildSidebar({ tabs = [], initial = null } = {}) {
   const root = el('div', { class: 'pdf-sidebar' });
   const tabStrip = el('div', { class: 'pdf-sidebar-tabs', role: 'tablist' });
@@ -41,7 +35,7 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
       title: spec.label,
     });
     const svgStr = ICONS[spec.icon];
-    if (svgStr) btn.appendChild(svgParser().parseFromString(svgStr, 'image/svg+xml').documentElement);
+    if (svgStr) btn.appendChild(new DOMParser().parseFromString(svgStr, 'image/svg+xml').documentElement);
     btn.addEventListener('click', () => activate(spec.id));
     tabButtons.set(spec.id, btn);
     tabStrip.appendChild(btn);
@@ -78,18 +72,6 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
     m.api?.update?.(data);
   }
 
-  /**
-   * Invoke an arbitrary method on a mounted tab's api (e.g. refreshOps).
-   * No-op if the tab is not yet mounted or the method doesn't exist.
-   */
-  function callTab(id, method, ...args) {
-    const m = mounted.get(id);
-    if (!m) return undefined;
-    const fn = m.api?.[method];
-    if (typeof fn !== 'function') return undefined;
-    try { return fn.apply(m.api, args); } catch { /* best-effort */ return undefined; }
-  }
-
   function updateAll(data) {
     for (const [id, m] of mounted) {
       m.api?.update?.(data?.[id] ?? data);
@@ -112,7 +94,6 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
     activate,
     updateTab,
     updateAll,
-    callTab,
     setCollapsed,
     getActive() { return activeId; },
     destroy,

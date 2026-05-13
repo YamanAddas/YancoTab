@@ -14,12 +14,6 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
-let _svgParserInstance = null;
-function svgParser() {
-  if (!_svgParserInstance) _svgParserInstance = new DOMParser();
-  return _svgParserInstance;
-}
-
 export function buildToolbar({
   onPrev, onNext, onJumpToPage,
   onZoomIn, onZoomOut, onZoomReset,
@@ -107,7 +101,7 @@ export function buildToolbar({
       type: 'button', class: 'pdf-tb-btn',
       title, 'aria-label': title,
     });
-    if (svgHtml) b.appendChild(svgParser().parseFromString(svgHtml, 'image/svg+xml').documentElement);
+    if (svgHtml) b.appendChild(new DOMParser().parseFromString(svgHtml, 'image/svg+xml').documentElement);
     b.addEventListener('click', handler);
     return b;
   }

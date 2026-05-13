@@ -12,12 +12,6 @@
 import { el } from '../../../../utils/dom.js';
 import { ICONS } from './icons.js';
 
-let _svgParserInstance = null;
-function svgParser() {
-  if (!_svgParserInstance) _svgParserInstance = new DOMParser();
-  return _svgParserInstance;
-}
-
 export function buildSearchBar({ onChange, onPrev, onNext, onClose } = {}) {
   const root = el('div', { class: 'pdf-find-bar' });
   root.style.display = 'none';
@@ -55,7 +49,7 @@ export function buildSearchBar({ onChange, onPrev, onNext, onClose } = {}) {
     const b = el('button', {
       type: 'button', class: 'pdf-find-btn', title, 'aria-label': title,
     });
-    if (svgHtml) b.appendChild(svgParser().parseFromString(svgHtml, 'image/svg+xml').documentElement);
+    if (svgHtml) b.appendChild(new DOMParser().parseFromString(svgHtml, 'image/svg+xml').documentElement);
     b.addEventListener('click', handler);
     return b;
   }
