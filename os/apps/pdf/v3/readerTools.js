@@ -32,6 +32,7 @@ export function setupTools({
   toolbar,        // main toolbar; we call toolbar.setActiveTool() on tool change
   kernel,         // for signature storage
   onToast,
+  undoStack,      // optional: pushed onto when annotations commit
 }) {
   // ── Ink ──
   const inkToolbar = buildInkToolbar({
@@ -50,8 +51,24 @@ export function setupTools({
     onCommit: async ({ page, points, color, width }) => {
       const docId = getDocId();
       if (!docId) return;
-      await annStore.addInk({ docId, page, points, color, width });
+      const args = { docId, page, points, color, width };
+      const rec = await annStore.addInk(args);
       await strip.refreshNonTextAnnotationsForPage(page);
+      if (rec && undoStack) {
+        let currentId = rec.id;
+        undoStack.push({
+          label: 'ink stroke',
+          undo: async () => {
+            await annStore.deleteOne(currentId);
+            await strip.refreshNonTextAnnotationsForPage(page);
+          },
+          redo: async () => {
+            const r = await annStore.addInk(args);
+            if (r) currentId = r.id;
+            await strip.refreshNonTextAnnotationsForPage(page);
+          },
+        });
+      }
     },
   });
 
@@ -74,8 +91,24 @@ export function setupTools({
     onCommit: async (ann) => {
       const docId = getDocId();
       if (!docId) return;
-      await annStore.addShape({ docId, ...ann });
+      const args = { docId, ...ann };
+      const rec = await annStore.addShape(args);
       await strip.refreshNonTextAnnotationsForPage(ann.page);
+      if (rec && undoStack) {
+        let currentId = rec.id;
+        undoStack.push({
+          label: 'shape',
+          undo: async () => {
+            await annStore.deleteOne(currentId);
+            await strip.refreshNonTextAnnotationsForPage(ann.page);
+          },
+          redo: async () => {
+            const r = await annStore.addShape(args);
+            if (r) currentId = r.id;
+            await strip.refreshNonTextAnnotationsForPage(ann.page);
+          },
+        });
+      }
     },
   });
 
@@ -128,9 +161,25 @@ export function setupTools({
     onCommit: async ({ page, imageDataUrl, x, y, w, h }) => {
       const docId = getDocId();
       if (!docId) return;
-      await annStore.addSignature({ docId, page, imageDataUrl, x, y, w, h });
+      const args = { docId, page, imageDataUrl, x, y, w, h };
+      const rec = await annStore.addSignature(args);
       await strip.refreshNonTextAnnotationsForPage(page);
       onToast?.({ message: 'Signature placed', type: 'success' });
+      if (rec && undoStack) {
+        let currentId = rec.id;
+        undoStack.push({
+          label: 'signature',
+          undo: async () => {
+            await annStore.deleteOne(currentId);
+            await strip.refreshNonTextAnnotationsForPage(page);
+          },
+          redo: async () => {
+            const r = await annStore.addSignature(args);
+            if (r) currentId = r.id;
+            await strip.refreshNonTextAnnotationsForPage(page);
+          },
+        });
+      }
     },
     onNoSignaturePrompt: () => signatureModal.open(),
   });

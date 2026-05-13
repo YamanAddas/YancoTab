@@ -39,6 +39,7 @@ import {
   emptyPageOps,
 } from './ops/pageOps.js';
 import { createPageOpsController } from './readerPageOps.js';
+import { createUndoStack } from './ops/undoStack.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -80,6 +81,15 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     saveViewState: (id, patch) => pdfStore.saveViewState(id, patch),
   });
 
+  // Forward-declared so the undo stack can call into it via closure
+  // before `toolbar` is assigned a few lines below.
+  let toolbarRef = null;
+  const undoStack = createUndoStack({
+    onChange: ({ canUndo, canRedo }) => {
+      toolbarRef?.setUndoState?.({ canUndo, canRedo });
+    },
+  });
+
   // ── Toolbar ──
   const toolbar = buildToolbar({
     onPrev: () => goToPage(currentPage - 1),
@@ -91,7 +101,10 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     onClose: () => onClose?.(),
     onToggleSidebar: () => toggleSidebar(),
     onSelectTool: (toolId) => dispatcher.setActive(toolId),
+    onUndo: () => undoStack.undo(),
+    onRedo: () => undoStack.redo(),
   });
+  toolbarRef = toolbar;
 
   // ── Sidebar ──
   const thumbsTab = buildThumbnailsTab({
@@ -233,6 +246,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   const tools = setupTools({
     stage, strip, annStore, toolbar, kernel, onToast,
     getDocId: () => docId,
+    undoStack,
   });
   const dispatcher = tools.dispatcher;
 
@@ -356,6 +370,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
       selection: lastSelection, docId, color,
       annotationStore: annStore, strip,
       onToast, onPillHide: () => pill.hide(),
+      undoStack,
     });
   }
 
