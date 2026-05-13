@@ -1,4 +1,4 @@
-import { el } from '../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../utils/dom.js';
 import { kernel } from '../../../kernel.js';
 
 /**
@@ -75,7 +75,7 @@ export class WeatherWidget {
 
     _cloudGlyph() {
         const wrap = el('div', { class: 'widget-empty-glyph' });
-        wrap.innerHTML = `<svg viewBox="0 0 64 40" width="48" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 28a8 8 0 0 1 0-16 12 12 0 0 1 23 4 9 9 0 0 1 5 17H17a7 7 0 0 1-3-5z"/></svg>`;
+        setLiteralHtml(wrap, `<svg viewBox="0 0 64 40" width="48" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 28a8 8 0 0 1 0-16 12 12 0 0 1 23 4 9 9 0 0 1 5 17H17a7 7 0 0 1-3-5z"/></svg>`);
         return wrap;
     }
 

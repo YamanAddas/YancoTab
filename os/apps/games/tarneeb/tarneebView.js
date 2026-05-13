@@ -6,8 +6,6 @@
 import { el } from '../../../utils/dom.js';
 import {
   SEATS,
-  SEAT_NAMES,
-  SUIT_SYMBOLS,
   computeTeamTotals,
   legalTrickPlays,
 } from './tarneebRules.js';

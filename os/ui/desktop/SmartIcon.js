@@ -1,4 +1,4 @@
-import { el, parseSafeSvg } from "../../utils/dom.js";
+import { el, parseSafeSvg, setLiteralHtml } from "../../utils/dom.js";
 import { FolderIcon } from "../components/FolderIcon.js";
 import { GAME_ICONS } from "../components/GameIcons.js";
 import { PHOSPHOR_ICONS } from "../components/PhosphorIcons.js";
@@ -199,7 +199,7 @@ export class SmartIcon {
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
         const wrap = el('div', { class: 'phosphor-wrap' });
-        wrap.innerHTML = SmartIcon._scopeSvgIds(PHOSPHOR_ICONS[key]);
+        setLiteralHtml(wrap, SmartIcon._scopeSvgIds(PHOSPHOR_ICONS[key]));
         container.appendChild(wrap);
     }
 
@@ -232,10 +232,10 @@ export class SmartIcon {
         container.style.alignItems = 'center';
         container.style.justifyContent = 'center';
         container.style.position = 'relative';
-        container.innerHTML = `<div class="game-tint" style="background:${tone}"></div>`;
+        container.replaceChildren(el('div', { class: 'game-tint', style: { background: tone } }));
 
         const wrap = el('div', { class: 'game-wrap' });
-        wrap.innerHTML = SmartIcon._scopeSvgIds(GAME_ICONS[key]);
+        setLiteralHtml(wrap, SmartIcon._scopeSvgIds(GAME_ICONS[key]));
         container.appendChild(wrap);
 
         container.appendChild(el('div', { class: 'game-shine' }));

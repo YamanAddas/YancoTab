@@ -330,11 +330,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Network-first for API calls and external resources
+    // Network-first for API calls and external resources. Match by exact
+    // hostname or as a subdomain suffix — substring matching would route
+    // attacker-controlled hosts like "google.com.evil.com" through here too.
+    const host = url.hostname;
+    const matchesHost = (suffix) => host === suffix || host.endsWith('.' + suffix);
     if (
-        url.hostname.includes('open-meteo') ||
-        url.hostname.includes('google.com') ||
-        url.hostname.includes('geocoding-api')
+        matchesHost('open-meteo.com') ||
+        matchesHost('google.com')
     ) {
         event.respondWith(
             fetch(event.request).catch(() => caches.match(event.request))

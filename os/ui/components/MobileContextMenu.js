@@ -192,7 +192,7 @@ export class MobileContextMenu {
       if (typeof icon === 'string' && icon.includes('/')) {
         iconEl.style.backgroundImage = `url(${icon})`;
       } else {
-        iconEl.textContent = icon || '📦';
+        iconEl.textContent = icon;
       }
       header.appendChild(iconEl);
     }

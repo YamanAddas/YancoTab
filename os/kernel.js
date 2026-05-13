@@ -12,17 +12,6 @@ import { AppStorage } from './services/appStorage.js';
 import { PdfStore } from './services/pdfStore.js';
 import { VERSION, BUILD } from './version.js';
 
-// Trusted system events that only the kernel should emit
-const SYSTEM_EVENTS = new Set([
-    'system:ready',
-    'system:panic',
-    'process:kill',
-    'process:started',
-    'process:stopped',
-    'system:app-error',
-    'ui:mount',
-]);
-
 /**
  * Canonical event names used across YancoTab.
  *

@@ -33,7 +33,7 @@ import { buildSettingsBay } from './settings/view/settingsBay.js';
 import { buildPrivacyBay } from './settings/view/privacyBay.js';
 import { buildSyncBay } from './settings/view/syncBay.js';
 
-import { apply as applyRitual, getRitual, RITUALS } from './settings/engine/rituals.js';
+import { apply as applyRitual, getRitual } from './settings/engine/rituals.js';
 import { makeBuffer, record as recordSync } from './settings/engine/syncLog.js';
 import { loadState as loadConsoleState, saveState as saveConsoleState } from './settings/persistence.js';
 

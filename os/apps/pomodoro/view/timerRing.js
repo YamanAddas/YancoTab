@@ -6,7 +6,7 @@
  * fills as time advances.
  */
 
-import { el } from '../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../utils/dom.js';
 
 const RADIUS = 46;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS; // ~289
@@ -21,7 +21,9 @@ function formatMMSS(ms) {
 export function buildTimerRing() {
   const root = el('div', { class: 'sol-ring' });
   // SVG markup — pure presentation, defs include the gradient.
-  root.innerHTML = `
+  // Numeric constants (RADIUS, CIRCUMFERENCE) are module-level — safe to
+  // interpolate into the trusted literal sink.
+  setLiteralHtml(root, `
     <svg viewBox="0 0 100 100" aria-hidden="true">
       <defs>
         <linearGradient id="solRingGrad" x1="0" y1="0" x2="0" y2="1">
@@ -41,7 +43,7 @@ export function buildTimerRing() {
       <span class="sol-ring-time" data-time>00:00</span>
       <span class="sol-ring-sub" data-sub>of 25:00</span>
     </div>
-  `;
+  `);
 
   return {
     root,

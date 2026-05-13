@@ -60,14 +60,6 @@ function tapGuard(handler, { movePx = 12 } = {}) {
   };
 }
 
-function rankLabel(rank) {
-  if (rank === 1)  return 'A';
-  if (rank === 11) return 'J';
-  if (rank === 12) return 'Q';
-  if (rank === 13) return 'K';
-  return String(rank);
-}
-
 function suitInitial(seat) {
   const name = SEAT_NAMES[seat] || seat;
   return name.charAt(0).toUpperCase();

@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 
 import {
   classifyPortal, bumpVisit, recordVisit, recentVisits, formatRelative,
-  ANCHOR_THRESHOLD, ANCHOR_WINDOW_MS, RECENT_WINDOW_MS, HISTORY_LIMIT,
+  ANCHOR_THRESHOLD, HISTORY_LIMIT,
 } from '../os/apps/browser/engine/visits.js';
 import { normalizeBookmark } from '../os/apps/browser/engine/state.js';
 

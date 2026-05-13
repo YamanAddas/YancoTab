@@ -1,4 +1,4 @@
-import { isRed, oppositeColor, SUIT_INDEX } from './state.js';
+import { oppositeColor, SUIT_INDEX } from './state.js';
 
 // Can `card` be placed on top of tableau pile `pile`? Pile may be empty (accepts K only).
 export function canPlaceOnTableau(pile, card) {

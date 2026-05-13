@@ -1,4 +1,4 @@
-import { el } from '../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../utils/dom.js';
 import { kernel } from '../../../kernel.js';
 import { getPreset } from '../../../apps/pomodoro/engine/presets.js';
 import { normalizeSettings } from '../../../apps/pomodoro/persistence.js';
@@ -106,14 +106,14 @@ export class PomodoroWidget {
 
     _buildRing() {
         const ring = el('div', { class: 'w-pomo-ring' });
-        ring.innerHTML = `
+        setLiteralHtml(ring, `
             <svg viewBox="0 0 100 100" aria-hidden="true">
                 <circle class="track" cx="50" cy="50" r="${RING_RADIUS}" fill="none" stroke-width="6"/>
                 <circle class="fill" cx="50" cy="50" r="${RING_RADIUS}" fill="none" stroke-width="6"
                         stroke-dasharray="${RING_CIRCUMFERENCE.toFixed(2)}" stroke-dashoffset="${RING_CIRCUMFERENCE.toFixed(2)}"/>
             </svg>
             <div class="w-pomo-time">25:00</div>
-        `;
+        `);
         return ring;
     }
 

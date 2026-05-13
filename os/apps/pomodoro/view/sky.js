@@ -14,15 +14,15 @@ export function buildSky({ onTap }) {
   const root = el('div', { class: 'sol-sky', role: 'button', tabindex: '0',
     'aria-label': 'Toggle sky preview' });
 
-  // Use innerHTML for the layered cosmetic markup — pure presentation, no user input.
-  root.innerHTML = `
-    <div class="sol-sky-stars" aria-hidden="true"></div>
-    <div class="sol-sky-moon" aria-hidden="true"></div>
-    <div class="sol-sky-sun" aria-hidden="true"></div>
-    <div class="sol-sky-ground" aria-hidden="true"></div>
-    <div class="sol-sky-horizon" aria-hidden="true"></div>
-    <div class="sol-sky-arc" aria-hidden="true" style="left: 0%"></div>
-  `;
+  // Pure presentation — six decorative layers stacked via CSS.
+  root.append(
+    el('div', { class: 'sol-sky-stars',   'aria-hidden': 'true' }),
+    el('div', { class: 'sol-sky-moon',    'aria-hidden': 'true' }),
+    el('div', { class: 'sol-sky-sun',     'aria-hidden': 'true' }),
+    el('div', { class: 'sol-sky-ground',  'aria-hidden': 'true' }),
+    el('div', { class: 'sol-sky-horizon', 'aria-hidden': 'true' }),
+    el('div', { class: 'sol-sky-arc',     'aria-hidden': 'true', style: 'left: 0%' }),
+  );
 
   const handleTap = (e) => {
     if (typeof onTap === 'function') onTap(e);

@@ -13,7 +13,6 @@ import { safeSave } from '../../utils/safeSave.js';
 
 const WP_KEY = 'yancotab_wallpaper';
 const WP_SCHEDULE_KEY = 'yancotab_wp_schedule';
-const WP_COLLECTION_KEY = 'yancotab_wp_collection';
 const WP_CUSTOM_KEY = 'yancotab_wallpaper_custom';
 
 // Curated gradient wallpapers (CSS gradients — zero external deps, instant load)

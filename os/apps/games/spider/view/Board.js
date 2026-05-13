@@ -12,10 +12,8 @@
 
 import { el } from '../../../../utils/dom.js';
 import { createCardView, createPilePlaceholder } from './CardView.js';
-import { computeLayout, tableauCardOffset, fitFansToHeight, minBoardHeight } from './layout.js';
+import { computeLayout, tableauCardOffset, fitFansToHeight } from './layout.js';
 import { DragController } from './drag.js';
-
-const SUIT_SYMBOL = { H: '♥', D: '♦', C: '♣', S: '♠' };
 
 export class Board {
   constructor({ onIntent } = {}) {

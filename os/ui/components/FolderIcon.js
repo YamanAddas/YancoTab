@@ -1,4 +1,4 @@
-import { el, parseSafeSvg } from '../../utils/dom.js';
+import { el, parseSafeSvg, setLiteralHtml } from '../../utils/dom.js';
 import { GAME_MINI_ICONS } from './GameIcons.js';
 
 /**
@@ -86,7 +86,7 @@ export class FolderIcon {
 
   _makePlaceholderSvg() {
     const wrap = el('div', { class: 'folder-preview-placeholder' });
-    wrap.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><line x1="9" y1="12" x2="15" y2="12"/></svg>';
+    setLiteralHtml(wrap, '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="4" y="4" width="16" height="16" rx="3"/><line x1="9" y1="12" x2="15" y2="12"/></svg>');
     return wrap;
   }
 
@@ -107,7 +107,7 @@ export class FolderIcon {
     const gameKey = FolderIcon._gameKey(child.id);
     if (gameKey && GAME_MINI_ICONS[gameKey]) {
       const wrap = el('div', { class: 'folder-preview-game' });
-      wrap.innerHTML = GAME_MINI_ICONS[gameKey];
+      setLiteralHtml(wrap, GAME_MINI_ICONS[gameKey]);
       cell.appendChild(wrap);
       return cell;
     }
@@ -118,7 +118,7 @@ export class FolderIcon {
       const miniSvg = GAME_MINI_ICONS[key];
       if (miniSvg) {
         const wrap = el('div', { class: 'folder-preview-game' });
-        wrap.innerHTML = miniSvg;
+        setLiteralHtml(wrap, miniSvg);
         cell.appendChild(wrap);
         return cell;
       }

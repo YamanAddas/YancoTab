@@ -52,8 +52,9 @@ export function buildSideRail(state) {
   const score = state.score || 0;
   const best = state.best || 0;
   const overBest = score - best;
+  // Inside the `score >= best && best > 0` branch, overBest is always >= 0.
   const meta = score >= best && best > 0
-    ? `${overBest >= 0 ? '+' : ''}${fmtNum(overBest)} over personal best`
+    ? `+${fmtNum(overBest)} over personal best`
     : best > 0
       ? `Best: ${fmtNum(best)}`
       : '— first run —';

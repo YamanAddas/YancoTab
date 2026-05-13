@@ -176,8 +176,14 @@ export class AppGrid {
       if (url.startsWith('http')) {
         window.open(url, '_blank', 'noopener');
       } else {
-        // Fallback for Maps if custom scheme fails (simple timer)
-        if (url.includes('googlemaps') || url.includes('maps.apple.com')) {
+        // Fallback for Maps if the custom scheme handler isn't installed.
+        // Check the URL scheme prefix — not a substring — so a mailto:
+        // address with "googlemaps" in the local-part doesn't trigger.
+        const isMapsScheme =
+          url.startsWith('comgooglemaps:') ||
+          url.startsWith('comgooglemaps-x-callback:') ||
+          url.startsWith('maps:');
+        if (isMapsScheme) {
           const start = Date.now();
           window.location.href = url;
           setTimeout(() => {

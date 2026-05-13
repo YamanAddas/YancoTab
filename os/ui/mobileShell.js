@@ -611,7 +611,7 @@ export class MobileShell {
 
   _injectMobileStyles() {
     const style = document.createElement('style');
-    style.innerHTML = `
+    style.textContent = `
       html, body {
         overscroll-behavior: none;
         -webkit-touch-callout: none;

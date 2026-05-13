@@ -3,7 +3,7 @@
  */
 
 import { el } from '../../../utils/dom.js';
-import { recentVisits, formatRelative, classifyPortal } from '../engine/visits.js';
+import { recentVisits, formatRelative } from '../engine/visits.js';
 
 export function buildSideRail({ onOpenUrl }) {
   const root = el('aside', { class: 'wh-side' });

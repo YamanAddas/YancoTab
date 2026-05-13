@@ -860,10 +860,9 @@ class NeonSerpent {
         ctx.fillText(bestLabel, this.W - 12, yc);
 
         /* Active power-ups (icons with countdown arcs) */
-        let px = this.W - 12;
         const powers = Object.entries(this.activePowers);
         if (powers.length > 0) {
-            px = this.W / 2;
+            let px = this.W / 2;
             ctx.textAlign = 'center';
             for (const [id, frames] of powers) {
                 const pType = POWERUP_TYPES.find(p => p.id === id);
@@ -989,7 +988,6 @@ class NeonSerpent {
 
     /* ── Settings ── */
     _drawSettings(ctx) {
-        const tc = this.themeColor;
         ctx.save();
 
         /* Overlay */

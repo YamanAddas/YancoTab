@@ -1,5 +1,3 @@
-import { randInt } from '../shared/rng.js';
-
 export const SEATS = ['south', 'east', 'north', 'west'];
 export const SEAT_NAMES = {
   south: 'You',

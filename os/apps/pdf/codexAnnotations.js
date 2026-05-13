@@ -176,7 +176,7 @@ export function createAnnotationsController({
                 .replace(/[,]/g, '')
                 .replace(/×/g, '*').replace(/÷/g, '/').replace(/\^/g, '**');
             // Only allow digits and operators.
-            if (!/^[\d.\s+\-*/()%*]+$/.test(cleaned)) {
+            if (!/^[\d.\s+\-*/()%]+$/.test(cleaned)) {
                 onToast?.({ message: 'Not a valid expression', type: 'error' });
                 return;
             }

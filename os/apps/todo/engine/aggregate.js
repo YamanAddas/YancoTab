@@ -11,7 +11,6 @@ import { todayKey } from './state.js';
 import { classify } from './buckets.js';
 
 const HOUR = 60 * 60_000;
-const DAY = 24 * HOUR;
 
 function startOfDay(t) {
   const d = new Date(t);

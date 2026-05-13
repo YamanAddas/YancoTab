@@ -5,7 +5,7 @@
  * safe to call on every reducer tick.
  */
 import { el } from '../../utils/dom.js';
-import { DIFFICULTIES, ORBS } from './engine.js';
+import { DIFFICULTIES } from './engine.js';
 
 const ORB_DISPLAY = {
   amber:  { name: 'Solar' },
@@ -39,7 +39,7 @@ function fmtTime(ms) {
  */
 export function buildView(cfg) {
   return el('div', { class: 'mem-app-frame' }, [
-    buildTitlebar(cfg),
+    buildTitlebar(),
     el('div', { class: 'mem-stage' }, [
       buildBoardArea(cfg),
       buildSideRail(cfg),

@@ -1,4 +1,4 @@
-import { el } from '../../../utils/dom.js';
+import { el, setLiteralHtml } from '../../../utils/dom.js';
 import { kernel } from '../../../kernel.js';
 import {
     loadState as loadTodoState,
@@ -55,7 +55,7 @@ export class TodoWidget {
         if (total === 0) {
             const body = el('div', { class: 'widget-body widget-todo-empty' });
             const glyph = el('div', { class: 'widget-empty-glyph' });
-            glyph.innerHTML = `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`;
+            setLiteralHtml(glyph, `<svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`);
             body.append(
                 glyph,
                 el('div', { class: 'widget-empty-msg' }, mission ? 'All clear' : 'Tap to add tasks'),

@@ -3,7 +3,6 @@
 // moving a run to open a column. Used for stuck detection and (future) hints.
 
 import { canPlaceOnFoundation, canPlaceOnTableau, isValidRun } from './rules.js';
-import { SUIT_INDEX } from './state.js';
 
 export function enumerateMoves(state) {
   const moves = [];

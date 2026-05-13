@@ -7,7 +7,7 @@
  * the Trix-specific shape. Pure DOM builders.
  */
 import { el } from '../../../utils/dom.js';
-import { SEATS, SEAT_NAMES, teamOf, TEAMS } from './trixRules.js';
+import { SEATS, SEAT_NAMES } from './trixRules.js';
 
 const CONTRACT_GLYPH = {
   king:     '♚',

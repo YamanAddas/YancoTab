@@ -5,7 +5,7 @@
  * Uses an in-memory localStorage mock — no browser required.
  */
 
-import { test, describe, beforeEach } from 'node:test';
+import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 
 // ── In-memory localStorage mock ─────────────────────────────────────────────

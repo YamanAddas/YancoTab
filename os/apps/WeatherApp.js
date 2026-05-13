@@ -1,5 +1,5 @@
 import { App } from '../core/App.js';
-import { el } from '../utils/dom.js';
+import { el, setLiteralHtml } from '../utils/dom.js';
 
 export class WeatherApp extends App {
     constructor(kernel, pid) {
@@ -350,7 +350,7 @@ export class WeatherApp extends App {
 
     svgNode(svg) {
         const holder = document.createElement('div');
-        holder.innerHTML = String(svg || '').trim();
+        setLiteralHtml(holder, String(svg || '').trim());
         return holder.firstElementChild || document.createElement('span');
     }
 

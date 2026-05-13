@@ -886,7 +886,6 @@ class NeonMines {
 
     /* ── Settings ── */
     _drawSettings(ctx) {
-        const tc = this.themeColor;
         ctx.save();
 
         ctx.fillStyle = 'rgba(3,8,16,0.9)';

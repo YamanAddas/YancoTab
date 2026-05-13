@@ -1323,8 +1323,6 @@ export class PhotoEditor {
         this._isPointerDown = false;
         try { this._canvas.releasePointerCapture(e.pointerId); } catch {}
 
-        const pos = this._getPointerPos(e);
-
         if (this._isPanning) { this._isPanning = false; return; }
         if (this._cropHandle) { this._cropHandle = null; this._cropDragInit = null; return; }
         if (this._isDraggingAnn) { this._isDraggingAnn = false; this._annDragStart = null; return; }

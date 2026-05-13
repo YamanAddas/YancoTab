@@ -8,11 +8,10 @@ import {
   moveWasteToTableau,
   moveWasteToFoundation,
   moveTableauToFoundation,
-  moveFoundationToTableau,
   moveTableauToTableau,
 } from './moves.js';
 import { isValidRun, canPlaceOnTableau, canPlaceOnFoundation } from './rules.js';
-import { isWon, SUIT_INDEX } from './state.js';
+import { isWon } from './state.js';
 
 // Canonical string of a state's piles. Move history/score/time excluded so
 // equivalent boards collapse regardless of how we got there.

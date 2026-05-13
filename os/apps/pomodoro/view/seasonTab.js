@@ -83,7 +83,7 @@ export function buildSeasonTab() {
         const count = focusCountForDay(history, dKey);
         const isFuture = d.getTime() > today.getTime();
         const isToday = dKey === todayStr;
-        const ratio = target > 0 ? Math.min(1, count / target) : 0;
+        const ratio = Math.min(1, count / target);
         // Bucket 0..4 for the swatch palette
         let bucket = 0;
         if (ratio > 0)    bucket = 1;

@@ -392,7 +392,9 @@ export function buildCodex({
 
   async function load({ source, name, id }) {
     const pdfjs = await loadPdfJs();
-    docId = id || name || 'recent:' + (name || 'doc.pdf');
+    // If id and name are both falsy, name is unconditionally falsy in the
+    // fallback — collapse to a literal default.
+    docId = id || name || 'recent:doc.pdf';
     docTitle = name || 'document.pdf';
 
     pdfDoc = await pdfjs.getDocument({ ...source, isEvalSupported: false }).promise;

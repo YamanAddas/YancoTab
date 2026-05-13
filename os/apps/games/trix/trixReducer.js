@@ -270,7 +270,7 @@ function advanceAfterDeal(state, events) {
     if (events && Array.isArray(events)) {
       // Pick a winner for banter context. In partners mode, team
       // with higher score; otherwise highest individual seat.
-      let winnerSeat = 'south';
+      let winnerSeat;
       let winnerTeam = null;
       if (state.mode === 'partners') {
         winnerTeam = (state.teamScores?.A || 0) >= (state.teamScores?.B || 0) ? 'A' : 'B';

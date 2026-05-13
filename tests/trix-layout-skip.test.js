@@ -29,10 +29,6 @@ if (typeof globalThis.document === 'undefined') {
 import { trixReducer } from '../os/apps/games/trix/trixReducer.js';
 import { initMatch } from '../os/apps/games/trix/trixState.js';
 
-function pickContract(state, seat, contractId) {
-  return trixReducer(state, { type: 'PICK_CONTRACT', seat, contractId }).state;
-}
-
 /**
  * Build a Trix-layout state where the Jack of every suit has already
  * been played and:

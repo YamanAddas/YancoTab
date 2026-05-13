@@ -1,5 +1,5 @@
 import { Deck } from '../cardEngine/Deck.js';
-import { CONTRACTS, SEATS, find7HeartsOwner, sortHand, TEAMS } from './trixRules.js';
+import { CONTRACTS, SEATS, find7HeartsOwner, sortHand } from './trixRules.js';
 
 export function freshMatchState(config = {}) {
   const mode = config.mode || 'single';        // 'single' | 'partners'

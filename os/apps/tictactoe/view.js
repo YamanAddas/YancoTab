@@ -20,10 +20,10 @@ function tapGuard(handler, { movePx = 12 } = {}) {
     onpointermove(e) { if (Math.abs(e.clientX - sx) > movePx || Math.abs(e.clientY - sy) > movePx) moved = true; },
     onpointerup(e) {
       try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch {}
-      if (moved) return; try { e.preventDefault(); } catch {} handler(e);
+      if (moved) return; try { e.preventDefault(); } catch {} handler();
     },
     onpointercancel(e) { try { e.currentTarget?.releasePointerCapture?.(e.pointerId); } catch {} },
-    onclick(e) { try { e.preventDefault(); } catch {} handler(e); },
+    onclick(e) { try { e.preventDefault(); } catch {} handler(); },
   };
 }
 
@@ -49,7 +49,7 @@ const DIFF_LABELS = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
  *   onModeTab   — (mode) => void (called when user clicks vs AI / Single)
  */
 export function buildView(cfg) {
-  const { state, activeTab = 'felt' } = cfg;
+  const { activeTab = 'felt' } = cfg;
   const frame = el('div', { class: 'ttt-app-frame' }, [
     buildTitlebar(cfg),
     activeTab === 'stats'

@@ -379,7 +379,7 @@ export class ClockApp extends App {
 
         if (!isAnalog) {
             // Update digital hero
-            const { time, ampm } = this.formatTimeParts(now);
+            const { time } = this.formatTimeParts(now);
             const parts = time.split(':');
             let hm, sec;
             if (parts.length === 3) { hm = parts[0] + ':' + parts[1]; sec = parts[2]; }

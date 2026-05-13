@@ -1,4 +1,4 @@
-import { legalTrickPlays, legalLayoutPlays, rankValue, teamOf, partnerOf, SEATS, applyLayoutCard } from './trixRules.js';
+import { legalTrickPlays, legalLayoutPlays, rankValue, applyLayoutCard } from './trixRules.js';
 import { randInt } from '../shared/rng.js';
 
 // ─── Utility helpers ────────────────────────────────────────
@@ -6,15 +6,6 @@ import { randInt } from '../shared/rng.js';
 function pick(arr) { return arr[randInt(arr.length)]; }
 function lowest(cards)  { return cards.slice().sort((a,b) => rankValue(a.rank) - rankValue(b.rank))[0]; }
 function highest(cards) { return cards.slice().sort((a,b) => rankValue(b.rank) - rankValue(a.rank))[0]; }
-
-function hasSuit(hand, suit) { return hand.some(c => c.suit === suit); }
-
-function countSuit(cards, suit) { return cards.filter(c => c.suit === suit).length; }
-
-// Cards of a suit sorted low→high
-function ofSuit(cards, suit) {
-  return cards.filter(c => c.suit === suit).sort((a,b) => rankValue(a.rank) - rankValue(b.rank));
-}
 
 function inferVoids(completedTricks = [], currentTrick = [], currentLedSuit = null) {
   const out = { south: new Set(), east: new Set(), north: new Set(), west: new Set() };
@@ -412,8 +403,6 @@ function hardLayout(view) {
   if (legal.length === 1) return { type: 'LAYOUT_PLAY', card: legal[0] };
 
   const hand = view.hand;
-  const mode = view.mode;
-  const partner = view.partner;
 
   // Score each legal move by how many future plays it unlocks
   let best = legal[0];

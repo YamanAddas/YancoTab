@@ -4,6 +4,7 @@ import { MobileShell } from './ui/mobileShell.js';
 import { initTheme } from './theme/theme.js';
 import { initColorTheme } from './theme/themes.js';
 import { initStarfield } from './ui/starfield.js';
+import { setLiteralHtml } from './utils/dom.js';
 
 // Global error handlers to catch any boot-time errors
 window.addEventListener('error', (e) => {
@@ -238,11 +239,11 @@ async function boot() {
     console.error('[Boot] Fatal Error:', e);
     if (bootScreen) {
       const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      bootScreen.innerHTML = `<div style="color:red; padding:20px; text-align:center; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.8); border-radius:8px;">
+      setLiteralHtml(bootScreen, `<div style="color:red; padding:20px; text-align:center; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,0.8); border-radius:8px;">
                 <h2>System Failure</h2>
                 <p>${esc(e.message)}</p>
                 <small>${esc(e.stack)}</small>
-            </div>`;
+            </div>`);
     }
   }
 }

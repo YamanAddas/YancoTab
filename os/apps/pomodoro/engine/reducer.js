@@ -25,8 +25,6 @@
 
 import { phaseDurationMs, todayKey } from './state.js';
 
-function clone(s) { return { ...s }; }
-
 function pushEvent(events, ev) { events.push(ev); }
 
 /**

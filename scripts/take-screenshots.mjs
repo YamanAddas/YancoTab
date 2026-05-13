@@ -17,10 +17,6 @@ const HEIGHT = 800;
 
 async function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-function envelope(data) {
-  return JSON.stringify({ data, version: 1, ts: Date.now(), seq: 99, deviceId: 'screenshot' });
-}
-
 /** Pre-populate storage with sample data for attractive screenshots */
 async function seedData(page) {
   await page.evaluate((env) => {

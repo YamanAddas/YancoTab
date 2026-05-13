@@ -134,7 +134,7 @@ export class OcrTool {
         const ctx = this._getContext();
         if (!ctx.imgRect) { this._overlay.hidden = true; return; }
 
-        const { x, y, w, h, scale } = ctx.imgRect;
+        const { x, y, w, h } = ctx.imgRect;
         const img = ctx.img;
         if (!img) return;
 

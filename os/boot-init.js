@@ -27,12 +27,31 @@ if (DEBUG) {
         var line = event.lineno || 0;
         var col = event.colno || 0;
         var err = event.error && event.error.stack ? event.error.stack : '';
+
+        // Build via createElement/textContent so every field is rendered as
+        // text, never parsed as markup — defense in depth against future
+        // changes that might let an attacker-controlled string reach here.
         var overlay = document.createElement('div');
         overlay.style.cssText = 'position:fixed;inset:0;background:rgba(6,11,20,0.95);color:var(--danger,#ff4757);padding:20px;font-family:monospace;z-index:99999;overflow:auto;';
-        overlay.innerHTML = '<h2>Uncaught Error</h2>' +
-            '<p><strong>' + msg.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</strong></p>' +
-            '<p>Source: ' + src + ' (' + line + ':' + col + ')</p>' +
-            '<pre>' + String(err).replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</pre>';
+
+        var h2 = document.createElement('h2');
+        h2.textContent = 'Uncaught Error';
+
+        var pMsg = document.createElement('p');
+        var strong = document.createElement('strong');
+        strong.textContent = msg;
+        pMsg.appendChild(strong);
+
+        var pSrc = document.createElement('p');
+        pSrc.textContent = 'Source: ' + src + ' (' + line + ':' + col + ')';
+
+        var pre = document.createElement('pre');
+        pre.textContent = String(err);
+
+        overlay.appendChild(h2);
+        overlay.appendChild(pMsg);
+        overlay.appendChild(pSrc);
+        overlay.appendChild(pre);
         document.body.appendChild(overlay);
     });
 }
@@ -44,7 +63,11 @@ setTimeout(function () {
         if (bootScreen) {
             var errDiv = document.createElement('div');
             errDiv.style.cssText = 'position:absolute;bottom:60px;width:100%;text-align:center;color:#ff4757;font-size:13px;padding:0 20px;line-height:1.4;';
-            errDiv.innerHTML = '<strong>Boot Timeout</strong><br>Module loading error. Check browser console.';
+            var bStrong = document.createElement('strong');
+            bStrong.textContent = 'Boot Timeout';
+            errDiv.appendChild(bStrong);
+            errDiv.appendChild(document.createElement('br'));
+            errDiv.appendChild(document.createTextNode('Module loading error. Check browser console.'));
             bootScreen.appendChild(errDiv);
         }
     }

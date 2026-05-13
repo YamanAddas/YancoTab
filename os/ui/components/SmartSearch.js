@@ -342,7 +342,6 @@ export class SmartSearch {
 
     _executeCommand(cmd) {
         if (!cmd.action) return;
-        const { applyThemeMode } = (() => { try { return { applyThemeMode: null }; } catch { return {}; } })();
 
         switch (cmd.action) {
             case 'new-note': {

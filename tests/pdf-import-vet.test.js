@@ -12,15 +12,6 @@ function pdfBlob(payload = '%PDF-1.4\nfoo\n') {
     return new Blob([payload], { type: 'application/pdf' });
 }
 
-function fakeBlob(size, mime = 'application/pdf', payload = '%PDF-1.4\nfoo') {
-    // Pad / truncate to the requested size while keeping the magic header.
-    const head = '%PDF-';
-    let body = payload;
-    if (size <= head.length) body = head.slice(0, size);
-    else body = head + 'X'.repeat(Math.max(0, size - head.length));
-    return new Blob([body], { type: mime });
-}
-
 describe('isPdfBlob', () => {
     test('accepts blobs starting with %PDF-', async () => {
         const blob = pdfBlob();

@@ -6,7 +6,7 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    SEATS, TEAMS, CONTRACTS, TRIX_LAYOUT_SCORES,
+    CONTRACTS, TRIX_LAYOUT_SCORES,
     nextSeat, seatIndex, teamOf, partnerOf,
     cardKey, parseCardKey, isSameCard, rankValue,
     trickWinner, legalTrickPlays,

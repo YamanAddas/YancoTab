@@ -3,7 +3,7 @@ import { el, cssLink } from '../../utils/dom.js';
 import { safeSave } from '../../utils/safeSave.js';
 import { createStore } from './shared/store.js';
 import { trixReducer } from './trix/trixReducer.js';
-import { SEAT_NAMES, SEATS, partnerOf } from './trix/trixRules.js';
+import { SEAT_NAMES, partnerOf } from './trix/trixRules.js';
 import { initMatch } from './trix/trixState.js';
 import { chooseMove, chooseBotContract } from './trix/trixAI.js';
 import {

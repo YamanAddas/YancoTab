@@ -1,4 +1,4 @@
-import { el } from '../../utils/dom.js';
+import { el, setLiteralHtml } from '../../utils/dom.js';
 
 const MIN_W = 320;
 const MIN_H = 240;
@@ -69,7 +69,7 @@ export class WindowChrome {
       'aria-label': 'Close',
     });
     const closeIcon = el('span', { class: 'window-chrome__btn-icon' });
-    closeIcon.innerHTML = CLOSE_ICON;
+    setLiteralHtml(closeIcon, CLOSE_ICON);
     closeBtn.appendChild(closeIcon);
     closeBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     closeBtn.addEventListener('click', (e) => {
@@ -84,7 +84,7 @@ export class WindowChrome {
       'aria-label': 'Toggle fullscreen',
     });
     this._fsBtnIcon = el('span', { class: 'window-chrome__btn-icon' });
-    this._fsBtnIcon.innerHTML = EXPAND_ICON;
+    setLiteralHtml(this._fsBtnIcon, EXPAND_ICON);
     fsBtn.appendChild(this._fsBtnIcon);
     fsBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
     fsBtn.addEventListener('click', (e) => {
@@ -207,7 +207,6 @@ export class WindowChrome {
     }
     // West
     if (edge.includes('w')) {
-      const newW = Math.max(MIN_W, this._resizeStart.w - dx);
       const maxExpand = this._resizeStart.l + this._resizeStart.w - MIN_W;
       l = Math.max(0, Math.min(maxExpand, this._resizeStart.l + dx));
       w = this._resizeStart.l + this._resizeStart.w - l;
@@ -257,7 +256,7 @@ export class WindowChrome {
     };
     this._isFullscreen = true;
     this._chrome.classList.add('window-chrome--fullscreen');
-    this._fsBtnIcon.innerHTML = COLLAPSE_ICON;
+    setLiteralHtml(this._fsBtnIcon, COLLAPSE_ICON);
   }
 
   _exitFullscreen() {
@@ -269,7 +268,7 @@ export class WindowChrome {
       this._chrome.style.width = this._restoreRect.width;
       this._chrome.style.height = this._restoreRect.height;
     }
-    this._fsBtnIcon.innerHTML = EXPAND_ICON;
+    setLiteralHtml(this._fsBtnIcon, EXPAND_ICON);
   }
 
   // ─── Close ─────────────────────────────────────────────────

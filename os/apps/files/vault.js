@@ -17,13 +17,6 @@ import { applySmart, smartCounts } from './engine/smartRooms.js';
 import { breakdown } from './engine/storageBreakdown.js';
 import { iconOf } from './engine/fileType.js';
 
-const SMART_TONE = {
-  recent: 'smart',
-  pinned: 'smart',
-  heavy: 'warm',
-  forgotten: '',
-};
-
 const SMART_LABEL = {
   recent: 'Recent',
   pinned: 'Pinned',

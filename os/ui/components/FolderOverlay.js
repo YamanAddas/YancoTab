@@ -205,7 +205,7 @@ export class FolderOverlay {
   _onPointerUp(e) {
     if (!this._dragState.active) return;
 
-    const { active, hasMoved, itemWrapper, itemId } = this._dragState;
+    const { hasMoved, itemWrapper, itemId } = this._dragState;
 
     // Cleanup listeners
     window.removeEventListener('pointermove', this._onPointerMove);
