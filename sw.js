@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.2-pdf-reader-v3-fix-import-paths';
+const CACHE_NAME = 'yancotab-v1.5.3-pdf-reader-v3-fix-user-select';
 
 const PRECACHE = [
     './',

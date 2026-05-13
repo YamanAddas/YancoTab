@@ -288,6 +288,22 @@ body:not(.theme-light) .pdf-reader-v3 {
   color: transparent;
 }
 
+/* ── Selection enable inside the v3 stage ─────────────────────────
+   The mobileShell adds `body.is-mobile *` with
+   `user-select: none !important` globally. The PDF stage opts back
+   in via [data-allow-context="true"] (which the v3 stage element
+   already has, matching v2's mechanism). Selector specificity is
+   bumped with the `body` ancestor so we override the !important
+   rule from main.css. */
+body [data-allow-context="true"],
+body [data-allow-context="true"] *,
+body.is-mobile [data-allow-context="true"],
+body.is-mobile [data-allow-context="true"] * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
 /* ── Highlights (applied via highlightRender.js) ──────────────────── */
 .pdf-textlayer mark.pdf-hl {
   color: transparent;
