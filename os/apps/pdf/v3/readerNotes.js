@@ -49,6 +49,20 @@ export function createNotesSubsystem({
   let pendingPlacement = null;   // { page, x, y } from the noteTool click
   let highlightContext = null;   // { annId, page, prevBody } — set when popover is opened for a highlight
 
+  /**
+   * Programmatically open the "new sticky note" popover at the given
+   * page-fractional coords. Used by the context menu's "Add note
+   * here" entry so the user doesn't need to switch to the note tool
+   * first.
+   */
+  function placeNewNote({ page, fx, fy, clientX, clientY } = {}) {
+    if (!Number.isFinite(page)) return;
+    if (!Number.isFinite(fx) || !Number.isFinite(fy)) return;
+    pendingPlacement = { page, x: fx, y: fy };
+    highlightContext = null;
+    popover.showAt({ clientX, clientY, page });
+  }
+
   const tool = createNoteTool({
     onPlace: ({ page, x, y, clientX, clientY }) => {
       pendingPlacement = { page, x, y };
@@ -222,6 +236,7 @@ export function createNotesSubsystem({
     tool,
     onPipClick,
     openForHighlight,
+    placeNewNote,
     destroy,
   };
 }

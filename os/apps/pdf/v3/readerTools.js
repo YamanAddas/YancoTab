@@ -276,6 +276,9 @@ export function setupTools({
     /** Open the note popover anchored to an existing highlight to add /
      *  edit its attached comment body. */
     openNoteForHighlight: notes.openForHighlight,
+    /** Open the "new sticky note" popover at the given page-fractional
+     *  coords, without requiring the user to switch to the note tool. */
+    placeNewNote: notes.placeNewNote,
     /** Bake-redactions action surfaced to the More menu. */
     bakeRedactions: () => redact.bake(),
     destroy,

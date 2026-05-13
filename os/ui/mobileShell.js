@@ -680,6 +680,12 @@ export class MobileShell {
       // it handled the menu itself — don't show the grid menu.
       if (e.defaultPrevented) return;
       if (e.target.closest('.app-icon') || e.target.closest('.m-dock')) return; // handled by MobileInteraction
+      // Apps that handle their own context menu (PDF reader, etc.) opt
+      // out via [data-allow-context="true"]. Walk parent-element first
+      // because a text-node target has no .closest.
+      const t = e.target;
+      const probe = t?.nodeType === 3 ? t.parentElement : t;
+      if (probe?.closest?.('[data-allow-context="true"]')) return;
       e.preventDefault();
       this.components.contextMenu.show({ type: 'grid', x: e.clientX, y: e.clientY }, e.clientX, e.clientY);
     });

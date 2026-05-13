@@ -107,6 +107,8 @@ export function createSelectionLayer({
     hidePill: () => pill.hide(),
     commitHighlight,
     clear,
+    getLastSelection: () => lastSelection,
+    getSelectionRect: () => selectionRectScreen,
     destroy,
   };
 }

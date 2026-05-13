@@ -40,6 +40,7 @@ import { createColorController } from './readerColor.js';
 import { createZoomController } from './readerZoom.js';
 import { createViewModeController } from './readerViewMode.js';
 import { createReaderOps } from './readerOps.js';
+import { createContextMenuController } from './readerContextMenu.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -292,6 +293,18 @@ export function buildReader({
     if (docId) memory.save(docId, { page: currentPage });
   }
 
+  const ctxMenu = createContextMenuController({
+    stage, kernel, onToast,
+    selectionLayer, tools,
+    searchBar, search, toolbar, sidebar,
+    getColor: () => colorCtrl?.getColor?.(),
+    getPdfDoc: () => pdfDoc,
+    getDocId: () => docId,
+    getCurrentPage: () => currentPage,
+    goToPage,
+    commitHighlight,
+  });
+
   const scrollTracker = createScrollTracker({
     stage, stripRoot: strip.root,
     getPdfDoc: () => pdfDoc,
@@ -418,6 +431,7 @@ export function buildReader({
     document.removeEventListener('fullscreenchange', onFullscreenChange);
     memory.flushAll();
     selectionLayer.destroy();
+    ctxMenu.destroy();
     tools.destroy();
     markPopover.destroy();
     morePopover.destroy();

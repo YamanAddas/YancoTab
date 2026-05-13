@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.6-pdf-highlight-notes';
+const CACHE_NAME = 'yancotab-v1.6.7-pdf-context-menu';
 
 const PRECACHE = [
     './',
@@ -301,6 +301,8 @@ const PRECACHE = [
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerSelection.js',
+    './os/apps/pdf/v3/readerContextMenu.js',
+    './os/apps/pdf/v3/chrome/pdfContextMenu.js',
     './os/apps/pdf/v3/readerTools.js',
     './os/apps/pdf/v3/readerPageOps.js',
     './os/apps/pdf/v3/readerMarkActions.js',
