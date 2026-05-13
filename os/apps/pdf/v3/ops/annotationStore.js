@@ -80,6 +80,21 @@ export function createAnnotationStore(pdfStore) {
     return pdfStore.deleteAnnotation(id);
   }
 
+  /** Read an annotation by id (used by undo to snapshot before mutating). */
+  async function getOne(id) {
+    if (!Number.isFinite(id)) return null;
+    return pdfStore.getAnnotation(id);
+  }
+
+  /** Re-insert a previously-deleted annotation. Returns the record with a fresh id. */
+  async function addRaw(docId, record) {
+    if (!docId || !record) return null;
+    const clone = { ...record };
+    delete clone.id;
+    delete clone.docId;
+    return pdfStore.addAnnotation(docId, clone);
+  }
+
   /**
    * Change an annotation's color in place (most common edit operation
    * from the context menu).
@@ -146,6 +161,8 @@ export function createAnnotationStore(pdfStore) {
     addInk,
     addShape,
     addSignature,
+    addRaw,
+    getOne,
     listTextAnchoredOnPage,
     listAllOnPage,
     listNonTextOnPage,

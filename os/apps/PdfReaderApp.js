@@ -425,6 +425,16 @@ export class PdfReaderApp extends App {
 
         // Reader-mode arrows / page-jump.
         if (this._reader && this._reader.getDocId()) {
+            // Undo / redo come first so Ctrl+Z doesn't fall into other Ctrl+ branches.
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+                this._reader.undo?.(); e.preventDefault(); return;
+            }
+            if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'z' || e.key === 'Z')) {
+                this._reader.redo?.(); e.preventDefault(); return;
+            }
+            if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+                this._reader.redo?.(); e.preventDefault(); return;
+            }
             if (e.key === 'ArrowLeft' || e.key === 'PageUp')         { this._reader.keyMove(-1); e.preventDefault(); }
             else if (e.key === 'ArrowRight' || e.key === 'PageDown') { this._reader.keyMove(1);  e.preventDefault(); }
             else if (e.key === 'Home')                               { this._reader.keyJump('first'); e.preventDefault(); }

@@ -44,6 +44,8 @@ export const ICONS = {
   bookmark:    wrap('<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>'),
   close:       wrap('<path d="M18 6 6 18M6 6l12 12"/>'),
   back:        wrap('<path d="M19 12H5M12 19l-7-7 7-7"/>'),
+  undo:        wrap('<path d="M3 7v6h6"/><path d="M3 13a9 9 0 1 0 3-7.7"/>'),
+  redo:        wrap('<path d="M21 7v6h-6"/><path d="M21 13a9 9 0 1 1-3-7.7"/>'),
 };
 
 /**

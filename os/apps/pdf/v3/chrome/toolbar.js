@@ -19,6 +19,7 @@ export function buildToolbar({
   onZoomIn, onZoomOut, onZoomReset,
   onClose, onToggleSidebar,
   onSelectTool,
+  onUndo, onRedo,
 } = {}) {
   const root = el('div', { class: 'pdf-toolbar' });
 
@@ -77,6 +78,13 @@ export function buildToolbar({
   textToolBtn.classList.add('is-active');
   const toolsCluster = el('div', { class: 'pdf-tb-cluster' }, [textToolBtn, inkToolBtn, shapeToolBtn, signToolBtn]);
 
+  // ── Edit cluster (undo / redo) ──
+  const undoBtn = iconBtn(ICONS.undo, 'Undo (Ctrl+Z)', () => onUndo?.());
+  const redoBtn = iconBtn(ICONS.redo, 'Redo (Ctrl+Shift+Z)', () => onRedo?.());
+  undoBtn.disabled = true;
+  redoBtn.disabled = true;
+  const editCluster = el('div', { class: 'pdf-tb-cluster' }, [undoBtn, redoBtn]);
+
   // ── Actions cluster ──
   const closeBtn = iconBtn(ICONS.close, 'Close PDF', () => onClose?.());
   const actCluster = el('div', { class: 'pdf-tb-cluster' }, [closeBtn]);
@@ -85,7 +93,8 @@ export function buildToolbar({
     sidebarCluster, divider(),
     navCluster, divider(),
     zoomCluster, divider(),
-    toolsCluster, titleEl, actCluster,
+    toolsCluster, divider(),
+    editCluster, titleEl, actCluster,
   );
 
   function toolBtn(toolId, svgHtml, title) {
@@ -123,6 +132,10 @@ export function buildToolbar({
     setTitle(t) { titleEl.textContent = t || ''; },
     setActiveTool(toolId) {
       for (const [id, btn] of toolBtns) btn.classList.toggle('is-active', id === toolId);
+    },
+    setUndoState({ canUndo, canRedo } = {}) {
+      undoBtn.disabled = !canUndo;
+      redoBtn.disabled = !canRedo;
     },
   };
 }

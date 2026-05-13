@@ -72,6 +72,18 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
     m.api?.update?.(data);
   }
 
+  /**
+   * Invoke an arbitrary method on a mounted tab's api (e.g. refreshOps).
+   * No-op if the tab is not yet mounted or the method doesn't exist.
+   */
+  function callTab(id, method, ...args) {
+    const m = mounted.get(id);
+    if (!m) return undefined;
+    const fn = m.api?.[method];
+    if (typeof fn !== 'function') return undefined;
+    try { return fn.apply(m.api, args); } catch { /* best-effort */ return undefined; }
+  }
+
   function updateAll(data) {
     for (const [id, m] of mounted) {
       m.api?.update?.(data?.[id] ?? data);
@@ -94,6 +106,7 @@ export function buildSidebar({ tabs = [], initial = null } = {}) {
     activate,
     updateTab,
     updateAll,
+    callTab,
     setCollapsed,
     getActive() { return activeId; },
     destroy,

@@ -318,6 +318,13 @@ export class PdfStore {
         });
     }
 
+    async getAnnotation(id) {
+        if (!id) return null;
+        return this._tx(STORE_ANNOTATIONS, 'readonly', async (tx) => {
+            return this._request(tx.objectStore(STORE_ANNOTATIONS).get(id));
+        });
+    }
+
     async addAnnotation(docId, ann) {
         if (!docId || !ann) return null;
         return this._tx(STORE_ANNOTATIONS, 'readwrite', async (tx) => {

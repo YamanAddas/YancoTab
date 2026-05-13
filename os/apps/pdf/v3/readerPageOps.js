@@ -23,24 +23,38 @@ export function createPageOpsController({
   stage,
   toolbar,
   getZoom,
+  undoStack,
+  describe,    // optional (prev, next) → label string for the undo entry
 }) {
-  async function mutate(fn) {
+  async function applyState(state) {
     const docId = getDocId();
     if (!docId) return;
-    const prev = getPageOps();
-    const next = fn(prev);
-    if (next === prev) return;
-    setPageOps(next);
+    setPageOps(state);
     try {
       await savePageOps(pdfStore, docId, {
-        pageRotations: next.pageRotations,
-        pageOmits: next.pageOmits,
-        pageOrder: next.pageOrder,
+        pageRotations: state.pageRotations,
+        pageOmits: state.pageOmits,
+        pageOrder: state.pageOrder,
       });
     } catch { /* best-effort */ }
     try { await strip.rebuildForOpsChange?.(); } catch { /* best-effort */ }
     sidebar.callTab?.('thumbs', 'refreshOps');
-    realignCurrentPage(next);
+    realignCurrentPage(state);
+  }
+
+  async function mutate(fn) {
+    const prev = getPageOps();
+    const next = fn(prev);
+    if (next === prev) return;
+    await applyState(next);
+    if (undoStack) {
+      const label = (typeof describe === 'function' && describe(prev, next)) || 'page op';
+      undoStack.push({
+        label,
+        undo: () => applyState(prev),
+        redo: () => applyState(next),
+      });
+    }
   }
 
   function realignCurrentPage(state) {

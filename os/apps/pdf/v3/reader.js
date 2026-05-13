@@ -26,7 +26,7 @@ import { createSelectionWatcher } from './select/selectionWatcher.js';
 import { createAnnotationStore } from './ops/annotationStore.js';
 import { commitSelectionAsHighlight } from './ops/highlightCommit.js';
 import { createReadingMemory, resolveViewState, isResumable } from '../engine/reading.js';
-import { buildMarkPopover } from './chrome/markPopover.js';
+import { createMarkActions } from './readerMarkActions.js';
 import { buildSearchBar } from './chrome/searchBar.js';
 import { createSearchController } from './ops/searchController.js';
 import { setupTools } from './readerTools.js';
@@ -81,13 +81,8 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     saveViewState: (id, patch) => pdfStore.saveViewState(id, patch),
   });
 
-  // Forward-declared so the undo stack can call into it via closure
-  // before `toolbar` is assigned a few lines below.
-  let toolbarRef = null;
   const undoStack = createUndoStack({
-    onChange: ({ canUndo, canRedo }) => {
-      toolbarRef?.setUndoState?.({ canUndo, canRedo });
-    },
+    onChange: (s) => toolbar?.setUndoState?.(s),
   });
 
   // ── Toolbar ──
@@ -104,7 +99,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     onUndo: () => undoStack.undo(),
     onRedo: () => undoStack.redo(),
   });
-  toolbarRef = toolbar;
 
   // ── Sidebar ──
   const thumbsTab = buildThumbnailsTab({
@@ -194,10 +188,6 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     }),
     getPageOps: () => pageOps,
     onPageMounted: (pageNum) => {
-      // Update toolbar's page indicator using the most-visible page.
-      // For simplicity, we report the latest-mounted page as "current."
-      // A more accurate "current page" comes via scroll position
-      // tracking — Phase C will add that.
       if (pageNum < currentPage) currentPage = pageNum;
       toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
     },
@@ -207,24 +197,8 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
   strip.root.style.display = 'none';
 
   // ── Mark popover (click on existing highlight) ──
-  const markPopover = buildMarkPopover({
-    onChangeColor: async (annId, color) => {
-      try {
-        await annStore.updateColor(annId, color);
-        // Refresh the page that owned the mark. We don't track which page
-        // hosts which annotation in this controller; refresh all visible.
-        await strip.refreshAllHighlights();
-      } catch { /* best-effort */ }
-    },
-    onDelete: async (annId) => {
-      try {
-        await annStore.deleteOne(annId);
-        await strip.refreshAllHighlights();
-        onToast?.({ message: 'Highlight deleted', type: 'success' });
-      } catch {
-        onToast?.({ message: 'Delete failed', type: 'error' });
-      }
-    },
+  const markPopover = createMarkActions({
+    annStore, strip, undoStack, onToast,
   });
 
   // ── Selection pill ──
@@ -385,6 +359,14 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     setCurrentPage: (n) => { currentPage = n; },
     strip, sidebar, stage, toolbar,
     getZoom: () => userZoom,
+    undoStack,
+    describe: (prev, next) => {
+      const prevOmits = prev.pageOmits.length;
+      const nextOmits = next.pageOmits.length;
+      if (nextOmits > prevOmits) return 'delete page';
+      if (nextOmits < prevOmits) return 'restore page';
+      return 'rotate page';
+    },
   });
   const mutatePageOps = pageOpsCtrl.mutate;
 
@@ -469,6 +451,7 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
     lastSelection = null;
     selectionRectScreen = null;
     pageOps = emptyPageOps();
+    undoStack.clear();
     pill.hide();
     toolbar.update({ page: 1, totalPages: 0, zoom: userZoom });
     sidebar.updateTab('thumbs', { totalPages: 0 });
@@ -490,6 +473,8 @@ export function buildReader({ pdfStore, kernel, onToast, onClose } = {}) {
 
   return {
     root, load, close, destroy,
+    undo: () => undoStack.undo(),
+    redo: () => undoStack.redo(),
     keyMove(delta) { goToPage(currentPage + delta); },
     keyJump(where) {
       if (where === 'first') goToPage(1);

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.4-pdf-page-ops';
+const CACHE_NAME = 'yancotab-v1.5.5-pdf-undo';
 
 const PRECACHE = [
     './',
@@ -283,6 +283,8 @@ const PRECACHE = [
     './os/apps/pdf/v3/tools/toolDispatcher.js',
     './os/apps/pdf/v3/readerTools.js',
     './os/apps/pdf/v3/readerPageOps.js',
+    './os/apps/pdf/v3/readerMarkActions.js',
+    './os/apps/pdf/v3/ops/undoStack.js',
     './os/apps/pdf/v3/render/annotationLayer.js',
     './os/apps/pdf/v3/render/inkRender.js',
     './os/apps/pdf/v3/render/shapeRender.js',
