@@ -135,6 +135,15 @@ export function createAnnotationStore(pdfStore) {
 
   // ── Signature instances (Phase D4) ──────────────────────────
 
+  async function addRedact({ docId, page, x, y, w, h } = {}) {
+    if (!docId || !Number.isFinite(page)) return null;
+    if (![x, y, w, h].every(Number.isFinite)) return null;
+    if (w <= 0 || h <= 0) return null;
+    return pdfStore.addAnnotation(docId, {
+      kind: 'redact', page, x, y, w, h, baked: false,
+    });
+  }
+
   async function addSignature({ docId, page, imageDataUrl, x, y, w, h } = {}) {
     if (!docId || !Number.isFinite(page)) return null;
     if (typeof imageDataUrl !== 'string') return null;
@@ -185,6 +194,7 @@ export function createAnnotationStore(pdfStore) {
     addInk,
     addShape,
     addSignature,
+    addRedact,
     addNote,
     addRaw,
     getOne,

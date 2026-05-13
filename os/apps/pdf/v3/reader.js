@@ -233,9 +233,10 @@ export function buildReader({
     getDocId: () => docId, getProperties,
     onShowProperties, onExportAnnotations,
     onMerge: () => ops.openMerge(), onSplit: () => ops.openSplit(),
+    onRedactMode: () => tools.dispatcher.setActive('redact'),
+    onBakeRedactions: () => tools.bakeRedactions(),
   });
   document.body.appendChild(morePopover.root);
-
   const pill = buildSelectionPill({
     onColor: (color) => {
       colorCtrl?.setColor?.(color);
@@ -251,15 +252,14 @@ export function buildReader({
   });
 
   const tools = setupTools({
-    stage, strip, annStore, toolbar, kernel, onToast,
-    getDocId: () => docId,
-    undoStack,
+    stage, strip, annStore, pdfStore, toolbar, kernel, onToast,
+    getDocId: () => docId, getDocTitle: () => docTitle,
+    onOpenDoc, undoStack,
   });
   const dispatcher = tools.dispatcher;
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
   root.append(toolbar.root, ...tools.subToolbarNodes, main, pill.root, markPopover.root);
-
   function toggleSearch() {
     if (searchBar.isOpen()) {
       searchBar.hide();

@@ -52,19 +52,11 @@ export function buildAnnotationLayer({ viewBoxWidth, viewBoxHeight }) {
     for (const ann of annotations) {
       if (!ann) continue;
       switch (ann.kind) {
-        case 'ink':
-          renderInk(ann);
-          break;
-        case 'shape':
-          renderShape(ann);
-          break;
-        case 'signature':
-          renderSignature(ann);
-          break;
-        // Phase D2 only has ink; shapes + signature are stubs that
-        // become real in D3/D4.
-        default:
-          break;
+        case 'ink':       renderInk(ann); break;
+        case 'shape':     renderShape(ann); break;
+        case 'signature': renderSignature(ann); break;
+        case 'redact':    renderRedact(ann); break;
+        default: break;
       }
     }
   }
@@ -86,6 +78,28 @@ export function buildAnnotationLayer({ viewBoxWidth, viewBoxHeight }) {
   function renderShape(ann) {
     const node = buildShapeElement(ann, viewBoxWidth, viewBoxHeight);
     if (node) annsG.appendChild(node);
+  }
+
+  function renderRedact(ann) {
+    const x = (ann.x || 0) * viewBoxWidth;
+    const y = (ann.y || 0) * viewBoxHeight;
+    const w = (ann.w || 0) * viewBoxWidth;
+    const h = (ann.h || 0) * viewBoxHeight;
+    if (w <= 0 || h <= 0) return;
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', String(x));
+    rect.setAttribute('y', String(y));
+    rect.setAttribute('width', String(w));
+    rect.setAttribute('height', String(h));
+    rect.setAttribute('class', ann.baked ? 'pdf-ann-redact pdf-ann-redact-baked' : 'pdf-ann-redact');
+    rect.setAttribute('fill', '#000');
+    if (!ann.baked) {
+      rect.setAttribute('stroke', '#ffde59');
+      rect.setAttribute('stroke-width', '1.5');
+      rect.setAttribute('stroke-dasharray', '4 3');
+    }
+    if (Number.isFinite(ann.id)) rect.dataset.annId = String(ann.id);
+    annsG.appendChild(rect);
   }
 
   function renderSignature(ann) {

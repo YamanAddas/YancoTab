@@ -1760,3 +1760,16 @@ body.is-mobile [data-allow-context="true"] * {
   font-size: 12px;
   color: var(--pdf-toolbar-text-dim);
 }
+
+/* ── Redact annotations (live + baked) ───────────────────────────── */
+.pdf-ann-redact {
+  /* Live (unbaked): dashed yellow border around an opaque black fill
+     to mimic Acrobat's redact look. */
+  pointer-events: none;
+}
+.pdf-ann-redact-baked {
+  /* Once baked, no border — looks like a permanent black bar. */
+}
+.pdf-redact-preview {
+  pointer-events: none;
+}

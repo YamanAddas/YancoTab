@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.2-pdf-split';
+const CACHE_NAME = 'yancotab-v1.6.3-pdf-redact';
 
 const PRECACHE = [
     './',
@@ -293,6 +293,9 @@ const PRECACHE = [
     './os/apps/pdf/v3/chrome/splitModal.js',
     './os/apps/pdf/v3/ops/split.js',
     './os/apps/pdf/v3/readerSplit.js',
+    './os/apps/pdf/v3/tools/redactTool.js',
+    './os/apps/pdf/v3/ops/redactBake.js',
+    './os/apps/pdf/v3/readerRedact.js',
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerTools.js',

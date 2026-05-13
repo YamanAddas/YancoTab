@@ -1,8 +1,8 @@
 /**
  * pdf/v3/readerMore.js — "More" popover wiring for the v3 reader.
  *
- * Owns the toolbar's ⋯ menu. Merge/Split/Compare/Redact get enabled as
- * each feature lands; the modal itself is built by the orchestrator.
+ * Owns the toolbar's ⋯ menu. Entries get enabled as each feature lands;
+ * unsupplied callbacks stay greyed out.
  *
  * Target size: ≤ 70 lines.
  */
@@ -17,7 +17,8 @@ export function createReaderMore({
   onMerge,
   onSplit,
   onCompare,
-  onRedact,
+  onRedactMode,
+  onBakeRedactions,
 }) {
   const popover = buildMorePopover({
     items: [
@@ -27,7 +28,9 @@ export function createReaderMore({
       { id: 'merge', label: 'Merge PDFs', disabled: !onMerge },
       { id: 'split', label: 'Split pages', disabled: !onSplit },
       { id: 'compare', label: 'Compare', disabled: !onCompare },
-      { id: 'redact', label: 'Redact', disabled: !onRedact },
+      { separator: true },
+      { id: 'redactMode', label: 'Redact mode', disabled: !onRedactMode },
+      { id: 'bakeRedactions', label: 'Bake redactions', disabled: !onBakeRedactions },
     ],
     onSelect: (id) => {
       const docId = getDocId();
@@ -36,7 +39,8 @@ export function createReaderMore({
       else if (id === 'merge') onMerge?.();
       else if (id === 'split') onSplit?.();
       else if (id === 'compare') onCompare?.();
-      else if (id === 'redact') onRedact?.();
+      else if (id === 'redactMode') onRedactMode?.();
+      else if (id === 'bakeRedactions') onBakeRedactions?.();
     },
   });
   return popover;

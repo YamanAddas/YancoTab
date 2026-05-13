@@ -23,6 +23,7 @@ import { createSignTool } from './tools/signTool.js';
 import { createHandTool } from './tools/handTool.js';
 import { createToolDispatcher } from './tools/toolDispatcher.js';
 import { createNotesSubsystem } from './readerNotes.js';
+import { createRedactController } from './readerRedact.js';
 
 const SIG_STORAGE_KEY = 'yancotab_pdf_signatures';
 
@@ -30,11 +31,14 @@ export function setupTools({
   stage,
   strip,
   annStore,
+  pdfStore,       // for redact bake
   getDocId,
+  getDocTitle,
   toolbar,        // main toolbar; we call toolbar.setActiveTool() on tool change
   kernel,         // for signature storage
   onToast,
   undoStack,      // optional: pushed onto when annotations commit
+  onOpenDoc,
 }) {
   // ── Ink ──
   const inkToolbar = buildInkToolbar({
@@ -231,6 +235,19 @@ export function setupTools({
     onPointerCancel: (e) => signTool.onPointerCancel(e),
   });
 
+  // ── Redact (rect-select + bake) ──
+  const redact = createRedactController({
+    pdfStore, annStore, strip, undoStack,
+    getDocId, getDocTitle, onToast, onOpenDoc,
+  });
+  dispatcher.register('redact', {
+    setActive: (on) => redact.tool.setActive(on),
+    onPointerDown:   (e) => redact.tool.onPointerDown(e),
+    onPointerMove:   (e) => redact.tool.onPointerMove(e),
+    onPointerUp:     (e) => redact.tool.onPointerUp(e),
+    onPointerCancel: (e) => redact.tool.onPointerCancel(e),
+  });
+
   // ── Notes (sticky comments) ──
   const notes = createNotesSubsystem({
     annStore, strip, undoStack, onToast, getDocId, dispatcher,
@@ -256,6 +273,8 @@ export function setupTools({
     subToolbarNodes: [inkToolbar.root, shapeToolbar.root, signToolbar.root],
     /** Callback the page strip routes note-pip clicks into. */
     onNotePipClick: notes.onPipClick,
+    /** Bake-redactions action surfaced to the More menu. */
+    bakeRedactions: () => redact.bake(),
     destroy,
   };
 }
