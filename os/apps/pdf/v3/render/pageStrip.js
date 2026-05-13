@@ -29,6 +29,7 @@ export function buildPageStrip({
   onPageMounted,           // (pageNum, pageEl) called after first render
   onNotePipClick,          // (note, rect) → open note popover in edit mode
   getPageOps,              // () → { pageRotations, pageOmits, pageOrder } | null
+  getLayoutMode,           // () → 'single' | 'continuous' | 'spread' | 'book'
 } = {}) {
   const root = el('div', { class: 'pdf-strip' });
   const slots = new Map();       // pageNum → { el, view, rendered, observer }
@@ -50,6 +51,40 @@ export function buildPageStrip({
     return (ops && ops.pageRotations && ops.pageRotations[p]) || 0;
   }
 
+  function currentMode() {
+    try {
+      const m = getLayoutMode?.();
+      return (m === 'single' || m === 'spread' || m === 'book') ? m : 'continuous';
+    } catch { return 'continuous'; }
+  }
+
+  function visiblePages() {
+    if (!pdfDoc) return [];
+    const total = pdfDoc.numPages;
+    const out = [];
+    for (let p = 1; p <= total; p++) if (!isOmitted(p)) out.push(p);
+    return out;
+  }
+
+  /** Build rows: array of arrays of page numbers, one per visual row. */
+  function buildRowLayout(mode) {
+    const pages = visiblePages();
+    if (mode === 'continuous') return pages.map((p) => [p]);
+    if (mode === 'single') return pages.map((p) => [p]);   // same DOM; CSS hides others
+    if (mode === 'spread') {
+      const rows = [];
+      for (let i = 0; i < pages.length; i += 2) rows.push(pages.slice(i, i + 2));
+      return rows;
+    }
+    if (mode === 'book') {
+      const rows = [];
+      if (pages.length) rows.push([null, pages[0]]);   // cover-style first row
+      for (let i = 1; i < pages.length; i += 2) rows.push(pages.slice(i, i + 2));
+      return rows;
+    }
+    return pages.map((p) => [p]);
+  }
+
   async function prepareSlots(doc, hostEl, { zoom = 1.0 } = {}) {
     pdfDoc = doc;
     scrollHost = hostEl;
@@ -57,23 +92,39 @@ export function buildPageStrip({
     teardown();
     if (!pdfDoc) return;
 
-    // First page sizes the strip. We measure page 1 once, assume same
-    // size for all pages, and let later renders correct individual
-    // pages if they differ (e.g. landscape inserts).
     const firstPage = await pdfDoc.getPage(1);
     const baseVp = firstPage.getViewport({ scale: zoom });
     const slotW = Math.round(baseVp.width);
     const slotH = Math.round(baseVp.height);
 
-    const total = pdfDoc.numPages;
-    for (let p = 1; p <= total; p++) {
-      if (isOmitted(p)) continue;  // skip pages the user deleted
-      const slotEl = el('div', { class: 'pdf-strip-slot', 'data-pending': '1' });
-      slotEl.style.width = `${slotW}px`;
-      slotEl.style.height = `${slotH}px`;
-      slotEl.dataset.page = String(p);
-      root.appendChild(slotEl);
-      slots.set(p, { el: slotEl, view: null, rendered: false });
+    const mode = currentMode();
+    root.classList.toggle('mode-single', mode === 'single');
+    root.classList.toggle('mode-spread', mode === 'spread');
+    root.classList.toggle('mode-book', mode === 'book');
+    root.classList.toggle('mode-continuous', mode === 'continuous');
+
+    const rows = buildRowLayout(mode);
+    const wrapInRows = (mode === 'spread' || mode === 'book');
+
+    for (const rowPages of rows) {
+      const rowEl = wrapInRows ? el('div', { class: 'pdf-strip-row' }) : null;
+      for (const p of rowPages) {
+        if (p == null) {
+          // Book-mode cover placeholder (no left page on first row).
+          const ph = el('div', { class: 'pdf-strip-slot pdf-strip-empty' });
+          ph.style.width = `${slotW}px`;
+          ph.style.height = `${slotH}px`;
+          if (rowEl) rowEl.appendChild(ph); else root.appendChild(ph);
+          continue;
+        }
+        const slotEl = el('div', { class: 'pdf-strip-slot', 'data-pending': '1' });
+        slotEl.style.width = `${slotW}px`;
+        slotEl.style.height = `${slotH}px`;
+        slotEl.dataset.page = String(p);
+        if (rowEl) rowEl.appendChild(slotEl); else root.appendChild(slotEl);
+        slots.set(p, { el: slotEl, view: null, rendered: false });
+      }
+      if (rowEl) root.appendChild(rowEl);
     }
 
     observer = new IntersectionObserver(onIntersect, {
@@ -220,6 +271,10 @@ export function buildPageStrip({
   function scrollToPage(pageNum, host = scrollHost) {
     const slot = slots.get(pageNum);
     if (!slot || !host) return;
+    // In single mode, mark this page as the current one so CSS reveals it.
+    if (currentMode() === 'single') {
+      for (const [p, s] of slots) s.el.classList.toggle('is-current', p === pageNum);
+    }
     const r = slot.el.getBoundingClientRect();
     const hostR = host.getBoundingClientRect();
     host.scrollTop += r.top - hostR.top - 12;
@@ -253,12 +308,18 @@ export function buildPageStrip({
   }
 
   /**
-   * Rebuild the strip after pageOps changes (rotate/delete/restore).
+   * Rebuild the strip after pageOps or layout-mode changes.
    * Re-uses the stored pdfDoc + scrollHost + zoom.
    */
   async function rebuildForOpsChange() {
     if (!pdfDoc || !scrollHost) return;
     await prepareSlots(pdfDoc, scrollHost, { zoom: lastZoom });
+  }
+
+  /** Update the active-slot class so single-mode CSS reveals the right page. */
+  function setCurrentPage(pageNum) {
+    if (currentMode() !== 'single') return;
+    for (const [p, s] of slots) s.el.classList.toggle('is-current', p === pageNum);
   }
 
   return {
@@ -273,6 +334,7 @@ export function buildPageStrip({
     refreshAllNonTextAnnotations,
     refreshNotesForPage,
     refreshAllNotes,
+    setCurrentPage,
     getAnnotationLayerForPage,
     setAllToolsActive,
     scrollToPage,

@@ -40,6 +40,7 @@ import { createReaderMore } from './readerMore.js';
 import { createScrollTracker } from './readerScroll.js';
 import { createColorController } from './readerColor.js';
 import { createZoomController } from './readerZoom.js';
+import { createViewModeController } from './readerViewMode.js';
 
 const PDFJS_URL = 'vendor/pdfjs/pdf.min.mjs';
 const PDFJS_WORKER_URL = 'vendor/pdfjs/pdf.worker.min.mjs';
@@ -72,6 +73,7 @@ export function buildReader({
   let lastSelection = null;   // { page, charStart, charEnd, text } | { segments: [...] }
   let selectionRectScreen = null;
   let pageOps = emptyPageOps();   // { pageRotations, pageOmits, pageOrder }
+  let viewMode = 'continuous';
 
   const annStore = createAnnotationStore(pdfStore);
   const memory = createReadingMemory({
@@ -194,12 +196,11 @@ export function buildReader({
       currentMatch: search.getCurrent(),
     }),
     getPageOps: () => pageOps,
+    getLayoutMode: () => viewMode,
     onPageMounted: (pageNum) => {
       if (pageNum < currentPage) currentPage = pageNum;
       toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
     },
-    // Deferred — tools subsystem is built below; strip only calls this
-    // on a user click after construction is complete.
     onNotePipClick: (note, rect) => tools?.onNotePipClick?.(note, rect),
   });
   stage.appendChild(strip.root);
@@ -213,6 +214,14 @@ export function buildReader({
     getTotalPages: () => totalPages,
     saveZoom: (z) => { userZoom = z; if (docId) memory.save(docId, { zoom: z }); },
     initialZoom: userZoom,
+  });
+
+  const viewModeCtrl = createViewModeController({
+    toolbar, strip, stage,
+    getPdfDoc: () => pdfDoc,
+    getCurrentPage: () => currentPage,
+    saveMode: (m) => { viewMode = m; if (docId) memory.save(docId, { mode: m }); },
+    initial: viewMode,
   });
 
   const markPopover = createMarkActions({
@@ -247,8 +256,6 @@ export function buildReader({
     undoStack,
   });
   const dispatcher = tools.dispatcher;
-
-  // Layout: toolbar + (per-tool sub-toolbars) + sidebar/stage row.
   const main = el('div', { class: 'pdf-main' });
   main.append(sidebar.root, stage);
   root.append(toolbar.root, ...tools.subToolbarNodes, main, pill.root, markPopover.root);
@@ -265,7 +272,6 @@ export function buildReader({
     }
   }
 
-  // Capture-phase: fires before the textLayer's selection-start.
   stage.addEventListener('pointerdown', (e) => {
     const mark = e.target?.closest?.('mark.pdf-hl');
     if (!mark) return;
@@ -294,14 +300,9 @@ export function buildReader({
     },
   });
 
-  function clampPage(n) {
-    if (!Number.isFinite(n)) return 1;
-    return Math.max(1, Math.min(totalPages || 1, Math.floor(n)));
-  }
-
   function goToPage(n) {
-    const next = clampPage(n);
-    if (!pdfDoc) return;
+    if (!pdfDoc || !Number.isFinite(n)) return;
+    const next = Math.max(1, Math.min(totalPages || 1, Math.floor(n)));
     currentPage = next;
     strip.scrollToPage(next, stage);
     toolbar.update({ page: currentPage, totalPages, zoom: userZoom });
@@ -383,8 +384,7 @@ export function buildReader({
     totalPages = pdfDoc.numPages;
     currentPage = 1;
 
-    // Load per-page rotations / omits BEFORE prepareSlots so the strip
-    // and thumbs render with the saved mutations on first paint.
+    // Load page rotations/omits before prepareSlots so first paint is right.
     try { pageOps = await loadPageOps(pdfStore, docId); }
     catch { pageOps = emptyPageOps(); }
 
@@ -392,10 +392,8 @@ export function buildReader({
     strip.root.style.display = '';
     toolbar.setTitle(docTitle);
 
-    // One-shot v1→v2 highlight migration (lazy + idempotent).
-    if (kernel) await runMigration();
+    if (kernel) await runMigration();   // v1→v2 highlight migration
 
-    // Restore reading position if any.
     let resumePage = 1;
     try {
       const saved = await memory.load(docId);
@@ -403,11 +401,13 @@ export function buildReader({
       if (v) {
         if (typeof v.zoom === 'number') userZoom = v.zoom;
         if (isResumable(v)) resumePage = v.page;
+        if (v.mode) { viewMode = v.mode; viewModeCtrl.setActiveSilent(viewMode); }
       }
     } catch { /* best-effort */ }
     currentPage = Math.min(resumePage, totalPages);
 
     await strip.prepareSlots(pdfDoc, stage, { zoom: userZoom });
+    strip.setCurrentPage?.(currentPage);
     toolbar.update({ page: currentPage, totalPages, zoom: userZoom, title: docTitle });
     sidebar.updateTab('thumbs', { totalPages, currentPage });
     sidebar.updateTab('outline', { totalPages });
@@ -465,7 +465,7 @@ export function buildReader({
     const rotKey = pageOps?.pageRotations?.[currentPage] || 0;
     return {
       title: docTitle, pages: totalPages, docId,
-      mode: 'continuous',
+      mode: viewMode,
       zoom: `${Math.round(userZoom * 100)}%`,
       rotation: `${rotKey}°`,
     };

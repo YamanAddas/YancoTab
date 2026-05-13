@@ -1441,3 +1441,54 @@ body.is-mobile [data-allow-context="true"] * {
   outline: none;
 }
 .pdf-zoom-custom-input:focus { border-color: var(--pdf-btn-active-fg); }
+
+/* ── View-mode pill (in toolbar's zoom cluster) ──────────────────── */
+.pdf-viewmode-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 2px;
+  border: 1px solid var(--pdf-toolbar-border);
+  border-radius: 8px;
+  background: var(--pdf-page-bg);
+}
+.pdf-viewmode-seg {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pdf-toolbar-text-dim);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+.pdf-viewmode-seg:hover { color: var(--pdf-toolbar-text); }
+.pdf-viewmode-seg.is-active {
+  background: var(--pdf-btn-active-bg);
+  color: var(--pdf-btn-active-fg);
+}
+
+/* ── Strip layout modes ──────────────────────────────────────────── */
+/* Single: only the .is-current slot is visible. */
+.pdf-strip.mode-single .pdf-strip-slot:not(.is-current) { display: none; }
+
+/* Spread / Book: rows hold up to 2 slots side-by-side. */
+.pdf-strip-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16px;
+}
+.pdf-strip.mode-spread,
+.pdf-strip.mode-book { gap: 24px; }
+.pdf-strip-empty {
+  background: transparent !important;
+  box-shadow: none !important;
+  pointer-events: none;
+}

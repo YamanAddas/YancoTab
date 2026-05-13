@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.9-pdf-zoom-dropdown';
+const CACHE_NAME = 'yancotab-v1.6.0-pdf-view-modes';
 
 const PRECACHE = [
     './',
@@ -286,6 +286,7 @@ const PRECACHE = [
     './os/apps/pdf/v3/chrome/notePopover.js',
     './os/apps/pdf/v3/chrome/colorPickerPopover.js',
     './os/apps/pdf/v3/chrome/zoomDropdown.js',
+    './os/apps/pdf/v3/chrome/viewModePill.js',
     './os/apps/pdf/v3/render/notePipsRender.js',
     './os/apps/pdf/v3/readerNotes.js',
     './os/apps/pdf/v3/readerTools.js',
