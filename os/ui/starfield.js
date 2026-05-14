@@ -1,5 +1,5 @@
 /**
- * YancoTab v2.2 — Cosmic Starfield Background
+ * YancoTab — Cosmic Starfield Background
  * Canvas-based twinkling starfield inspired by YancoHub.
  * Lightweight: runs at low FPS when idle, pauses when hidden.
  * Skips entirely when a wallpaper image is active.

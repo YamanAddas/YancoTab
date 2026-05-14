@@ -1,5 +1,5 @@
 /**
- * YancoTab v2.0 Kernel
+ * YancoTab Kernel
  * Central nervous system of the OS.
  * Manages boot sequence, services, and global state.
  */
