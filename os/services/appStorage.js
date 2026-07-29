@@ -175,6 +175,17 @@ const REGISTRY = {
         default: { events: [] },
         validate: (v) => v && typeof v === 'object' && Array.isArray(v.events),
     },
+    // Mail hub: pinned webmail accounts. Holds a provider id, a small account
+    // index, and a user nickname — no addresses, no credentials, no tokens
+    // (the app is a launcher and never authenticates). Safe and useful to
+    // sync: landing on the same default inbox across devices is the point.
+    yancotab_mail_v1: {
+        storageClass: 'user-data',
+        syncPolicy: 'conditional',
+        version: 1,
+        default: { accounts: [], defaultId: null },
+        validate: (v) => v && typeof v === 'object' && Array.isArray(v.accounts),
+    },
     yancotab_quick_links: {
         storageClass: 'user-data',
         syncPolicy: 'conditional',

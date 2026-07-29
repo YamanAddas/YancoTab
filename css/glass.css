@@ -20,7 +20,12 @@
   content: '';
   position: absolute;
   inset: 0;
-  clip-path: var(--hex-clip);
+  -webkit-mask-image: var(--hex-mask);
+  mask-image: var(--hex-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   background: var(--lg-sweep);
   opacity: 0;
   transform: translateX(-30%);
@@ -51,25 +56,12 @@
   /* keeps existing inset:0 / clip-path / z-index:4 / pointer-events:none */
 }
 
-/* Outer ring: was pure-accent gradient → chromed accent→dark→accent.
-   Reads as a metallic frame, not a glow. */
-.hex-ring {
-  background: linear-gradient(160deg,
-    rgba(var(--accent-rgb), 0.95) 0%,
-    rgba(var(--accent-rgb), 0.55) 18%,
-    rgba(40, 90, 105, 0.85) 45%,
-    rgba(8, 24, 38, 0.95) 70%,
-    rgba(var(--accent-rgb), 0.90) 100%);
-}
-
-.hex-icon:hover .hex-ring {
-  background: linear-gradient(160deg,
-    rgba(var(--accent-rgb), 1.00) 0%,
-    rgba(var(--accent-rgb), 0.70) 18%,
-    rgba(50, 110, 130, 0.95) 45%,
-    rgba(10, 30, 48, 0.95) 70%,
-    rgba(var(--accent-rgb), 1.00) 100%);
-}
+/* The chromed accent→steel→ink→accent ring this block used to paint on a
+   clipped `.hex-ring` div now lives in the shared SVG gradient built by
+   os/ui/icons/hexGeometry.js (#yv-hex-rim), stroked onto the rounded hex path.
+   Stops read --accent / --hex-rim-mid / --hex-rim-deep, so themes still drive
+   it — and the stroke is uniform width all the way round, which an offset
+   clipped div never was. Geometry + rim/bloom rules: css/shell.css. */
 
 /* Body: layer the wet-glass sheen and spotlight on top of the inline category tint
    set by SmartIcon. The inline background-color wins over `background-color:` here,
@@ -1356,7 +1348,12 @@ body.in-app .sec-head {
 .folder-pill-mini i {
   background: rgba(var(--accent-rgb), 0.40);
   border-radius: 2px;
-  clip-path: var(--hex-clip);
+  -webkit-mask-image: var(--hex-mask);
+  mask-image: var(--hex-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 
 .folder-pill-mini-empty i {
@@ -1490,6 +1487,13 @@ body.reduced-effects .hex-icon::after {
 body.reduced-effects .hex-icon-content {
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
+}
+
+/* A blurred SVG stroke per tile is ~20 filter regions on a full grid. Drop the
+   blur on low-end devices and let the rim carry the edge on its own. */
+body.reduced-effects .hex-frame-bloom {
+  filter: none;
+  opacity: calc(var(--hex-bloom-opacity) * 0.6);
 }
 
 body.reduced-effects .widget-card,

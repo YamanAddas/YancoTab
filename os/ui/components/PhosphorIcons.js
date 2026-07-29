@@ -399,4 +399,27 @@ export const PHOSPHOR_ICONS = {
     <rect x="30" y="52" width="8" height="1.5" rx="0.75" fill="rgba(255,255,255,0.1)"/>
   </svg>`,
 
+  /* Envelope with a teal-lit flap crease.
+     Deliberately carries NO unread badge or count dot: the Mail app is a
+     launcher and cannot read a mailbox (see os/apps/mail/providers.js), so an
+     icon implying unread state would promise a feature that does not exist. */
+  mail: `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="mail-bg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#1a3a4a"/><stop offset="1" stop-color="#0d2030"/>
+      </linearGradient>
+      <linearGradient id="mail-flap" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#2c4e60"/><stop offset="1" stop-color="#16303f"/>
+      </linearGradient>
+    </defs>
+    <!-- Envelope body -->
+    <rect x="8" y="15" width="48" height="34" rx="5" fill="url(#mail-bg)" stroke="rgba(255,255,255,0.1)" stroke-width="0.8"/>
+    <!-- Side creases, suggesting folded paper -->
+    <path d="M9 46.5 L25 33 M55 46.5 L39 33" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="1.2" stroke-linecap="round"/>
+    <!-- Flap -->
+    <path d="M8.8 17.6 L32 34.2 L55.2 17.6 L55.2 22.2 L32 38.8 L8.8 22.2 Z" fill="url(#mail-flap)" stroke="rgba(0,229,193,0.26)" stroke-width="0.8" stroke-linejoin="round"/>
+    <!-- Crease highlight -->
+    <polyline points="9.8,18.1 32,34 54.2,18.1" fill="none" stroke="#00e5c1" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+  </svg>`,
+
 };

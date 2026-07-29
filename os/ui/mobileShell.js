@@ -86,6 +86,7 @@ export class MobileShell {
       { id: 'calculator',       name: 'Calculator' },
       { id: 'clock',            name: 'Clock' },
       { id: 'files',            name: 'Files' },
+      { id: 'mail',             name: 'Mail' },
       { id: 'maps',             name: 'Maps' },
       { id: 'notes',            name: 'Notes' },
       { id: 'pdf-reader',       name: 'PDF Reader' },

@@ -302,47 +302,70 @@ body.in-app .main-content {
   cursor: pointer;
 }
 
-/* ── YancoVerse: Outer bloom glow ── */
-.hex-icon::before {
-  content: '';
+/* ── YancoVerse: rim + bloom frame ───────────────────────────
+   Replaces the old .hex-ring div and the fake ::before "bloom".
+
+   Both used clip-path, which meant:
+     • the bloom was a hard-edged hexagon 5px larger with blur(1px) — a ring,
+       not a halo, because clip-path removes everything outside the shape;
+     • the ring's width drifted around the perimeter (~3.0px on the verticals,
+       ~2.68px mid-diagonal), because offsetting a percentage polygon is not
+       an equidistant offset;
+     • the six vertices were needle points.
+
+   An SVG stroke fixes all three: uniform width by construction,
+   stroke-linejoin follows the rounded path, and the blurred bloom stroke
+   lives outside any mask so it reads as real light. ── */
+.hex-frame {
   position: absolute;
-  inset: -5px;
-  clip-path: var(--hex-clip);
-  background: linear-gradient(135deg,
-    rgba(var(--accent-rgb), 0.8),
-    rgba(var(--accent-rgb), 0.3) 30%,
-    rgba(var(--accent-rgb), 0.5) 70%,
-    rgba(var(--accent-rgb), 0.7));
-  opacity: 0.5;
-  filter: blur(1px);
-  transition: all 0.35s;
+  inset: 0;
+  /* The path traces the tile's exact edges; the rim's outer half and the
+     bloom's blur both need to paint past them. The UA stylesheet clips an
+     <svg> to its viewport, so opt out rather than inflating the box and
+     scaling the path back — same result, no coordinate maths to get wrong. */
+  overflow: visible;
+  fill: none;
+  pointer-events: none;
+  z-index: 3;
 }
 
-.hex-icon:hover::before,
-.hex-icon:active::before {
-  opacity: 0.9;
-  filter: blur(0.5px);
-  inset: -6px;
+.hex-frame-rim {
+  stroke: url(#yv-hex-rim);
+  stroke-width: var(--hex-rim-w);
+  stroke-linejoin: round;
+  transition: stroke-width var(--motion-cinematic, 380ms ease);
 }
 
-/* ── YancoVerse: Inner ring ── */
-.hex-ring {
-  position: absolute;
-  inset: -3px;
-  clip-path: var(--hex-clip);
-  background: linear-gradient(160deg,
-    rgba(var(--accent-rgb), 0.9),
-    rgba(var(--accent-rgb), 0.35) 50%,
-    rgba(var(--accent-rgb), 0.7));
-  z-index: 1;
-  transition: all 0.35s;
+.hex-frame-bloom {
+  stroke: rgba(var(--accent-rgb), 1);
+  stroke-width: var(--hex-bloom-w);
+  stroke-linejoin: round;
+  opacity: var(--hex-bloom-opacity);
+  filter: blur(var(--hex-bloom-blur));
+  transition:
+    opacity var(--motion-cinematic, 380ms ease),
+    stroke-width var(--motion-cinematic, 380ms ease);
 }
 
-.hex-icon:hover .hex-ring {
-  background: linear-gradient(160deg,
-    rgba(var(--accent-rgb), 1),
-    rgba(var(--accent-rgb), 0.5) 50%,
-    rgba(var(--accent-rgb), 0.9));
+/* Hover targets: .app-icon is the grid cell, .app-dock-tile the dock cell,
+   .m-app-item the legacy grid cell. The bare .hex-icon:hover is the fallback
+   for anywhere a tile is used without a wrapper — without the wrapper
+   selectors, hovering a dock tile's padding (outside the hex silhouette but
+   inside its hit box) would leave the rim cold. */
+.app-icon:hover .hex-frame-rim,
+.app-dock-tile:hover .hex-frame-rim,
+.m-app-item:hover .hex-frame-rim,
+.hex-icon:hover .hex-frame-rim {
+  stroke-width: var(--hex-rim-w-hover);
+}
+
+.app-icon:hover .hex-frame-bloom,
+.app-dock-tile:hover .hex-frame-bloom,
+.m-app-item:hover .hex-frame-bloom,
+.hex-icon:hover .hex-frame-bloom {
+  opacity: var(--hex-bloom-opacity-hover);
+  stroke-width: var(--hex-bloom-w-hover);
+  filter: blur(var(--hex-bloom-blur-hover));
 }
 
 /* ── YancoVerse: Glass reflection ── */
@@ -350,7 +373,12 @@ body.in-app .main-content {
   content: '';
   position: absolute;
   inset: 0;
-  clip-path: var(--hex-clip);
+  -webkit-mask-image: var(--hex-mask);
+  mask-image: var(--hex-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   background: var(--yv-glass);
   pointer-events: none;
   z-index: 4;
@@ -380,11 +408,18 @@ body.in-app .main-content {
   bottom: -14px;
 }
 
-/* Inner content fills the hex */
+/* Inner content fills the hex.
+   Masked, not clipped — the rounded silhouette antialiases cleanly and the
+   tile keeps the option of casting an outward shadow. */
 .hex-icon-content {
   width: 100%;
   height: 100%;
-  clip-path: var(--hex-clip);
+  -webkit-mask-image: var(--hex-mask);
+  mask-image: var(--hex-mask);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
   background: linear-gradient(160deg, rgba(10, 28, 52, 0.97), rgba(4, 12, 24, 0.99));
   position: relative;
   overflow: hidden;
@@ -1198,21 +1233,30 @@ body.theme-light .nav-item.active {
   color: var(--accent);
 }
 
-/* Hex icons: light glass — YancoVerse luminous */
-body.theme-light .hex-icon::before {
-  background: linear-gradient(135deg,
-    rgba(var(--accent-rgb), 0.4),
-    rgba(var(--accent-rgb), 0.15) 30%,
-    rgba(var(--accent-rgb), 0.25) 70%,
-    rgba(var(--accent-rgb), 0.35));
-  opacity: 0.4;
+/* Hex icons: light glass — YancoVerse luminous.
+
+   The old `body.theme-light .hex-icon::before` gradient is deliberately gone.
+   glass.css repurposed ::before from "outer bloom" to the animated specular
+   sweep, but that light-mode override had higher specificity (0,0,2,1 vs
+   0,0,1,1) and so won — repainting the sweep as a flat teal wash at opacity
+   0.4 with mix-blend-mode: screen over the whole tile. In light mode the
+   icons were being washed out by a rule that no longer had a job.
+
+   `.hex-ring` is gone too: the rim is now an SVG stroke whose colour comes
+   from --hex-rim-mid / --hex-rim-deep, both already redefined for light mode
+   in tokens.css (silver rather than teal-over-ink). */
+
+/* A teal halo that reads as light on #060b14 reads as grime on #f5f5f7, so the
+   bloom is pulled right back in light mode — roughly half the dark value. */
+body.theme-light .hex-frame-bloom {
+  opacity: 0.16;
 }
 
-body.theme-light .hex-ring {
-  background: linear-gradient(160deg,
-    rgba(var(--accent-rgb), 0.5),
-    rgba(var(--accent-rgb), 0.2) 50%,
-    rgba(var(--accent-rgb), 0.4));
+body.theme-light .app-icon:hover .hex-frame-bloom,
+body.theme-light .app-dock-tile:hover .hex-frame-bloom,
+body.theme-light .m-app-item:hover .hex-frame-bloom,
+body.theme-light .hex-icon:hover .hex-frame-bloom {
+  opacity: 0.34;
 }
 
 body.theme-light .hex-icon-content {

@@ -183,6 +183,7 @@ async function boot() {
     pm.registerLazy('trix',             () => import('./apps/games/TrixApp.js').then(m => m.TrixApp));
     pm.registerLazy('todo',             () => import('./apps/TodoApp.js').then(m => m.TodoApp));
     pm.registerLazy('pomodoro',         () => import('./apps/PomodoroApp.js').then(m => m.PomodoroApp));
+    pm.registerLazy('mail',             () => import('./apps/MailApp.js').then(m => m.MailApp));
     pm.registerLazy('maps',             () => import('./apps/MapsApp.js').then(m => m.MapsApp));
     pm.registerLazy('photos',           () => import('./apps/PhotosApp.js').then(m => m.PhotosApp));
     pm.registerLazy('pdf-reader',       () => import('./apps/PdfReaderApp.js').then(m => m.PdfReaderApp));

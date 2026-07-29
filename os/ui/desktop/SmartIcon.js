@@ -3,6 +3,7 @@ import { FolderIcon } from "../components/FolderIcon.js";
 import { GAME_ICONS } from "../components/GameIcons.js";
 import { PHOSPHOR_ICONS } from "../components/PhosphorIcons.js";
 import { getCategoryColor } from "../icons/AppIcons.js";
+import { buildHexFrame } from "../icons/hexGeometry.js";
 
 /**
  * SmartIcon — v3.0
@@ -72,9 +73,11 @@ export class SmartIcon {
             this.renderStatic(contentWrapper);
         }
 
-        // YancoVerse: inner ring + content + platform shadow
-        this.root.appendChild(el('div', { class: 'hex-ring' }));
+        // YancoVerse: body + SVG rim/bloom frame + floor cast.
+        // The frame is an <svg> rather than a clipped div so its stroke stays a
+        // uniform screen width and its bloom is a real halo — see hexGeometry.js.
         this.root.appendChild(contentWrapper);
+        this.root.appendChild(buildHexFrame());
         this.root.appendChild(el('div', { class: 'hex-platform' }));
 
         // 5. Add badge (notifications, etc.) if any
@@ -191,6 +194,7 @@ export class SmartIcon {
       calculator: 'calculator', browser: 'browser', settings: 'settings',
       weather: 'weather', notes: 'notes', files: 'files', folder: 'files',
       maps: 'maps', photos: 'photos', 'pdf-reader': 'pdf-reader', todo: 'todo',
+      mail: 'mail', pomodoro: 'pomodoro',
     };
 
     _renderPhosphor(container, key) {

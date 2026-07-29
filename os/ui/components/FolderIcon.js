@@ -1,5 +1,6 @@
 import { el, parseSafeSvg, setLiteralHtml } from '../../utils/dom.js';
 import { GAME_MINI_ICONS } from './GameIcons.js';
+import { buildHexFrame } from '../icons/hexGeometry.js';
 
 /**
  * FolderIcon — v0.7
@@ -76,10 +77,9 @@ export class FolderIcon {
     content.appendChild(el('div', { class: 'folder-sheen' }));
     content.appendChild(el('div', { class: 'folder-rim' }));
 
-    // YancoVerse: inner ring + body + platform
-    const ring = el('div', { class: 'hex-ring' });
-    root.appendChild(ring);
+    // YancoVerse: body + SVG rim/bloom frame + platform (see hexGeometry.js)
     root.appendChild(content);
+    root.appendChild(buildHexFrame());
     root.appendChild(el('div', { class: 'hex-platform' }));
     return root;
   }

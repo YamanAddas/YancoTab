@@ -121,7 +121,38 @@
   --yv-platform-hover: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.32), transparent 70%);
 
   /* ── Hex Icon ── */
+  /* Legacy sharp-cornered silhouette. Still used by in-app hex decorations
+     (browser tabs, files vault, notes, pdf, photos, settings…). The home
+     surfaces — app grid, dock, folder rail — use --hex-mask below instead. */
   --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+
+  /* Rounded-corner hexagon. Same silhouette as --hex-clip, but each vertex is
+     a quadratic Bézier tangent to both edges, so there are no needle points.
+     Used as a MASK rather than a clip so ancestors can still cast a real
+     drop-shadow halo — clip-path removes everything outside the shape, which
+     is why the old tiles could only ever have inset shadows.
+
+     SINGLE SOURCE OF TRUTH: the `d` below is generated from HEX_PATH_D in
+     os/ui/icons/hexGeometry.js. tests/hex-geometry.test.js parses it back out
+     of this file and fails if the two ever drift. Do not hand-edit. */
+  --hex-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M58.94 4.47 L91.06 20.53 Q100 25 100 35 L100 65 Q100 75 91.06 79.47 L58.94 95.53 Q50 100 41.06 95.53 L8.94 79.47 Q0 75 0 65 L0 35 Q0 25 8.94 20.53 L41.06 4.47 Q50 0 58.94 4.47 Z' fill='%23fff'/%3E%3C/svg%3E");
+
+  /* Rim stroke — constant screen width via vector-effect: non-scaling-stroke,
+     so it never thickens on the diagonals the way an offset polygon does. */
+  --hex-rim-w:       1.25px;
+  --hex-rim-w-hover: 1.6px;
+  --hex-rim-mid:     #2c5a69;  /* steel midtone in the chrome sweep */
+  --hex-rim-deep:    #081826;  /* deep ink, the shadowed side of the frame */
+
+  /* Outer bloom — a genuine blurred stroke outside the mask, not a clipped
+     hexagon pretending to glow. */
+  --hex-bloom-w:       3px;
+  --hex-bloom-w-hover: 4.5px;
+  --hex-bloom-blur:       4px;
+  --hex-bloom-blur-hover: 7px;
+  --hex-bloom-opacity:       0.30;
+  --hex-bloom-opacity-hover: 0.62;
+
   --hex-size: 62px;
   --hex-gap:  10px;
 
@@ -330,6 +361,16 @@ body.theme-light {
   --lg-cast-deep:    radial-gradient(ellipse, rgba(var(--accent-rgb), 0.28), rgba(var(--accent-rgb), 0.08) 45%, transparent 75%);
 
   --lg-sweep:        linear-gradient(115deg, transparent 30%, rgba(255,255,255,0) 42%, rgba(255,255,255,0.55) 50%, rgba(255,255,255,0) 58%, transparent 70%);
+
+  /* ── Hex rim (light) — a silver frame instead of a chromed teal one.
+     The dark steel/ink stops read as dirt on a light background.
+
+     Bloom opacity lives in css/shell.css as a literal under
+     `body.theme-light .hex-frame-bloom` rather than as a token override here.
+     It sits next to the dark-mode rim/bloom rules it has to stay in balance
+     with, which is easier to reason about than a number in another file. ── */
+  --hex-rim-mid:  #b9c6d4;
+  --hex-rim-deep: #8b9bab;
 
   /* ── Legacy aliases ── */
   --glow-blue: #007AFF;

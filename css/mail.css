@@ -1,0 +1,456 @@
+/* ============================================================
+   Mail hub — os/apps/MailApp.js
+
+   Every colour resolves to a token from css/tokens.css. The one exception is
+   the per-provider brand tint, which is set inline from the literal `brand`
+   field in providers.js — a brand mark has to be the brand's colour to be
+   recognisable, and it is decoration only (never the sole carrier of meaning;
+   each mark also shows a letter and every tile has a text label).
+
+   Layout target: fits the default window chrome (75% x 84% of viewport) with
+   no scrolling at 1280x800 and up. Below that the two columns stack and the
+   frame scrolls as one.
+   ============================================================ */
+
+.app-mail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  outline: none;
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+}
+
+.mail-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 268px;
+  gap: var(--space-xl);
+  padding: var(--space-xl);
+  height: 100%;
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+.mail-col-main,
+.mail-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ── Hero ─────────────────────────────────────────────────── */
+
+.mail-hero {
+  position: relative;
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  background-color: var(--lg-tint-card);
+  background-image: var(--lg-sheen), var(--lg-spotlight);
+  -webkit-backdrop-filter: var(--lg-blur-card);
+  backdrop-filter: var(--lg-blur-card);
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-3);
+  flex-shrink: 0;
+}
+
+.mail-hero-eyebrow,
+.mail-section-hint,
+.mail-rail-count {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.mail-hero-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+  margin: var(--space-md) 0 var(--space-lg);
+}
+
+.mail-hero-id { min-width: 0; }
+
+.mail-hero-title {
+  margin: 0;
+  font-size: var(--font-xl);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--text-bright);
+  overflow-wrap: anywhere;
+}
+
+.mail-hero-sub {
+  margin: 2px 0 0;
+  font-size: var(--font-sm);
+  color: var(--text);
+}
+
+.mail-hero-host {
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  color: var(--text-dim);
+}
+
+.mail-hero-actions {
+  display: flex;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.mail-hero-empty .mail-hero-title { margin-top: var(--space-xs); }
+.mail-hero-empty .mail-hero-sub   { max-width: 46ch; margin-bottom: var(--space-lg); }
+
+/* ── Buttons ──────────────────────────────────────────────── */
+
+.mail-btn {
+  padding: 9px 18px;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast),
+              border-color var(--transition-fast),
+              transform var(--transition-fast);
+}
+
+.mail-btn:hover {
+  background: var(--accent-bg);
+  border-color: var(--border-accent);
+}
+
+.mail-btn:active { transform: scale(0.97); }
+
+.mail-btn-primary {
+  background: var(--accent);
+  border-color: transparent;
+  color: var(--accent-contrast);
+  box-shadow: var(--glow-sm);
+}
+
+.mail-btn-primary:hover {
+  background: var(--accent-bright);
+  border-color: transparent;
+}
+
+/* ── Provider marks ───────────────────────────────────────── */
+
+.mail-mark {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  border-radius: 30%;
+  color: #fff;
+  font-weight: 700;
+  /* The brand tints are mid-to-dark saturated colours and the mark sits on a
+     dark card; a hairline lift keeps the lighter ones from floating. */
+  box-shadow: var(--inner-glow), 0 2px 8px rgba(0, 0, 0, 0.35);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  user-select: none;
+}
+
+.mail-mark-sm { width: 26px; height: 26px; font-size: 12px; }
+.mail-mark-md { width: 34px; height: 34px; font-size: 15px; }
+.mail-mark-lg { width: 54px; height: 54px; font-size: 24px; border-radius: 26%; }
+
+/* ── Provider grid ────────────────────────────────────────── */
+
+.mail-providers {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.mail-section-head,
+.mail-rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.mail-section-title,
+.mail-rail-title {
+  margin: 0;
+  font-size: var(--font-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.mail-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-sm);
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 2px;
+}
+
+.mail-provider {
+  position: relative;
+  display: flex;
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
+}
+
+.mail-provider:hover {
+  box-shadow: inset 0 0 0 1px var(--border-accent), var(--glow-sm);
+  transform: translateY(-1px);
+}
+
+.mail-provider-open {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+  padding: 10px var(--space-md);
+  border: none;
+  background: none;
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.mail-provider-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mail-provider-pin {
+  flex-shrink: 0;
+  width: 30px;
+  border: none;
+  border-left: 1px solid var(--border);
+  background: none;
+  color: var(--text-dim);
+  font-size: 15px;
+  cursor: pointer;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.mail-provider-pin:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Pick mode — the whole tile becomes "add this one". The pin loses its
+   separate meaning, so it stops advertising one. */
+.mail-provider-grid.is-picking .mail-provider {
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+
+.mail-provider-grid.is-picking .mail-provider:hover {
+  box-shadow: inset 0 0 0 1.5px var(--accent), var(--glow-sm);
+}
+
+.mail-provider-grid.is-picking .mail-provider-pin {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Accounts rail ────────────────────────────────────────── */
+
+.mail-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background-color: var(--lg-tint-card);
+  -webkit-backdrop-filter: var(--lg-blur-card);
+  backdrop-filter: var(--lg-blur-card);
+  box-shadow: var(--lg-edge-soft), var(--depth-2);
+  min-height: 0;
+}
+
+.mail-rail-head { margin-bottom: 0; }
+
+.mail-account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.mail-account {
+  display: flex;
+  align-items: stretch;
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: box-shadow var(--transition-fast);
+}
+
+.mail-account:hover {
+  box-shadow: inset 0 0 0 1px var(--border-accent);
+}
+
+.mail-account.is-default {
+  box-shadow: inset 0 0 0 1px var(--border-accent), var(--lg-ring-glow);
+}
+
+.mail-account-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  min-width: 0;
+  padding: 8px 10px;
+  border: none;
+  background: none;
+  color: var(--text-bright);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+}
+
+.mail-account-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mail-account-label {
+  font-size: var(--font-sm);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mail-account-meta {
+  font-size: var(--font-xs);
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mail-account-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 6px;
+}
+
+.mail-icon-btn,
+.mail-pin {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.mail-pin { color: var(--gold); cursor: default; }
+
+.mail-icon-btn:hover {
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+
+.mail-icon-danger:hover {
+  color: var(--danger);
+  background: rgba(255, 71, 87, 0.12);
+}
+
+.mail-add {
+  flex-shrink: 0;
+  padding: 9px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: color var(--transition-fast),
+              border-color var(--transition-fast),
+              background var(--transition-fast);
+}
+
+.mail-add:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--accent-bg);
+}
+
+/* ── Misc ─────────────────────────────────────────────────── */
+
+.mail-empty,
+.mail-note {
+  margin: 0;
+  font-size: var(--font-xs);
+  line-height: 1.55;
+  color: var(--text-dim);
+}
+
+.mail-empty { padding: var(--space-sm) 2px; }
+
+.mail-note {
+  flex-shrink: 0;
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--border);
+  max-width: 78ch;
+}
+
+/* ── Narrow / mobile ──────────────────────────────────────── */
+
+@media (max-width: 860px) {
+  .mail-frame {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    overflow-y: auto;
+  }
+
+  /* Accounts first on narrow screens: the pinned list is the reason to open
+     the app, and the 12-tile provider grid would otherwise bury it. */
+  .mail-col-side { order: -1; }
+
+  .mail-provider-grid,
+  .mail-account-list { overflow: visible; }
+
+  .mail-hero { padding: var(--space-lg); }
+  .mail-hero-title { font-size: var(--font-lg); }
+}
+
+/* ── Light theme ──────────────────────────────────────────── */
+
+body.theme-light .mail-mark {
+  box-shadow: var(--inner-glow), 0 1px 4px rgba(0, 0, 0, 0.18);
+}
+
+body.theme-light .mail-icon-danger:hover {
+  background: rgba(255, 59, 48, 0.1);
+}

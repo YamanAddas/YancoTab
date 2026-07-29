@@ -29,6 +29,7 @@ const PRECACHE = [
     './css/modal.css',
     './css/todo.css',
     './css/maps.css',
+    './css/mail.css',
     './os/ui/bubbly.css',
     // Core JS
     './os/boot-init.js',
@@ -65,6 +66,7 @@ const PRECACHE = [
     './os/ui/components/StatusBar.js',
     './os/ui/desktop/SmartIcon.js',
     './os/ui/icons/AppIcons.js',
+    './os/ui/icons/hexGeometry.js',
     './os/ui/components/Greeting.js',
     './assets/fonts/playfair-display-latin-400.woff2',
     './assets/fonts/playfair-display-latin-400i.woff2',
@@ -78,6 +80,10 @@ const PRECACHE = [
     './os/ui/components/QuickLinks.js',
     // Apps
     './os/apps/BrowserApp.js',
+    './os/apps/MailApp.js',
+    './os/apps/mail/providers.js',
+    './os/apps/mail/persistence.js',
+    './os/apps/mail/mailView.js',
     './os/apps/CalculatorApp.js',
     './os/apps/calculator/engine.js',
     './os/apps/calculator/view.js',
