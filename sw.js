@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.2.1-hex-round';
+const CACHE_NAME = 'yancotab-v1.2.2-hex-auras';
 
 const PRECACHE = [
     './',

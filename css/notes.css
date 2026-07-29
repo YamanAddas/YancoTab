@@ -681,11 +681,72 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
 }
 .nc-star:hover { transform: translate(-50%, -50%) scale(1.10); z-index: 5; }
 .nc-star.is-selected { transform: translate(-50%, -50%) scale(1.15); z-index: 6; }
+/* Star aura + selection ring — see the long note on .wh-portal::before in
+   css/browser.css for why these live on the parent as their own unclipped
+   layers instead of as box-shadows on the clipped core (short version:
+   clip-path deletes them, and so does drop-shadow on the same element).
+
+   EVERY star glow was affected, not just the base one. .is-anchor, .is-idea,
+   .is-draft, .is-selected and .is-dragging each set a box-shadow on
+   .nc-star-core, and all of them were being clipped away — including the
+   `0 0 0 2px` selection ring, which meant selecting or dragging a star gave
+   no visual feedback at all.
+
+   Parameterised so each variant is a line or two. --aura-top tracks the core's
+   centre: .nc-star is a flex column with no padding, so it is half the core's
+   height. Measured falloff at 2/5/9/14px out: 122 -> 86 -> 49 -> 23 -> 0. */
+.nc-star {
+  /* Everything below is derived from the core's size, so a variant that
+     resizes the core (.is-anchor) only has to restate these two. */
+  --core-w: 22px;
+  --core-h: 26px;
+  --aura-blur: 18px;
+  --aura-rgb: var(--accent-rgb);
+  --aura-a: 0.55;
+  --ring-w: 2px;
+  --ring-o: 0;   /* rings are opt-in per state */
+}
+
+.nc-star::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--core-h) / 2);
+  width: calc(var(--core-w) + 2 * var(--aura-blur));
+  height: calc(var(--core-h) + 2 * var(--aura-blur));
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 2)) 0%,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 1.2)) 35%,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 0.45)) 62%,
+    rgba(var(--aura-rgb), 0) 100%);
+  pointer-events: none;
+}
+
+/* Selection ring — a slightly larger accent hexagon behind the core, so the
+   2px that peeks out reads as an outline. A box-shadow ring cannot work here:
+   `0 0 0 2px` paints outside the border box, which is exactly what the clip
+   removes. Hidden via opacity rather than zero width, because the core's own
+   background is semi-transparent and a same-size ring would tint it. */
+.nc-star::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(var(--core-h) / 2);
+  width: calc(var(--core-w) + 2 * var(--ring-w));
+  height: calc(var(--core-h) + 2 * var(--ring-w));
+  transform: translate(-50%, -50%);
+  clip-path: var(--hex-clip);
+  background: var(--accent-bright, #33ffdd);
+  opacity: var(--ring-o);
+  pointer-events: none;
+}
+
 .nc-star-core {
   width: 22px; height: 26px;
   clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(0,229,193,0.55));
-  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.55);
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -703,24 +764,44 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* Variant glows. These were box-shadows on the clipped core and so were all
+   invisible; they now drive the aura layer above. The core keeps only what it
+   can actually paint — its own background and size. */
+.nc-star.is-anchor {
+  --core-w: 32px;
+  --core-h: 38px;
+  --aura-blur: 30px;
+  --aura-a: 0.90;
+}
 .nc-star.is-anchor .nc-star-core {
   width: 32px; height: 38px;
   background: linear-gradient(160deg, #fff, var(--accent-bright, #33ffdd));
-  box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.90);
+}
+.nc-star.is-idea {
+  --aura-rgb: 155, 123, 255;
+  --aura-a: 0.60;
 }
 .nc-star.is-idea .nc-star-core {
   background: linear-gradient(160deg, rgba(255,255,255,0.16), var(--violet, #9b7bff));
-  box-shadow: 0 0 18px rgba(155, 123, 255, 0.60);
+}
+.nc-star.is-draft {
+  --aura-rgb: 255, 184, 74;
+  --aura-a: 0.60;
 }
 .nc-star.is-draft .nc-star-core {
   background: linear-gradient(160deg, rgba(255,255,255,0.16), var(--warm, #ffb84a));
-  box-shadow: 0 0 18px rgba(255, 184, 74, 0.60);
 }
 .nc-star.is-done .nc-star-core {
   opacity: 0.55;
 }
-.nc-star.is-selected .nc-star-core {
-  box-shadow: 0 0 36px rgba(var(--accent-rgb), 1), 0 0 0 2px var(--accent-bright, #33ffdd);
+/* Dim the aura too, or a "done" star still blazes as brightly as an open one. */
+.nc-star.is-done {
+  --aura-a: 0.22;
+}
+.nc-star.is-selected {
+  --aura-blur: 36px;
+  --aura-a: 1;
+  --ring-o: 1;
 }
 .nc-star.is-dragging {
   cursor: grabbing;
@@ -728,8 +809,10 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
   z-index: 10;
   transition: none !important;
 }
-.nc-star.is-dragging .nc-star-core {
-  box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.95), 0 0 0 2px var(--accent-bright, #33ffdd);
+.nc-star.is-dragging {
+  --aura-blur: 28px;
+  --aura-a: 0.95;
+  --ring-o: 1;
 }
 
 /* ── Search beam ─────────────────────────────────────────── */
@@ -1185,14 +1268,38 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
   gap: 10px;
   margin: 14px 0 6px -18px;
   padding-left: 0;
+  /* Containing block for the marker aura below. .nc-star and .wh-portal get
+     this for free from their transform; this row has neither. */
+  position: relative;
 }
+
+/* Timeline marker aura — same reasoning as .wh-portal::before in
+   css/browser.css. Marker is the first flex item in a centred row, 11px wide,
+   so its centre is at (5.5px, 50%). Measured falloff at 2/5/9px out:
+   109 -> 51 -> 14 -> 0. */
+.nc-tl-group::before {
+  content: '';
+  position: absolute;
+  left: 5.5px;
+  top: 50%;
+  width: 31px;   /* 11 + 2*10 */
+  height: 33px;  /* 13 + 2*10 */
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side,
+    rgba(var(--accent-rgb), 0.95) 0%,
+    rgba(var(--accent-rgb), 0.66) 35%,
+    rgba(var(--accent-rgb), 0.248) 62%,
+    rgba(var(--accent-rgb), 0) 100%);
+  pointer-events: none;
+}
+
 .nc-tl-marker {
   width: 11px;
   height: 13px;
   clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(0,229,193,0.55));
-  box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.55);
   flex-shrink: 0;
+  position: relative;
 }
 .nc-tl-day {
   font-family: 'JetBrains Mono', monospace;

@@ -6,6 +6,79 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.2] — 2026-07-29
+
+Revives twelve glows and outlines that `clip-path` has been silently
+deleting — including the Notes star selection ring, which meant selecting
+or dragging a star produced no visual feedback at all.
+
+### Fixed
+
+The v1.2.1 notes flagged three dead glows. Auditing properly found twelve,
+because the first pass only inspected rules that *declare* `clip-path` — it
+missed the state variants that set a shadow on an element clipped by its
+base rule.
+
+**Notes stars** (`.nc-star-core`): base, `.is-anchor`, `.is-idea`,
+`.is-draft`, `.is-selected`, `.is-dragging`.
+**Browser portals** (`.wh-portal-hex`): base, `.is-anchor`, `.is-dragging`,
+`.is-merge-target`, `.is-floating`, `.is-recent`.
+**Notes timeline** (`.nc-tl-marker`).
+
+Three of these were worse than merely invisible:
+
+- `.is-selected` / `.is-dragging` stars set `0 0 0 2px` selection rings. A
+  spread-only shadow paints entirely outside the border box, so the clip
+  removed it — selecting or dragging a star showed nothing.
+- `.is-anchor` / `.is-merge-target` portals used `border: 1px/1.5px solid`.
+  A border sits *inside* the border box, so the clip kept only the
+  fragments running along the two vertical edges, drawing a broken outline
+  rather than none.
+- `.is-recent`'s pulse was an `::after` at `inset: -4px` *inside* the
+  clipped hex. Children of a clipped element are clipped too, so the 4px it
+  reached past the hexagon was cut, and `z-index: -1` hid the remainder
+  behind the hex's own near-opaque background.
+
+### How
+
+Not fixable in place, and this was verified rather than assumed — each
+option was rasterised through an SVG `foreignObject` and the pixels read:
+
+| technique | glow outside the shape |
+|---|---|
+| `clip-path` + `box-shadow` | none (the original bug) |
+| `clip-path` + `filter: drop-shadow()` on the **same** element | **none** — the filter is applied before the clip, so the clip eats it too |
+| `filter: drop-shadow()` on an **unclipped ancestor** | works |
+
+The ancestor-filter route was still wrong here: `.wh-portal` and `.nc-star`
+also contain a favicon and a text label, which would have glowed too. So
+each glow became its own unclipped layer on the parent — a `::before` aura
+and a `::after` outline, both absolutely positioned, so neither adds
+layout. Auras are radial rather than hexagonal: at these blur radii the two
+are indistinguishable, and it avoids maintaining a second mask asset. The
+outlines *are* hexagonal (a slightly larger clipped hexagon behind the
+core, so the 1–2px that peeks out reads as a rim).
+
+Parameterised via custom properties (`--aura-blur`, `--aura-rgb`,
+`--aura-a`, `--ring-w`, `--ring-o`), all derived from the core's size, so
+each of the twelve variants is one or two lines and `.is-anchor` can resize
+the core without the aura drifting. `.is-done` now dims its aura too —
+otherwise a completed star blazed as brightly as an open one.
+
+Falloff was tuned against measured pixels rather than by eye; stops run to
+100% of `closest-side` so the glow reaches the full blur distance (an
+earlier attempt died at 74%, ~14px short on the portal).
+
+### Notes
+
+- Every dead `box-shadow` on the three clipped elements was removed rather
+  than left in place. A declaration that looks functional but cannot render
+  is how this bug survived in the first place.
+- `.is-floating` keeps a white haze rather than the accent, so a detached
+  portal still reads as detached.
+
+---
+
 ## [1.2.1] — 2026-07-29
 
 Carries the rounded-hex corners from the home screen into the app

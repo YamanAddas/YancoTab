@@ -243,6 +243,78 @@ body.theme-light .wh-frame {
   transform: translate(-50%, -52%) scale(1.06);
   z-index: 5;
 }
+/* Portal aura.
+   The glow used to be `box-shadow: 0 0 24px rgba(accent, 0.18)` on
+   .wh-portal-hex below, where it never rendered: clip-path removes everything
+   outside the hexagon, and an outer box-shadow is by definition outside it.
+
+   It also cannot be fixed in place. Verified by rasterising each option and
+   reading pixels: clip-path + box-shadow paints nothing outside the shape, and
+   neither does clip-path + `filter: drop-shadow()` on the SAME element — the
+   filter is applied before the clip, so the clip eats the shadow too. Only a
+   filter on an UNCLIPPED ancestor escapes, and .wh-portal also contains the
+   favicon and label, which would then glow as well.
+
+   So the aura is its own unclipped layer on the parent. It is absolutely
+   positioned, so it adds no layout, and radial rather than hexagonal — at a
+   24px blur behind a 56px shape the two are indistinguishable, and this needs
+   no second mask asset to keep in sync.
+
+   Geometry is coupled to .wh-portal-hex's 56x64 below: the parent is a flex
+   column with no padding, so the hex centre sits at (50%, 32px). Stops run to
+   100% of closest-side so the falloff reaches the full 24px — measured
+   24 -> 18 -> 15 -> 10 -> 4 -> 0 at 2/5/9/14/20/28px out.
+
+   Every portal glow was affected, not just this one: .is-anchor, .is-dragging
+   and .is-merge-target each set a box-shadow on .wh-portal-hex and none of
+   them rendered, so dragging a portal or hovering a merge target gave no
+   feedback. Their 1px/1.5px borders fared worse than useless — a border sits
+   inside the border box, so the clip left only the fragments along the two
+   vertical edges, drawing a broken outline. Both now come from the layers
+   below. */
+.wh-portal {
+  --aura-blur: 24px;
+  --aura-rgb: var(--accent-rgb);  /* .is-floating overrides this to white */
+  --aura-a: 0.18;
+  --ring-w: 1.5px;
+  --ring-o: 0;   /* rings are opt-in per state */
+}
+
+.wh-portal::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 32px;   /* hex is 64px tall at the top of the column */
+  width: calc(56px + 2 * var(--aura-blur));
+  height: calc(64px + 2 * var(--aura-blur));
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 2)) 0%,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 1.2)) 35%,
+    rgba(var(--aura-rgb), calc(var(--aura-a) * 0.45)) 62%,
+    rgba(var(--aura-rgb), 0) 100%);
+  pointer-events: none;
+}
+
+/* Outline for the anchor / merge-target states — a slightly larger accent
+   hexagon behind the hex, replacing the borders that the clip was breaking. */
+.wh-portal::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  width: calc(56px + 2 * var(--ring-w));
+  height: calc(64px + 2 * var(--ring-w));
+  transform: translate(-50%, -50%);
+  clip-path: var(--hex-clip);
+  /* Solid fill + opacity, so --ring-o IS the alpha the old borders specified
+     (anchor 0.4, merge-target 0.7) rather than being multiplied by a second
+     alpha baked into the background. */
+  background: rgb(var(--accent-rgb));
+  opacity: var(--ring-o);
+  pointer-events: none;
+}
+
 .wh-portal-hex {
   width: 56px; height: 64px;
   clip-path: var(--hex-clip);
@@ -255,7 +327,6 @@ body.theme-light .wh-frame {
   cursor: pointer;
   padding: 0;
   outline: none;
-  box-shadow: 0 0 24px rgba(var(--accent-rgb), 0.18);
 }
 .wh-portal-hex::before {
   content: '';
@@ -287,26 +358,36 @@ body.theme-light .wh-frame {
 }
 
 /* Variants */
-.wh-portal.is-anchor .wh-portal-hex {
-  box-shadow: 0 0 30px rgba(var(--accent-rgb), 0.5);
-  border: 1px solid rgba(var(--accent-rgb), 0.4);
+/* Glow + outline now come from .wh-portal's aura/ring layers; the box-shadow
+   and border that used to live here were clipped away and broken up. */
+.wh-portal.is-anchor {
+  --aura-blur: 30px;
+  --aura-a: 0.5;
+  --ring-w: 1px;
+  --ring-o: 0.4;
 }
 .wh-portal.is-anchor .wh-portal-label { color: var(--text-bright); font-weight: 500; }
 
-.wh-portal.is-recent .wh-portal-hex::after {
-  content: '';
-  position: absolute;
-  inset: -4px;
-  clip-path: var(--hex-clip);
-  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.30), transparent 60%);
-  z-index: -1;
+/* Recency pulse. This was an ::after INSIDE .wh-portal-hex at inset:-4px, which
+   could never show: a child of a clipped element is clipped too, so the 4px it
+   reached past the hexagon was cut, and `z-index: -1` put the remainder behind
+   the hex's own near-opaque background. Pulsing the aura instead — and only the
+   aura, since animating .wh-portal would fade the favicon and label with it. */
+.wh-portal.is-recent {
+  --aura-a: 0.30;
+}
+.wh-portal.is-recent::before {
   animation: wh-pulse 3s ease-in-out infinite;
 }
 @keyframes wh-pulse { 50% { opacity: 0.4; } }
 
+/* Ghost state: a cool white haze rather than the accent, so a floating portal
+   reads as detached. Was a clipped (invisible) box-shadow on the hex. */
 .wh-portal.is-floating { opacity: 0.65; }
-.wh-portal.is-floating .wh-portal-hex {
-  box-shadow: 0 0 12px rgba(255, 255, 255, 0.04);
+.wh-portal.is-floating {
+  --aura-rgb: 255, 255, 255;
+  --aura-a: 0.10;
+  --aura-blur: 12px;
 }
 
 /* ── Side rail ───────────────────────────────────────────── */
@@ -500,12 +581,15 @@ body.theme-light .wh-frame {
   transition: none;
   transform: translate(-50%, -52%) scale(1.08);
 }
-.wh-portal.is-dragging .wh-portal-hex {
-  box-shadow: 0 0 32px rgba(var(--accent-rgb), 0.55);
+.wh-portal.is-dragging {
+  --aura-blur: 32px;
+  --aura-a: 0.55;
 }
-.wh-portal.is-merge-target .wh-portal-hex {
-  box-shadow: 0 0 28px rgba(var(--accent-rgb), 0.55);
-  border: 1.5px solid rgba(var(--accent-rgb), 0.7);
+.wh-portal.is-merge-target {
+  --aura-blur: 28px;
+  --aura-a: 0.55;
+  --ring-w: 1.5px;
+  --ring-o: 0.7;
 }
 .wh-portal.is-merge-target .wh-portal-label {
   color: var(--accent);
