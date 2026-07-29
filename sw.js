@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.2.3-clip-sweep';
+const CACHE_NAME = 'yancotab-v1.2.4-el-booleans';
 
 const PRECACHE = [
     './',

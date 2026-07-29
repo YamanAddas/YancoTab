@@ -1,6 +1,6 @@
 {
   "name": "yancotab",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "type": "module",
   "description": "YancoTab — privacy-first new-tab Chrome extension",
   "scripts": {

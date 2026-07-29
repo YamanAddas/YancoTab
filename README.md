@@ -6,7 +6,7 @@ A full desktop experience running in your browser — apps, games, notes, weathe
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Chrome MV3](https://img.shields.io/badge/Chrome-MV3-green.svg)](manifest.json)
-[![Version](https://img.shields.io/badge/version-1.2.3-teal.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.2.4-teal.svg)](CHANGELOG.md)
 
 ---
 

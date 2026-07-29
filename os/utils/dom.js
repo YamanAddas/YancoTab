@@ -1,3 +1,23 @@
+/**
+ * HTML boolean attributes: presence alone applies them, so `disabled="false"`
+ * disables an element just as surely as `disabled="true"`.
+ *
+ * That made `el('button', { disabled: someCondition })` fail in exactly the
+ * case it was guarding — the falsy one — and it shipped: all four Mahjong
+ * sidebar buttons (Undo / Hint / Shuffle / New Game) were permanently dead,
+ * three of them rendering `disabled="false"` with no disabled styling, so they
+ * looked perfectly clickable.
+ *
+ * Deliberately a fixed list rather than "skip every falsy value": for ARIA,
+ * `aria-expanded="false"` is meaningful and must NOT be dropped.
+ */
+export const BOOLEAN_ATTRS = new Set([
+  "disabled", "checked", "selected", "readonly", "required", "multiple",
+  "open", "autofocus", "controls", "loop", "muted", "playsinline",
+  "reversed", "ismap", "novalidate", "formnovalidate", "inert", "default",
+  "hidden", "async", "defer", "autoplay", "nomodule", "itemscope",
+]);
+
 export function el(tag, props = {}, children = []) {
   const element = document.createElement(tag);
 
@@ -7,13 +27,32 @@ export function el(tag, props = {}, children = []) {
       return;
     }
 
+    // Boolean attributes: set with an empty value when truthy, remove entirely
+    // when not. `disabled: 'disabled'` still reads as truthy, so the explicit
+    // always-on spelling used for placeholder controls keeps working.
+    if (BOOLEAN_ATTRS.has(key.toLowerCase())) {
+      if (value === false || value == null || value === "") {
+        element.removeAttribute(key);
+      } else {
+        element.setAttribute(key, "");
+      }
+      return;
+    }
+
     if (key === "style" && typeof value === "object") {
       Object.assign(element.style, value);
       return;
     }
 
-    if (key.startsWith("on") && typeof value === "function") {
-      element.addEventListener(key.slice(2).toLowerCase(), value);
+    if (key.startsWith("on")) {
+      // A non-function here (e.g. `onclick: cond ? null : fn`) used to fall
+      // through to setAttribute and write a literal inline handler attribute
+      // such as onclick="null". MV3's CSP makes that inert, so it failed
+      // silently — and no standard attribute starts with "on", so there is
+      // nothing legitimate to fall through to.
+      if (typeof value === "function") {
+        element.addEventListener(key.slice(2).toLowerCase(), value);
+      }
       return;
     }
 

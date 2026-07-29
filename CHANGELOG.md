@@ -6,6 +6,74 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.4] — 2026-07-29
+
+Applied the v1.2.3 audit idea to the JS side — "code that looks like it
+works and silently does nothing" — and found a live one: **every button in
+the Mahjong sidebar was dead**, including New Game.
+
+### Fixed
+
+- **`el()` now handles HTML boolean attributes correctly.**
+  `os/utils/dom.js` routed every non-`class`/`style`/`on*` prop through
+  `setAttribute(key, value)`. Boolean attributes are presence-based, so
+  `setAttribute('disabled', 'false')` **disables** the element — meaning
+  `disabled: someCondition` broke in exactly the case it was guarding: the
+  falsy one, where the control was supposed to be *enabled*.
+
+  Confirmed live before fixing: all four Mahjong sidebar buttons
+  (Undo / Hint / Shuffle / New Game) reported `.disabled === true`, three of
+  them rendering `disabled="false"` with no `is-disabled` class — so they
+  looked perfectly clickable and did nothing. There was no way to start a new
+  game from the sidebar.
+
+  Ten call sites were affected across Mahjong, Tarneeb, Trix, Tic-Tac-Toe and
+  three PDF chrome modules. Fixed once in `el()` rather than ten times at the
+  call sites: a truthy value sets the attribute to `""` (the spec's canonical
+  form), and `false` / `null` / `undefined` / `""` remove it.
+
+  The list is explicit rather than "drop every falsy value", because
+  `aria-expanded="false"` is meaningful and must survive. Verified both ways.
+
+  `disabled: 'disabled'` — the deliberate always-off spelling used for the
+  Files placeholder tab and Pomodoro's "coming soon" Detach button — still
+  reads as truthy and keeps working.
+
+- **Non-function `on*` props are dropped instead of becoming attributes.**
+  `onclick: cond ? null : fn` fell past the listener branch (which requires
+  `typeof value === 'function'`) into `setAttribute`, writing a literal
+  `onclick="null"`. MV3's CSP makes that inert, so it failed silently. No
+  standard attribute begins with `on`, so there is nothing to fall through to.
+
+### Tests
+
+1829 (+9). `tests/el-props.test.js`:
+
+- Unit tests for the new `el()` behaviour against a DOM stub — falsy boolean
+  omitted, truthy applied as `""`, ARIA `false` preserved, non-boolean
+  attributes untouched, non-function `on*` dropped, and the exact expressions
+  from the shipped bug (`!!(!canUndo)`, `i === 0`, …) asserted both ways.
+- A source scanner over `os/` that still flags the *other* silent-failure
+  shapes `el()` cannot fix: DOM-only properties with no content attribute
+  (`textContent`, `className`, `innerHTML`, `htmlFor`), `value` on a
+  `<textarea>` (whose value comes from child text — already fixed once for
+  the OCR panel in 1.0.0), and non-function `on*` values.
+- As with the CSS guard, a companion test asserts the scanner still parses
+  >200 `el()` call sites, so a broken parser fails loudly instead of passing
+  vacuously. That guard earned its keep immediately: the first version of the
+  scanner matched tag names against a comment/string-blanked copy of the
+  source and parsed zero call sites.
+
+### Verified
+
+Smoke-launched all 22 apps after the change: 21 render with zero console
+errors, and Minesweeper mounts its 1280×520 canvas as expected (it is a
+canvas game). Mahjong specifically: Undo correctly disabled at game start,
+Hint / Shuffle / New Game enabled, and clicking Shuffle reorders the board
+while preserving all 144 tiles.
+
+---
+
 ## [1.2.3] — 2026-07-29
 
 Swept every stylesheet for the clip-path bug fixed in v1.2.2, and added a
