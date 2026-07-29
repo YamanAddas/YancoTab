@@ -6,6 +6,80 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.3] — 2026-07-29
+
+Swept every stylesheet for the clip-path bug fixed in v1.2.2, and added a
+test so it cannot come back. Found 15 more instances across 8 files —
+including an invisible keyboard focus ring, which is an accessibility bug.
+
+### Fixed
+
+Written as a static analyser rather than a grep, because the broken
+declaration almost never sits in the same rule as the `clip-path` — it is
+usually a state variant (`.x.is-selected .y`) on an element clipped by its
+base rule, which no amount of grepping for `clip-path` will surface.
+
+| file | what was dead |
+|---|---|
+| `browser.css` | `.wh-legend-dot.is-anchor` glow; `.is-standard` border |
+| `calculator.css` | `.calc-key.is-eq` drop shadow |
+| `files-vault.css` | `.fv-cell.is-drop-target` ring **and** glow; `.fv-coin.is-selected`; `.fv-coin.is-pinned`; the `fv-drop-flash` keyframes |
+| `pdf-codex.css` | `.cx-ol-dot` border; `.cx-ol-item.is-active` glow |
+| `photos-lightbox.css` | `.lb-month.is-active` glow; **`.lb-cell:focus-visible` outline** |
+| `pomodoro.css` | `.sol-pip-dot` border; `.sol-pip.is-active` glow |
+| `table.css` | `.table-player-av` lift; `.table-player-turn` glow **and** ring |
+| `todo.css` | `.mc-chk` border |
+
+Three deserve calling out:
+
+- **Keyboard focus was invisible on clipped controls.** An `outline` paints
+  outside the border box, so the global `*:focus-visible` ring is deleted on
+  any clipped element. `.lb-cell`, `.mc-chk`, `.wh-portal-hex` and
+  `.cx-bm-dot` now carry an inset focus ring instead.
+- **Dragging a file onto a folder showed nothing.** `.fv-cell.is-drop-target`
+  set both a `0 0 0 2px` ring and a 30px glow; a spread-only shadow paints
+  entirely outside the border box, so the clip removed both.
+- **The Tarneeb/Trix whose-turn indicator was fully invisible** — its glow
+  was a `filter: drop-shadow` on the clipped element itself (deleted), and
+  its ring was an `::after` at `inset: -3px` *inside* the clipped host, so
+  the part that reached past the hexagon was cut.
+
+### Changed
+
+Fixes use whichever of three shapes fits:
+
+- **Inset the effect** — a border becomes `box-shadow: inset 0 0 0 1px`,
+  which follows the hexagon instead of being sliced into fragments along the
+  two vertical edges. Used for the plain borders and focus rings.
+- **Unclipped host + clipped `::before`/`::after` surface** — the host keeps
+  no clip so it can carry a real `filter: drop-shadow()`, and a pseudo
+  element carries the hexagon fill via a `--*-bg` variable so state variants
+  stay one-liners. Used for `.wh-legend-dot`, `.calc-key`, `.fv-cell`,
+  `.fv-coin`, `.cx-ol-dot`, `.lb-month-pip`, `.sol-pip-dot`. Hosts with text
+  content get `isolation: isolate` so the `z-index: -1` surface sits behind
+  the text without escaping behind an ancestor.
+- **Move the effect to an unclipped ancestor** — used for the table avatar,
+  where both pseudo-elements were already taken.
+
+`fv-drop-flash` now animates `filter` rather than `box-shadow`: the shadow
+was invisible while the host was clipped and would have drawn a rectangle
+once it wasn't.
+
+### Tests
+
+1820 (+2). `tests/clip-path-effects.test.js` fails on any clipped element
+that declares an outer `box-shadow`, a `filter: drop-shadow()`, an
+`outline`, or a `border`, and follows `animation-name` into `@keyframes`
+(the `fv-drop-flash` bug lived there and a rule-level scan missed it).
+
+It resolves `var()` before deciding whether a shadow layer is `inset` —
+without that, every token-composed inset shadow such as
+`box-shadow: var(--lg-edge)` reads as a false positive and the guard is
+useless. A second test asserts the analyser still finds >20 clipped classes,
+so a broken selector parser fails loudly instead of silently passing.
+
+---
+
 ## [1.2.2] — 2026-07-29
 
 Revives twelve glows and outlines that `clip-path` has been silently

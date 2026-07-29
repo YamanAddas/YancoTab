@@ -315,13 +315,18 @@ body.theme-light .app-window.app-files-vault {
 
 /* ── Folder cells ──────────────────────────────────────────── */
 
+/* Unclipped host + clipped ::before surface. Clipping the host deleted BOTH
+   halves of the drop-target feedback below — the `0 0 0 2px` ring (a
+   spread-only shadow paints entirely outside the border box) and the 30px
+   glow — so dragging a file onto a folder showed nothing at all. */
 .fv-cell {
   position: absolute;
+  isolation: isolate;
   transform: translate(-50%, -50%);
   width: 130px; height: 150px;
-  clip-path: var(--hex-clip);
-  background:
+  --cell-bg:
     linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.85) 100%);
+  --cell-ring: transparent;
   cursor: pointer;
   transition: transform 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
   display: flex;
@@ -331,10 +336,20 @@ body.theme-light .app-window.app-files-vault {
   gap: 6px;
   outline: none;
 }
+.fv-cell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--hex-clip);
+  background: var(--cell-bg);
+  box-shadow: inset 0 0 0 2px var(--cell-ring);
+}
 .fv-cell:hover { transform: translate(-50%, -52%) scale(1.04); z-index: 5; }
 .fv-cell.is-drop-target {
   transform: translate(-50%, -50%) scale(1.06);
-  box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.5), 0 0 30px rgba(var(--accent-rgb), 0.40);
+  --cell-ring: rgba(var(--accent-rgb), 0.5);
+  filter: drop-shadow(0 0 15px rgba(var(--accent-rgb), 0.40));
 }
 .fv-cell-ic { font-size: 28px; line-height: 1; }
 .fv-cell-name {
@@ -361,22 +376,23 @@ body.theme-light .app-window.app-files-vault {
   text-overflow: ellipsis;
 }
 .fv-cell-smart {
-  background: linear-gradient(160deg, rgba(var(--accent-rgb),0.18), rgba(var(--accent-rgb),0.04) 40%, rgba(8,18,32,0.85) 100%);
+  --cell-bg: linear-gradient(160deg, rgba(var(--accent-rgb),0.18), rgba(var(--accent-rgb),0.04) 40%, rgba(8,18,32,0.85) 100%);
 }
 .fv-cell-smart .fv-cell-name { color: var(--accent); }
-.fv-cell-violet { background: linear-gradient(160deg, rgba(155,123,255,0.16), rgba(155,123,255,0.03) 40%, rgba(8,18,32,0.85) 100%); }
-.fv-cell-warm   { background: linear-gradient(160deg, rgba(255,184,74,0.16), rgba(255,184,74,0.03) 40%, rgba(8,18,32,0.85) 100%); }
-.fv-cell-cool   { background: linear-gradient(160deg, rgba(90,168,255,0.16), rgba(90,168,255,0.03) 40%, rgba(8,18,32,0.85) 100%); }
-.fv-cell-rose   { background: linear-gradient(160deg, rgba(255,111,139,0.16), rgba(255,111,139,0.03) 40%, rgba(8,18,32,0.85) 100%); }
+.fv-cell-violet { --cell-bg: linear-gradient(160deg, rgba(155,123,255,0.16), rgba(155,123,255,0.03) 40%, rgba(8,18,32,0.85) 100%); }
+.fv-cell-warm   { --cell-bg: linear-gradient(160deg, rgba(255,184,74,0.16), rgba(255,184,74,0.03) 40%, rgba(8,18,32,0.85) 100%); }
+.fv-cell-cool   { --cell-bg: linear-gradient(160deg, rgba(90,168,255,0.16), rgba(90,168,255,0.03) 40%, rgba(8,18,32,0.85) 100%); }
+.fv-cell-rose   { --cell-bg: linear-gradient(160deg, rgba(255,111,139,0.16), rgba(255,111,139,0.03) 40%, rgba(8,18,32,0.85) 100%); }
 
 /* ── File coins ────────────────────────────────────────────── */
 
+/* Unclipped host + clipped ::before surface: a clipped host deleted the
+   is-selected and is-pinned glows entirely. */
 .fv-coin {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 56px; height: 64px;
-  clip-path: var(--hex-clip);
-  background: linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.9) 100%);
+  --coin-bg: linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.9) 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -384,12 +400,21 @@ body.theme-light .app-window.app-files-vault {
   gap: 2px;
   cursor: grab;
   transition: transform 380ms cubic-bezier(0.16, 0.84, 0.32, 1);
-  outline: none;
+  outline: none;
+  isolation: isolate;
+}
+.fv-coin::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--hex-clip);
+  background: var(--coin-bg);
 }
 .fv-coin:hover { transform: translate(-50%, -52%) scale(1.08); z-index: 6; }
 .fv-coin.is-selected {
-  background: linear-gradient(160deg, rgba(var(--accent-rgb),0.30), rgba(var(--accent-rgb),0.06) 40%, rgba(8,18,32,0.9) 100%);
-  box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.40);
+  --coin-bg: linear-gradient(160deg, rgba(var(--accent-rgb),0.30), rgba(var(--accent-rgb),0.06) 40%, rgba(8,18,32,0.9) 100%);
+  filter: drop-shadow(0 0 9px rgba(var(--accent-rgb), 0.40));
 }
 .fv-coin.is-dragging { opacity: 0.45; cursor: grabbing; }
 .fv-coin-ext {
@@ -412,7 +437,11 @@ body.theme-light .app-window.app-files-vault {
 .fv-coin-code   .fv-coin-ext { color: var(--cool, #5aa8ff); }
 .fv-coin-archive .fv-coin-ext { color: var(--text-dim); }
 .fv-coin.is-pinned {
-  box-shadow: 0 0 12px rgba(255, 184, 74, 0.40);
+  filter: drop-shadow(0 0 6px rgba(255, 184, 74, 0.40));
+}
+/* Both states at once: selection glow first, pin tint over it. */
+.fv-coin.is-selected.is-pinned {
+  filter: drop-shadow(0 0 9px rgba(var(--accent-rgb), 0.40)) drop-shadow(0 0 6px rgba(255, 184, 74, 0.40));
 }
 .fv-coin-pin {
   position: absolute;
@@ -425,9 +454,12 @@ body.theme-light .app-window.app-files-vault {
 }
 
 /* Drop-success flash animation */
+/* Animates filter, not box-shadow: an outer box-shadow was deleted by the
+   clip while the host was clipped, and would draw a rectangle now that the
+   host is unclipped. drop-shadow traces the clipped ::before silhouette. */
 @keyframes fv-drop-flash {
-  0%   { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.85), 0 0 40px rgba(var(--accent-rgb), 0.55); }
-  100% { box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0),    0 0 40px rgba(var(--accent-rgb), 0); }
+  0%   { filter: drop-shadow(0 0 20px rgba(var(--accent-rgb), 0.85)); }
+  100% { filter: drop-shadow(0 0 20px rgba(var(--accent-rgb), 0)); }
 }
 .fv-cell.is-drop-flash {
   animation: fv-drop-flash 600ms ease-out;
@@ -703,15 +735,15 @@ body.theme-light .fv-prev-act,
 body.theme-light .fv-send-btn,
 body.theme-light .fv-fuel { background: rgba(255, 255, 255, 0.7); }
 body.theme-light .fv-cell {
-  background: linear-gradient(160deg, rgba(255,255,255,0.85) 0%, rgba(245,247,250,0.75) 30%, rgba(220,225,232,0.85) 100%);
+  --cell-bg: linear-gradient(160deg, rgba(255,255,255,0.85) 0%, rgba(245,247,250,0.75) 30%, rgba(220,225,232,0.85) 100%);
 }
 body.theme-light .fv-cell-name { color: #1d1d1f; }
 body.theme-light .fv-cell-smart {
-  background: linear-gradient(160deg, rgba(0, 122, 255, 0.18), rgba(0, 122, 255, 0.04) 40%, rgba(245,247,250,0.85) 100%);
+  --cell-bg: linear-gradient(160deg, rgba(0, 122, 255, 0.18), rgba(0, 122, 255, 0.04) 40%, rgba(245,247,250,0.85) 100%);
 }
-body.theme-light .fv-cell-violet { background: linear-gradient(160deg, rgba(124, 78, 255, 0.16), rgba(124, 78, 255, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
-body.theme-light .fv-cell-warm   { background: linear-gradient(160deg, rgba(255, 152, 0, 0.16), rgba(255, 152, 0, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
-body.theme-light .fv-cell-cool   { background: linear-gradient(160deg, rgba(45, 130, 230, 0.16), rgba(45, 130, 230, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
+body.theme-light .fv-cell-violet { --cell-bg: linear-gradient(160deg, rgba(124, 78, 255, 0.16), rgba(124, 78, 255, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
+body.theme-light .fv-cell-warm   { --cell-bg: linear-gradient(160deg, rgba(255, 152, 0, 0.16), rgba(255, 152, 0, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
+body.theme-light .fv-cell-cool   { --cell-bg: linear-gradient(160deg, rgba(45, 130, 230, 0.16), rgba(45, 130, 230, 0.03) 40%, rgba(245,247,250,0.85) 100%); }
 body.theme-light .fv-coin {
   background: linear-gradient(160deg, rgba(255,255,255,0.85), rgba(245,247,250,0.7) 40%, rgba(225,230,238,0.85));
 }

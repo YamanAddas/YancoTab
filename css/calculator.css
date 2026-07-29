@@ -230,13 +230,14 @@ body.theme-light .calc-app-frame {
   max-height: 100%;
   width: 100%;
 }
+/* Unclipped host + clipped ::after surface. Clipping the host deleted
+   .is-eq's drop shadow outright (clip-path removes everything outside
+   the shape). ::before is the existing gloss and is unchanged. */
 .calc-key {
   position: relative;
   width: 100%;
   height: 100%;
-  clip-path: var(--hex-clip);
-  -webkit-clip-path: var(--hex-clip);
-  background: linear-gradient(180deg,
+  --key-bg: linear-gradient(180deg,
     rgba(255,255,255,0.06) 0%,
     rgba(255,255,255,0.02) 30%,
     rgba(8, 18, 32, 0.7) 100%);
@@ -250,7 +251,17 @@ body.theme-light .calc-app-frame {
   border: none;
   user-select: none;
   outline: none;
-  padding: 0;
+  padding: 0;
+  isolation: isolate;
+}
+.calc-key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  clip-path: var(--hex-clip);
+  background: var(--key-bg);
+  pointer-events: none;
 }
 .calc-key::before {
   content: '';
@@ -262,11 +273,11 @@ body.theme-light .calc-app-frame {
   pointer-events: none;
 }
 .calc-key:hover {
-  background: linear-gradient(180deg,
+  --key-bg: linear-gradient(180deg,
     rgba(var(--accent-rgb), 0.16) 0%,
     rgba(var(--accent-rgb), 0.06) 30%,
     rgba(8, 18, 32, 0.7) 100%);
-  color: var(--accent-bright, #33ffdd);
+  color: var(--accent-bright, #33ffdd);
 }
 .calc-key:active { transform: scale(0.94); }
 .calc-key:focus-visible {
@@ -287,11 +298,11 @@ body.theme-light .calc-app-frame {
   color: #ff6b6b;
 }
 .calc-key.is-eq {
-  background: linear-gradient(180deg, var(--accent-bright, #33ffdd), var(--accent));
+  --key-bg: linear-gradient(180deg, var(--accent-bright, #33ffdd), var(--accent));
   color: #001a14;
   font-size: clamp(19px, 2.1vw, 22px);
-  font-weight: 600;
-  box-shadow: 0 6px 20px rgba(var(--accent-rgb), 0.35);
+  font-weight: 600;
+  filter: drop-shadow(0 3px 10px rgba(var(--accent-rgb), 0.35));
 }
 .calc-key.is-eq::before {
   background: linear-gradient(180deg, rgba(255,255,255,0.30), transparent 40%);

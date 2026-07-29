@@ -790,7 +790,11 @@ body.theme-light .table-side-action {
 
 /* ── Hex-compass player avatars (used by salon when felt mounts them) ─ */
 
+/* Avatar lift + turn glow live on the unclipped parent. On the avatar
+   itself they were deleted: it is clipped, and a filter is applied
+   before the clip, so the clip removes the shadow too. */
 .table-player {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
   position: absolute;
   display: flex;
   flex-direction: column;
@@ -810,8 +814,7 @@ body.theme-light .table-side-action {
   font-family: 'Georgia', serif;
   font-size: 18px;
   color: #001a2e;
-  font-weight: 700;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+  font-weight: 700;
 }
 .table-player-av::before {
   content: '';
@@ -829,18 +832,14 @@ body.theme-light .table-side-action {
   color: #2e1c00;
 }
 
+.table-player-turn {
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6))
+          drop-shadow(0 0 8px var(--accent))
+          drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.6));
+}
 .table-player-turn .table-player-av {
-  filter: drop-shadow(0 0 8px var(--accent)) drop-shadow(0 0 16px rgba(var(--accent-rgb), 0.6));
+  box-shadow: inset 0 0 0 3px var(--accent);
 }
-.table-player-turn .table-player-av::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  clip-path: var(--hex-clip);
-  background: var(--accent);
-  z-index: -1;
-}
-
 .table-player-name {
   font-family: 'JetBrains Mono', ui-monospace, monospace;
   font-size: 10px;

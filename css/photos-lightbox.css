@@ -381,14 +381,25 @@ body.theme-light .app-window.app-photos-lightbox {
   min-height: 38px;
   justify-content: flex-start;
 }
+/* Unclipped host + clipped ::before surface — a clipped host would delete the
+   active state's glow (clip-path removes everything outside the shape). */
 .lb-month-pip {
+  position: relative;
   width: 6px;
   height: 7px;
-  clip-path: var(--hex-clip);
-  background: var(--accent, #00e5c1);
   opacity: 0.55;
 }
-.lb-month.is-active .lb-month-pip { opacity: 1; box-shadow: 0 0 4px var(--accent, #00e5c1); }
+.lb-month-pip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  clip-path: var(--hex-clip);
+  background: var(--accent, #00e5c1);
+}
+.lb-month.is-active .lb-month-pip {
+  opacity: 1;
+  filter: drop-shadow(0 0 2px var(--accent, #00e5c1));
+}
 .lb-month-lbl {
   font-family: 'JetBrains Mono', monospace;
   font-size: 9px;
@@ -537,8 +548,11 @@ body.theme-light .app-window.app-photos-lightbox {
 /* ── Focus rings (a11y) ────────────────────────────────────── */
 
 .lb-cell:focus-visible {
-  outline: 2px solid var(--accent, #00e5c1);
-  outline-offset: 2px;
+  /* Inset, not outline: an outline paints outside the border box and this
+     element is clipped, so the global *:focus-visible ring is deleted and
+     keyboard focus would be invisible. An inset ring follows the hexagon. */
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent, #00e5c1);
 }
 .lb-tab:focus-visible,
 .lb-action-btn:focus-visible,
