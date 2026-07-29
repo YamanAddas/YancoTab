@@ -166,7 +166,7 @@ body.theme-light .app-window.app-pdf-codex {
   transform: translateY(-50%);
   width: 8px;
   height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: rgba(255, 255, 255, 0.10);
   border: 1px solid var(--border, rgba(255,255,255,0.10));
 }
@@ -201,7 +201,7 @@ body.theme-light .app-window.app-pdf-codex {
   font-weight: bold;
   width: 14px;
   height: 16px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
   cursor: pointer;
 }

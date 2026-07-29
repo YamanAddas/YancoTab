@@ -143,7 +143,7 @@ body.theme-light .mc-frame {
 .mc-mitem-ico {
   width: 16px;
   height: 18px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .mc-mitem-name {
@@ -212,7 +212,7 @@ body.theme-light .mc-frame {
 .mc-cw-star {
   width: 6px;
   height: 7px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: var(--accent);
   opacity: 0.85;
 }
@@ -273,7 +273,7 @@ body.theme-light .mc-frame {
 .mc-pad-badge {
   width: 8px;
   height: 8px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .mc-pad-h h3 {
@@ -362,7 +362,7 @@ body.theme-light .mc-frame {
 .mc-chk {
   width: 14px;
   height: 16px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04));
   border: 1px solid rgba(255,255,255,0.18);
   flex-shrink: 0;
@@ -575,7 +575,7 @@ body.theme-light .mc-frame {
 .mc-trow .mc-chk { margin-top: 0; }
 .mc-trow-dot {
   width: 8px; height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .mc-trow-body { flex: 1; min-width: 0; }
@@ -757,7 +757,7 @@ body.theme-light .mc-frame {
 .mc-week-chip .mc-chk { margin-top: 0; }
 .mc-week-chip-dot {
   width: 6px; height: 7px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .mc-week-chip-ttl {
@@ -856,7 +856,7 @@ body.theme-light .mc-frame {
 }
 .mc-review-mission-dot {
   width: 8px; height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
 }
 .mc-review-mission-name { color: var(--text-bright); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mc-review-mission-counts { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--text-dim); }

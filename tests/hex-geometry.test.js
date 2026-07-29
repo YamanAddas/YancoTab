@@ -18,14 +18,16 @@
  */
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
-import { HEX_PATH_D, CORNER_TRIM, HEX_RIM_GRADIENT_ID } from '../os/ui/icons/hexGeometry.js';
+import { HEX_PATH_D, CORNER_TRIM, HEX_RIM_GRADIENT_ID, HEX_CLIP_ID } from '../os/ui/icons/hexGeometry.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const TOKENS = resolve(__dirname, '../css/tokens.css');
+const CSS_DIR = resolve(__dirname, '../css');
+const TOKENS = resolve(CSS_DIR, 'tokens.css');
+const BOOT = resolve(__dirname, '../os/boot.js');
 
 /** The six vertices of the legacy --hex-clip polygon, in viewBox units. */
 const LEGACY_VERTICES = [
@@ -55,6 +57,18 @@ function parsePath(d) {
 }
 
 const near = (a, b, tol = 0.01) => Math.abs(a - b) <= tol;
+
+/**
+ * Blank out /* ... *\/ blocks while preserving line numbering.
+ *
+ * Must be block-aware, not line-aware: tokens.css documents the old sharp
+ * polygon inside a multi-line comment whose middle lines don't start with a
+ * comment marker, so a per-line check reports the documentation as an offender.
+ */
+function stripComments(css) {
+    return css.replace(/\/\*[\s\S]*?\*\//g, (block) =>
+        block.replace(/[^\n]/g, ' '));
+}
 
 /**
  * Extents of the shape as actually drawn.
@@ -254,6 +268,69 @@ describe('hex geometry — shared rim gradient', () => {
             // on the diagonals — the very defect this rewrite removes.
             assert.equal(path.attrs['vector-effect'], 'non-scaling-stroke');
         }
+    });
+});
+
+describe('hex geometry — shared rounded clipPath', () => {
+    test('--hex-clip points at the rounded clipPath, not a sharp polygon', () => {
+        const css = readFileSync(TOKENS, 'utf8');
+        const decl = css.match(/^\s*--hex-clip:\s*([^;]+);/m);
+        assert.ok(decl, '--hex-clip declaration not found');
+        assert.equal(decl[1].trim(), `url(#${HEX_CLIP_ID})`);
+    });
+
+    test('no stylesheet reintroduces the sharp hexagon', () => {
+        // 42 in-app decorations were converted to the token. A new sharp
+        // polygon() would silently un-round one corner of the product while
+        // everything around it stayed rounded — invisible in review.
+        const offenders = [];
+        for (const file of readdirSync(CSS_DIR)) {
+            if (!file.endsWith('.css')) continue;
+            const src = readFileSync(resolve(CSS_DIR, file), 'utf8');
+            stripComments(src).split('\n').forEach((line, i) => {
+                if (/polygon\(\s*50%\s+0%\s*,\s*100%\s+25%/.test(line)) {
+                    offenders.push(`${file}:${i + 1}`);
+                }
+            });
+        }
+        assert.deepEqual(offenders, [], `sharp hex polygon still present at: ${offenders.join(', ')}`);
+    });
+
+    test('boot injects the defs before first paint', () => {
+        // An invalid clip-path url() computes to `none` rather than erroring, so
+        // a missing <defs> renders every in-app hex as a SQUARE with no console
+        // warning. Boot must therefore guarantee the defs exist.
+        const src = readFileSync(BOOT, 'utf8');
+        assert.match(src, /import\s*\{[^}]*ensureHexDefs[^}]*\}\s*from\s*'\.\/ui\/icons\/hexGeometry\.js'/);
+        assert.match(src, /ensureHexDefs\(\)/);
+    });
+
+    test('ensureHexDefs injects both the gradient and the clipPath', async () => {
+        const { ensureHexDefs } = await import('../os/ui/icons/hexGeometry.js');
+        const doc = makeFakeDoc();
+        ensureHexDefs(doc);
+        const svg = doc.body.children[0];
+        const defs = svg.children[0];
+        const ids = defs.children.map(c => c.attrs.id);
+        assert.deepEqual(ids.sort(), [HEX_CLIP_ID, HEX_RIM_GRADIENT_ID].sort());
+    });
+
+    test('clipPath uses objectBoundingBox units and rescales the shared path', () => {
+        // objectBoundingBox is what lets ONE definition fit every element size —
+        // clip-path: path() cannot, being fixed pixels. The path is authored
+        // 0..100 and reused verbatim, so the 0.01 scale is mandatory: without it
+        // the clip would be 100x the element and clip nothing.
+        return import('../os/ui/icons/hexGeometry.js').then(({ ensureHexDefs }) => {
+            const doc = makeFakeDoc();
+            ensureHexDefs(doc);
+            const defs = doc.body.children[0].children[0];
+            const clip = defs.children.find(c => c.attrs.id === HEX_CLIP_ID);
+            assert.equal(clip.tag, 'clipPath');
+            assert.equal(clip.attrs.clipPathUnits, 'objectBoundingBox');
+            const path = clip.children[0];
+            assert.equal(path.attrs.d, HEX_PATH_D, 'must reuse the one geometry source');
+            assert.equal(path.attrs.transform, 'scale(0.01)');
+        });
     });
 });
 

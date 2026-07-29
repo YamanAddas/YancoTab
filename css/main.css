@@ -4289,7 +4289,7 @@ body.is-mobile [contenteditable="true"] {
 .app-notes .notes-doc-hex {
   width: 54px;
   height: 54px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(150deg, rgba(232, 220, 200, 0.28), rgba(232, 220, 200, 0.08));
   display: grid;
   place-items: center;
@@ -5193,7 +5193,7 @@ body.theme-light .notes-editor-root .notes-ed-status {
 .app-files-v5 .yf-card-icon {
   width: 52px;
   height: 52px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   display: grid;
   place-items: center;
   font-size: 22px;

@@ -71,6 +71,32 @@ export const HEX_PATH_D = [
 /** Shared gradient id for every rim stroke on the page. */
 export const HEX_RIM_GRADIENT_ID = 'yv-hex-rim';
 
+/**
+ * Shared clipPath id, referenced by the --hex-clip token in css/tokens.css.
+ *
+ * WHY A CLIP AS WELL AS A MASK
+ * ----------------------------
+ * The home tiles use --hex-mask because a mask lets an ancestor cast a real
+ * drop-shadow (see the header above). But ~42 in-app hex decorations across 13
+ * stylesheets were already using `clip-path`, and six of them are interactive
+ * (.calc-key, .fv-cell, .lb-cell, .mc-chk, .wh-portal-hex, .cx-bm-dot).
+ *
+ * clip-path clips hit-testing; mask does not. Converting those to a mask would
+ * silently grow each one's click target from the hexagon to its full square
+ * bounding box — bad for a calculator keypad or a packed photo grid where the
+ * squares can overlap their neighbours.
+ *
+ * So --hex-clip keeps clip semantics and only its SHAPE changes: it now points
+ * at this rounded clipPath instead of a sharp polygon(). Every existing call
+ * site gets rounded corners with no behavioural change at all.
+ *
+ * clipPathUnits="objectBoundingBox" makes the coordinates fractions of the
+ * element's box, so one definition scales to every size — which `clip-path:
+ * path()` cannot do, since path() is fixed pixels. The 0..100 path is reused
+ * verbatim and scaled by 0.01 so there is still exactly one geometry source.
+ */
+export const HEX_CLIP_ID = 'yv-hex-clip';
+
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 /**
@@ -122,6 +148,19 @@ export function ensureHexDefs(doc = document) {
     }
 
     defs.appendChild(grad);
+
+    // Rounded clipPath, referenced by --hex-clip. See HEX_CLIP_ID above for why
+    // the in-app decorations clip rather than mask.
+    const clip = doc.createElementNS(SVG_NS, 'clipPath');
+    clip.setAttribute('id', HEX_CLIP_ID);
+    clip.setAttribute('clipPathUnits', 'objectBoundingBox');
+    const clipPath = doc.createElementNS(SVG_NS, 'path');
+    clipPath.setAttribute('d', HEX_PATH_D);
+    // objectBoundingBox units are 0..1; the shared path is authored 0..100.
+    clipPath.setAttribute('transform', 'scale(0.01)');
+    clip.appendChild(clipPath);
+    defs.appendChild(clip);
+
     svg.appendChild(defs);
     (doc.body || doc.documentElement).appendChild(svg);
 }

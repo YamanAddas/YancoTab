@@ -121,10 +121,22 @@
   --yv-platform-hover: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.32), transparent 70%);
 
   /* ── Hex Icon ── */
-  /* Legacy sharp-cornered silhouette. Still used by in-app hex decorations
-     (browser tabs, files vault, notes, pdf, photos, settings…). The home
-     surfaces — app grid, dock, folder rail — use --hex-mask below instead. */
-  --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  /* Used by the ~42 in-app hex decorations (browser portals, files vault,
+     notes, pdf, photos, settings, todo, table, calculator keys…).
+
+     This was `polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)`.
+     It now points at the rounded clipPath injected by
+     os/ui/icons/hexGeometry.js, so every one of those call sites picks up the
+     softened corners with no edit and — crucially — no behaviour change:
+     clip-path still clips hit-testing, which six interactive sites depend on
+     (.calc-key, .fv-cell, .lb-cell, .mc-chk, .wh-portal-hex, .cx-bm-dot).
+     Swapping them to --hex-mask instead would have grown each click target
+     from the hexagon to its full square box.
+
+     REQUIRES the <defs> to exist: an invalid clip-path url() computes to
+     `none`, which renders a square rather than erroring. os/boot.js calls
+     ensureHexDefs() before first paint for exactly this reason. */
+  --hex-clip: url(#yv-hex-clip);
 
   /* Rounded-corner hexagon. Same silhouette as --hex-clip, but each vertex is
      a quadratic Bézier tangent to both edges, so there are no needle points.

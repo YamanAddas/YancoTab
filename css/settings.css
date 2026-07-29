@@ -111,7 +111,7 @@ body.theme-light .mc-set-frame {
 }
 .mc-set-side-ico {
   width: 14px; height: 16px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 
@@ -235,7 +235,7 @@ body.theme-light .mc-set-frame {
 }
 .mc-bay-badge {
   width: 8px; height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .mc-bay-title {

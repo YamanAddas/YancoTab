@@ -127,7 +127,7 @@ body.theme-light .app-window.app-files-vault {
 }
 .fv-side-pip {
   width: 14px; height: 16px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .fv-side-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -189,7 +189,7 @@ body.theme-light .app-window.app-files-vault {
 }
 .fv-fuel-leg-pip {
   width: 8px; height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
 }
 
 /* ── Stage wrap ────────────────────────────────────────────── */
@@ -319,7 +319,7 @@ body.theme-light .app-window.app-files-vault {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 130px; height: 150px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background:
     linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.85) 100%);
   cursor: pointer;
@@ -375,7 +375,7 @@ body.theme-light .app-window.app-files-vault {
   position: absolute;
   transform: translate(-50%, -50%);
   width: 56px; height: 64px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.9) 100%);
   display: flex;
   flex-direction: column;
@@ -645,7 +645,7 @@ body.theme-light .app-window.app-files-vault {
 .fv-send-btn:hover { color: var(--accent); border-color: rgba(var(--accent-rgb), 0.40); }
 .fv-send-pip {
   width: 10px; height: 12px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
 }
 
 .fv-lineage {

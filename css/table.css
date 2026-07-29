@@ -802,7 +802,7 @@ body.theme-light .table-side-action {
 .table-player-av {
   width: 48px;
   height: 48px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   position: relative;
   background: linear-gradient(180deg, #b3e8ff 0%, #5aa8ff 50%, #265a99 100%);
   display: grid;
@@ -817,7 +817,7 @@ body.theme-light .table-side-action {
   content: '';
   position: absolute;
   inset: 2px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 255, 255, 0) 40%, rgba(0, 0, 0, 0.25) 100%);
   pointer-events: none;
 }
@@ -836,7 +836,7 @@ body.theme-light .table-side-action {
   content: '';
   position: absolute;
   inset: -3px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: var(--accent);
   z-index: -1;
 }

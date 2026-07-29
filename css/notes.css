@@ -526,7 +526,7 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
 }
 .nc-side-dot {
   width: 8px; height: 9px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .nc-side-empty {
@@ -683,7 +683,7 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
 .nc-star.is-selected { transform: translate(-50%, -50%) scale(1.15); z-index: 6; }
 .nc-star-core {
   width: 22px; height: 26px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(0,229,193,0.55));
   box-shadow: 0 0 18px rgba(var(--accent-rgb), 0.55);
   display: flex;
@@ -1189,7 +1189,7 @@ body.theme-light .nc-ctx-sep { background: rgba(0, 0, 0, 0.08); }
 .nc-tl-marker {
   width: 11px;
   height: 13px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(160deg, rgba(255,255,255,0.16), rgba(0,229,193,0.55));
   box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.55);
   flex-shrink: 0;

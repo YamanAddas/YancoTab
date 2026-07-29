@@ -4,6 +4,7 @@ import { MobileShell } from './ui/mobileShell.js';
 import { initTheme } from './theme/theme.js';
 import { initColorTheme } from './theme/themes.js';
 import { initStarfield } from './ui/starfield.js';
+import { ensureHexDefs } from './ui/icons/hexGeometry.js';
 import { setLiteralHtml } from './utils/dom.js';
 import { dlog } from './utils/debugLog.js';
 
@@ -115,6 +116,11 @@ async function boot() {
   initTheme();
   initColorTheme();
   initStarfield();
+  // Inject the shared hex <defs> before anything renders. The --hex-clip token
+  // resolves to url(#yv-hex-clip), and an invalid clip-path reference computes
+  // to `none` — so a missing def would silently un-round every in-app hex
+  // decoration into a square rather than failing loudly. Idempotent.
+  ensureHexDefs();
   // SINGLETON GUARD: Prevent multiple boots
   if (window.__YANCOTAB_BOOTED__) {
     console.warn('[Boot] Prevented duplicate boot!');

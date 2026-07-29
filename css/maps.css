@@ -207,7 +207,7 @@
     content: '';
     position: absolute;
     inset: -5px;
-    clip-path: var(--hex-clip, polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%));
+    clip-path: var(--hex-clip);
     background: linear-gradient(135deg,
         rgba(var(--accent-rgb, 0,229,193), 0.8),
         rgba(var(--accent-rgb, 0,229,193), 0.3) 30%,
@@ -228,7 +228,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    clip-path: var(--hex-clip, polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%));
+    clip-path: var(--hex-clip);
     background: var(--yv-glass, linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 30%, transparent 50%));
     pointer-events: none;
     z-index: 4;
@@ -238,7 +238,7 @@
 .maps-hex-ring {
     position: absolute;
     inset: -3px;
-    clip-path: var(--hex-clip, polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%));
+    clip-path: var(--hex-clip);
     background: linear-gradient(160deg,
         rgba(var(--accent-rgb, 0,229,193), 0.9),
         rgba(var(--accent-rgb, 0,229,193), 0.35) 50%,
@@ -257,7 +257,7 @@
 .maps-hex-content {
     width: 100%;
     height: 100%;
-    clip-path: var(--hex-clip, polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%));
+    clip-path: var(--hex-clip);
     position: relative;
     overflow: hidden;
     display: flex;

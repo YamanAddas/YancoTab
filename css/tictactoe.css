@@ -238,7 +238,7 @@ body.theme-light .ttt-board-oval {
   right: 6px;
   width: 14px;
   height: 14px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(180deg, rgba(var(--accent-rgb), 0.25), rgba(var(--accent-rgb), 0.05));
   opacity: 0.7;
   pointer-events: none;

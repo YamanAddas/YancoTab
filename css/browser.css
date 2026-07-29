@@ -245,7 +245,7 @@ body.theme-light .wh-frame {
 }
 .wh-portal-hex {
   width: 56px; height: 64px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   position: relative;
   background:
     linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.02) 30%, rgba(8,18,32,0.95) 100%);
@@ -261,7 +261,7 @@ body.theme-light .wh-frame {
   content: '';
   position: absolute;
   inset: 1px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: linear-gradient(180deg, rgba(255,255,255,0.14), transparent 30%);
   pointer-events: none;
 }
@@ -297,7 +297,7 @@ body.theme-light .wh-frame {
   content: '';
   position: absolute;
   inset: -4px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   background: radial-gradient(circle, rgba(var(--accent-rgb), 0.30), transparent 60%);
   z-index: -1;
   animation: wh-pulse 3s ease-in-out infinite;
@@ -403,7 +403,7 @@ body.theme-light .wh-frame {
 .wh-recent-item:hover { background: rgba(255, 255, 255, 0.04); }
 .wh-recent-dot {
   width: 12px; height: 14px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .wh-recent-info { flex: 1; min-width: 0; }
@@ -447,7 +447,7 @@ body.theme-light .wh-frame {
 }
 .wh-legend-dot {
   width: 10px; height: 12px;
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  clip-path: var(--hex-clip);
   flex-shrink: 0;
 }
 .wh-legend-dot.is-anchor   { background: var(--accent); box-shadow: 0 0 6px var(--accent); }

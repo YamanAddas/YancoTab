@@ -6,6 +6,82 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.1] — 2026-07-29
+
+Carries the rounded-hex corners from the home screen into the app
+interiors, so the whole extension matches instead of just the new-tab
+surface.
+
+### Changed
+
+- **`--hex-clip` now resolves to a rounded clipPath** instead of
+  `polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)`. That one
+  token change rounds all 42 in-app hex decorations across 13 stylesheets —
+  browser portals, files vault cells, notes markers, PDF outline dots,
+  photo lightbox cells, pomodoro pips, settings badges, todo icons, table
+  avatars, tic-tac-toe bezels, calculator keys.
+- **40 literal `polygon(...)` copies replaced with `var(--hex-clip)`**, and
+  the four `var(--hex-clip, polygon(...))` fallbacks in `maps.css`
+  collapsed. The shape now has exactly one definition
+  (`HEX_PATH_D` in `os/ui/icons/hexGeometry.js`) feeding three consumers:
+  the `--hex-mask` token, the SVG rim stroke, and this clipPath.
+
+### Why a clip and not the mask
+
+An audit of all 42 rules before converting found two things that ruled out
+reusing `--hex-mask` here:
+
+- **Six sites are interactive** — `.calc-key`, `.fv-cell`, `.lb-cell`,
+  `.mc-chk`, `.wh-portal-hex`, `.cx-bm-dot`. `clip-path` clips hit-testing;
+  `mask` does not. Swapping them would have silently grown each click
+  target from the hexagon to its full square bounding box, which for a
+  calculator keypad or a packed photo grid means squares that can overlap
+  their neighbours and steal clicks.
+- **Three sites have outer glows that `clip-path` is silently discarding** —
+  `.wh-portal-hex` (`0 0 24px`), `.nc-star-core` (`0 0 18px`),
+  `.nc-tl-marker` (`0 0 10px`). Same latent bug the home tiles had. Left
+  as-is deliberately: unclipping them is a visual change to Notes and the
+  Browser that belongs in its own pass, not smuggled into a corner-radius
+  change. Noted here so it isn't lost.
+
+`clipPathUnits="objectBoundingBox"` is what makes one definition fit every
+element size — `clip-path: path()` cannot, being fixed pixels. The 0..100
+path is reused verbatim with `transform="scale(0.01)"`.
+
+`os/boot.js` now calls `ensureHexDefs()` before first paint. This is
+load-bearing: an invalid `clip-path: url()` reference computes to `none`
+rather than erroring, so a missing `<defs>` would render every in-app hex
+as a plain square with nothing in the console.
+
+### Tests
+
+1818 total (+5). New coverage in `tests/hex-geometry.test.js`:
+
+- `--hex-clip` points at the clipPath rather than a polygon.
+- **No stylesheet reintroduces the sharp hexagon.** Scans all of `css/`
+  with block-comment stripping (line-based stripping reported tokens.css's
+  own documentation of the old value as an offender). Verified to fail with
+  an exact `file:line` when a sharp polygon is added back, and to pass once
+  removed.
+- `boot.js` imports and calls `ensureHexDefs`.
+- `ensureHexDefs` emits both the gradient and the clipPath, with
+  objectBoundingBox units and the `scale(0.01)` rescale.
+
+Verified in-browser that the clip actually *resolves*, which computed style
+cannot tell you — `clip-path` reports `url("#yv-hex-clip")` whether or not
+the reference is live. Used hit-testing instead: on `.calc-key` the centre
+hits the element while all three probed square corners miss, which is only
+true if the clip is active. Confirmed `url("#yv-hex-clip")` and sane
+near-square aspect ratios (0.87–0.89) on decorations across Todo, Settings
+and Files.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.2.1-hex-round` so existing installs evict the
+13 stylesheets whose hex corners changed.
+
+---
+
 ## [1.2.0] — 2026-07-29
 
 The "Mail + edges" wave — a Mail launcher with real multi-account
