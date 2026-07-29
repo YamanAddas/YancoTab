@@ -1511,3 +1511,101 @@ body.reduced-effects .m-search-input {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── 11. Home chrome — one edge recipe ────────────────────────
+
+   Audit of computed styles on the home screen found the search bar, dock and
+   widget cards already sharing a single recipe:
+
+     inset top highlight + inset bottom shadow + inset accent hairline ring
+     + accent under-cast + black depth shadow
+
+   Two surfaces had drifted out of it:
+
+     .page-tabs   — had the top/bottom insets and a black shadow but NO accent
+                    ring and NO accent cast, so it read greyer and flatter than
+                    the search bar directly above it.
+     .folder-pill — had only `1px solid rgba(255,255,255,0.1)` over a 3% white
+                    fill: no shadow, no inset highlight, no ring. It was the
+                    flattest element on the page, sitting directly under the
+                    hex grid and directly above the dock, both of which are
+                    fully rendered glass.
+
+   These rules put both back on the shared vocabulary, composed from the same
+   --lg-* tokens rather than hand-tuned lookalikes, so a token change moves
+   every surface together. ── */
+
+.page-tabs {
+  background-color: var(--lg-tint-pill);
+  box-shadow:
+    var(--lg-edge-soft),
+    var(--lg-ring-accent),
+    0 10px 26px -12px rgba(var(--accent-rgb), 0.22),
+    0 10px 26px rgba(0, 0, 0, 0.38);
+}
+
+.folder-pill {
+  background-color: var(--lg-tint-pill);
+  background-image: var(--lg-sheen-soft);
+  border-color: transparent;
+  -webkit-backdrop-filter: var(--lg-blur);
+  backdrop-filter: var(--lg-blur);
+  box-shadow:
+    var(--lg-edge-soft),
+    var(--lg-ring-accent),
+    0 4px 14px -8px rgba(var(--accent-rgb), 0.20),
+    var(--shadow-sm);
+  transition:
+    transform var(--motion-cinematic),
+    box-shadow var(--motion-cinematic);
+}
+
+/* Matches the hex tile's hover: a small lift plus a brighter accent edge.
+   Keeping the lift at 1px (tiles use 6px) because a pill row sits in text
+   flow — a large lift there reads as a layout jump, not a hover. */
+.folder-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    var(--lg-edge-soft),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.45),
+    0 6px 18px -8px rgba(var(--accent-rgb), 0.34),
+    var(--shadow-md);
+}
+
+.folder-pill:active {
+  transform: translateY(0) scale(0.985);
+}
+
+/* Light mode: the accent cast is a teal glow that turns to grime on #f5f5f7,
+   so drop it and let the hairline ring carry the edge (same reasoning as the
+   hex bloom in css/shell.css). */
+body.theme-light .page-tabs {
+  box-shadow:
+    var(--lg-edge-soft),
+    var(--lg-ring-accent),
+    var(--shadow-md);
+}
+
+body.theme-light .folder-pill {
+  box-shadow:
+    var(--lg-edge-soft),
+    var(--lg-ring-accent),
+    var(--shadow-sm);
+}
+
+body.theme-light .folder-pill:hover {
+  box-shadow:
+    var(--lg-edge-soft),
+    inset 0 0 0 1px rgba(var(--accent-rgb), 0.35),
+    var(--shadow-md);
+}
+
+/* Backdrop blur is the expensive part; a pill row can be 6+ nodes. */
+body.reduced-effects .folder-pill {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folder-pill { transition-duration: 0.01ms !important; }
+}

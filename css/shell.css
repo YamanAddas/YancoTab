@@ -161,21 +161,35 @@ div.boot-screen .boot-text {
 }
 
 /* ── Main Content ── */
-/* On desktop the content stack (hero + search + widgets + section + grid +
-   folder rail) is taller than the viewport, so we let main-content scroll.
-   The 100px bottom padding clears the fixed-bottom dock. */
+/* The content stack is hero + search + tabs + pane + folder rail. It only
+   exceeds the viewport on short windows or the taller panes, so it has to both
+   scroll when tall AND stay balanced when it isn't.
+   The 110px bottom padding clears the fixed-bottom dock. */
 .main-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
   gap: 0;
   padding: 20px 20px 110px;
   z-index: 1;
   overflow-y: auto;
   overflow-x: hidden;
   min-height: 0;
+
+  /* Centre the stack rather than pinning it to the top.
+     At 1440x900 the Apps stack is ~490px inside a ~745px content box, so
+     flex-start left roughly 240px of dead space between the folder rail and
+     the dock while crowding everything under the status bar.
+
+     `safe center` and not plain `center`: a centred flex column that DOES
+     overflow pushes its first child past the scroll origin, where no
+     scrollbar can reach it — the greeting would become permanently
+     unreachable on short windows. `safe` degrades to flex-start exactly in
+     that case. The unprefixed `center` below it is the fallback for engines
+     without safe/unsafe alignment. */
+  justify-content: center;
+  justify-content: safe center;
 }
 
 body.in-app .main-content {

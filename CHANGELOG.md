@@ -6,6 +6,148 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.0] — 2026-07-29
+
+The "Mail + edges" wave — a Mail launcher with real multi-account
+addressing, and a root-cause fix for hex icon edge quality.
+
+### Added — Mail hub
+
+- **`os/apps/MailApp.js`** — a Mail app in the grid and app list. It is a
+  launcher, not a client. Live unread counts are impossible without
+  breaking the project's core contract: Gmail and Outlook both require
+  OAuth2 (plus a server to hold the client secret) and the `identity`
+  permission, and iCloud Mail exposes no public API at any permission
+  level. YancoTab declares only `storage` and holds no accounts, so what
+  the app buys is speed of access rather than inbox sync.
+- **12 providers** (`os/apps/mail/providers.js`) — Gmail, Outlook
+  (personal), Outlook 365 (work/school), iCloud Mail, Proton Mail, Yahoo,
+  Zoho, Fastmail, Yandex, GMX, AOL, Tuta. Every host was verified to
+  resolve before shipping.
+- **Multi-account addressing** — the actual differentiator. Gmail
+  multiplexes signed-in accounts by path segment (`/mail/u/0/`,
+  `/mail/u/1/`), so pinning "work" and "personal" as separate accounts
+  removes the account-switcher round trip on every visit. Outlook does the
+  same with `/mail/0/`. Providers without that scheme set
+  `accountIndex: false` and the UI hides the control entirely rather than
+  asking a question with no answer.
+- **Compose deep links**, suppressed where a provider has none. iCloud
+  gets an "Open inbox" button only — a Compose button that just reopened
+  the inbox would be a lie.
+- **Zero-setup path** — provider tiles open immediately with no account
+  configured. The account picker arms from "+ Add account" (the grid
+  itself becomes the picker) and cancels on Esc.
+- **Keyboard** — Enter opens the default inbox, C composes.
+- Accounts persist through `kernel.storage` under a new registry key
+  `yancotab_mail_v1` (`user-data`, conditional sync). Stores a provider id,
+  a small account index, and a nickname — no addresses, no credentials, no
+  tokens, because there is nothing to authenticate with.
+
+### Changed — rounded-hex edge system
+
+The hex tile stacked four independently `clip-path`-ed layers, which
+capped how good it could look:
+
+1. Six needle-sharp vertices.
+2. **No outer glow was possible.** `clip-path` removes everything outside
+   the shape, so every shadow on a clipped element had to be `inset` — the
+   "outer bloom" was a hard-edged hexagon 5px larger with `blur(1px)`, a
+   ring rather than a halo.
+3. **Rim width drifted around the perimeter** (~3.0px on the vertical
+   edges vs ~2.68px mid-diagonal), because offsetting a percentage-based
+   polygon is not an equidistant offset.
+
+- **`os/ui/icons/hexGeometry.js`** — one rounded-hexagon path, used two
+  ways: a CSS `mask-image` for the tile body (a mask, unlike a clip, still
+  permits an ancestor `drop-shadow`), and an SVG `<path>` stroke for the
+  rim. A stroke is uniform by construction, and `vector-effect:
+  non-scaling-stroke` holds it at a constant screen width at any tile
+  size, which removes defect 3 outright. Same silhouette as the polygon it
+  replaces, so nothing shifts on screen.
+- **One shared `#yv-hex-rim` gradient** for every rim on the page. Its
+  stops read `--accent` / `--hex-rim-mid` / `--hex-rim-deep`, and because
+  gradient stops resolve custom properties against their own position in
+  the tree, anchoring the `<defs>` in `<body>` makes a theme switch
+  repaint every rim for free. One node instead of one per tile, and no
+  per-instance ids to collide.
+- **New tokens** — `--hex-mask`, `--hex-rim-w`, `--hex-rim-mid`,
+  `--hex-rim-deep`, `--hex-bloom-*`. `--hex-clip` is retained for the
+  in-app hex decorations (browser tabs, files vault, notes, pdf, photos,
+  settings) that were not part of this pass.
+
+### Fixed
+
+- **Light-mode hex icons were being washed out.** `glass.css` repurposed
+  `.hex-icon::before` from "outer bloom" to the animated specular sweep,
+  but `body.theme-light .hex-icon::before` in `shell.css` had higher
+  specificity (0,0,2,1 vs 0,0,1,1) and won — repainting the sweep as a
+  flat teal wash at opacity 0.4 with `mix-blend-mode: screen` across the
+  whole tile. Removed; the rule had no remaining job.
+- **Dock tiles had no hover coverage.** The rim/bloom hover rules keyed off
+  `.app-icon` / `.m-app-item`, neither of which wraps a dock tile, so
+  hovering a dock tile's padding left the rim cold. `.app-dock-tile` added.
+- **Pomodoro rendered as an emoji.** `APP_ICON_REGISTRY` already declared
+  a `phosphor` SVG for it, but `SmartIcon._phosphorMap` didn't route it, so
+  it fell through to the 🍅 static fallback.
+
+### Changed — home screen
+
+- **The content stack is centred instead of pinned to the top.** At
+  1440×900 the Apps stack is ~490px inside a ~745px content box, so
+  `justify-content: flex-start` left ~240px of dead space between the
+  folder rail and the dock while crowding everything under the status bar.
+  Uses `safe center`, not plain `center`: a centred flex column that *does*
+  overflow pushes its first child past the scroll origin where no
+  scrollbar can reach it — verified that plain `center` puts the greeting
+  at −132px (unreachable) under forced overflow, while `safe center` keeps
+  it at +20px.
+- **`.page-tabs` and `.folder-pill` brought onto the shared edge recipe.**
+  An audit of computed styles found the search bar, dock and widget cards
+  already sharing one vocabulary (inset top highlight + inset bottom
+  shadow + inset accent hairline ring + accent under-cast + depth), while
+  `.page-tabs` was missing the accent ring and cast, and `.folder-pill`
+  had only a 1px border over a 3% white fill — no shadow, no inset
+  highlight, no ring, making it the flattest element on a page whose
+  neighbours are all rendered glass. Both now compose from the same
+  `--lg-*` tokens, so a token change moves every surface together.
+  Light mode keeps the hairline and drops the accent cast, which reads as
+  grime rather than light on `#f5f5f7`.
+
+### Tests
+
+1813 total (+52 from 1761).
+
+- **`tests/hex-geometry.test.js`** — guards CSS/JS drift on the hex path.
+  CSS cannot read a JS constant, so the path is necessarily duplicated
+  between `HEX_PATH_D` and the `--hex-mask` token; the test parses the
+  token back out of `tokens.css` and compares. Verified to fail on a
+  one-digit mutation. Extents are measured on the *rendered* outline
+  (solving B′(t)=0 per axis) rather than raw command coordinates, because
+  a quadratic does not pass through its control point — asserting
+  `min(y) === 0` would have passed while describing a shape that does not
+  exist. The computed 2.235 inset matches Chrome's `getBBox()`.
+- **`tests/mail-providers.test.js`** — `buildUrl()` is the only value handed
+  to `window.open`, so it is the security boundary. Sweeps every provider ×
+  hostile account indexes (`NaN`, negatives, floats, `'javascript:alert(1)'`,
+  `'../../evil'`) × both kinds, asserting the result is always `https` with
+  no leaked scheme, traversal, or unsubstituted placeholder. Unknown
+  provider returns `null`, never a fallback guess.
+- **`tests/mail-persistence.test.js`** — the blob is sync-replicated and
+  reachable by JSON import, so it can arrive malformed. Covers unknown
+  providers being dropped rather than remapped, id de-duplication across
+  devices, dangling `defaultId` repair, the account cap, and label hygiene
+  (C0/C1 controls, zero-widths and bidi overrides stripped; Arabic and
+  emoji preserved).
+
+### Service worker
+
+Cache bumped to `yancotab-v1.2.0-mail-edges`. Precache gains the four Mail
+modules, `css/mail.css`, and `hexGeometry.js`; all 349 entries verified to
+exist on disk, since one missing path makes `cache.addAll()` reject and
+silently disables offline support.
+
+---
+
 ## [Unreleased]
 
 The "PDF Reader v2" wave — the empty-state app from v1.1.1 grew into a
