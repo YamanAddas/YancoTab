@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.2.4-el-booleans';
+const CACHE_NAME = 'yancotab-v1.2.5-asset-refs';
 
 const PRECACHE = [
     './',
@@ -425,8 +425,19 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Cache-first for everything else
+    // Cache-first for everything else.
+    //
+    // ignoreSearch is load-bearing: index.html cache-busts its 15 stylesheets
+    // with `?v=<version>`, but PRECACHE lists them without a query. A plain
+    // caches.match() keys on the full URL, so every one of those requests
+    // missed the cache and fell through to the network — the precache looked
+    // complete (all paths verified to exist) while offline had no CSS at all.
+    //
+    // Only applied here, never to the API branch above: those responses DO
+    // vary by query string, and ignoring it would serve one city's weather
+    // for another's.
     event.respondWith(
-        caches.match(event.request).then((cached) => cached || fetch(event.request))
+        caches.match(event.request, { ignoreSearch: true })
+            .then((cached) => cached || fetch(event.request))
     );
 });

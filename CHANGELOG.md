@@ -6,6 +6,68 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.2.5] — 2026-07-29
+
+Extended the audit to HTML and the config files. The markup itself was
+clean; the references between files were not.
+
+### Fixed
+
+- **Offline mode was serving no CSS at all.** `sw.js` precaches
+  `'./css/shell.css'`, but `index.html` requests
+  `'./css/shell.css?v=<version>'`. `caches.match()` keys on the full URL
+  including the query, so every one of the 15 stylesheets missed the cache
+  and fell through to the network. The precache *looked* healthy — 349
+  entries, every path verified to exist in 1.2.0 — while offline had no
+  styling whatsoever.
+
+  Fixed with `{ ignoreSearch: true }` on the cache-first branch only. Proven
+  both ways against the real Cache API: precached as `/css/shell.css` and
+  requested as `/css/shell.css?v=v1.2.4`, exact matching misses and
+  `ignoreSearch` hits. The network-first API branch deliberately keeps exact
+  matching — the same probe showed `ignoreSearch` there returns one
+  latitude's weather for another's.
+
+- **`index.html` had drifted four versions behind.** All 15 `?v=`
+  cache-busting queries and the boot screen's subtitle still read `v1.1.2`
+  while manifest, package.json, `os/version.js` and `sw.js` had moved to
+  `v1.2.4`. `ASSET_VERSION` exists in `os/version.js` but nothing consumes
+  it, and with no build step there is nothing to template these — so the
+  release version actually lives in **seven** places, not the four the
+  project contract names.
+
+  Consequence: returning web-app users kept the v1.1.2 CSS out of their HTTP
+  cache, so none of the v1.2.x visual work reached them, and the boot screen
+  advertised the wrong version.
+
+### Audited clean
+
+No findings in the shipped HTML for: boolean attributes set to `"false"`
+(the same trap fixed in `el()` last release), duplicate ids, dangling
+`for` / `aria-labelledby` / `aria-describedby` / `aria-controls`
+references, missing local `href`/`src` targets, or inline scripts and
+`on*` handlers (which MV3's CSP kills silently). `manifest.json` icons,
+the new-tab override, and every `__MSG_*__` placeholder all resolve.
+
+### Tests
+
+1859 (+30). `tests/asset-refs.test.js` covers version sync across all seven
+locations, service-worker cache correctness (precached paths exist, the
+static branch ignores the query, the API branch does not), manifest and
+locale references, and the six HTML checks above — run per shipped page.
+
+Which pages ship is read from `scripts/pack-extension.sh`'s own `EXCLUDES`
+list rather than hardcoded, so the audit follows the packer. That parser
+needed a fix of exactly the kind this file exists to catch: one exclude
+comment reads "aren't part of the extension", and that lone apostrophe
+desynchronised naive quote-pairing, silently shifting every entry after it
+and pulling two dev-only pages into the audit.
+
+Both new guards were verified to fail on mutation — reverting `?v=` to the
+stale value and removing `ignoreSearch` each turn the suite red.
+
+---
+
 ## [1.2.4] — 2026-07-29
 
 Applied the v1.2.3 audit idea to the JS side — "code that looks like it
