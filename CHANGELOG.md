@@ -6,6 +6,124 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.3.0] — 2026-08-03
+
+Five releases of audits, so: a feature. **Focus Mode** — the last
+surviving idea from the ORBIT concept in the production plan's design
+fight, and the only Phase 4 item that never got built.
+
+### Added — Focus Mode
+
+Collapses the desktop to three things: the clock, one task, and the
+Pomodoro ring. Grid, dock, search, widgets, folders, status bar and the
+cosmic stage decorations all go away.
+
+- **Entry:** `> focus` in SmartSearch, or **Ctrl+Shift+F**. Shift is
+  required — plain Ctrl+F is the browser's find bar, which an extension
+  has no business shadowing.
+- **Exit:** Escape, or the exit button. Escape is two-stage: while the
+  task input has focus it only blurs, so the key that dismisses a typo
+  isn't also the key that tears down the screen.
+- **Keyboard:** Space start/pause, ←/→ (and ↑/↓) change task, Enter
+  completes.
+- **The task** comes from the active Todo mission. Choosing one *pins*
+  it, but a pin is honoured only while that task is still open — complete
+  it in the Todo app or the Today widget and Focus Mode moves on rather
+  than leaving you staring at something already finished. With no open
+  tasks the card becomes an input, and what you type is created and
+  pinned in one step.
+- **Persists across reloads.** This is deliberate, not an oversight: a
+  new tab opens dozens of times a day, and one opened mid-session should
+  reinforce the session rather than drop you into a grid of games. It is
+  skipped while onboarding is up, so a first run never starts occluded.
+
+### Notes on ownership
+
+Focus Mode reimplements neither system it renders.
+
+- Timer transitions dispatch the same intents through
+  `pomodoro/engine/reducer.js` that PomodoroApp uses. Three surfaces now
+  tick (app, widget, focus); each re-reads storage before applying
+  `TICK`, so whichever fires first advances the phase and the others
+  observe the advanced state — one transition, one toast.
+- Task writes route through `todo/persistence.js`, so `streakLog` and
+  `completedAt` stay consistent with TodoApp's own writes. Verified by
+  asserting a streak entry actually appears after completing from the
+  focus screen — this is the exact bug class that bit TodoWidget in
+  1.1.1, where it wrote a v1 schema the app no longer read.
+- `yancotab_focus_v1` is the only key Focus Mode owns, and it is
+  **never synced**. "Am I focusing right now" is a property of this
+  device in this moment; replicating it would drop a second machine into
+  Focus Mode with a task pinned by an id that may not resolve there.
+
+### Fixed
+
+- **Toasts were invisible behind the overlay.** Caught while
+  red-teaming, not by looking at the code: the first version sat at a
+  hand-picked `z-index: 9000`, above the entire token scale — so every
+  toast painted underneath it. Proven rather than argued, by firing a
+  real toast and confirming `elementFromPoint` at its centre returned
+  the overlay. That silently swallowed "focus complete · 5-min break",
+  which is the one message a focus session exists to deliver.
+
+  The fix isn't a bigger number on the toast: a new `--z-focus: 750`
+  token slots the overlay into the documented stacking order — above
+  search (700), below toast (800), onboarding (950) and the boot screen.
+
+- **Two labels failed WCAG AA in light mode.** `.fm-date` and
+  `.fm-elapsed` used `--text-dim`, which light mode resolves to
+  `#aeaeb2` — measured at **2.03:1**. Both now use `--text` (4.66:1
+  light, 6.94:1 dark). All twelve text/background pairs were measured
+  across both themes and all pass.
+
+  Measuring this needed care: `.fm-exit` reads `2.61:1` if you sample it
+  right after switching themes, because it is the only element here with
+  a `color` transition and `getComputedStyle` returns the interpolated
+  mid-flight value. With transitions suppressed it settles at 4.66:1.
+  The label fixes were real; that one was the measurement lying.
+
+- **Tap targets were 26px and 28px.** The checkbox is the primary action
+  on the screen. Both now carry a true 44×44 hit area via an unstyled
+  `::before`, with the visual size unchanged. `inset` resolves against
+  the *padding* box, so the borders make the required offsets −11px and
+  −9px rather than the −9px/−8px that arithmetic on the border box
+  suggests — verified by hit-testing the corners, and by completing a
+  task with a tap outside the visible circle.
+
+### Changed
+
+- **`mobileShell.js` 976 → 924 lines.** The contract says a non-trivial
+  edit to a file over the cap should extract a chunk rather than add to
+  it, so the global keyboard shortcuts moved to a new
+  `os/ui/shellShortcuts.js`. Net effect of this release on the worst
+  offender in the codebase is −52 lines.
+- Focus Mode's own DOM scaffold lives in `focus/focusView.js`, following
+  the view-extraction pattern already used by Tarneeb, Trix and Todo.
+  No file added here exceeds 130 lines.
+
+### Tests
+
+1899 (+40). `tests/focus-mode.test.js` covers the pure core: task
+selection and pin-staleness, cycling (asserted in *both* directions —
+an unknown current id plus a naive `idx + step` sends dir=-1 to the end
+of the list instead of the top), MM:SS and elapsed formatting, phase
+labels, and ring progress.
+
+Hostile input is covered because all three blobs Focus Mode reads are
+reachable by JSON import: `normalizeFocusState` rejects non-string and
+empty task ids (a `0` id is falsy-but-truthy enough to suppress the
+first-open fallback), non-finite timestamps, and drops unknown keys.
+Ring progress is clamped at both ends — a backgrounded tab can tick long
+past a deadline, and a progress above 1 would invert the dash offset and
+draw the ring backwards.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.3.0-focus-mode`. Precache gains
+`css/focus.css` and the four new modules.
+
+---
+
 ## [1.2.5] — 2026-07-29
 
 Extended the audit to HTML and the config files. The markup itself was

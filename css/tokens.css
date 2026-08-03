@@ -89,6 +89,10 @@
   --z-modal:       500;
   --z-context:     600;
   --z-search:      700;
+  /* Focus Mode covers the whole desktop (grid, dock, status bar, windows,
+     search) but must stay BELOW toasts — the "focus complete · break"
+     notification is the one message a focus session exists to deliver. */
+  --z-focus:       750;
   --z-toast:       800;
   --z-boot:        900;
   --z-fatal:       1000;

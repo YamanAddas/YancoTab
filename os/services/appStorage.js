@@ -213,6 +213,18 @@ const REGISTRY = {
         default: [],
         validate: (v) => Array.isArray(v),
     },
+    // Focus Mode: whether the overlay is up, and which task is pinned.
+    // Deliberately NOT synced — "am I focusing right now" is a property of
+    // this device in this moment, not of the account. Syncing it would
+    // drop a second machine into Focus Mode with a task pinned by id that
+    // may not even resolve there yet.
+    yancotab_focus_v1: {
+        storageClass: 'preferences',
+        syncPolicy: 'never',
+        version: 1,
+        default: { active: false, taskId: null, enteredAt: null },
+        validate: (v) => v && typeof v === 'object' && !Array.isArray(v),
+    },
     yancotab_starfield_enabled: {
         storageClass: 'preferences',
         syncPolicy: 'always',

@@ -33,6 +33,8 @@ import { PagePanes } from './components/PagePanes.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
 import { WindowChrome } from './components/WindowChrome.js';
+import { FocusMode } from './components/FocusMode.js';
+import { bindShellShortcuts } from './shellShortcuts.js';
 import { defaultFolders } from '../config/defaultApps.js';
 
 export class MobileShell {
@@ -56,6 +58,9 @@ export class MobileShell {
     // Web tab content. Apps and Today reuse existing components.
     this.components.pageTabs = new PageTabs();
     this.components.pagePanes = new PagePanes();
+    // Focus Mode overlays the whole shell, so it takes a back-reference to
+    // close whatever app is open when it engages.
+    this.components.focusMode = new FocusMode(kernel, this);
 
     this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
     this.alarmUi = null;
@@ -130,7 +135,16 @@ export class MobileShell {
     const onboarding = new Onboarding();
     if (onboarding.shouldShow()) {
       requestAnimationFrame(() => onboarding.show());
+    } else {
+      // Focus Mode survives a reload on purpose: a new tab opened mid-session
+      // should reinforce the session, not dump the user back into the grid.
+      // Skipped while onboarding is up so a first run never starts occluded.
+      this.components.focusMode.restore();
     }
+
+    // Lets SmartSearch's `> focus` command (and anything else) drive the
+    // overlay without reaching into shell internals.
+    kernel.on('focus:toggle', () => this.components.focusMode.toggle());
   }
 
   // ─── DOM Structure ──────────────────────────────────────────
@@ -691,74 +705,8 @@ export class MobileShell {
       this.components.contextMenu.show({ type: 'grid', x: e.clientX, y: e.clientY }, e.clientX, e.clientY);
     });
 
-    // Keyboard shortcuts
-    document.addEventListener('keydown', (e) => {
-      // Ignore during IME composition
-      if (e.isComposing) return;
-
-      const isInput = e.target?.tagName === 'INPUT' || e.target?.tagName === 'TEXTAREA' || e.target?.isContentEditable;
-      const ctrl = e.ctrlKey || e.metaKey;
-
-      // Escape — close current app and go home (always active)
-      if (e.key === 'Escape') {
-        if (this.state.activePid) {
-          kernel.processManager.closeProcess(this.state.activePid);
-          e.preventDefault();
-        } else if (isInput) {
-          e.target.blur();
-        }
-        return;
-      }
-
-      // Ctrl+Enter inside the search input — quick-capture as a note via the
-      // existing `! prefix` path. Stays inside the isInput branch since the
-      // user is actively typing in the search box.
-      if (isInput && ctrl && e.key === 'Enter') {
-        const searchInput = this.components.search.input;
-        if (e.target === searchInput && searchInput.value.trim()) {
-          e.preventDefault();
-          // Prepend '!' to trigger SmartSearch's quick-capture branch, then
-          // simulate an Enter keypress on the search input
-          if (!searchInput.value.startsWith('!')) {
-            searchInput.value = '! ' + searchInput.value;
-          }
-          searchInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-          return;
-        }
-      }
-
-      // Don't override shortcuts when typing in inputs (except Escape and
-      // the Ctrl+Enter quick-capture above)
-      if (isInput) return;
-
-      // Ctrl+K / Cmd+K — focus SmartSearch
-      if (ctrl && e.key === 'k') {
-        e.preventDefault();
-        this.components.search.input?.focus();
-        return;
-      }
-
-      // Ctrl+, — open Settings
-      if (ctrl && e.key === ',') {
-        e.preventDefault();
-        kernel.emit('app:open', 'settings');
-        return;
-      }
-
-      // Ctrl+N — new note (when Notes app is the active window)
-      if (ctrl && e.key === 'n') {
-        const info = kernel.processManager.getProcessInfo(this.state.activePid);
-        if (info?.name === 'notes') {
-          const inst = kernel.processManager.getInstance(this.state.activePid);
-          const fn = inst?._createNote || inst?._createDocument;
-          if (typeof fn === 'function') {
-            e.preventDefault();
-            fn.call(inst);
-          }
-        }
-        return;
-      }
-    });
+    // Keyboard shortcuts live in their own module — see shellShortcuts.js
+    this._unbindShortcuts = bindShellShortcuts(this, kernel);
   }
 
   handleResize() {

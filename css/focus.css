@@ -1,0 +1,358 @@
+/**
+ * focus.css — Focus Mode overlay.
+ *
+ * The calm end of the YancoVerse: no starfield, no hex lattice, no grid
+ * floor. A single soft accent bloom over the base background, and three
+ * elements centred in a column.
+ *
+ * Every colour resolves to a token from tokens.css. The only literals are
+ * alpha channels and geometry.
+ */
+
+/* ── Shell suppression ───────────────────────────────────────────
+   Focus Mode collapses the desktop. Hiding the shell rather than
+   unmounting it keeps grid/dock state intact for the exit. */
+body.focus-active .mobile-shell > *,
+body.focus-active .kofi-badge {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s var(--ease-out);
+}
+
+/* The cosmic stage decorations (horizon glow + perspective grid floor)
+   are body pseudo-elements, so they need silencing separately. */
+body.focus-active::before,
+body.focus-active::after {
+  opacity: 0 !important;
+}
+
+body.focus-active #starfield,
+body.focus-active canvas.starfield {
+  opacity: 0;
+  transition: opacity 0.35s var(--ease-out);
+}
+
+/* ── Overlay ─────────────────────────────────────────────────────── */
+
+.focus-mode {
+  position: fixed;
+  inset: 0;
+  /* Slots into the documented stacking order: above search (700), below
+     toast (800), onboarding (950) and the boot screen. */
+  z-index: var(--z-focus, 750);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl, 24px);
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 18%, rgba(var(--accent-rgb), 0.10), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(var(--accent-rgb), 0.05), transparent 70%),
+    var(--bg);
+  animation: fm-in 0.45s var(--ease-out) both;
+  overflow-y: auto;
+}
+
+@keyframes fm-in {
+  from { opacity: 0; transform: scale(1.02); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.fm-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(20px, 4vh, 44px);
+  width: 100%;
+  max-width: 520px;
+  text-align: center;
+}
+
+/* ── Clock ───────────────────────────────────────────────────────── */
+
+.fm-head { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+
+.fm-clock {
+  font-family: var(--font-mono);
+  font-size: clamp(56px, 13vw, 104px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 40px rgba(var(--accent-rgb), 0.16);
+}
+
+.fm-date {
+  font-family: var(--font-mono);
+  font-size: var(--font-sm);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  /* --text, not --text-dim: light mode resolves --text-dim to #aeaeb2,
+     which is 2.03:1 on the light background and fails WCAG AA. */
+  color: var(--text);
+}
+
+/* ── Timer ring ──────────────────────────────────────────────────── */
+
+.fm-timer { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.fm-ring {
+  position: relative;
+  width: clamp(150px, 26vh, 190px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform var(--transition-fast);
+}
+
+.fm-ring:hover  { transform: scale(1.03); }
+.fm-ring:active { transform: scale(0.98); }
+
+.fm-ring:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+
+.fm-ring-svg { position: absolute; inset: 0; }
+.fm-ring-svg svg { width: 100%; height: 100%; display: block; }
+
+.fm-ring-track { stroke: var(--border-light); }
+
+.fm-ring-fill {
+  stroke: var(--accent);
+  filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.55));
+  transition: stroke-dashoffset 0.9s linear, stroke var(--transition-normal);
+}
+
+.focus-mode.is-break .fm-ring-fill { stroke: var(--info, #0a84ff); }
+.focus-mode.is-paused .fm-ring-fill { stroke: var(--text-dim); filter: none; }
+
+.fm-ring-time {
+  position: relative;
+  font-family: var(--font-mono);
+  font-size: clamp(28px, 5vw, 38px);
+  font-weight: 300;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Breathing pulse while a session is actually counting down. */
+.focus-mode.is-running .fm-ring::after {
+  content: '';
+  position: absolute;
+  inset: -8%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--accent-rgb), 0.16), transparent 68%);
+  animation: fm-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes fm-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.97); }
+  50%      { opacity: 0.9;  transform: scale(1.04); }
+}
+
+.fm-phase {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+/* ── Task card ───────────────────────────────────────────────────── */
+
+.fm-task-slot { width: 100%; }
+
+.fm-task {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: var(--radius-lg);
+  background: var(--lg-tint-card, var(--bg-card));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--shadow-md);
+  text-align: left;
+}
+
+.fm-task[hidden] { display: none; }
+
+.fm-task-check {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid var(--border-light);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.fm-task-check:hover {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* Completing the task is the primary action on this screen, but a 26px
+   circle is a poor thumb target. Expand the hit area to 44px without
+   growing the visual — ::after is already taken by the checkmark.
+   `inset` resolves against the PADDING box, which the 2px border makes
+   22px — hence -11px, not -9px, to land on a true 44. */
+.fm-task-check::before {
+  content: '';
+  position: absolute;
+  inset: -11px;
+  border-radius: 50%;
+}
+
+/* Checkmark is drawn on hover only — the task is open, so a persistent
+   tick would misread as already done. */
+.fm-task-check::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 3px;
+  width: 6px;
+  height: 11px;
+  border: solid var(--accent);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0.6);
+  opacity: 0;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.fm-task-check:hover::after { opacity: 1; transform: rotate(45deg) scale(1); }
+
+.fm-task-check:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.fm-task-text {
+  flex: 1 1 auto;
+  font-size: var(--font-md);
+  color: var(--text-bright);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.fm-task-next {
+  position: relative;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.fm-task-next:hover { color: var(--accent); border-color: var(--border-accent); }
+.fm-task-next[hidden] { display: none; }
+
+/* Same 44px thumb target treatment as the checkbox (1px border → 26px
+   padding box, so -9px reaches 44). */
+.fm-task-next::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+}
+
+.fm-task-next:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.fm-task-empty { padding: 8px 10px; }
+
+.fm-task-input {
+  width: 100%;
+  padding: 10px 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  font-size: var(--font-md);
+  outline: none;
+}
+
+.fm-task-input::placeholder { color: var(--text-dim); }
+
+/* ── Footer ──────────────────────────────────────────────────────── */
+
+.fm-foot { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+.fm-exit {
+  padding: 9px 22px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-glass);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.fm-exit:hover {
+  color: var(--accent);
+  border-color: var(--border-accent);
+  background: var(--accent-bg);
+}
+
+.fm-exit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.fm-elapsed {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.1em;
+  color: var(--text);        /* see .fm-date — --text-dim fails AA in light mode */
+  min-height: 1em;
+}
+
+/* ── Light theme ─────────────────────────────────────────────────── */
+
+body.theme-light .focus-mode {
+  background:
+    radial-gradient(ellipse 80% 55% at 50% 18%, rgba(var(--accent-rgb), 0.07), transparent 70%),
+    var(--bg);
+}
+
+body.theme-light .fm-clock { text-shadow: none; }
+body.theme-light .fm-ring-fill { filter: none; }
+
+/* ── Reduced motion ──────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .focus-mode { animation: none; }
+  .focus-mode.is-running .fm-ring::after { animation: none; opacity: 0.5; }
+  .fm-ring-fill { transition: none; }
+  .fm-ring:hover, .fm-ring:active { transform: none; }
+}
+
+/* ── Small screens ───────────────────────────────────────────────── */
+
+@media (max-height: 620px) {
+  .fm-inner { gap: 16px; }
+  .fm-clock { font-size: clamp(40px, 9vw, 60px); }
+  .fm-ring { width: clamp(120px, 20vh, 150px); }
+}

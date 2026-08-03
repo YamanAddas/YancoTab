@@ -210,6 +210,7 @@ export class SmartSearch {
         const COMMANDS = [
             { match: ['new note', 'note'], label: 'New note', action: 'new-note', arg: cmd.replace(/^(new\s+)?note\s*/i, '') },
             { match: ['add todo', 'todo'], label: 'Add todo', action: 'add-todo', arg: cmd.replace(/^(add\s+)?todo\s*/i, '') },
+            { match: ['focus'], label: 'Enter focus mode', action: 'focus' },
             { match: ['dark'], label: 'Switch to dark mode', action: 'theme-dark' },
             { match: ['light'], label: 'Switch to light mode', action: 'theme-light' },
             { match: ['export'], label: 'Export all data', action: 'export' },
@@ -370,6 +371,14 @@ export class SmartSearch {
                 });
                 break;
             }
+            case 'focus':
+                // Clear the query so exiting focus doesn't land the user
+                // back on a search box still reading "> focus".
+                this.input.value = '';
+                this._hideDropdown();
+                this.input.blur();
+                kernel.emit('focus:toggle');
+                break;
             case 'theme-dark':
                 import('../../theme/theme.js').then(m => m.applyThemeMode('dark'));
                 kernel.emit('toast', { message: 'Switched to dark mode', type: 'info' });
