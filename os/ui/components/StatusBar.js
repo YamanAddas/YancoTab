@@ -1,4 +1,5 @@
 import { el, setLiteralHtml } from '../../utils/dom.js';
+import { countOpenTodos, countActiveAlarms } from '../badges/badgeModel.js';
 
 /**
  * StatusBar — full-width top tray.
@@ -113,28 +114,22 @@ export class StatusBar {
         }
     }
 
+    // Counting lives in badges/badgeModel.js so this pill and the Todo /
+    // Clock icon badges can never disagree. Two independent counters
+    // drifting apart is how the v1.1.1 TodoWidget bug happened.
+
     _getOpenTodoCount() {
         try {
             // Canonical v2 schema — TodoApp / TodoWidget all use this. The
             // pre-fix v1 read returned 0 for every user post-migration.
-            const data = this.kernel?.storage?.load('yancotab_todo_v2');
-            if (!data || !Array.isArray(data.missions)) return 0;
-            let n = 0;
-            for (const m of data.missions) {
-                if (Array.isArray(m.tasks)) {
-                    for (const t of m.tasks) if (!t.done) n++;
-                }
-            }
-            return n;
+            return countOpenTodos(this.kernel?.storage?.load('yancotab_todo_v2'));
         } catch { return 0; }
     }
 
     _getActiveAlarmCount() {
         try {
             // Canonical key — ClockApp persists alarms here.
-            const state = this.kernel?.storage?.load('yancotab_clock_v3');
-            if (!state || !Array.isArray(state.alarms)) return 0;
-            return state.alarms.filter(a => a && a.enabled).length;
+            return countActiveAlarms(this.kernel?.storage?.load('yancotab_clock_v3'));
         } catch { return 0; }
     }
 
@@ -161,6 +156,20 @@ export class StatusBar {
         };
         document.addEventListener('visibilitychange', this._visibilityHandler);
 
+        // The pill used to refresh only on alarm events and tab-visibility
+        // changes, so completing a todo left it stale until you switched
+        // tabs and back. Harmless while it was the only counter on screen;
+        // now that the Todo icon carries a live badge, a stale pill sits
+        // right next to a correct badge and reads as a bug. Subscribe to the
+        // same keys the badges watch.
+        this._storeUnsubs = [];
+        for (const key of ['yancotab_todo_v2', 'yancotab_clock_v3']) {
+            const off = this.kernel?.storage?.subscribe?.(key, () => this._refreshActivity());
+            if (typeof off === 'function') this._storeUnsubs.push(off);
+        }
+        const offTodo = this.kernel?.on?.('todo:changed', () => this._refreshActivity());
+        if (typeof offTodo === 'function') this._storeUnsubs.push(offTodo);
+
         window.addEventListener('yancotab:clock-update', () => {
             if (this.elements.time) this.elements.time.textContent = this.getTime();
         });
@@ -175,5 +184,7 @@ export class StatusBar {
         if (this._visibilityHandler) {
             document.removeEventListener('visibilitychange', this._visibilityHandler);
         }
+        for (const off of this._storeUnsubs || []) { try { off(); } catch { /* ignore */ } }
+        this._storeUnsubs = [];
     }
 }

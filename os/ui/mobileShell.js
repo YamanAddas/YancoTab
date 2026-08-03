@@ -35,6 +35,7 @@ import { Onboarding } from './components/Onboarding.js';
 import { WindowChrome } from './components/WindowChrome.js';
 import { FocusMode } from './components/FocusMode.js';
 import { bindShellShortcuts } from './shellShortcuts.js';
+import { BadgeManager } from './badges/BadgeManager.js';
 import { defaultFolders } from '../config/defaultApps.js';
 
 export class MobileShell {
@@ -145,6 +146,12 @@ export class MobileShell {
     // Lets SmartSearch's `> focus` command (and anything else) drive the
     // overlay without reaching into shell internals.
     kernel.on('focus:toggle', () => this.components.focusMode.toggle());
+
+    // Live icon badges. Painted onto whatever icons are in the document
+    // rather than pushed through SmartIcon metadata, so grid re-renders,
+    // page switches, folder overlays and the dock all get them for free.
+    this.components.badges = new BadgeManager(kernel);
+    this.components.badges.start(this.dom.wrapper);
   }
 
   // ─── DOM Structure ──────────────────────────────────────────

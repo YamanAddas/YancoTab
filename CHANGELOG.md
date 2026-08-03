@@ -6,6 +6,124 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.4.0] — 2026-08-03
+
+The desktop learns to tell you something before you click. App icons now
+carry live badges — and the badge path turns out to have been dead since
+v1.0.
+
+### Added — icon badges
+
+`SmartIcon` has emitted a `.smart-badge` element since v1.0 whenever
+`metadata.badge` was set. Nothing ever set it, and **no stylesheet ever
+styled it**, so even a populated badge would have rendered as an unstyled
+div. Both halves are now real.
+
+| Icon | Badge | Source |
+|---|---|---|
+| Todo | red count pill, capped at `99+` | undone tasks across every mission |
+| Pomodoro | pulsing teal dot | a session actively counting down |
+| Clock | amber dot | at least one armed alarm |
+
+Counts where the number is the message, dots where the state is. A count
+of alarms would be noise — that *an* alarm is set is the whole point;
+conversely a dot on Todo would hide the difference between one task and
+thirty.
+
+### How it is wired
+
+Not by threading a `badge` field through the four places that construct a
+`SmartIcon`. That would mean re-rendering icons on every data change,
+which fights the grid's drag state, and it would have missed the dock and
+folder overlay unless all four were kept in sync forever.
+
+Instead `BadgeManager` paints onto whatever `.hex-icon[data-app-id]`
+elements are in the document. Grid, dock and folder overlay get badges
+without knowing badges exist — verified by switching page tabs and
+opening/closing a folder overlay and confirming the badges survive.
+
+Two triggers: storage subscriptions on the three source keys, and a
+`MutationObserver` for re-rendered icons. The store only emits when
+content actually changed, so a per-second Pomodoro `TICK` that changes
+nothing costs nothing.
+
+The painter writes badge nodes into the tree it observes, which is a
+self-trigger loop waiting to happen. Every host carries a
+`dataset.badgeSig` and painting is skipped when the signature is
+unchanged, so a settled tree produces no mutations. Confirmed by watching
+badge node add/remove counts for 3 idle seconds: **0 and 0**.
+
+### Placement
+
+The badge is a direct child of `.hex-icon`, which is deliberately the one
+layer of the icon carrying no mask — the hexagon mask lives on
+`.hex-icon::before`, `::after` and `.hex-icon-content`. Putting the badge
+inside the content wrapper instead would have sliced it along the hexagon
+edge, the same class of bug as v1.2.2 / v1.2.3. Verified rather than
+assumed: the host reports `mask: none`, `clip-path: none`,
+`overflow: visible`, and the badge overhangs the corner by 2px.
+
+### Fixed
+
+- **The status pill went stale on every todo change.** It refreshed only
+  on alarm events and tab-visibility changes, so completing a task left
+  it showing the old count until you switched tabs and back. Harmless
+  while it was the only counter on screen — but a live icon badge now
+  sits centimetres away, and "0 badge / 2 tasks" reads as a broken app.
+  It subscribes to the same keys the badges do; verified moving in
+  lockstep 2 → 1 → cleared.
+
+- **The count pill failed WCAG AA in light mode**, at 3.55:1 (white on
+  `--danger` `#ff3b30`). At 10px bold this is not "large text", so 4.5:1
+  applies. Fixed by deepening the red rather than dimming the text —
+  white on `#d70015` is 5.38:1, and dark ink on the brighter dark-mode
+  red is 5.74:1.
+
+  The two themes genuinely need opposite foregrounds, so this is a new
+  `--badge-alert-bg` / `--badge-alert-fg` token pair rather than a
+  hardcoded hex in `badges.css`. Both values were computed, not eyeballed.
+
+### Changed
+
+- **`countOpenTodos` / `countActiveAlarms` now have one definition**, in
+  `badges/badgeModel.js`. `StatusBar` had its own copies; the pill and the
+  icon badge reading from separate counters is precisely how the v1.1.1
+  TodoWidget bug happened, and this time the two would have been rendered
+  side by side.
+- Badges hide entirely under `body.focus-active` — Focus Mode collapses
+  the desktop, so badges must not outlive it.
+
+### Tests
+
+1925 (+26). `tests/badge-model.test.js` covers the counters against
+hostile input (all three source blobs are user-editable by JSON import and
+two are sync-replicated, and a badge that throws takes the icon paint down
+with it): holes in the mission array, malformed tasks, a missing `done`
+flag, non-finite counts.
+
+Also covered: the cap at `99+`, that a paused timer does **not** read as
+running, that an empty object does not read as running merely because its
+phase isn't `'idle'`, and that `badgeSignature` is stable for equal
+descriptors — that last one is load-bearing for correctness, not speed,
+since an unstable signature would make the painter retrigger its own
+observer forever.
+
+### Known issue — not introduced here
+
+Light theme is broken on the home screen: the body keeps its dark
+background while light-mode text tokens apply, leaving the greeting,
+clock, app labels and page tabs nearly unreadable. Apps and Focus Mode are
+unaffected. Verified pre-existing by stashing all of the v1.3.0 and v1.4.0
+work and reproducing on a clean tree with no wallpaper set. Tracked
+separately; the dark default is unaffected.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.4.0-badges`. Precache gains `css/badges.css`,
+`badgeModel.js` and `BadgeManager.js`.
+
+---
+
 ## [1.3.0] — 2026-08-03
 
 Five releases of audits, so: a feature. **Focus Mode** — the last

@@ -38,6 +38,13 @@
   --gold-dim:  rgba(255, 200, 0, 0.1);
   --info:      #0a84ff;
 
+  /* Icon count badge. Its own pair rather than --danger + --accent-contrast
+     because the two themes need opposite foregrounds to clear WCAG AA at
+     10px bold: dark ink on the bright red here (5.74:1), white on a deeper
+     red in light mode (5.38:1 — plain --danger there is only 3.55:1). */
+  --badge-alert-bg: #ff4757;
+  --badge-alert-fg: #0a0f1a;
+
   /* ── Border ── */
   --border:       rgba(255, 255, 255, 0.06);
   --border-accent: rgba(0, 229, 193, 0.15);
@@ -303,6 +310,11 @@ body.theme-light {
   --gold:    #e6a800;
   --gold-dim: rgba(230, 168, 0, 0.1);
   --info:    #007AFF;
+
+  /* See the dark-mode pair: white on #ff3b30 is 3.55:1 and fails AA, so
+     the light badge deepens the red instead of dimming the text. */
+  --badge-alert-bg: #d70015;
+  --badge-alert-fg: #ffffff;
 
   /* ── Borders ── */
   --border:       rgba(0, 0, 0, 0.08);

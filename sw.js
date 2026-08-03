@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.3.0-focus-mode';
+const CACHE_NAME = 'yancotab-v1.4.0-badges';
 
 const PRECACHE = [
     './',
@@ -31,6 +31,7 @@ const PRECACHE = [
     './css/maps.css',
     './css/mail.css',
     './css/focus.css',
+    './css/badges.css',
     './os/ui/bubbly.css',
     // Core JS
     './os/boot-init.js',
@@ -83,6 +84,8 @@ const PRECACHE = [
     './os/ui/components/focus/focusSession.js',
     './os/ui/components/focus/focusView.js',
     './os/ui/shellShortcuts.js',
+    './os/ui/badges/badgeModel.js',
+    './os/ui/badges/BadgeManager.js',
     // Apps
     './os/apps/BrowserApp.js',
     './os/apps/MailApp.js',

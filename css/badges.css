@@ -1,0 +1,104 @@
+/**
+ * badges.css — live status badges on app icons.
+ *
+ * SmartIcon has emitted `.smart-badge` since v1.0 but nothing ever styled
+ * it, so even a populated badge would have rendered as an unstyled div.
+ *
+ * Placement note: the badge is a direct child of `.hex-icon`, which is
+ * deliberately the ONE layer in the icon that carries no mask. The hexagon
+ * mask lives on `.hex-icon::before`, `::after` and `.hex-icon-content`, so
+ * a child of the host can overhang the corner. Putting the badge inside
+ * `.hex-icon-content` instead would silently slice it along the hexagon
+ * edge — the same class of bug as v1.2.2 / v1.2.3.
+ *
+ * Internal stacking runs 0..5 (content 0, platform 1, frame 3-4, sweep 5),
+ * so the badge takes 6 to sit above all of them.
+ */
+
+.smart-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  /* Ring in the page background so the badge reads as sitting *on* the
+     icon rather than merging into its rim. */
+  box-shadow: 0 0 0 2px var(--bg), var(--shadow-sm);
+}
+
+/* ── Count pill (Todo) ───────────────────────────────────────────── */
+
+.smart-badge.is-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--badge-alert-fg);
+  background: var(--badge-alert-bg);
+}
+
+/* ── State dot (Pomodoro, Clock) ─────────────────────────────────── */
+
+.smart-badge.is-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-dim);
+}
+
+.smart-badge.is-dot[data-tone='active'] {
+  background: var(--accent);
+  animation: badge-pulse 2s var(--ease-out) infinite;
+}
+
+.smart-badge.is-dot[data-tone='warn'] {
+  background: var(--warning);
+}
+
+@keyframes badge-pulse {
+  0%, 100% { opacity: 1;    transform: scale(1); }
+  50%      { opacity: 0.55; transform: scale(0.85); }
+}
+
+/* Dock tiles are smaller than grid icons, so the badge scales with them —
+   an 18px pill on a 44px dock tile reads as a defect. */
+.app-dock-tile .smart-badge.is-count,
+.m-dock .smart-badge.is-count {
+  min-width: 15px;
+  height: 15px;
+  padding: 0 4px;
+  font-size: 9px;
+}
+
+.app-dock-tile .smart-badge.is-dot,
+.m-dock .smart-badge.is-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* ── Light theme ─────────────────────────────────────────────────── */
+
+/* Both themes resolve --badge-alert-* and --bg themselves, so the count
+   pill needs no light-mode override — see tokens.css for why the two
+   themes use opposite foregrounds. */
+
+/* ── Reduced motion ──────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .smart-badge.is-dot[data-tone='active'] {
+    animation: none;
+  }
+}
+
+/* Focus Mode hides the desktop entirely; badges must not outlive it. */
+body.focus-active .smart-badge {
+  display: none;
+}
