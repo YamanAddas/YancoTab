@@ -21,6 +21,10 @@
   --accent-bright: #33ffdd;
   --accent-bg:     rgba(0, 229, 193, 0.08);
   --accent-subtle: rgba(0, 229, 193, 0.04);
+  /* Accent used as TEXT, as opposed to fills, rims and glows. Identical to
+     --accent here: teal on the deep-space background is ~11:1, so dark mode
+     needs no separate value. Light mode does — see the light block. */
+  --accent-text:   var(--accent);
 
   /* ── UI Text (for labels, dots, nav, placeholders) ── */
   --ui-text-rgb: 200, 220, 240;
@@ -294,13 +298,28 @@ body.theme-light {
   --accent-bright:   #0A84FF;
   --accent-bg:       rgba(0, 122, 255, 0.06);
   --accent-subtle:   rgba(0, 122, 255, 0.03);
+  /* System blue is 4.02:1 on pure white and only 3.24:1 on the darkest part
+     of the light desktop surface — it fails AA wherever accent is used for
+     small text (greeting line, active page tab). This deeper blue measures
+     5.38:1 there, and still clears 4.5:1 even against a worst-case pixel
+     where both accent radials overlap, which the geometry cannot produce.
+     --accent itself is unchanged: rims, fills and glows keep system blue. */
+  --accent-text:     #0058bf;
 
   /* ── UI Text (dark text for light backgrounds) ── */
   --ui-text-rgb: 60, 60, 67;
 
   /* ── Text Hierarchy ── */
   --text-bright: #1d1d1f;
-  --text:        #6e6e73;
+  /* Was #6e6e73 (Apple's secondary label, which assumes pure white beneath).
+     It measured 4.66:1 on a perfectly flat --bg and dropped below 4.5:1 over
+     any tint at all — 4.09:1 on the darkest part of the light desktop
+     surface, failing AA for the date line and idle page tabs. #5d5d63 has
+     real headroom: 5.28:1 there, 6.01:1 flat, 6.54:1 on white cards, and
+     still sits clearly between --text-bright and --text-dim. */
+  --text:        #5d5d63;
+  /* Decorative only — 2.03:1 on --bg. Never use for text that must be read;
+     see the --text-dim note in focus.css. */
   --text-dim:    #aeaeb2;
 
   /* ── Semantic Colors ── */

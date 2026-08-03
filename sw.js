@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.4.0-badges';
+const CACHE_NAME = 'yancotab-v1.4.1-light-theme';
 
 const PRECACHE = [
     './',

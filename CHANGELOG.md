@@ -6,6 +6,121 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.4.1] — 2026-08-03
+
+Light theme was unusable on the home screen, and had been for a long
+time. Apps and Focus Mode were fine, which is why it survived.
+
+### Fixed
+
+- **The dark wallpaper covered the light theme entirely.** `#app-shell`
+  is full-bleed at `z-index: 1` with `background-image:
+  url(wallpapers/emerald.webp)` hardcoded in `main.css`, and there was no
+  light-mode counterpart. So light mode's `--bg` never showed: the dark
+  photo stayed put while the light text tokens (`--text-bright` `#1d1d1f`)
+  applied on top of it. Greeting, clock, app labels, page tabs and folder
+  pills were all but invisible. Reproduced on defaults with no wallpaper
+  set.
+
+  Light mode now renders a surface instead of shipping eight light
+  wallpapers. Contrast becomes deterministic — no photo can guarantee
+  4.5:1 across every region a label might land on — and it adds no bytes
+  to an offline-first extension.
+
+  The `!important` on that rule is load-bearing rather than lazy:
+  `themes.js applyWallpaper()` writes the wallpaper as an **inline**
+  style for every non-default color theme, and `WallpaperManager` does
+  the same for custom images. An important author declaration is the only
+  thing in the cascade that outranks a normal inline one. A plain CSS
+  override would have fixed the default theme and silently lost for
+  anyone on Sapphire, Rose or a custom image.
+
+  Trade-off, deliberate: the chosen wallpaper is not shown in light mode.
+  It returns untouched in dark, which is the default.
+
+  That this was the intended design all along is written into the
+  codebase — `glass.css`'s light label rule opens with *"In light theme
+  the wallpaper goes light"*, and the light greeting rules already swap
+  their dark halos for light ones. Only the wallpaper override was ever
+  missing.
+
+- **`--text` had no contrast headroom in light mode.** `#6e6e73` (Apple's
+  secondary label, which assumes pure white beneath) measured 4.66:1 on a
+  perfectly flat `--bg` and dropped under 4.5:1 over *any* tint at all —
+  4.09:1 on the darkest part of the new surface, failing AA for the date
+  line and idle page tabs. Now `#5d5d63`: 5.28:1 there, 6.01:1 flat,
+  6.54:1 on white cards, and still clearly between `--text-bright` and
+  `--text-dim`.
+
+- **Accent-as-text failed AA at small sizes.** Light mode's system blue
+  `#007AFF` is 3.24:1 on the surface, so the greeting line (11px) and the
+  active page tab (10.5px) both failed. New `--accent-text` token —
+  `#0058bf`, 5.38:1 — used only where accent is *text*. Rims, fills and
+  glows keep system blue. In dark mode `--accent-text` aliases `--accent`,
+  so every switched call site is a literal no-op.
+
+- **The Ko-fi "Support" badge was invisible in light mode**, at 1.08:1 —
+  it hardcoded `rgba(200, 220, 240, …)`, which is exactly dark mode's
+  `--ui-text-rgb`. Swapping the five occurrences to
+  `rgba(var(--ui-text-rgb), …)` fixes the hue in light and changes
+  nothing in dark, since that token already flips per theme. A light-only
+  alpha bump (0.65 → 0.85) takes it to 5.71:1, matching the dark badge's
+  5.72:1.
+
+- **The search placeholder was 2.37:1** in light mode. It is this field's
+  only label, so it is real text and owes 4.5:1; alpha 0.45 → 0.75 gives
+  5.07:1. The dark rule has the same weakness and is deliberately left
+  alone — dark is the default and out of scope here.
+
+- **`.greeting-sec` re-declared `-webkit-text-fill-color: var(--accent)`
+  after its `color`**, which silently overrides `color` on every WebKit
+  engine. The seconds now take `--accent-text` in both declarations;
+  without the second one the first was inert.
+
+### Verified
+
+Every element named above was measured, not eyeballed: text colour
+composited through its own background chain down onto the **darkest pixel
+the surface can produce** (bottom of the linear ramp plus the nearer
+accent radial), with transitions suppressed. All 13 clear WCAG AA — 4.5:1
+for normal text, 3:1 for large.
+
+Three measurement traps were worth the trouble:
+
+- `getComputedStyle` returns *interpolated mid-transition* values, so
+  anything with a `color` transition reads as its previous colour right
+  after a theme switch. Suppress transitions first.
+- Suppressing **animations** too is wrong here: `greetFadeDown` uses
+  `fill-mode: both`, and killing it drops the Ko-fi badge back to its
+  declared `opacity: 0.32`. That cost one round of "fixing" an opacity
+  that was never broken.
+- The clock is `background-clip: text`, so a naive backdrop walk compares
+  its gradient against itself and reports exactly 1.00:1.
+
+### Dark theme
+
+Unchanged, and asserted rather than assumed: wallpaper still
+`emerald.webp`, `--accent-text` resolves to `#00e5c1`, `--text` to
+`#8a9bb0`, and the Ko-fi text, border, ornament and placeholder all
+resolve to their original literals.
+
+### Tests
+
+1938 (+13). `tests/light-theme-contrast.test.js` pins the combination
+that failed — a token block in `tokens.css` and a background in
+`main.css`, each individually fine. It asserts the light `#app-shell`
+override exists, is `!important`, and does not reintroduce a wallpaper;
+that the light text tokens clear AA against the computed worst-case
+surface; that the hierarchy stays ordered; and that dark's
+`--accent-text` still aliases `--accent`.
+
+One test asserts `--accent` alone would **fail** AA, so that anyone
+"simplifying" `--accent-text` away finds out why it exists. Both guards
+were mutation-tested: reverting `--text` to `#6e6e73` fails the AA test,
+and deleting the shell override fails three.
+
+---
+
 ## [1.4.0] — 2026-08-03
 
 The desktop learns to tell you something before you click. App icons now

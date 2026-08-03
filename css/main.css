@@ -147,6 +147,43 @@ body.theme-light {
   opacity: 0.55;
 }
 
+/* ── Light theme: the desktop surface ──────────────────────────────
+   #app-shell is full-bleed at z-index 1, so its wallpaper covers <body>
+   completely. That meant light mode's `--bg` never actually showed: the
+   dark emerald photo above stayed put while the light text tokens
+   (--text-bright #1d1d1f) applied on top of it, leaving the greeting,
+   clock, app labels, page tabs and folder pills unreadable.
+
+   Light mode renders a surface instead of shipping eight light
+   wallpapers. Two reasons: contrast becomes deterministic — no photo can
+   guarantee 4.5:1 across every region a label might sit over — and it
+   adds no bytes to an offline-first extension. Focus Mode already takes
+   this approach and reads correctly in light mode.
+
+   Trade-off, deliberate: a user's chosen wallpaper (themed or custom) is
+   not shown in light mode. Readability wins; the wallpaper returns
+   untouched in dark, which is the default.
+
+   `!important` is load-bearing here, not laziness. themes.js
+   applyWallpaper() writes the wallpaper as an INLINE style for every
+   non-default color theme, and WallpaperManager does the same for custom
+   images. An important author declaration is the only thing in the
+   cascade that outranks a normal inline one. */
+body.theme-light #app-shell {
+  background-color: var(--bg) !important;
+  background-image:
+    radial-gradient(ellipse 100% 70% at 12% -5%, rgba(var(--accent-rgb), 0.10), transparent 62%),
+    radial-gradient(ellipse 85% 60% at 105% 105%, rgba(var(--accent-rgb), 0.07), transparent 68%),
+    linear-gradient(180deg, var(--bg-surface) 0%, var(--bg) 48%, var(--bg-elevated) 100%) !important;
+}
+
+/* Cosmic mode dims the shell to reveal the starfield behind it. The
+   starfield is disabled in light mode, so dimming here would only wash
+   the surface toward whatever <body> paints and cost contrast. */
+body.theme-light #app-shell.cosmic-wallpaper {
+  opacity: 1;
+}
+
 /* ── Placeholder window chrome ── */
 .placeholder-window {
   position: absolute;

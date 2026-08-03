@@ -873,7 +873,10 @@ body.theme-light .m-search-container::before {
 }
 
 .page-tab.active {
-  color: var(--accent);
+  /* 10.5px — small text, so it needs 4.5:1, which light mode's system blue
+     misses. See --accent-text in tokens.css; identical in dark mode. The
+     fill and ring below keep --accent. */
+  color: var(--accent-text);
   background:
     linear-gradient(180deg, rgba(var(--accent-rgb), 0.18) 0%, rgba(var(--accent-rgb), 0.06) 100%);
   box-shadow:
@@ -918,7 +921,7 @@ body.theme-light .page-tab:hover {
   background: rgba(var(--accent-rgb), 0.06);
 }
 body.theme-light .page-tab.active {
-  color: var(--accent);
+  color: var(--accent-text);
   background:
     linear-gradient(180deg, rgba(var(--accent-rgb), 0.12) 0%, rgba(var(--accent-rgb), 0.04) 100%);
   box-shadow:

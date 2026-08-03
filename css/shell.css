@@ -1319,7 +1319,12 @@ body.theme-light .m-search-input {
 }
 
 body.theme-light .m-search-input::placeholder {
-  color: rgba(var(--ui-text-rgb), 0.45);
+  /* 0.45 measured 2.37:1 against the search bar's own near-white fill. The
+     placeholder is this field's only label, so it is real text and owes
+     4.5:1; 0.75 measures 5.07:1. The dark-theme rule is deliberately left
+     alone — it has the same weakness, but dark is the default and changing
+     it is out of scope for the light-theme fix. */
+  color: rgba(var(--ui-text-rgb), 0.75);
 }
 
 body.theme-light .m-search-input:hover {
