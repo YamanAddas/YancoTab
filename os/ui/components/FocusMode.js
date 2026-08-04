@@ -115,6 +115,14 @@ export class FocusMode {
     this._build();
     this._paint();
 
+    // Move keyboard focus into the overlay. The trigger (status-bar
+    // button, search box) is about to become visibility:hidden, which
+    // would silently drop focus to <body>; anchoring on the exit button
+    // gives Tab a starting point inside the dialog. Safe with the
+    // capture-phase key handler: Space/Enter are intercepted there
+    // before button activation semantics apply.
+    this.els.exit?.focus?.();
+
     this._interval = setInterval(() => this._tick(), 1000);
 
     // Capture phase so Escape reaches us before mobileShell's handler,

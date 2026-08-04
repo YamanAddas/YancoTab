@@ -95,6 +95,10 @@ export class PomodoroWidget {
         this.root.addEventListener('click', () => this._toggle());
         this.root.addEventListener('contextmenu', (e) => {
             e.preventDefault();
+            // Claim the event fully: without stopPropagation the shell's
+            // (now-working) desktop background menu would open on top of
+            // the reset this right-click just performed.
+            e.stopPropagation();
             this._reset();
         });
 

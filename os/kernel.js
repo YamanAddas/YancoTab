@@ -126,7 +126,12 @@ export class Kernel {
         // Each service init is individually guarded so one failure
         // doesn't prevent the rest from starting
         try {
-            const clock = new ClockService();
+            // The storage handle is load-bearing: ClockApp saves alarms via
+            // kernel.storage (AppStorage envelope format). Without this
+            // handle the service fell back to raw JSON.parse, received the
+            // envelope instead of the state, normalized it to alarms: [] —
+            // and no alarm could ever ring.
+            const clock = new ClockService(this.storage);
             this.registerService('clock', clock);
             if (typeof clock.start === 'function') clock.start();
         } catch (e) {

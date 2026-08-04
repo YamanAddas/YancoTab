@@ -16,7 +16,12 @@ body.focus-active .mobile-shell > *,
 body.focus-active .kofi-badge {
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.35s var(--ease-out);
+  /* visibility (delayed until the fade completes) removes the hidden shell
+     from BOTH the tab order and the accessibility tree. With opacity alone,
+     Tab kept cycling through the invisible grid behind the overlay and
+     could launch apps sight-unseen. */
+  visibility: hidden;
+  transition: opacity 0.35s var(--ease-out), visibility 0s 0.35s;
 }
 
 /* The cosmic stage decorations (horizon glow + perspective grid floor)

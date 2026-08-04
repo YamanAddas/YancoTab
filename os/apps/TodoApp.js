@@ -169,6 +169,12 @@ export class TodoApp extends App {
     if (nextState === this._state) return;
     this._state = nextState;
     saveState(this.kernel, nextState);
+    // The home surfaces (TodoWidget, status-bar pill, icon badge) refresh on
+    // this event. The quick-add/quick-toggle helpers in todo/persistence.js
+    // have always emitted it, but edits made inside the app itself never did
+    // — so the widget's list and "N left" count went stale until a reload.
+    // TodoApp does not subscribe to this event, so there is no loop.
+    try { this.kernel?.emit?.('todo:changed'); } catch { /* ignore */ }
     this._renderAll();
   }
 

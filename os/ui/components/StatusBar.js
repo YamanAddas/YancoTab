@@ -57,6 +57,18 @@ export class StatusBar {
         });
         setLiteralHtml(this.elements.themeBtn, `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`);
 
+        // Focus Mode's only entries used to be Ctrl+Shift+F and typing
+        // `> focus` — a headline feature with no visible door. This button
+        // dispatches the same kernel event the SmartSearch command uses.
+        this.elements.focusBtn = el('button', {
+            type: 'button',
+            class: 'sb-icon-btn',
+            'aria-label': 'Enter focus mode',
+            title: 'Focus mode (Ctrl+Shift+F)',
+            onclick: () => this.kernel?.emit?.('focus:toggle'),
+        });
+        setLiteralHtml(this.elements.focusBtn, `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="1" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="1" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="23" y2="12"/></svg>`);
+
         this.elements.settingsBtn = el('button', {
             type: 'button',
             class: 'sb-icon-btn',
@@ -69,6 +81,7 @@ export class StatusBar {
         this.elements.right.append(
             this.elements.activity,
             this.elements.time,
+            this.elements.focusBtn,
             this.elements.themeBtn,
             this.elements.settingsBtn,
         );
@@ -134,12 +147,16 @@ export class StatusBar {
     }
 
     _toggleTheme() {
-        try {
-            const isLight = document.body.classList.contains('theme-light');
-            const next = isLight ? 'dark' : 'light';
-            window.dispatchEvent(new CustomEvent('yancotab:theme-request', { detail: { mode: next } }));
-            document.body.classList.toggle('theme-light');
-        } catch { /* ignore */ }
+        // Route through the real theme system — the same path SmartSearch's
+        // `> dark` command uses. The old body dispatched
+        // 'yancotab:theme-request' (an event with zero listeners) and
+        // hand-toggled the body class, which skipped persistence, skipped
+        // the light-mode accent re-pin (teal on white is 1.46:1), and left
+        // the starfield animating over the light surface.
+        import('../../theme/theme.js').then((t) => {
+            const next = document.body.classList.contains('theme-light') ? 'dark' : 'light';
+            t.applyThemeMode(next);
+        }).catch(() => { /* ignore */ });
     }
 
     startUpdates() {

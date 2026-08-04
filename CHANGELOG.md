@@ -6,6 +6,117 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.6.0] — 2026-08-04
+
+A 15-agent multi-dimension audit (boot/perf, home UX, productivity apps,
+games, silent failures, accessibility, security/storage) produced 46
+findings; the top 7 were adversarially verified against the code and all
+7 survived. This release ships the audit's quick-win tier — eight fixes,
+every one verified live in the browser.
+
+### Fixed — critical
+
+- **Alarms have never been able to ring.** ClockApp saves
+  `yancotab_clock_v3` through kernel.storage, which wraps state in an
+  AppStorage envelope `{data, version, ts, seq, deviceId}`. The
+  background ringer — ClockService, ticked every second by the kernel —
+  read the same key with a raw `JSON.parse`, received the envelope, and
+  normalized it to `alarms: []`. The Clock UI happily rendered "Next
+  alarm in 2h 14m" for an alarm that could not fire; the status-bar
+  pill and icon badge read the key correctly, so every surface
+  *advertised* an alarm the ringer could not see. Two writers, two
+  formats, one key — the schema-split class from v1.1.1's TodoWidget.
+
+  The kernel now passes its storage handle into ClockService (exactly
+  as it already did for WeatherService, which is what made the omission
+  visible), reads and writes go through it, and the raw fallback is
+  envelope-aware for kernel-less contexts. Verified end-to-end: alarm
+  set through ClockApp's own storage channel → ring overlay + sound
+  fire on the minute. `tests/clock-service.test.js` (+7) pins the seam —
+  ClockService previously had **zero** test coverage.
+
+### Fixed — high
+
+- **Offline boot was fully broken for the web app.** The SW fetch
+  handler is precache-or-network with no runtime caching, and an ES
+  module graph is all-or-nothing — one uncached static import rejects
+  the whole graph. 22 boot-graph modules (themes.js, AppDock,
+  WindowChrome, PageTabs, PagePanes, FolderRail, both widgets, the 12
+  todo/pomodoro engine modules…) plus 4 of index.html's stylesheets
+  (window-chrome, photos, pdf-reader, glass) were missing from the
+  precache, so offline users got the "Boot Module Missing" screen while
+  the 358-entry precache bought nothing. The v1.2.5 asset test only
+  checked precache→disk, never boot-graph→precache, so this drifted
+  silently. Both directions are now guarded: a static-import walker in
+  `tests/asset-refs.test.js` asserts boot graph ⊆ precache and
+  index.html CSS ⊆ precache (+3 tests, mutation-verified — deleting one
+  entry turns the suite red). Dead entries (Dock.js, ClockWidget.js,
+  QuickLinks.js — zero importers) removed.
+
+- **Right-click was inverted.** The shell's capture-phase listener
+  suppresses the native menu and its bubble-phase listener bailed on
+  `e.defaultPrevented` — which the capture listener itself had just set.
+  Net effect: the desktop background menu could never open anywhere
+  except on text inputs (the one place it hijacked native
+  cut/copy/paste). On top of that, the shell's menu instance was
+  constructed with the *shell* where MobileContextMenu expects the
+  *grid*, so all five background actions (Edit Home Screen, Open
+  Settings, Sort, Add Shortcut, Change Wallpaper) threw on missing
+  methods. The shell now reuses the grid's own correctly-wired menu, the
+  bubble listener exempts only the shell's own suppression, and text
+  inputs keep the native menu. The Pomodoro widget's right-click-reset
+  now claims its event so the (newly working) background menu doesn't
+  open over it.
+
+- **The status-bar theme toggle now actually switches themes.** It
+  dispatched `yancotab:theme-request` — an event with zero listeners —
+  then hand-toggled the body class: no persistence, no light-mode accent
+  re-pin (teal on white is 1.46:1), starfield left running. It now calls
+  `applyThemeMode()`, the same path as SmartSearch's `> dark`.
+
+- **File and note cards now open things.** Four surfaces dispatched
+  `yancotab:open-file` — SmartSearch results, its Enter fallback, and
+  every card on the home Files and Notes tabs — and nothing listened:
+  two of the five home tabs were grids of inert buttons. One shell
+  listener routes by type (text → the note's floating editor via
+  `mode:'editor'`, data-URL images → Photos, PDFs → PDF Reader,
+  else Files), mirroring FilesApp's own dispatch.
+
+- **Timer/alarm confirmations are now visible.** Seven
+  `yancotab:notify` dispatch sites ("Timer complete", snoozed,
+  dismissed…) had no listener — a finished timer was a lone beep. The
+  shell now bridges them to the toast pipeline.
+
+- **The Todo widget no longer goes stale.** `TodoApp._commit` saved but
+  never emitted `todo:changed` — the widget's only refresh trigger (the
+  quick-add helpers always emitted it, which is why *some* paths
+  worked). Checking a task off inside the app now updates the widget,
+  pill, and badge instantly.
+
+### Added
+
+- **Focus Mode has a visible door** — a status-bar button (target icon)
+  dispatching the existing `focus:toggle`. Previously reachable only by
+  Ctrl+Shift+F or typing `> focus`; its own docblock promised an
+  affordance that didn't exist. Entering now anchors keyboard focus on
+  the exit button, and the hidden shell gains `visibility: hidden`
+  (delayed past the fade) so Tab can no longer walk the invisible
+  desktop behind the overlay and launch apps sight-unseen.
+
+### Audit backlog
+
+39 unverified medium/low findings from the same audit are tracked for
+future waves — headline items: pomodoro sessions completed via
+widget/Focus Mode never reach history, custom wallpaper written but
+never read, chunked sync writes no device reads back, grid keyboard
+accessibility, widget/quick-link configuration UIs.
+
+### Tests
+
+1954 (+10): 7 clock-service seam tests, 3 precache-direction guards.
+
+---
+
 ## [1.5.1] — 2026-08-04
 
 Store screenshots regenerated. They were not merely showing the old

@@ -3,7 +3,13 @@ const CLOCK_V2_STATE_KEY = "yancotab_clock_v2";
 const CLOCK_V3_STATE_KEY = "yancotab_clock_v3";
 
 export class ClockService {
-  constructor() {
+  constructor(storage = null) {
+    // AppStorage handle from the kernel. ClockApp persists alarms through
+    // kernel.storage, which wraps state in an envelope {data, version, ts,
+    // seq, deviceId}. This service — the background ringer — must read the
+    // same key the same way, or it sees the envelope, normalizes it to
+    // alarms: [], and silently never fires anything.
+    this._storage = storage;
     this.stateKey = CLOCK_STATE_KEY;
     this.v2StateKey = CLOCK_V2_STATE_KEY;
     this.v3StateKey = CLOCK_V3_STATE_KEY;
@@ -13,6 +19,31 @@ export class ClockService {
     this.tickHandle = null;
     this.ringHandle = null;
     this.activeRing = null;
+  }
+
+  /**
+   * Read the canonical v3 clock state. Prefers the AppStorage handle
+   * (which unwraps envelopes and runs validators); the raw fallback is
+   * envelope-aware so a context constructed without the kernel — tests,
+   * early boot — still gets the state instead of the wrapper.
+   */
+  loadV3State() {
+    if (this._storage) {
+      try { return this._storage.load(this.v3StateKey); } catch { /* fall through */ }
+    }
+    const raw = this.readJson(this.v3StateKey);
+    if (raw && typeof raw === 'object' && 'data' in raw && 'version' in raw && 'ts' in raw) {
+      return raw.data;
+    }
+    return raw;
+  }
+
+  /** Write the canonical v3 clock state through the same channel ClockApp uses. */
+  saveV3State(normalized) {
+    if (this._storage) {
+      try { this._storage.save(this.v3StateKey, normalized); return; } catch { /* fall through */ }
+    }
+    this.writeJson(this.v3StateKey, normalized);
   }
 
   makeId(prefix = "clock") {
@@ -220,7 +251,7 @@ export class ClockService {
   }
 
   getV2State() {
-    const parsedV3 = this.readJson(this.v3StateKey);
+    const parsedV3 = this.loadV3State();
     if (parsedV3 && typeof parsedV3 === "object") {
       return this.normalizeV2State(parsedV3);
     }
@@ -228,13 +259,13 @@ export class ClockService {
     const parsedV2 = this.readJson(this.v2StateKey);
     if (!parsedV2 || typeof parsedV2 !== "object") return null;
     const normalized = this.normalizeV2State(parsedV2);
-    this.writeJson(this.v3StateKey, normalized);
+    this.saveV3State(normalized);
     return normalized;
   }
 
   saveV2State(state) {
     const normalized = this.normalizeV2State(state);
-    this.writeJson(this.v3StateKey, normalized);
+    this.saveV3State(normalized);
     this.writeJson(this.v2StateKey, normalized);
   }
 

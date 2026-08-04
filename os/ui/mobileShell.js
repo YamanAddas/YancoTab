@@ -24,7 +24,6 @@ import { AppDock } from './components/AppDock.js';
 import { SmartSearch } from './components/SmartSearch.js';
 import { StatusBar } from './components/StatusBar.js';
 import { HomeBar } from './components/HomeBar.js';
-import { MobileContextMenu } from './components/MobileContextMenu.js';
 import { Greeting } from './components/Greeting.js';
 import { WidgetBar } from './components/WidgetBar.js';
 import { FolderRail } from './components/FolderRail.js';
@@ -47,10 +46,16 @@ export class MobileShell {
       search: new SmartSearch(),
       statusBar: new StatusBar(kernel),
       homeBar: new HomeBar(() => this.goHome()),
-      contextMenu: new MobileContextMenu(this),
       greeting: new Greeting(),
       widgetBar: new WidgetBar(),
     };
+    // Reuse the grid's own context menu rather than constructing a second
+    // one. MobileContextMenu's actions call grid methods (startEditMode,
+    // openApp, state._save…); the old `new MobileContextMenu(this)` handed
+    // it the SHELL, so every background-menu action — Edit Home Screen,
+    // Open Settings, Sort, Add Shortcut — threw on a missing method and
+    // died in the menu's catch. AppGrid constructs its menu correctly.
+    this.components.contextMenu = this.components.grid.contextMenu;
     // Folder rail mirrors AppGrid's folders into a horizontal pill row below
     // the grid. Constructed after grid so it can subscribe to grid.state.
     this.components.folderRail = new FolderRail(this.components.grid.state);
@@ -146,6 +151,46 @@ export class MobileShell {
     // Lets SmartSearch's `> focus` command (and anything else) drive the
     // overlay without reaching into shell internals.
     kernel.on('focus:toggle', () => this.components.focusMode.toggle());
+
+    // File-open router. Four surfaces dispatch this event — SmartSearch
+    // results, its Enter-key file fallback, and every card on the home
+    // Files and Notes tabs — and until now NOTHING listened, so all of
+    // them were inert. Routing mirrors FilesApp._openFile: text → Notes,
+    // data-URL images → Photos, PDFs → PDF Reader, else the Files app.
+    window.addEventListener('yancotab:open-file', (e) => {
+      const d = e?.detail || {};
+      const path = typeof d.filePath === 'string' ? d.filePath : '';
+      if (!path || !kernel.processManager?.spawn) return;
+      if (d.fileType === 'directory') { kernel.emit('app:open', 'files'); return; }
+      const ext = (path.split('.').pop() || '').toLowerCase();
+      const content = typeof d.content === 'string' ? d.content : '';
+      const TEXT = new Set(['txt', 'md', 'json', 'csv', 'log', 'xml', 'yaml', 'yml', 'ini', 'cfg', 'js', 'ts', 'css', 'html', 'htm']);
+      const IMAGE = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'svg']);
+      try {
+        // mode:'editor' opens the note's floating editor window directly —
+        // the same payload NotesApp itself uses for note-opening (a bare
+        // {path} would only open the library with the note selected).
+        if (TEXT.has(ext)) kernel.processManager.spawn('notes', { mode: 'editor', path });
+        else if (IMAGE.has(ext) && content.startsWith('data:')) kernel.processManager.spawn('photos', { filePath: path });
+        else if (ext === 'pdf') kernel.processManager.spawn('pdf-reader', { filePath: path });
+        else kernel.emit('app:open', 'files');
+      } catch (err) {
+        console.error('[MobileShell] open-file failed', err);
+        kernel.emit('app:open', 'files');
+      }
+    });
+
+    // Notification bridge. clockService, ClockApp and WeatherApp dispatch
+    // 'yancotab:notify' from seven sites ("Timer complete", alarm snoozed /
+    // dismissed, weather alerts…) — an event that never had a listener, so
+    // a finished timer was a lone beep with no explanation. Forward to the
+    // existing toast pipeline.
+    window.addEventListener('yancotab:notify', (e) => {
+      const message = e?.detail?.message;
+      if (typeof message === 'string' && message) {
+        kernel.emit('toast', { message, type: 'info' });
+      }
+    });
 
     // Live icon badges. Painted onto whatever icons are in the document
     // rather than pushed through SmartIcon metadata, so grid re-renders,
@@ -680,7 +725,18 @@ export class MobileShell {
       // right-click target. The PDF reader sets this on its stage so
       // its own menu fires instead of the desktop grid menu.
       if (t?.closest?.('[data-allow-context="true"]')) return;
-      if (e.cancelable) e.preventDefault();
+      if (e.cancelable) {
+        e.preventDefault();
+        // Remember that WE suppressed this event. The desktop-menu
+        // listener below distinguishes "the shell killed the native
+        // menu" (grid menu should open) from "a descendant claimed the
+        // event with its own preventDefault" (grid menu must not open).
+        // Without this marker, our own capture-phase preventDefault set
+        // defaultPrevented on every background right-click, so the grid
+        // menu could never fire anywhere except — inverted — on text
+        // inputs, the one place it hijacked the native paste menu.
+        this._ctxOwnPrevent = e;
+      }
     }, { passive: false, capture: true });
 
     scope().addEventListener('selectstart', (e) => {
@@ -698,14 +754,19 @@ export class MobileShell {
 
     // Desktop Context Menu (Right Click on background)
     scope().addEventListener('contextmenu', (e) => {
-      // If a descendant called e.preventDefault() in the bubble phase,
-      // it handled the menu itself — don't show the grid menu.
-      if (e.defaultPrevented) return;
-      if (e.target.closest('.app-icon') || e.target.closest('.m-dock')) return; // handled by MobileInteraction
+      // Text fields keep the native cut/copy/paste menu — the capture
+      // listener above exempted them, so without this check they were the
+      // ONLY place this grid menu could fire.
+      const t = e.target;
+      if (t?.tagName === 'INPUT' || t?.tagName === 'TEXTAREA' || t?.isContentEditable) return;
+      // A descendant that called preventDefault itself handled the menu.
+      // Our own capture-phase suppression also sets defaultPrevented, so
+      // exempt exactly that one event (see _ctxOwnPrevent above).
+      if (e.defaultPrevented && this._ctxOwnPrevent !== e) return;
+      if (t.closest('.app-icon') || t.closest('.m-dock') || t.closest('.app-dock')) return; // icon/dock menus own these
       // Apps that handle their own context menu (PDF reader, etc.) opt
       // out via [data-allow-context="true"]. Walk parent-element first
       // because a text-node target has no .closest.
-      const t = e.target;
       const probe = t?.nodeType === 3 ? t.parentElement : t;
       if (probe?.closest?.('[data-allow-context="true"]')) return;
       e.preventDefault();

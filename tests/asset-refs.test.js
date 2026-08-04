@@ -121,6 +121,66 @@ describe('service worker cache correctness', () => {
         assert.ok(!/ignoreSearch/.test(apiBranch[1]),
             'API fallback must NOT ignore the query string');
     });
+
+    // ── The reverse direction ───────────────────────────────────────
+    // The test above proves everything in the precache exists on disk. It
+    // says nothing about whether everything the BOOT needs is in the
+    // precache — and the fetch handler is precache-or-network with no
+    // runtime cache.put, so an ES module graph is all-or-nothing offline:
+    // ONE uncached static import rejects the whole graph and the user gets
+    // the "Boot Module Missing" screen. This drifted silently for releases
+    // (22 boot modules + 4 stylesheets missing) because only the forward
+    // direction was guarded.
+
+    const precached = new Set([...sw.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]));
+
+    /** Walk the STATIC import graph from the boot entries. Lazy app
+     *  imports are dynamic and legitimately load post-boot; the one
+     *  dynamic import that IS boot-critical (boot-loader → boot.js) is
+     *  seeded explicitly. */
+    function staticImportGraph(entries) {
+        const seen = new Set();
+        const queue = [...entries];
+        while (queue.length) {
+            const file = queue.pop();
+            if (seen.has(file) || !exists(file)) continue;
+            seen.add(file);
+            const src = read(file);
+            const dir = dirname(file);
+            for (const m of src.matchAll(/^\s*import\s+(?:[^'"]*?from\s+)?['"](\.[^'"]+)['"]/gm)) {
+                // resolve() gives an absolute path; normalize back to repo-relative
+                const abs = resolve(join(ROOT, dir), m[1]);
+                queue.push(abs.slice(ROOT.length + 1).replace(/\\/g, '/'));
+            }
+        }
+        return seen;
+    }
+
+    test('every module in the boot import graph is precached', () => {
+        const graph = staticImportGraph(['os/boot-loader.js', 'os/boot.js', 'os/boot-init.js']);
+        const missing = [...graph].filter((p) => !precached.has(p)).sort();
+        assert.deepEqual(missing, [],
+            `boot-critical modules missing from the SW precache (offline boot fails at the first one): ${missing.join(', ')}`);
+    });
+
+    test('every stylesheet index.html loads is precached', () => {
+        const html = read('index.html');
+        const links = [...html.matchAll(/<link[^>]+rel="stylesheet"[^>]+href="\.\/([^"?]+)/g)].map((m) => m[1]);
+        assert.ok(links.length >= 10, `expected the full stylesheet list, parsed only ${links.length}`);
+        const missing = links.filter((p) => !precached.has(p));
+        assert.deepEqual(missing, [],
+            `stylesheets index.html loads but the precache omits: ${missing.join(', ')}`);
+    });
+
+    test('the walker actually walks (anti-vacuity)', () => {
+        // A broken regex that matches nothing would make the two tests
+        // above pass on an empty graph. The boot graph is known to be
+        // dozens of modules deep.
+        const graph = staticImportGraph(['os/boot-loader.js', 'os/boot.js', 'os/boot-init.js']);
+        assert.ok(graph.size > 30, `boot graph suspiciously small: ${graph.size} modules`);
+        assert.ok(graph.has('os/kernel.js'), 'kernel.js must be reachable from boot');
+        assert.ok(graph.has('os/ui/mobileShell.js'), 'mobileShell.js must be reachable from boot');
+    });
 });
 
 describe('manifest and locale references resolve', () => {

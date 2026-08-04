@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.5.1-kofi-badge';
+const CACHE_NAME = 'yancotab-v1.6.0-audit-quick-wins';
 
 const PRECACHE = [
     './',
@@ -32,6 +32,10 @@ const PRECACHE = [
     './css/mail.css',
     './css/focus.css',
     './css/badges.css',
+    './css/window-chrome.css',
+    './css/photos.css',
+    './css/pdf-reader.css',
+    './css/glass.css',
     './os/ui/bubbly.css',
     // Core JS
     './os/boot-init.js',
@@ -53,7 +57,6 @@ const PRECACHE = [
     './os/ui/mobileShell.js',
     './os/ui/starfield.js',
     './os/ui/components/AppGrid.js',
-    './os/ui/components/Dock.js',
     './os/ui/components/FolderIcon.js',
     './os/ui/components/FolderOverlay.js',
     './os/ui/components/GameIcons.js',
@@ -73,19 +76,43 @@ const PRECACHE = [
     './assets/fonts/playfair-display-latin-400.woff2',
     './assets/fonts/playfair-display-latin-400i.woff2',
     './os/ui/components/WidgetBar.js',
-    './os/ui/components/widgets/ClockWidget.js',
     './os/ui/components/widgets/WeatherWidget.js',
     './os/ui/components/widgets/TodoWidget.js',
     './os/ui/components/Toast.js',
     './os/ui/components/YancoModal.js',
     './os/ui/components/Onboarding.js',
-    './os/ui/components/QuickLinks.js',
     './os/ui/components/FocusMode.js',
     './os/ui/components/focus/focusSession.js',
     './os/ui/components/focus/focusView.js',
     './os/ui/shellShortcuts.js',
     './os/ui/badges/badgeModel.js',
     './os/ui/badges/BadgeManager.js',
+    // Boot-graph modules — every STATIC import reachable from boot must be
+    // here: the fetch handler has no runtime caching, and an ES module graph
+    // is all-or-nothing, so ONE miss kills offline boot entirely.
+    // Guarded by tests/asset-refs.test.js (boot graph ⊆ precache).
+    './os/theme/themes.js',
+    './os/utils/debugLog.js',
+    './os/utils/url.js',
+    './os/ui/components/AppDock.js',
+    './os/ui/components/WindowChrome.js',
+    './os/ui/components/PageTabs.js',
+    './os/ui/components/PagePanes.js',
+    './os/ui/components/FolderRail.js',
+    './os/ui/components/widgets/PomodoroWidget.js',
+    './os/ui/components/widgets/ActivityWidget.js',
+    './os/apps/todo/persistence.js',
+    './os/apps/todo/intents.js',
+    './os/apps/todo/engine/state.js',
+    './os/apps/todo/engine/migrate.js',
+    './os/apps/todo/engine/buckets.js',
+    './os/apps/todo/engine/streaks.js',
+    './os/apps/pomodoro/persistence.js',
+    './os/apps/pomodoro/intents.js',
+    './os/apps/pomodoro/engine/state.js',
+    './os/apps/pomodoro/engine/reducer.js',
+    './os/apps/pomodoro/engine/presets.js',
+    './os/apps/pomodoro/engine/history.js',
     // Apps
     './os/apps/BrowserApp.js',
     './os/apps/MailApp.js',
