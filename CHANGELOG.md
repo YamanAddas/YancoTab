@@ -6,6 +6,89 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.4.3] — 2026-08-04
+
+Closes the three dark-mode contrast failures 1.4.2 documented but did not
+fix. Dark mode now clears WCAG AA on every measured element, on all eight
+shipped wallpapers.
+
+### Root cause
+
+Every shipped wallpaper has the **YancoTab crest baked into its centre**,
+and the crest is near-white — the centre pixel is `rgb(141,255,145)` in
+all eight, from Obsidian to Crimson. It sits directly behind the app grid.
+
+That single fact explains the whole cluster: app labels measured 1.14:1,
+1.08:1, 1.07:1… on every wallpaper, varying by hundredths. It looked like
+eight separate wallpaper problems and was one shared image element. (The
+wallpapers *are* distinct — their corners differ completely; only the
+crest is shared.)
+
+App labels are pure white, so no colour change could ever rescue them.
+Only darkening what sits behind them can.
+
+### Added — wallpaper readability scrim
+
+A single black scrim over the wallpaper layer, at the measured minimum
+opacity that clears AA: white on emerald's brightest label pixel is
+4.43:1 at 0.50 and 5.27:1 at **0.55**.
+
+It is a `#app-shell::after` with `z-index: -1`, not an extra background
+layer, and that choice is load-bearing. **Three** code paths assign the
+wallpaper as an inline style — `themes.js applyWallpaper()`,
+`WallpaperManager._applyWallpaper()`, and its custom-image branch — and
+every one of them would wipe a background-layer scrim. A negative
+z-index child paints above its parent's background and below its in-flow
+content, so this sits over the wallpaper, under the entire UI, and is
+untouchable by inline writes. Verified by calling `applyWallpaper()` and
+simulating a custom image: the scrim survives both.
+
+That also means it covers **custom user wallpapers**, which are the
+brightest risk of all and which no artwork fix could have reached.
+
+Disabled in light mode, which paints its own already-measured surface.
+
+### Fixed
+
+| element | before | after |
+|---|---|---|
+| app label | 1.14:1 | **5.27:1** |
+| idle page tab | 1.24:1 | **8.50:1** |
+| search placeholder | 2.65:1 | **4.73:1** |
+| greeting line | 7.94:1 | 11.61:1 |
+| date line | 6.80:1 | 11.45:1 |
+
+The idle page tab needed two further changes: even behind the scrim,
+`--text` at 10.5px reached only 2.94:1, so idle tabs use `--text-bright`
+and the tab strip's tint deepened from `--lg-tint-pill` (0.50) to 0.72.
+Both are overridden in light mode.
+
+### Verified
+
+- All 10 measured elements pass in **both** themes.
+- App labels clear AA on all eight wallpapers (4.99:1 on Rose, the
+  tightest; 5.27:1 on emerald).
+- Light theme re-measured after the change: 10/10, scrim confirmed
+  `display: none`, tab-strip tint confirmed overridden.
+
+### Trade-off
+
+The wallpapers read moodier and less vivid than before — that is the
+accepted cost of the approach, chosen over darkening the artwork (which
+would not have covered custom wallpapers) or accepting halo-only
+readability.
+
+### Tests
+
+1944 (+6). The guard pins the scrim's existence, its `z-index: -1`,
+`pointer-events: none`, an alpha within [0.5, 0.7], and its light-mode
+opt-out. One test asserts `themes.js` still writes an inline background —
+so if that ever stops being true, the note explaining why a pseudo-element
+was necessary gets re-examined rather than silently rotting.
+Mutation-tested: weakening the scrim to 0.30 fails the alpha guard.
+
+---
+
 ## [1.4.2] — 2026-08-04
 
 Dark mode had never been contrast-measured the way light mode was in

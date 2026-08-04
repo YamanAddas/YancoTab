@@ -845,7 +845,10 @@ body.theme-light .m-search-container::before {
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--text);
+  /* --text-bright, not --text: even behind the wallpaper scrim and the
+     strip's own tint, 10.5px --text measured 2.94:1. The strip tint is
+     also raised below. Light mode overrides both. */
+  color: var(--text-bright);
   font-family: var(--font-mono);
   font-size: 10.5px;
   letter-spacing: 0.12em;
@@ -1558,7 +1561,10 @@ body.reduced-effects .m-search-input {
    every surface together. ── */
 
 .page-tabs {
-  background-color: var(--lg-tint-pill);
+  /* Deeper than --lg-tint-pill (0.50): the strip sits over the brightest
+     part of the wallpaper, and at 0.50 an idle label could not reach AA
+     even with the scrim behind it. */
+  background-color: rgba(6, 14, 24, 0.72);
   box-shadow:
     var(--lg-edge-soft),
     var(--lg-ring-accent),

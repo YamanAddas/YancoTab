@@ -151,6 +151,57 @@ describe('light theme — WCAG AA on the desktop surface', () => {
   });
 });
 
+describe('dark theme — wallpaper readability scrim', () => {
+  // Every shipped wallpaper has the YancoTab crest baked into its centre,
+  // and the crest is near-white (rgb(141,255,145) at the centre pixel) —
+  // directly behind the app grid. App labels are pure white, so no colour
+  // change can rescue them; only darkening what is behind them can.
+  const rule = () => mainCss.match(/#app-shell::after\s*\{([\s\S]*?)\}/);
+
+  test('the scrim exists', () => {
+    assert.ok(rule(), '#app-shell::after scrim is missing — app labels drop to ~1.1:1');
+  });
+
+  test('it sits above the wallpaper but below the UI', () => {
+    // z-index:-1 paints a child above its parent's background and below the
+    // parent's in-flow content. Any other value either hides the scrim
+    // behind the wallpaper or covers the entire interface.
+    assert.match(rule()[1], /z-index:\s*-1\s*;/, 'scrim must use z-index: -1');
+    assert.match(rule()[1], /position:\s*absolute/);
+    assert.match(rule()[1], /inset:\s*0/);
+  });
+
+  test('it never intercepts clicks', () => {
+    assert.match(rule()[1], /pointer-events:\s*none/);
+  });
+
+  test('it is opaque enough to clear AA for white text on the crest', () => {
+    const m = rule()[1].match(/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([\d.]+)\s*\)/);
+    assert.ok(m, 'scrim must be a black rgba fill');
+    const alpha = parseFloat(m[1]);
+    // Measured: white on emerald's brightest label pixel is 4.43:1 at 0.50
+    // and 5.27:1 at 0.55. Below 0.5 the app labels fail.
+    assert.ok(alpha >= 0.5, `scrim alpha ${alpha} is too light — white app labels need >= 0.5`);
+    assert.ok(alpha <= 0.7, `scrim alpha ${alpha} would flatten the wallpaper entirely`);
+  });
+
+  test('a pseudo-element is used, not a background layer', () => {
+    // themes.js applyWallpaper and both WallpaperManager paths assign
+    // shell.style.background / .backgroundImage inline, which would wipe any
+    // background-layer scrim. A pseudo-element is immune.
+    const themes = read('os/theme/themes.js');
+    assert.match(themes, /shell\.style\.background\s*=/,
+      'themes.js no longer writes an inline background — re-check the scrim approach');
+  });
+
+  test('it is disabled in light mode', () => {
+    assert.match(
+      mainCss, /body\.theme-light\s+#app-shell::after\s*\{[^}]*display:\s*none/,
+      'light mode paints its own surface; the scrim would only muddy it',
+    );
+  });
+});
+
 describe('dark theme is untouched', () => {
   test('--accent-text aliases --accent in the root block', () => {
     // Every call site switched from --accent to --accent-text. In dark mode
