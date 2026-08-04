@@ -302,6 +302,12 @@ body.theme-light .kofi-badge:hover .kofi-text {
 body.in-app .kofi-badge {
   opacity: 0;
   pointer-events: none;
+  /* Load-bearing. The badge's greetFadeDown animation uses `fill-mode: both`,
+     and a filled animation outranks normal author declarations in the
+     cascade — so `opacity: 0` here never applied and the Support badge
+     stayed visible on top of every open app. Cancelling the animation lets
+     the declaration win. */
+  animation: none;
 }
 
 /* ── Search Wrap ── */

@@ -6,6 +6,69 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.5.1] — 2026-08-04
+
+Store screenshots regenerated. They were not merely showing the old
+wallpapers — they predated the v1.0 Liquid Glass redesign entirely,
+showing a bottom nav bar that no longer exists, no widget bar, no page
+tabs, no hex dock and no status bar. They would have misrepresented the
+product to anyone browsing the listing.
+
+### Fixed
+
+- **The Ko-fi "Support" badge never hid behind an open app.** Found while
+  reviewing the new captures — it was ghosting through every maximised
+  app's titlebar. `body.in-app .kofi-badge { opacity: 0 }` has been there
+  all along and `body.in-app` really is applied, but the badge also has
+  `animation: greetFadeDown … both`, and a **filled animation outranks
+  normal author declarations in the cascade**, so the rule never won.
+  Cancelling the animation in that state lets it apply. Verified across
+  all three states: visible on home, hidden over an app, restored on
+  close.
+
+  This is the second time `fill-mode: both` has produced a wrong reading
+  in this codebase — it also made the badge look like it had a broken
+  opacity while measuring contrast in 1.4.1.
+
+### Changed — `scripts/take-screenshots.mjs`
+
+Rewritten against the current UI, and now uses **puppeteer-core** against
+an installed Chrome instead of `puppeteer`, so no second Chromium is
+downloaded. The clock is offset to a fixed instant before any page script
+runs, so re-running produces comparable images rather than a different
+time each capture — an offset rather than a freeze, so animations and the
+Solitaire timer still behave.
+
+Every step now asserts what it captured and throws rather than saving a
+wrong frame. Each of these was a real silent failure first:
+
+- Notes is the "constellation" app; the old `.notes-doc-card` selector
+  matched nothing. Opening a note *replaces* the library in the same
+  window rather than floating over it, so the two cannot share a frame —
+  the Cosmos star map is captured, being the distinctive view.
+- Note tags come from `#hashtags` in the note **body**; the metadata
+  `tags` field does not populate the constellation rail, so the rail was
+  empty.
+- Solitaire has two buttons reading "New Game" — the toolbar's `New Game ▾`
+  only opens a deal-type dropdown. The old script clicked that one and
+  captured the start menu instead of a game. It now targets the start
+  screen's button and asserts 52 cards were dealt.
+- The weather seed used shapes that do not exist: state holds a
+  `locations` array, not a flat `lat/lon/city`, and the cache is a map
+  keyed by query, not a single entry. Wrong shapes fall back silently to
+  "CURRENT LOCATION" with generic data. Only the location is seeded now
+  and the forecast is fetched live, so the numbers are real.
+
+### Note
+
+`store-screenshots/` still holds a second, older set under different
+names, one of which (`04-todo-app`) does not match the documented
+listing. `assets/store/` is the canonical set — it matches
+STORE_LISTING.md, is what this script writes, and is what
+`pack-extension.sh` excludes from the shipped zip.
+
+---
+
 ## [1.5.0] — 2026-08-04
 
 The crest is gone from the artwork, so the scrim that was hiding it can
