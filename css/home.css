@@ -51,6 +51,43 @@ body.in-app .home-top {
   text-align: center;
   padding: 14px 0 10px;
   animation: greetFadeDown 0.6s var(--ease-out) both;
+  /* Anchors the readability scrim below. `isolation` keeps the scrim's
+     z-index: -1 inside this element instead of letting it slide behind an
+     ancestor and disappear. */
+  position: relative;
+  isolation: isolate;
+}
+
+/* Readability scrim.
+   In dark mode the hero sits directly on the wallpaper — no glass, only a
+   text-shadow, which WCAG does not count. Sampling the actual pixels of all
+   eight shipped wallpapers under the date line showed --text failing AA on
+   six of them (as low as 1.74:1 on Crimson), and even --text-bright failing
+   on Crimson at 3.34:1. So no text colour can carry this on its own, and a
+   custom photo could be brighter still.
+
+   A scrim is the only thing that makes the backdrop knowable. Paired with
+   --text-bright below, 0.28 at the centre puts the worst shipped wallpaper
+   at 5.12:1 with everything else far higher — light enough to read as a
+   soft vignette rather than a panel. */
+.greeting-bar::before {
+  content: '';
+  position: absolute;
+  inset: -6% -10%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 58% 62% at 50% 48%,
+    rgba(0, 0, 0, 0.34),
+    rgba(0, 0, 0, 0.19) 52%,
+    transparent 76%
+  );
+}
+
+/* Light mode paints a known surface (see main.css), so the hero already
+   clears AA there and the scrim would only muddy it. */
+body.theme-light .greeting-bar::before {
+  display: none;
 }
 
 .greeting-greet {
@@ -128,13 +165,24 @@ body.in-app .home-top {
 
 .greeting-date {
   margin-top: 8px;
-  color: var(--text);
+  /* --text-bright, because this line sits on the wallpaper in dark mode and
+     --text (#8a9bb0) failed AA on six of the eight shipped wallpapers. Light
+     mode overrides it back to --text below — there the surface is known, and
+     #1d1d1f here would flatten the hero's hierarchy. */
+  color: var(--text-bright);
   font-family: var(--font-mono);
   font-size: 11px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* Light mode keeps the date line as secondary text: the surface is known
+   and --text already measures 5.28:1 there, so the darker hero hierarchy
+   survives. See the note on .greeting-date. */
+body.theme-light .greeting-date {
+  color: var(--text);
 }
 
 /* Light theme: drop the dark text-shadow halos, swap to light halos */

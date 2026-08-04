@@ -6,6 +6,80 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.4.2] — 2026-08-04
+
+Dark mode had never been contrast-measured the way light mode was in
+1.4.1. Measuring it properly — against the wallpaper's actual pixels —
+found more than the one faint placeholder that prompted this.
+
+### Method
+
+Dark mode's backdrop is a photograph, so there is no flat surface to
+measure against. The shipped wallpapers are same-origin, so they can be
+decoded into a canvas and sampled directly: map each element's rect
+through `background-size: cover` into image space, read **every** pixel
+under it, and take the brightest one — the worst case for light text.
+Element backgrounds are then composited on top of that pixel.
+
+Two sampling mistakes were made and corrected along the way, both of
+which had produced falsely reassuring numbers:
+
+- A coarse grid (7×7) **misses small bright specular regions**. The idle
+  page tab read 3.82:1 on a grid and 1.22:1 per-pixel. Exhaustive
+  sampling is also cheaper — one `getImageData` per element instead of 49.
+- Sampling the brightest pixel under a *container* overstates the worst
+  case for a small label inside it. The tab strip's brightest pixel is
+  near-white, but a given label may sit nowhere near it. Elements are now
+  measured over their own rect, and the placeholder over its measured
+  glyph run rather than the full 620px pill.
+
+### Fixed
+
+- **The greeting hero sat directly on the wallpaper.** Sampling all eight
+  shipped wallpapers under the date line, `--text` failed AA on six of
+  them — as low as 1.74:1 on Crimson — and even `--text-bright` failed on
+  Crimson at 3.34:1. No text colour can carry text over an arbitrary
+  photo, so the hero gained a soft radial scrim (0.34 at centre, fading
+  to transparent) and the date line moved to `--text-bright`. Date line
+  2.64:1 → **6.80:1**, greeting line 5.72:1 → **7.94:1**. The scrim is
+  disabled in light mode, where the surface is already known.
+
+- **The search pill was 4% opaque.** `backdrop-filter: blur()` blurs the
+  wallpaper but preserves its luminance, so a bright region stayed bright
+  and the placeholder vanished into it at 1.1:1. The fill now has a dark
+  base under the accent tint, and the placeholder alpha went 0.35 → 0.72.
+  Now 2.54:1 — much better, still short of AA (see below).
+
+- **Idle page tabs had no halo.** App, dock and folder labels have all
+  along used a dark 1px stroke with `paint-order: stroke` to stay legible
+  over photos; the tab labels never got it. They now use the same
+  established treatment rather than a new mechanism. Disabled in light
+  mode, where it would only smudge.
+
+### Known limitation — not fixed, needs a design decision
+
+Three elements still fail formal AA in dark mode: app labels (1.12:1),
+idle page tabs (1.24:1) and the search placeholder (2.54:1). All three
+fail at the same place — the emerald wallpaper has a near-white glow
+(`rgb(249,255,205)`) sitting directly behind the app grid and search bar.
+
+This is not something colour can solve. Those elements are *perceptually*
+readable because of their stroke halos, but WCAG's contrast formula has
+no mechanism to credit a halo, so they cannot be made to pass by tuning
+text colour or glass opacity — the fill would have to become effectively
+opaque, which is no longer glass.
+
+The real options are to darken the shipped wallpapers, add a global scrim
+over the wallpaper layer, or accept halo-based readability. All three
+change how the default theme looks, so none was taken unilaterally.
+
+### Light theme
+
+Re-measured after these changes: 10 of 10 elements still pass, and the
+hero scrim is confirmed `display: none` there.
+
+---
+
 ## [1.4.1] — 2026-08-03
 
 Light theme was unusable on the home screen, and had been for a long

@@ -859,6 +859,19 @@ body.theme-light .m-search-container::before {
     transform var(--motion-snappy);
 }
 
+/* The tab strip is 50%-opaque glass, and backdrop-filter blurs the wallpaper
+   without darkening it — over a bright region an idle label measured 1.22:1.
+   App, dock and folder labels already solve exactly this with a dark stroke
+   halo (paint-order: stroke), so the tabs get the same established treatment
+   rather than a new mechanism. Light mode overrides it below. */
+.page-tab-label {
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);
+  paint-order: stroke fill;
+  text-shadow:
+    0 0 2px rgba(0, 0, 0, 0.85),
+    0 1px 3px rgba(0, 0, 0, 0.75);
+}
+
 .page-tab:hover {
   color: var(--text-bright);
   background: rgba(var(--accent-rgb), 0.05);
@@ -920,6 +933,12 @@ body.theme-light .page-tab:hover {
   color: var(--text-bright);
   background: rgba(var(--accent-rgb), 0.06);
 }
+/* Light mode paints a known surface, so the dark halo would only smudge. */
+body.theme-light .page-tab-label {
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+}
+
 body.theme-light .page-tab.active {
   color: var(--accent-text);
   background:

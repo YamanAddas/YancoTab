@@ -725,7 +725,12 @@ body.in-app .main-content {
   height: 100%;
   border-radius: var(--radius-pill);
   border: none;
-  background: rgba(var(--accent-rgb), 0.04);
+  /* A dark base under the accent tint. blur() alone cannot carry this: it
+     blurs the wallpaper but preserves its luminance, so a bright region
+     stays bright and the placeholder disappears into it. */
+  background:
+    linear-gradient(rgba(var(--accent-rgb), 0.04), rgba(var(--accent-rgb), 0.04)),
+    rgba(6, 14, 24, 0.55);
   -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
   padding: 0 22px;
@@ -757,7 +762,11 @@ body.in-app .main-content {
 }
 
 .m-search-input::placeholder {
-  color: rgba(var(--ui-text-rgb), 0.35);
+  /* 0.35 measured 1.1:1 over a bright wallpaper region. The pill's fill is
+     only 4% opaque and backdrop-filter blurs without darkening, so the
+     wallpaper reaches the glyphs almost unattenuated. Raised here and the
+     fill darkened below; the placeholder is this field's only label. */
+  color: rgba(var(--ui-text-rgb), 0.72);
   font-weight: 400;
 }
 
