@@ -6,6 +6,76 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.5.0] — 2026-08-04
+
+The crest is gone from the artwork, so the scrim that was hiding it can
+be halved. The wallpapers are both more vivid **and** more readable than
+in 1.4.3 — the problem is removed rather than covered.
+
+### Changed — all eight wallpapers re-exported
+
+`scripts/decrest-wallpapers.py` removes the YancoTab crest that was
+composited into the centre of every wallpaper.
+
+The crest is **found, not hand-masked**. Because it was pixel-identical
+across all eight images while the backgrounds differ completely, the
+per-pixel standard deviation across the stack collapses to ~0 exactly
+where the crest is opaque. That needs no hardcoded coordinates and stays
+correct if the artwork is ever re-exported at a different size.
+
+Verified: the largest identical-across-all-wallpapers region went from
+**26,398 px to 0**. Peak brightness behind the app grid was 252 in all
+eight — the crest, to within a rounding error — and is now 76–154,
+genuinely per-wallpaper.
+
+### Scrim halved: 0.55 → 0.28
+
+With white app labels over the old crest measuring 1.01:1, the scrim had
+to be 0.55. Now the binding case is Crimson's own artwork: white-on-peak
+is 2.81:1 unscrimmed, 4.70:1 at 0.25, 5.26:1 at 0.30. 0.28 keeps margin.
+
+Every element improved despite half the darkening — app labels went
+5.27:1 → **11.52:1**, idle page tabs 8.50 → 10.64, placeholder 4.73 →
+5.53. All 10 measured elements still clear AA in both themes.
+
+### Two things the removal needed
+
+- **The glow is neutral, not green.** Testing green excess says it dies
+  within 15px of the crest; that is wrong and leaves a grey blob on
+  Obsidian. Luma on Obsidian shows the real decay — 85 at the mask edge,
+  29 at 20px, 11 at 60px, background level around 130px. Hence a 130px
+  dilation, not 24.
+
+- **Smooth interpolation is not enough for Arctic.** The other seven are
+  soft gradients that a pyramid push-pull fill reconstructs invisibly.
+  Arctic is fine turbulent texture, and a purely smooth fill left an
+  obvious blurred patch. The fill is therefore frequency-split: the
+  interpolation supplies the low frequencies (colour and gradient, which
+  must be correct) and the high frequencies are borrowed from a clean
+  donor region of the same image. On the seven smooth wallpapers the
+  borrowed detail is ~0, so it costs them nothing.
+
+  The donor shift has to exceed the mask's own extent — the mask is
+  505×462, so thirds of the image (360px) all overlapped it and every
+  candidate was silently rejected, leaving Arctic unchanged. Halves work.
+
+### Sizes
+
+Six of eight shrank (emerald 27.8→17.3 KB, sapphire 23.0→9.9 KB) since a
+detailed logo was removed. Arctic grew 181→208 KB, being the one image
+where synthesised texture was added. Re-encode fidelity outside the
+edited region is 49–55 dB PSNR, and 42 dB for Arctic.
+
+### Verification
+
+`python3 scripts/decrest-wallpapers.py --check` re-runs the detection and
+exits non-zero if a shared element is ever baked back in. Node cannot
+decode WebP without a dependency, so this invariant cannot live in the
+`node --test` suite; the check was confirmed to pass on the new artwork
+and to fail on the originals.
+
+---
+
 ## [1.4.3] — 2026-08-04
 
 Closes the three dark-mode contrast failures 1.4.2 documented but did not

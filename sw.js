@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.4.3-wallpaper-scrim';
+const CACHE_NAME = 'yancotab-v1.5.0-decrested-wallpapers';
 
 const PRECACHE = [
     './',

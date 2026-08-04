@@ -148,12 +148,8 @@ body.theme-light {
 }
 
 /* ── Wallpaper readability scrim (dark theme) ──────────────────────
-   The shipped wallpapers contain near-white regions — emerald's glow
-   reaches rgb(249,255,205) directly behind the app grid and search bar.
-   Sampling every wallpaper pixel under each label showed app labels at
-   1.14:1, idle page tabs at 1.24:1 and the search placeholder at 2.65:1.
-   App labels are already pure white, so no colour change can help them:
-   only darkening what is behind them can.
+   App labels are pure white, so nothing about the text can be changed to
+   make them legible over a bright backdrop — only what sits behind them.
 
    Why a ::after with z-index: -1 rather than an extra background layer:
    THREE separate code paths write the wallpaper as an inline style
@@ -162,18 +158,22 @@ body.theme-light {
    them. A negative-z-index child paints above the element's own
    background but below its in-flow content, so this sits over the
    wallpaper, under the entire UI, and is untouchable by inline writes —
-   including for custom user wallpapers, which are the brightest risk.
+   including for custom user wallpapers, which no artwork fix can reach
+   and which are the brightest risk of all.
 
-   0.55 is the measured minimum that clears AA for pure-white app labels
-   over emerald's brightest pixel: 4.43:1 at 0.50, 5.27:1 at 0.55. The
-   tightest of the eight wallpapers is Rose at 4.99:1. */
+   0.28 is the measured minimum plus margin, now that the crest has been
+   removed from the artwork (scripts/decrest-wallpapers.py). The binding
+   case is Crimson, whose own artwork is the brightest behind the grid:
+   white-on-peak is 2.81:1 unscrimmed, 4.70:1 at 0.25 and 5.26:1 at 0.30.
+   Before de-cresting this had to be 0.55, because every wallpaper carried
+   the same near-white crest and white-on-crest was 1.01:1. */
 #app-shell::after {
   content: '';
   position: absolute;
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(0, 0, 0, 0.28);
 }
 
 /* Light mode paints its own known surface, which is already measured and

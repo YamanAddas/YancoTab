@@ -175,14 +175,16 @@ describe('dark theme — wallpaper readability scrim', () => {
     assert.match(rule()[1], /pointer-events:\s*none/);
   });
 
-  test('it is opaque enough to clear AA for white text on the crest', () => {
+  test('it is opaque enough to clear AA for white text on the wallpaper', () => {
     const m = rule()[1].match(/rgba\(\s*0\s*,\s*0\s*,\s*0\s*,\s*([\d.]+)\s*\)/);
     assert.ok(m, 'scrim must be a black rgba fill');
     const alpha = parseFloat(m[1]);
-    // Measured: white on emerald's brightest label pixel is 4.43:1 at 0.50
-    // and 5.27:1 at 0.55. Below 0.5 the app labels fail.
-    assert.ok(alpha >= 0.5, `scrim alpha ${alpha} is too light — white app labels need >= 0.5`);
-    assert.ok(alpha <= 0.7, `scrim alpha ${alpha} would flatten the wallpaper entirely`);
+    // Crimson binds: white on its brightest pixel behind the grid is 2.81:1
+    // unscrimmed, 4.70:1 at 0.25. Below 0.25 white app labels fail AA.
+    assert.ok(alpha >= 0.25, `scrim alpha ${alpha} is too light — white app labels need >= 0.25`);
+    // Above this the wallpapers are being flattened for no measured gain;
+    // 0.55 was only needed while the crest was still baked into the art.
+    assert.ok(alpha <= 0.45, `scrim alpha ${alpha} darkens the wallpapers further than measurement requires`);
   });
 
   test('a pseudo-element is used, not a background layer', () => {
