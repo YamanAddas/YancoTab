@@ -14,25 +14,27 @@
  *   • Task data belongs to `todo/persistence.js` — every write routes
  *     through the v2 reducer helpers so streaks and completedAt stay
  *     consistent with TodoApp's own writes.
- *   • Timer data belongs to `pomodoro/engine/reducer.js` — this view
- *     dispatches the same intents PomodoroApp does. The phase machine is
- *     not reimplemented here.
+ *   • Timer data belongs to `pomodoro/effects.js` — every mutation goes
+ *     through runPomodoro, which is the single writer for the live state
+ *     AND the session history. The phase machine is not reimplemented here.
  *   • Only `yancotab_focus_v1` (active + pinned task) is ours.
  *
- * Concurrency: PomodoroApp and PomodoroWidget also tick. Each surface
- * re-reads storage before applying TICK, so whichever fires first
- * advances the phase and the others observe the advanced state — one
- * transition, one toast. Same contract the app and widget already share.
+ * Concurrency: PomodoroApp and PomodoroWidget also tick, and all three now
+ * route through runPomodoro, which re-reads storage before applying TICK.
+ * Whichever fires first advances the phase; the others load the advanced
+ * state and no-op. (That invariant used to be asserted here but was false
+ * for PomodoroApp, which applied TICK to a cached copy — the reason a
+ * naive fix would have double-logged every session. effects.js enforces
+ * it now.)
  */
 
 import { buildFocusView, RING_CIRCUMFERENCE } from './focus/focusView.js';
-import { apply } from '../../apps/pomodoro/engine/reducer.js';
 import * as intent from '../../apps/pomodoro/intents.js';
 import { getPreset } from '../../apps/pomodoro/engine/presets.js';
+import { runPomodoro, activePreset } from '../../apps/pomodoro/effects.js';
 import { remainingMs } from '../../apps/pomodoro/engine/state.js';
 import {
   loadState as loadPomodoro,
-  saveState as savePomodoro,
   loadSettings as loadPomodoroSettings,
 } from '../../apps/pomodoro/persistence.js';
 import {
@@ -193,36 +195,26 @@ export class FocusMode {
 
   // ── timer ──────────────────────────────────────────────────────
 
-  _preset() {
+  /**
+   * Which preset governs the running cycle. Keyed off the STATE's
+   * presetId first (the preset the cycle actually started with), falling
+   * back to settings — see activePreset() in pomodoro/effects.js.
+   */
+  _preset(state = null) {
     try {
-      const settings = loadPomodoroSettings(this.kernel);
-      return getPreset(settings?.activePresetId);
+      return activePreset(state || loadPomodoro(this.kernel), loadPomodoroSettings(this.kernel));
     } catch { return getPreset('classic'); }
   }
 
   /**
-   * Dispatch through the shared reducer. Always re-reads storage first so
-   * a concurrent write from PomodoroApp/Widget isn't clobbered by a stale
-   * cached state — this is what keeps the three surfaces convergent.
+   * Every Pomodoro mutation goes through the shared writer. This used to
+   * inline the reducer and forward only 'toast' and 'activity' — silently
+   * dropping 'sessionLogged', so a session completed inside Focus Mode
+   * (which is the entire point of Focus Mode) never reached history, and
+   * dropping 'phase', so the end chime never sounded here either.
    */
   _dispatch(action) {
-    const preset = this._preset();
-    const current = loadPomodoro(this.kernel);
-    const { state, events } = apply(current, action, preset, Date.now());
-    savePomodoro(this.kernel, state);
-
-    for (const ev of events) {
-      if (ev.type === 'toast') {
-        this.kernel.emit?.('toast', { message: ev.message, type: ev.kind });
-      } else if (ev.type === 'activity') {
-        try {
-          window.dispatchEvent(new CustomEvent('yancotab:activity', {
-            detail: { type: 'pomodoro', label: ev.label },
-          }));
-        } catch { /* ignore */ }
-      }
-    }
-    return state;
+    return runPomodoro(this.kernel, action).state;
   }
 
   _toggleTimer() {
@@ -330,9 +322,10 @@ export class FocusMode {
         `${DAYS[now.getDay()]}, ${MONTHS[now.getMonth()]} ${now.getDate()}`;
     }
 
-    // Timer
-    const preset = this._preset();
+    // Timer. Load the state first so the preset resolves off the running
+    // cycle's own presetId rather than whatever settings currently say.
     const pomo = loadPomodoro(this.kernel);
+    const preset = this._preset(pomo);
     const nowMs = Date.now();
     // remainingMs already handles the idle and paused branches; deriving
     // it back out of ringProgress would just lose precision.

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.6.0-audit-quick-wins';
+const CACHE_NAME = 'yancotab-v1.7.0-pomodoro-history';
 
 const PRECACHE = [
     './',
@@ -108,6 +108,8 @@ const PRECACHE = [
     './os/apps/todo/engine/buckets.js',
     './os/apps/todo/engine/streaks.js',
     './os/apps/pomodoro/persistence.js',
+    './os/apps/pomodoro/effects.js',
+    './os/apps/pomodoro/ambient.js',
     './os/apps/pomodoro/intents.js',
     './os/apps/pomodoro/engine/state.js',
     './os/apps/pomodoro/engine/reducer.js',

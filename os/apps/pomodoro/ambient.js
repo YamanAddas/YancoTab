@@ -92,3 +92,47 @@ export function createAmbient() {
     },
   };
 }
+
+/**
+ * Process-wide ambient used for phase effects that must survive the app
+ * window being closed — which, for a timer, is the normal case.
+ *
+ * DELIBERATELY chime-only. The body-class effects stay owned by
+ * PomodoroApp and die with it, because `body.pomodoro-mute` resolves to
+ * `.toast-container { display: none !important }` (css/pomodoro.css:982-984)
+ * — a GLOBAL suppression. Letting that outlive the window would silence
+ * every toast in the product during a five-minute break, including
+ * "Blocked unsafe URL" and storage-quota errors, with no Pomodoro window
+ * on screen to explain the silence. The chime has no such blast radius:
+ * it is the notification a closed timer exists to deliver.
+ */
+let _sharedChime = null;
+
+export function getSharedChime() {
+  if (_sharedChime) return _sharedChime;
+  let ctx = null;
+  const ensure = () => {
+    if (typeof window === 'undefined') return null;
+    if (ctx) return ctx;
+    const Ctor = window.AudioContext || window.webkitAudioContext;
+    if (!Ctor) return null;
+    try { ctx = new Ctor(); } catch { ctx = null; }
+    return ctx;
+  };
+  _sharedChime = {
+    /** @param {object} settings full pomodoro settings blob */
+    ring(settings) {
+      if (!settings?.ambient?.endChime) return;
+      const c = ensure();
+      if (!c) return;
+      if (c.state === 'suspended') c.resume().catch(() => {});
+      try { chime(c); } catch { /* ignore */ }
+    },
+  };
+  return _sharedChime;
+}
+
+/** Test hook: drop the singleton so suites do not leak an AudioContext. */
+export function _resetSharedChime() {
+  _sharedChime = null;
+}

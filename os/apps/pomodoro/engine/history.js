@@ -21,12 +21,37 @@ export function emptyHistory() {
   return { days: {} };
 }
 
+/**
+ * Deterministic identity for a session, used to dedupe.
+ *
+ * Keyed on the phase START, not the end: three surfaces (app, widget,
+ * Focus Mode) can each observe the same expiry, and two browser tabs can
+ * race across a non-atomic localStorage read. `startedAt` comes from the
+ * shared state blob so every observer agrees on it; `endedAt` is each
+ * observer's own `Date.now()` and differs by milliseconds.
+ *
+ * Derivable from entries written before this existed, so old data
+ * participates in dedupe with no migration.
+ */
+export function sessionId(entry) {
+  if (!entry || !Number.isFinite(entry.startedAt) || !entry.kind) return null;
+  return `${entry.kind}@${entry.startedAt}`;
+}
+
 export function appendSession(history, entry) {
   if (!entry || !Number.isFinite(entry.endedAt) || !entry.kind) return history;
   const key = todayKey(entry.endedAt);
   const days = { ...(history?.days || {}) };
   const list = Array.isArray(days[key]) ? days[key].slice() : [];
+
+  // Returning the INPUT REFERENCE on a duplicate is load-bearing: callers
+  // compare identity to decide whether to write, so a no-op append costs
+  // no storage write and no sync-debounce reset.
+  const id = sessionId(entry);
+  if (id && list.some((e) => (e && e.id) === id || sessionId(e) === id)) return history;
+
   list.push({
+    id: id || null,
     kind: String(entry.kind),
     presetId: entry.presetId || null,
     startedAt: Number.isFinite(entry.startedAt) ? entry.startedAt : null,

@@ -25,7 +25,19 @@ export class ToastManager {
     }
 
     init() {
-        this.container = el('div', { class: 'toast-container' });
+        // The whole product's feedback channel routes through
+        // kernel.emit('toast') — "Settings saved", "Task done", quota
+        // errors, and security blocks like "Blocked unsafe URL". Without a
+        // live region none of it reaches a screen reader, and the 3s
+        // auto-dismiss means a user who suspects a message appeared cannot
+        // navigate to it in time. `polite` (not `assertive`) so routine
+        // confirmations don't interrupt; errors upgrade per-toast below.
+        this.container = el('div', {
+            class: 'toast-container',
+            role: 'status',
+            'aria-live': 'polite',
+            'aria-atomic': 'false',
+        });
         Object.assign(this.container.style, {
             position: 'fixed',
             bottom: '24px',
@@ -53,7 +65,12 @@ export class ToastManager {
 
         const color = TYPE_COLORS[type] || TYPE_COLORS.info;
 
-        const toast = el('div', { class: 'toast-pill' });
+        // Errors are announced immediately; everything else waits for a
+        // pause in speech. The container's own role="status" covers the
+        // polite case, so only the error pill needs to override.
+        const toast = el('div', type === 'error'
+            ? { class: 'toast-pill', role: 'alert' }
+            : { class: 'toast-pill' });
         toast.style.setProperty('--toast-color', color);
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(20px)';

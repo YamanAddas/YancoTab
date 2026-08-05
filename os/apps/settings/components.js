@@ -8,6 +8,12 @@
 
 import { el } from '../../utils/dom.js';
 
+// Unique ids for label↔control association. A counter (not a random or
+// time-based value) keeps ids stable across a re-render in the same
+// session, so an assistive tech that cached one does not go stale.
+let rowSeq = 0;
+const nextRowId = (prefix) => `${prefix}-${++rowSeq}`;
+
 export function group(title, children) {
   return el('section', { class: 'mc-set-group' }, [
     el('div', { class: 'mc-set-group-title' }, title),
@@ -16,10 +22,20 @@ export function group(title, children) {
 }
 
 export function toggleRow(label, desc, isOn, onToggle) {
+  // The switch is an icon-only button: its visible name lives in a sibling
+  // div. Without this association every toggle across all six Settings
+  // tabs announced as bare "button, pressed" — Tab-reachable but
+  // unidentifiable by ear. aria-labelledby points at the label (and the
+  // description, when present, via aria-describedby).
+  const labelId = nextRowId('mc-set-label');
+  const descId = desc ? nextRowId('mc-set-desc') : null;
+
   const toggle = el('button', {
     type: 'button',
     class: `mc-set-toggle${isOn ? ' is-on' : ''}`,
     'aria-pressed': String(isOn),
+    'aria-labelledby': labelId,
+    ...(descId ? { 'aria-describedby': descId } : {}),
   }, [el('span', { class: 'mc-set-toggle-knob' })]);
   toggle.addEventListener('click', () => {
     const next = !toggle.classList.contains('is-on');
@@ -29,8 +45,8 @@ export function toggleRow(label, desc, isOn, onToggle) {
   });
   return el('div', { class: 'mc-set-row' }, [
     el('div', { class: 'mc-set-info' }, [
-      el('div', { class: 'mc-set-label' }, label),
-      ...(desc ? [el('div', { class: 'mc-set-desc' }, desc)] : []),
+      el('div', { class: 'mc-set-label', id: labelId }, label),
+      ...(desc ? [el('div', { class: 'mc-set-desc', id: descId }, desc)] : []),
     ]),
     toggle,
   ]);

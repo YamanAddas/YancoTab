@@ -6,6 +6,134 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.7.0] — 2026-08-04
+
+A second audit wave verified five more findings (all five survived
+adversarial review). This release ships the first of them plus two
+accessibility riders; the other four are designed and queued.
+
+### Fixed — Pomodoro sessions no longer vanish
+
+**A focus session that completed while the Pomodoro window was closed was
+never recorded.** Three surfaces run a one-second tick — PomodoroApp, the
+Today-bar widget, and Focus Mode — but only PomodoroApp persisted the
+reducer's `sessionLogged` event. Focus Mode forwarded `toast` and
+`activity` and silently dropped the rest; the widget did not use the
+reducer at all, hand-rolling its own phase advance.
+
+So the timer worked, the toast fired, the Activity feed even said
+"session 1 complete" — while Stats, the week grid, the season heatmap and
+both streaks recorded nothing. That split is the tell.
+
+It was not a race the widget sometimes won: the loss was unconditional
+whenever no PomodoroApp instance existed at the moment of expiry. That
+covers widget-only use, being on the home screen or in another app
+(`goHome` kills the process and clears its ticker), and **all** of Focus
+Mode — which explicitly closes the active app before mounting, so a
+feature whose entire purpose is running sessions without the app could
+never record one.
+
+Everything now routes through `runPomodoro` in a new
+`os/apps/pomodoro/effects.js`, the single writer for both the live state
+and the history. Nothing else may call `apply`, `saveState` or
+`appendSession`.
+
+### Why the obvious fix would have made it worse
+
+Simply teaching the widget to call `appendSession` **double-logs**.
+`PomodoroApp._dispatch` applied TICK to a cached `this._state` loaded once
+at init, so when another surface advanced the phase underneath, the app's
+stale copy expired independently a moment later and logged the same
+session again — inflating exactly the statistics the fix exists to
+correct. Removing that stale-input path is what makes the guarantee hold.
+
+Exactly-once now has two layers:
+
+- **In-tab it is structural, not defensive.** `runPomodoro` is a
+  synchronous read-modify-write over localStorage (AppStorage has no
+  memory cache) and `setInterval` callbacks cannot interleave, so the
+  first surface to see the deadline advances and persists; the others load
+  the advanced state and no-op.
+- **Cross-tab needs a key.** `appendSession` dedupes on
+  `sessionId = kind@startedAt` — the phase *start*, which every observer
+  reads from shared storage, rather than `endedAt`, which each tab stamps
+  itself. Derivable from existing entries, so old data dedupes with no
+  migration.
+
+### Also fixed by the same change
+
+- **Duplicate, differently-worded toasts.** The widget emitted "Focus
+  complete · 5-min break" while the reducer emitted "Focus complete · take
+  a 5 min break" — different strings, so nothing deduped them. One writer,
+  one toast.
+- **The end chime never sounded outside the Pomodoro window**, because
+  the `phase` event was dropped alongside `sessionLogged`.
+- **The `dayKey` format ping-pong.** The widget wrote an unpadded
+  `2026-8-4` while the engine writes `2026-08-04`, so each rewrote the
+  other's format and zeroed `sessionsToday` on alternating ticks. The
+  widget no longer computes a day key at all. Existing bad values
+  self-heal on the first tick — asserted by a test rather than migrated.
+- **Abandoned focus blocks are recorded.** The widget's right-click reset
+  hard-wrote `idle` and threw the in-progress block away; it now dispatches
+  `END_CYCLE`, which logs a `completed: false` partial. *Behaviour change:*
+  that gesture now also emits a "Cycle ended" toast.
+- **A no-op tick writes nothing.** Focus Mode used to save
+  unconditionally; with three surfaces that was three writes per second,
+  and AppStorage's sync scheduler is a trailing 2-second debounce on one
+  shared timer — a per-second write starved it, so **no key synced at all
+  while a timer ran**.
+
+`PomodoroWidget.js` drops 286 → 166 lines.
+
+### Deliberately not done
+
+The plan called for a process-wide ambient singleton so phase effects
+survive the app window. Only the **chime** was shared. The body-class
+effects were not: `body.pomodoro-mute` resolves to
+`.toast-container { display: none !important }` — a *global* suppression.
+Letting that outlive the window would silence every toast in the product
+during a five-minute break, including "Blocked unsafe URL" and quota
+errors, with no Pomodoro window on screen to explain the silence.
+
+### Fixed — accessibility
+
+- **Toasts are now announced.** The container is `role="status"
+  aria-live="polite"`, with error toasts upgraded to `role="alert"`. Every
+  confirmation, failure and security block in the product routes through
+  `kernel.emit('toast')` and none of it reached a screen reader; the 3s
+  auto-dismiss meant a user who suspected a message could not navigate to
+  it in time.
+- **Settings toggles have names.** The shared `toggleRow` builder made an
+  icon-only button whose visible label lived in a sibling div, so all nine
+  toggles announced as "button, pressed". Now wired with `aria-labelledby`
+  (plus `aria-describedby` for the sub-text), fixed once in the builder so
+  every current and future toggle inherits it.
+
+### Tests
+
+1965 (+11). `tests/pomodoro-effects.test.js` covers the write path
+end-to-end against a new in-memory storage double (`makeFakeStorage`,
+which counts writes so a no-op can be asserted). Mutation-verified three
+ways: deleting the `sessionLogged` branch fails 5 tests, deleting the
+cross-tab dedupe fails the cross-tab test specifically, and deleting the
+no-op early return fails 3.
+
+One test is an invariant lock rather than a case: for every intent × a
+matrix of phases, if `apply()` returns the identical state reference it
+must also return zero events. That is the property `runPomodoro`'s early
+return depends on, and it would otherwise be silently breakable by a
+future reducer edit.
+
+### Queued
+
+Four more verified findings are designed and sequenced: custom wallpaper
+written-but-never-read, widget/quick-link configuration UIs, grid keyboard
+navigation, and the chunked-sync path that writes data no device can
+reassemble. The last must ship alone — it deletes cloud keys and would
+light up remote-change callbacks that have never fired.
+
+---
+
 ## [1.6.0] — 2026-08-04
 
 A 15-agent multi-dimension audit (boot/perf, home UX, productivity apps,

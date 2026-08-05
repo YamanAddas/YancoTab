@@ -10,11 +10,10 @@
 
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
-import { apply } from './pomodoro/engine/reducer.js';
 import { effectiveSky, remainingMs, phaseDurationMs } from './pomodoro/engine/state.js';
 import { getPreset } from './pomodoro/engine/presets.js';
-import { appendSession } from './pomodoro/engine/history.js';
-import { loadState, saveState, loadHistory, saveHistory, loadSettings, saveSettings } from './pomodoro/persistence.js';
+import { loadState, loadHistory, loadSettings, saveSettings, STORAGE_KEYS, normalizeHistory } from './pomodoro/persistence.js';
+import { runPomodoro } from './pomodoro/effects.js';
 import { buildSky } from './pomodoro/view/sky.js';
 import { buildTimerRing } from './pomodoro/view/timerRing.js';
 import { buildTimerInfo } from './pomodoro/view/timerInfo.js';
@@ -67,6 +66,19 @@ export class PomodoroApp extends App {
       this._dispatch(intent.tick());
       this._renderAll();
     }, 1000);
+
+    // Learn about sessions another surface logged while this window is
+    // open. When the widget wins the expiry race, this app's own TICK
+    // returns changed:false and would otherwise never find out.
+    //
+    // Deliberately assigns only — no repaint. AppStorage.save emits to
+    // in-process subscribers SYNCHRONOUSLY, so repainting here would
+    // re-enter _renderAll from inside runPomodoro with a stale
+    // this._state. The 1s tick repaints within a second anyway.
+    this._unsubHistory = this.kernel.storage?.subscribe?.(
+      STORAGE_KEYS.history,
+      (e) => { this._history = normalizeHistory(e?.newValue); },
+    ) || null;
   }
 
   _buildFrame() {
@@ -187,32 +199,27 @@ export class PomodoroApp extends App {
 
   _dispatch(action) {
     if (!this._state) return;
-    const preset = getPreset(this._state.presetId);
-    const { state, events } = apply(this._state, action, preset, Date.now());
-    if (state === this._state) {
-      // No-op action (e.g. TICK before expiry). Skip persist + side-effects.
-      return;
-    }
-    this._state = state;
-    saveState(this.kernel, state);
 
-    for (const ev of events) {
-      if (ev.type === 'toast') {
-        this.kernel.emit('toast', { message: ev.message, type: ev.kind });
-      } else if (ev.type === 'activity') {
-        try {
-          window.dispatchEvent(new CustomEvent('yancotab:activity', {
-            detail: { type: 'pomodoro', label: ev.label },
-          }));
-        } catch { /* ignore */ }
-      } else if (ev.type === 'sessionLogged') {
-        this._history = appendSession(this._history, ev.entry);
-        saveHistory(this.kernel, this._history);
-      } else if (ev.type === 'phase') {
-        // Wake the chime + body classes on phase transitions.
-        this._ambient.handlePhaseEvent(ev);
-      }
-    }
+    // Routes through the shared writer, which re-reads storage. This used
+    // to apply TICK to the cached `this._state` — loaded once at init —
+    // so when the widget advanced the phase underneath, the app's stale
+    // copy expired independently a moment later and logged the session a
+    // SECOND time. That stale-input path is why simply teaching the widget
+    // to write history would have inflated exactly the stats being fixed.
+    const { state, history, changed } = runPomodoro(this.kernel, action);
+
+    // Assign even on a no-op: the app's Pause/Resume label used to go
+    // wrong when the widget paused the timer underneath it, because
+    // `this._state` never re-read. Now it self-corrects each tick.
+    this._state = state;
+    if (history) this._history = history;
+
+    // Ambient body classes (mute / night shell) stay app-owned — see
+    // getSharedChime() in pomodoro/ambient.js for why they must not
+    // outlive this window. The chime itself is handled inside runPomodoro.
+    this._ambient.applyState(this._state, this._settings);
+
+    if (!changed) return;
 
     // Repaint immediately for user-initiated actions (Start/Pause/Skip/etc).
     // The 1s tick only handles silent expiry transitions.
@@ -299,6 +306,10 @@ export class PomodoroApp extends App {
     if (this._ambient) {
       this._ambient.destroy();
       this._ambient = null;
+    }
+    if (this._unsubHistory) {
+      try { this._unsubHistory(); } catch { /* ignore */ }
+      this._unsubHistory = null;
     }
     if (this._styleLinks) {
       for (const l of this._styleLinks) l.remove();
