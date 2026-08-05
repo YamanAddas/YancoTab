@@ -6,6 +6,164 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.8.0] — 2026-08-05
+
+Three more verified audit findings. Two of them are the same shape — a
+storage key with a reader and no writer, or a writer and no reader — and
+the third is the grid being unreachable without a mouse.
+
+### Fixed — quick links could never be changed
+
+`yancotab_quick_links` shipped with five defaults and no way to edit
+them. The Web page rendered the list read-only, and the one component
+that could add or remove a link (`ui/components/QuickLinks.js`) was
+never mounted by anything: zero importers. Five links, permanently.
+
+There is now an add tile at the end of the Web page and a remove button
+on each tile, plus a full list in **Settings → Home & widgets**. Both
+surfaces share one model and one prompt flow, because two editors is
+exactly the setup that produces two subtly different validation rules.
+
+A URL is validated at the step where it was typed rather than after
+making the user name a link that was never going to be stored. Bare
+hostnames are accepted the way an address bar accepts them — but the
+prefix is conditional: blindly prepending `https://` would rescue
+`javascript:alert(1)` into something that parses, passes the http check,
+and is not what anyone typed.
+
+The dead `QuickLinks.js` is deleted rather than wired up. It long-pressed
+to delete, which is undiscoverable on a desktop, and it duplicated the
+model.
+
+### Fixed — the Today bar had no settings, and the timer lived in it
+
+`yancotab_widgets` was registered, defaulted, synced — and unreachable.
+There is now a toggle per widget.
+
+That change could not ship alone. The Pomodoro widget was the **only**
+per-second driver on the home screen, so the moment the card could be
+turned off, hiding it would have silently stopped a running session —
+trading v1.7.0's "sessions vanish" bug for a new one. The tick moved off
+the view into `pomodoro/ticker.js`; the widget is now purely a renderer.
+
+The ticker is not a blanket interval. It arms only while a cycle is live
+and disarms when the phase returns to idle, driven by a storage
+subscription rather than by polling — so an idle new tab, which is
+almost all of them, costs nothing. It also advances once on load, so a
+deadline that passed while the tab was closed is recorded on open rather
+than a second later.
+
+Verified with the widget hidden and no Pomodoro window open: the session
+still reached Stats, exactly once.
+
+### Fixed — custom wallpapers were written, then destroyed
+
+Setting a wallpaper from Photos or Files stored it and painted it, and
+it was gone on the next load. Same for all 34 of the Photos wallpaper
+manager's curated presets. This was worse than a wallpaper not sticking:
+the choice was actively destroyed.
+
+`yancotab_wallpaper` holds a marker, and five surfaces wrote one in
+seven different vocabularies — `''`, `cosmic`, `starfield`, `custom`, a
+preset id like `g1`, `url("assets/wallpapers/rose.webp")`, the same path
+unwrapped, and legacy inline gradients. Nothing could read all seven.
+`themes.js` understood the themed-image case and applied the *colour
+theme's* wallpaper regardless of what the marker said.
+
+The destructive half was in the desktop context menu, which restores the
+wallpaper at boot: it ran every marker through a path normaliser and
+**saved the result**. So `custom` became `url("custom")` — a request for
+a file named "custom", which 404s — and `g1` became `url("g1")`. The
+real choice was unrecoverable after one load.
+
+One resolver (`theme/wallpaper.js`) now reads the marker and paints what
+it says; the read path no longer writes at all. Verified across all
+seven shapes, plus the legacy migration, plus survival of a reload.
+
+A marker whose image is missing falls back to the default rather than
+repairing itself — the marker syncs across devices but the multi-MB data
+URL deliberately does not, so a device that has not received the image
+yet must not delete the choice for the device that has.
+
+**Light mode still suppresses wallpapers**, by design: it paints a flat
+surface because contrast over an arbitrary photo cannot be guaranteed,
+and that was measured in 1.4.1/1.4.3 rather than assumed. What was
+missing was saying so — picking a wallpaper and seeing nothing happen
+reads as a broken app — so Settings now explains it in light mode.
+
+Custom images are also vetted *before* being stored, not just before
+being painted. The value is interpolated into a CSS `url("…")`, so it
+must be an image and must contain none of `" ' ( ) \` or whitespace,
+either of which could close the url() early and append declarations of
+the author's choosing.
+
+### Added — the app grid is reachable from the keyboard
+
+Nothing in the grid was focusable. Tab went from the search bar straight
+past all 22 apps to the dock, and there was no way to launch anything
+without a pointer. A `.app-icon:focus-visible` rule had been sitting in
+`shell.css` for months, styling a state that could not occur.
+
+The grid now takes **one** tab stop and the arrows move within it — the
+toolbar contract, not 22 stops between search and dock. Enter or Space
+launches, Home and End jump to the ends of the page, and stepping past
+the last icon on a page moves to the next one. It does not wrap from the
+last page back to the first: a silent jump to page 1 reads as the key
+having done something else entirely.
+
+Movement is computed from each item's stored page/row/col, not DOM
+order — every icon is absolutely positioned, all pages share one
+container, and a dragged icon keeps its original node. Enter dispatches
+the same `item:click` a tap does, so folders, shortcuts and apps keep
+one launch path.
+
+Folder overlays gained the matching treatment: `role="dialog"` with
+`aria-modal`, focus anchored inside on open, Tab trapped, and focus
+returned to the icon that opened it. Without the trap, Tab from an
+overlay opened by keyboard walked the desktop behind it and launched
+things sight-unseen — the same defect Focus Mode had in 1.6.0.
+
+Verified by walking the real tab order: status bar → search → page tabs
+→ **one** grid stop → folder rail → dock, with `:focus-visible`
+resolving and a single ring drawn (a global `:focus-visible` rule in
+`tokens.css` was also ringing the cell, so the two together drew two
+boxes).
+
+### Also
+
+- **The last native `confirm()`** — deleting a home-screen icon. The v1
+  pass replaced 14 of them with YancoModal and missed this one.
+- **Label hygiene has one definition** (`utils/text.js`), shared by Mail
+  and quick links. Extracting it surfaced a real defect: the stripped
+  range ran `200b–200f` in one span, which swept up **ZWJ and ZWNJ**.
+  Those are not invisible tricks, they are text-shaping characters — ZWJ
+  is what joins 👨‍👩‍👧 into one glyph, and ZWNJ controls Arabic and
+  Persian letter joining. Stripping them silently mangled legitimate
+  labels. ZWSP and the bidi overrides, which cause the problems the
+  sanitiser exists for, are still stripped.
+- **`AppGrid.js` 596 → 481 lines**, under the cap for the first time.
+  Page dots, launch handling and keyboard access are now three modules
+  under `ui/components/grid/`.
+
+### Tests
+
+2032 (+67): `grid-nav` (17), `wallpaper-resolver` (18), `quick-links`
+(21), `pomodoro-ticker` (11). Mutation-verified: removing the ticker's
+catch-up call, the scheme-rescue guard, or the resolver's custom branch
+each turns the suite red.
+
+Two of the new tests found live defects rather than confirming known
+ones — the ZWJ strip above, and `pageItems` admitting a bare number from
+the (import-reachable) grid blob as an item with an undefined id.
+
+### Queued
+
+The chunked-sync finding — data written in chunks that no device can
+reassemble — ships alone in the next release. It deletes cloud keys and
+will light up remote-change callbacks that have never fired.
+
+---
+
 ## [1.7.0] — 2026-08-04
 
 A second audit wave verified five more findings (all five survived

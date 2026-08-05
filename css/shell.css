@@ -1174,11 +1174,18 @@ body.in-app .m-search-container {
   100% { transform: rotate(1deg); }
 }
 
-/* ── Keyboard Focus ── */
+/* ── Keyboard Focus ──
+   Rings the hex tile rather than the whole cell, matching the dock's
+   treatment. This rule predates keyboard access to the grid — nothing was
+   focusable until GridKeyboard shipped — so it had never rendered. */
 .app-icon:focus-visible .hex-icon {
   outline: 2px solid var(--accent);
   outline-offset: 4px;
+  border-radius: 12px;
 }
+/* The cell itself must not ALSO ring, or focus draws two boxes. */
+.app-icon:focus,
+.app-icon:focus-visible { outline: none; }
 
 .nav-item:focus-visible {
   outline: 2px solid var(--accent);

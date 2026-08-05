@@ -35,6 +35,8 @@ import { WindowChrome } from './components/WindowChrome.js';
 import { FocusMode } from './components/FocusMode.js';
 import { bindShellShortcuts } from './shellShortcuts.js';
 import { BadgeManager } from './badges/BadgeManager.js';
+import { startPomodoroTicker } from '../apps/pomodoro/ticker.js';
+import { applyStoredWallpaper } from '../theme/wallpaper.js';
 import { defaultFolders } from '../config/defaultApps.js';
 
 export class MobileShell {
@@ -197,6 +199,21 @@ export class MobileShell {
     // page switches, folder overlays and the dock all get them for free.
     this.components.badges = new BadgeManager(kernel);
     this.components.badges.start(this.dom.wrapper);
+
+    // The Pomodoro clock advances here, not in the widget. Until the Today
+    // bar became configurable the widget was the only per-second driver on
+    // the home screen, so hiding the card would have quietly stopped a
+    // running session. The ticker arms itself only while a cycle is live.
+    this._stopTicker = startPomodoroTicker(kernel);
+
+    // Repaint when the wallpaper marker changes. Five different surfaces
+    // can set a wallpaper (Appearance, the desktop context menu, Photos'
+    // manager, Photos' gallery, Files) and each used to hand-roll its own
+    // inline styles; a subscription means a new one only has to write the
+    // key. It also picks up a change made in another tab.
+    try {
+      kernel.storage?.subscribe?.('yancotab_wallpaper', () => applyStoredWallpaper());
+    } catch { /* storage unavailable — the boot-time paint already ran */ }
   }
 
   // ─── DOM Structure ──────────────────────────────────────────

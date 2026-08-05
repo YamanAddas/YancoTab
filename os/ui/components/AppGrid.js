@@ -21,7 +21,10 @@ import { MobileGridState } from './MobileGridState.js';
 import { SmartIcon } from '../desktop/SmartIcon.js';
 import { FolderIcon } from './FolderIcon.js';
 import { FolderOverlay } from './FolderOverlay.js';
-import { isSafeUrl } from '../../utils/url.js';
+import { GridKeyboard } from './grid/gridKeyboard.js';
+import { GridPager } from './grid/gridPager.js';
+import { openUserApp as launchUserApp, openFile as launchFile } from './grid/gridLaunch.js';
+import { showConfirm } from './YancoModal.js';
 
 export class AppGrid {
   constructor() {
@@ -40,6 +43,12 @@ export class AppGrid {
     this.state = new MobileGridState();
     this.interaction = new MobileInteraction(this.root, this.layoutEngine, this.state, this.debug);
     this.contextMenu = new MobileContextMenu(this);
+    // Keyboard access. Separate from `interaction` on purpose: that module
+    // owns pointer gestures (drag, page swipe, long-press) and the two
+    // share nothing but the item:click event they both end up dispatching.
+    this.keyboard = new GridKeyboard(this);
+    this.keyboard.attach();
+    this.pager = new GridPager(this.dotsContainer, this);
 
     // Layout reference (single source of truth for current metrics)
     this.currentLayout = null;
@@ -147,7 +156,7 @@ export class AppGrid {
 
     // Dots (initial)
     this.renderDots(1, 0);
-    this._bindDotSwipe();
+    this.pager.bindSwipe();
   }
 
   // ─── App Opening ────────────────────────────────────────────
@@ -162,56 +171,13 @@ export class AppGrid {
     }
   }
 
-  openUserApp(app) {
-    try {
-      const url = app?.url || app?.scheme || '';
-      if (!url) return;
-      // Defense-in-depth: even though MobileShortcutModal validates on
-      // save, an older saved shortcut from a previous version could
-      // still hold a javascript: / data: URL. Re-validate at navigation.
-      if (!isSafeUrl(url)) {
-        kernel.emit('toast', { message: 'Blocked unsafe URL', type: 'error' });
-        return;
-      }
-      if (url.startsWith('http')) {
-        window.open(url, '_blank', 'noopener');
-      } else {
-        // Fallback for Maps if the custom scheme handler isn't installed.
-        // Check the URL scheme prefix — not a substring — so a mailto:
-        // address with "googlemaps" in the local-part doesn't trigger.
-        const isMapsScheme =
-          url.startsWith('comgooglemaps:') ||
-          url.startsWith('comgooglemaps-x-callback:') ||
-          url.startsWith('maps:');
-        if (isMapsScheme) {
-          const start = Date.now();
-          window.location.href = url;
-          setTimeout(() => {
-            if (Date.now() - start < 2000) {
-              window.open('https://maps.google.com', '_blank');
-            }
-          }, 1500);
-          return;
-        }
-        window.location.href = url;
-      }
-    } catch (e) {
-      console.error('[AppGrid] openUserApp failed', e);
-    }
-  }
+  // User shortcuts and files carry arbitrary URLs, so their opening logic
+  // — including the re-validation at navigation time — lives in
+  // grid/gridLaunch.js. These delegates stay because MobileShell and
+  // SmartSearch both call them on the grid instance.
+  openUserApp(app) { launchUserApp(app); }
 
-  openFile(file) {
-    try {
-      if (file?.url && typeof file.url === 'string') {
-        window.open(file.url, '_blank', 'noopener');
-        return;
-      }
-      kernel.emit('app:open', 'files');
-    } catch (e) {
-      console.error('[AppGrid] openFile failed', e);
-      kernel.emit('app:open', 'files');
-    }
-  }
+  openFile(file) { launchFile(file); }
 
   startEditMode() {
     this.interaction.startEditMode();
@@ -304,6 +270,7 @@ export class AppGrid {
       this._unsubscribeState = null;
     }
     this.interaction?.destroy?.();
+    this.keyboard?.destroy?.();
     this.contextMenu?.hide?.();
   }
 
@@ -411,6 +378,11 @@ export class AppGrid {
       this.pagesContainer.style.height = `${maxBottomY}px`;
       this.pagesContainer.style.marginLeft = `${-contentShift}px`;
     }
+
+    // Nodes are reused but new ones are created freely, and a fresh node
+    // carries no tabindex — so the roving stop has to be re-applied here
+    // rather than once at construction.
+    this.keyboard?.sync();
   }
 
   // ─── DOM Creation ───────────────────────────────────────────
@@ -460,9 +432,14 @@ export class AppGrid {
 
     // Delete button (edit mode)
     const deleteBtn = el('div', { class: 'app-delete-btn' });
-    deleteBtn.addEventListener('pointerdown', (e) => {
+    deleteBtn.addEventListener('pointerdown', async (e) => {
       e.stopPropagation();
-      if (confirm(`Delete ${item.title}?`)) this.removeApp(item.id);
+      // The last native confirm() in the product. The v1 pass replaced 14
+      // of them with YancoModal and missed this one, so deleting an icon
+      // was the single place that still raised an OS dialog.
+      if (await showConfirm('Delete Icon', `Remove ${item.title} from the home screen?`)) {
+        this.removeApp(item.id);
+      }
     });
     div.appendChild(deleteBtn);
 
@@ -470,108 +447,16 @@ export class AppGrid {
   }
 
   // ─── Dots ───────────────────────────────────────────────────
+  // Thin delegates. The dots themselves live in grid/gridPager.js; these
+  // stay because MobileShell and MobileInteractionV2 both call them.
 
   renderDots(count, activeIndex) {
-    this.dotsContainer.innerHTML = '';
-
-    Object.assign(this.dotsContainer.style, {
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-      padding: '8px 0 4px',
-      touchAction: 'none', cursor: 'pointer',
-    });
-
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00e5c1';
-    const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '0, 229, 193';
-    const uiTextRgb = getComputedStyle(document.documentElement).getPropertyValue('--ui-text-rgb').trim() || '200, 220, 240';
-
-    for (let i = 0; i < count; i++) {
-      const isActive = i === activeIndex;
-      const dot = el('div', {
-        class: 'dot',
-        style: {
-          width: isActive ? '18px' : '6px',
-          height: '6px',
-          borderRadius: isActive ? '3px' : '50%',
-          backgroundColor: isActive ? accent : `rgba(${uiTextRgb}, 0.2)`,
-          transition: 'all 0.3s',
-          boxShadow: isActive ? `0 0 8px rgba(${accentRgb}, 0.4)` : 'none',
-          pointerEvents: 'none',
-        },
-      });
-      this.dotsContainer.appendChild(dot);
-    }
+    this.pager.render(count, activeIndex);
   }
 
   setActivePage(index) {
-    if (index >= this.dotsContainer.children.length) {
-      this.renderDots(index + 1, index);
-    }
-
-    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#00e5c1';
-    const accentRgb = getComputedStyle(document.documentElement).getPropertyValue('--accent-rgb').trim() || '0, 229, 193';
-    const uiTextRgb = getComputedStyle(document.documentElement).getPropertyValue('--ui-text-rgb').trim() || '200, 220, 240';
-
-    const dots = this.dotsContainer.querySelectorAll('.dot');
-    dots.forEach((d, i) => {
-      const isActive = i === index;
-      d.style.width = isActive ? '18px' : '6px';
-      d.style.borderRadius = isActive ? '3px' : '50%';
-      d.style.backgroundColor = isActive ? accent : `rgba(${uiTextRgb}, 0.2)`;
-      d.style.boxShadow = isActive ? `0 0 8px rgba(${accentRgb}, 0.4)` : 'none';
-    });
+    this.pager.setActive(index);
     this.interaction.currentPage = index;
-  }
-
-  // ─── Dot Swipe ──────────────────────────────────────────────
-
-  _bindDotSwipe() {
-    let startX = 0;
-    let pointerId = null;
-
-    this.dotsContainer.addEventListener('pointerdown', (e) => {
-      e.stopPropagation();
-      if (e.cancelable) e.preventDefault();
-      startX = e.clientX;
-      pointerId = e.pointerId;
-      try { this.dotsContainer.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
-      this.dotsContainer.style.transform = 'translateX(-50%) scale(0.9)';
-      this.dotsContainer.style.background = 'rgba(0,0,0,0.3)';
-    }, { passive: false });
-
-    this.dotsContainer.addEventListener('pointerup', (e) => {
-      e.stopPropagation();
-      if (pointerId !== null && e.pointerId !== pointerId) return;
-      try { this.dotsContainer.releasePointerCapture(e.pointerId); } catch { /* best-effort */ }
-      this.dotsContainer.style.transform = 'translateX(-50%) scale(1)';
-      this.dotsContainer.style.background = 'rgba(0,0,0,0.2)';
-      pointerId = null;
-
-      const dx = e.clientX - startX;
-      const page = this.interaction.currentPage;
-      const maxPage = (this.state.pageCount || 1) - 1;
-
-      if (Math.abs(dx) > 30) {
-        // Swipe gesture on dots
-        if (dx > 0 && page > 0) this.interaction.animateToPage(page - 1);
-        else if (dx < 0 && page < maxPage) this.interaction.animateToPage(page + 1);
-      } else if (Math.abs(dx) < 10) {
-        // Tap on dots — navigate to the tapped dot
-        const dotsRect = this.dotsContainer.getBoundingClientRect();
-        const dots = this.dotsContainer.querySelectorAll('.dot');
-        if (dots.length > 1) {
-          const relX = e.clientX - dotsRect.left;
-          const fraction = relX / dotsRect.width;
-          const targetPage = Math.max(0, Math.min(maxPage, Math.round(fraction * maxPage)));
-          if (targetPage !== page) this.interaction.animateToPage(targetPage);
-        }
-      }
-    });
-
-    this.dotsContainer.addEventListener('pointercancel', (e) => {
-      this.dotsContainer.style.transform = 'translateX(-50%) scale(1)';
-      this.dotsContainer.style.background = 'rgba(0,0,0,0.2)';
-      pointerId = null;
-    });
   }
 
   // ─── Public API ─────────────────────────────────────────────

@@ -36,7 +36,17 @@ export class FolderOverlay {
   show() {
     if (this.overlay) return;
 
-    this.overlay = el('div', { class: 'folder-overlay' });
+    // Announced as a modal dialog. It covers the whole screen and Escape
+    // already closes it, so the only thing missing was saying so — without
+    // aria-modal a screen reader keeps offering the desktop underneath,
+    // which is exactly the confusion Focus Mode's overlay had in 1.6.0.
+    this.overlay = el('div', {
+      class: 'folder-overlay',
+      role: 'dialog',
+      'aria-modal': 'true',
+      'aria-label': `${this.folder.title || 'Folder'} folder`,
+    });
+    this._lastFocus = document.activeElement;
     // Prevent native browser context menu inside the folder overlay (desktop) and route to OS menu
     this.overlay.addEventListener('contextmenu', this._onContextMenu, true);
     this.overlay.addEventListener('click', (e) => {
@@ -52,6 +62,10 @@ export class FolderOverlay {
       class: 'folder-title-input',
       value: this.folder.title || 'Folder',
       spellcheck: false,
+      // Its visible text is the folder's own name, so with no label it
+      // announces as "Games, edit text" — indistinguishable from a
+      // heading that happens to be focusable.
+      'aria-label': 'Folder name',
     });
     titleInput.addEventListener('blur', () => this._saveTitle(titleInput.value));
     titleInput.addEventListener('keydown', (e) => {
@@ -85,7 +99,18 @@ export class FolderOverlay {
 
         const itemWrapper = el('div', {
           class: 'folder-item-wrapper',
-          'data-id': child.id
+          'data-id': child.id,
+          role: 'button',
+          tabindex: '0',
+          'aria-label': child.title,
+        });
+        // Enter/Space route through the same _handleItemClick a tap ends
+        // at, so URL shortcuts keep their validation and the overlay still
+        // closes behind the launch.
+        itemWrapper.addEventListener('keydown', (e) => {
+          if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
+          e.preventDefault();
+          this._handleItemClick(child.id);
         });
 
         // Disable internal pointer events effectively
@@ -108,41 +133,13 @@ export class FolderOverlay {
 
     requestAnimationFrame(() => {
       this.overlay.classList.add('is-visible');
+      // Anchor focus inside the dialog. Without this, Tab from an overlay
+      // opened by keyboard walks the desktop hidden behind it and launches
+      // things sight-unseen — the same defect Focus Mode had.
+      (grid.querySelector('.folder-item-wrapper') || titleInput)?.focus();
     });
 
     document.addEventListener('keydown', this.handleKey);
-  }
-
-  _onContextMenu(e) {
-    // Prevent native browser menu and route to OS menu
-    try { if (e && e.cancelable) e.preventDefault(); } catch (err) { /* best-effort */ }
-    try { if (e) e.stopPropagation(); } catch (err) { /* best-effort */ }
-
-    const x = (e && typeof e.clientX === 'number') ? e.clientX : 0;
-    const y = (e && typeof e.clientY === 'number') ? e.clientY : 0;
-    const t = (e && e.target && e.target.closest) ? e.target : null;
-    const wrapper = t ? t.closest('.folder-item-wrapper') : null;
-
-    if (wrapper && wrapper.dataset && wrapper.dataset.id) {
-      const id = wrapper.dataset.id;
-      // Delegate to the grid's menu system (same menu as desktop icons)
-      try {
-        this.appGrid.root.dispatchEvent(new CustomEvent('item:context-menu', {
-          detail: { type: 'desktop', id: id, x: x, y: y },
-          bubbles: true
-        }));
-      } catch (err) { /* best-effort */ }
-    } else {
-      // Right-click on overlay background: show grid menu
-      try {
-        this.appGrid.root.dispatchEvent(new CustomEvent('grid:context-menu', {
-          detail: { type: 'grid', x: x, y: y },
-          bubbles: true
-        }));
-      } catch (err) { /* best-effort */ }
-    }
-
-    return false;
   }
 
   _onPointerDown(e) {
@@ -365,9 +362,30 @@ export class FolderOverlay {
     this.appGrid.state.notify();
   }
 
+  /** Keep Tab inside the dialog — see the focus note in show(). */
+  _trapTab(e) {
+    const focusables = Array.from(
+      this.overlay.querySelectorAll('.folder-item-wrapper, .folder-title-input'),
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    const active = document.activeElement;
+    if (e.shiftKey && (active === first || !this.overlay.contains(active))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && active === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   hide() {
     if (!this.overlay) return;
     document.removeEventListener('keydown', this.handleKey);
+    // Return focus to whatever opened the folder, so Escape does not dump
+    // the user back at the top of the document.
+    try { this._lastFocus?.focus?.(); } catch { /* element may be gone */ }
     try { if (this.overlay) this.overlay.removeEventListener('contextmenu', this._onContextMenu, true); } catch (err) { /* best-effort */ }
     this.overlay.classList.remove('is-visible');
     setTimeout(() => {
@@ -379,6 +397,7 @@ export class FolderOverlay {
   }
 
   handleKey(e) {
-    if (e.key === 'Escape') this.hide();
+    if (e.key === 'Escape') { this.hide(); return; }
+    if (e.key === 'Tab' && this.overlay) this._trapTab(e);
   }
 }

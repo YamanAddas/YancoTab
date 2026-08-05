@@ -340,6 +340,37 @@ body.theme-light .mc-set-frame {
 }
 .mc-set-toggle.is-on .mc-set-toggle-knob { left: 18px; }
 
+/* Destructive row affordance (quick-link removal).
+   Visually 26px so it sits level with the toggles it shares a card with,
+   but the ::before carries a real 44x44 pointer target — the same trick
+   Focus Mode's checkbox uses. `inset` resolves against the PADDING box, so
+   the 1px border makes the offset -10px rather than the -9px arithmetic on
+   the border box suggests. */
+.mc-set-remove {
+  position: relative;
+  width: 26px; height: 26px;
+  flex-shrink: 0;
+  display: grid; place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.10));
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-dim);
+  font-size: 12px; line-height: 1;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.mc-set-remove::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+.mc-set-remove:hover,
+.mc-set-remove:focus-visible {
+  color: var(--danger, #ff4757);
+  border-color: rgba(255, 71, 87, 0.45);
+  background: rgba(255, 71, 87, 0.10);
+}
+
 /* Inputs the legacy modules drop in */
 .mc-set-card input[type='text'],
 .mc-set-card input[type='number'] {

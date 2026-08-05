@@ -7,23 +7,9 @@
 
 import { MobileShortcutModal } from './MobileShortcutModal.js';
 import { el } from '../../utils/dom.js';
-
-// Envelope-aware raw read — `yancotab_wallpaper` may be stored as
-// AppStorage's {data, version, ts, ...} envelope or (legacy) as a raw
-// string. This component is constructed before kernel.storage is
-// reliably available, so we read raw and unwrap.
-function readWallpaperRaw() {
-  try {
-    const raw = localStorage.getItem('yancotab_wallpaper');
-    if (raw == null) return '';
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
-      if (typeof parsed === 'string') return parsed;
-    } catch { /* not JSON — raw value */ }
-    return raw;
-  } catch { return ''; }
-}
+import {
+  readMarker, resolveWallpaper, applyStoredWallpaper, SPECIAL_MARKERS,
+} from '../../theme/wallpaper.js';
 
 export class MobileContextMenu {
   constructor(grid) {
@@ -32,8 +18,11 @@ export class MobileContextMenu {
     this.overlay = null;
     this.shortcutModal = new MobileShortcutModal(grid);
 
-    const saved = readWallpaperRaw();
-    if (saved) this.applySavedWallpaper(saved);
+    // Restore, but do not rewrite. The old constructor ran every saved
+    // marker through a path normaliser and SAVED THE RESULT — so 'custom'
+    // became url("custom") and a Photos preset id became url("g1"),
+    // destroying the real choice on the very first load after it was made.
+    applyStoredWallpaper();
   }
 
   // Source of truth: the 8 theme wallpapers shipped under assets/wallpapers/.
@@ -49,64 +38,29 @@ export class MobileContextMenu {
     'assets/wallpapers/crimson.webp',
   ];
 
-  // Migrate v1 inline-gradient and old-name image references to the closest
-  // current theme wallpaper. Saved values that don't match this map fall
-  // through to normalizeWallpaper's url(...) regex.
-  legacyWallpaperMap = {
-    'linear-gradient(135deg, #0a1628 0%, #1a2d4a 50%, #0d1f35 100%)': 'assets/wallpapers/sapphire.webp',
-    '#000000':                                                          'assets/wallpapers/obsidian.webp',
-    'linear-gradient(45deg, #121212, #2a2a2a)':                         'assets/wallpapers/obsidian.webp',
-    'linear-gradient(135deg, #667eea, #764ba2)':                        'assets/wallpapers/amethyst.webp',
-    'linear-gradient(135deg, #f093fb, #f5576c)':                        'assets/wallpapers/rose.webp',
-    'linear-gradient(135deg, #4facfe, #00f2fe)':                        'assets/wallpapers/arctic.webp',
-    'linear-gradient(135deg, #43e97b, #38f9d7)':                        'assets/wallpapers/emerald.webp',
-    // Old image-path references (pre-v1 themed wallpapers)
-    'assets/wallpaper.webp':                                            'assets/wallpapers/emerald.webp',
-    'assets/wallpapers/deep-blue.webp':                                 'assets/wallpapers/sapphire.webp',
-    'assets/wallpapers/black.webp':                                     'assets/wallpapers/obsidian.webp',
-    'assets/wallpapers/dark.webp':                                      'assets/wallpapers/obsidian.webp',
-    'assets/wallpapers/violet.webp':                                    'assets/wallpapers/amethyst.webp',
-    'assets/wallpapers/pink.webp':                                      'assets/wallpapers/rose.webp',
-    'assets/wallpapers/sky.webp':                                       'assets/wallpapers/arctic.webp',
-    'assets/wallpapers/mint.webp':                                      'assets/wallpapers/emerald.webp',
-  };
-
-  normalizeWallpaper(saved) {
-    if (!saved) return this.wallpapers[0];
-    if (saved in this.legacyWallpaperMap) return this.legacyWallpaperMap[saved];
-    const match = saved.match(/^url\(["']?(.+?)["']?\)$/);
-    const extracted = match ? match[1] : saved;
-    // Check legacy map a second time with the extracted URL — saved values
-    // like url("assets/wallpapers/deep-blue.webp") (a dead pre-v1 path)
-    // get migrated to the closest current theme wallpaper.
-    if (extracted in this.legacyWallpaperMap) return this.legacyWallpaperMap[extracted];
-    return extracted;
+  /**
+   * Advance to the next themed wallpaper.
+   *
+   * Only this path writes. Legacy-marker migration now lives in
+   * theme/wallpaper.js, where it runs wherever a wallpaper is resolved
+   * rather than only when a context menu happens to be constructed.
+   */
+  changeWallpaper() {
+    const marker = readMarker();
+    // A special mode (cosmic / starfield / custom) has no place in the
+    // themed ring, so cycling out of one starts at the beginning rather
+    // than trying to locate it in a list it was never in.
+    let nextIndex = 0;
+    if (!SPECIAL_MARKERS.has(marker)) {
+      const desc = resolveWallpaper(marker);
+      const idx = desc.kind === 'image' ? this.wallpapers.indexOf(desc.value) : -1;
+      if (idx >= 0) nextIndex = (idx + 1) % this.wallpapers.length;
+    }
+    this.setWallpaper(this.wallpapers[nextIndex]);
   }
 
-  applySavedWallpaper(saved) {
-    const shell = document.getElementById('app-shell') || document.querySelector('.mobile-shell') || document.body;
-    shell.classList.remove('cosmic-wallpaper');
-
-    if (saved === 'cosmic') {
-      shell.classList.add('cosmic-wallpaper');
-      return;
-    }
-    if (saved === 'starfield') {
-      shell.style.background = 'transparent';
-      shell.style.backgroundSize = '';
-      shell.style.backgroundPosition = '';
-      return;
-    }
-
-    const normalized = this.normalizeWallpaper(saved);
-    shell.style.background = '';
-    shell.style.backgroundImage = `url("${normalized}")`;
-    shell.style.backgroundSize = 'cover';
-    shell.style.backgroundPosition = 'center';
-    // Route the write through kernel.storage if available so the choice
-    // syncs across devices. Falls back to raw localStorage when this
-    // component is created before the kernel is wired (boot path).
-    const value = `url("${normalized}")`;
+  /** Persist a wallpaper marker and repaint from storage. */
+  setWallpaper(value) {
     const k = this.grid?.kernel || (typeof window !== 'undefined' ? window.kernel : null);
     if (k?.storage?.save) {
       try { k.storage.save('yancotab_wallpaper', value); }
@@ -114,16 +68,9 @@ export class MobileContextMenu {
     } else {
       try { localStorage.setItem('yancotab_wallpaper', value); } catch { /* ignore */ }
     }
+    applyStoredWallpaper();
   }
 
-  changeWallpaper() {
-    const current = this.normalizeWallpaper(readWallpaperRaw());
-    let nextIndex = 0;
-    const idx = this.wallpapers.indexOf(current);
-    if (idx >= 0) nextIndex = (idx + 1) % this.wallpapers.length;
-    const nextUrl = this.wallpapers[nextIndex];
-    this.applySavedWallpaper(nextUrl);
-  }
 
   // ─── Show / Hide ────────────────────────────────────────────
 

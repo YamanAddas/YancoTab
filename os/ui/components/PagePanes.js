@@ -1,5 +1,7 @@
 import { el, setLiteralHtml } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
+import { normalizeLinks, MAX_LINKS, LINKS_KEY } from '../quickLinks/quickLinksModel.js';
+import { promptAddLink, confirmRemoveLink } from '../quickLinks/quickLinksActions.js';
 
 /**
  * PagePanes — content panes for Files / Notes / Web tabs.
@@ -22,12 +24,6 @@ import { kernel } from '../../kernel.js';
  * Re-renders on `page:tab-change` so the lists are fresh when the user
  * actually navigates to that tab (cheaper than ticking on home load).
  */
-
-const SAFE_SCHEMES = ['https:', 'http:'];
-
-function isSafeUrl(url) {
-    try { return SAFE_SCHEMES.includes(new URL(url).protocol); } catch { return false; }
-}
 
 function faviconUrl(href) {
     try {
@@ -242,26 +238,62 @@ export class PagePanes {
         if (!grid) return;
         grid.innerHTML = '';
 
-        const links = (kernel.storage?.load('yancotab_quick_links') || []).filter(l => l && l.url && isSafeUrl(l.url));
+        const links = normalizeLinks(kernel.storage?.load(LINKS_KEY));
         if (meta) meta.textContent = links.length ? `${links.length} ${links.length === 1 ? 'link' : 'links'}` : '';
-
-        if (links.length === 0) {
-            grid.appendChild(this._emptyState('No quick links yet'));
-            return;
-        }
 
         for (const link of links) {
             grid.appendChild(this._buildLinkCard(link));
         }
+
+        // The add tile is the only way to reach `yancotab_quick_links` from
+        // the home screen — before this the key had a reader and no writer
+        // anywhere, so the five seeded defaults were permanent. It is a
+        // tile rather than a header button so it sits where the thing it
+        // creates will appear.
+        if (links.length < MAX_LINKS) {
+            grid.appendChild(this._buildAddTile());
+        } else if (links.length === 0) {
+            grid.appendChild(this._emptyState('No quick links yet'));
+        }
+    }
+
+    _buildAddTile() {
+        const tile = el('button', {
+            type: 'button',
+            class: 'web-tile web-tile-add',
+            title: 'Add a quick link',
+        }, [
+            el('span', { class: 'web-tile-favicon web-tile-favicon-fallback' }, '+'),
+            el('span', { class: 'web-tile-label' }, 'Add link'),
+        ]);
+        tile.addEventListener('click', async () => {
+            if (await promptAddLink(kernel)) this._renderWeb();
+        });
+        return tile;
     }
 
     _buildLinkCard(link) {
+        const slot = el('div', { class: 'web-tile-slot' });
         const card = el('a', {
             class: 'web-tile',
             href: link.url,
             target: '_blank',
             rel: 'noopener noreferrer',
             title: this._displayHost(link.url),
+        });
+
+        // Sibling of the anchor rather than a child of it: interactive
+        // content nested inside an <a> is invalid, and a click on it would
+        // navigate as well as remove.
+        const remove = el('button', {
+            type: 'button',
+            class: 'web-tile-remove',
+            'aria-label': `Remove ${link.label || this._displayHost(link.url)}`,
+        }, '✕');
+        remove.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (await confirmRemoveLink(kernel, link)) this._renderWeb();
         });
         const fav = faviconUrl(link.url);
         const icon = el('span', { class: 'web-tile-favicon' });
@@ -281,7 +313,8 @@ export class PagePanes {
             icon,
             el('span', { class: 'web-tile-label' }, link.label || link.url),
         );
-        return card;
+        slot.append(card, remove);
+        return slot;
     }
 
     _displayHost(url) {

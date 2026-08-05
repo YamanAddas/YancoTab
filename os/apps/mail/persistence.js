@@ -18,6 +18,7 @@
  */
 
 import { getProvider, normalizeAccountIndex } from './providers.js';
+import { sanitizeDisplayText } from '../../utils/text.js';
 
 export const MAIL_KEY = 'yancotab_mail_v1';
 
@@ -32,34 +33,11 @@ export function emptyState() {
 }
 
 /**
- * Ranges stripped from a label, as codepoints.
- *
- * Written as numbers, not as a regex character class: the class would need
- * literal C0 control bytes in this source file, which makes the file read as
- * binary to grep/diff and invites an editor to silently mangle it.
- *
- * Labels render through textContent, so none of this is an XSS control. It is
- * display integrity — a pasted RLO visually reverses the rest of the account
- * list, and zero-width characters make two different labels look identical.
+ * Label hygiene lives in utils/text.js — quick links needed the identical
+ * rule, and two copies of a sanitizer is how one of them silently falls
+ * behind the other. See that module for why each range is stripped.
  */
-const STRIPPED_RANGES = [
-    [0x0000, 0x001f], // C0 controls, incl. newline and tab
-    [0x007f, 0x009f], // DEL + C1 controls
-    [0x200b, 0x200f], // zero-width space/joiners, LRM/RLM
-    [0x202a, 0x202e], // bidi embedding + override
-    [0x2066, 0x2069], // bidi isolates
-];
-
-function sanitizeLabel(raw) {
-    if (typeof raw !== 'string') return '';
-    let out = '';
-    for (const ch of raw) {
-        const cp = ch.codePointAt(0);
-        if (STRIPPED_RANGES.some(([lo, hi]) => cp >= lo && cp <= hi)) continue;
-        out += ch;
-    }
-    return out.trim().slice(0, MAX_LABEL);
-}
+const sanitizeLabel = (raw) => sanitizeDisplayText(raw, MAX_LABEL);
 
 /**
  * Coerce whatever is in storage into a valid state.

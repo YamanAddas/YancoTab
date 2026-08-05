@@ -7,7 +7,8 @@
 
 import { el } from '../../utils/dom.js';
 import { getStoredMode, applyThemeMode } from '../../theme/theme.js';
-import { THEMES, applyColorTheme, applyWallpaper, getSavedTheme } from '../../theme/themes.js';
+import { THEMES, applyColorTheme, getSavedTheme } from '../../theme/themes.js';
+import { applyStoredWallpaper } from '../../theme/wallpaper.js';
 
 const WALLPAPER_KEY = 'yancotab_wallpaper';
 
@@ -119,8 +120,11 @@ function _themeGrid(container, app, storage) {
     }, [el('div', { class: 'ys-wallpaper-label' }, theme.name)]);
     option.onclick = () => {
       applyColorTheme(id);
-      applyWallpaper(id);
       storage.save(WALLPAPER_KEY, theme.wallpaper);
+      // Repaint from storage rather than from `theme` directly, so the
+      // marker and the pixels cannot disagree. Every wallpaper writer in
+      // the product now goes through this one function.
+      applyStoredWallpaper();
       grid.querySelectorAll('.ys-wallpaper.selected').forEach((e) => e.classList.remove('selected'));
       option.classList.add('selected');
     };
@@ -137,24 +141,25 @@ function _themeGrid(container, app, storage) {
       style: bgStyle,
     }, [el('div', { class: 'ys-wallpaper-label' }, mode.name)]);
     option.onclick = () => {
-      const shell = document.getElementById('app-shell') || document.body;
-      shell.classList.remove('cosmic-wallpaper');
-      if (mode.id === 'cosmic') {
-        shell.classList.add('cosmic-wallpaper');
-      } else {
-        shell.style.background = 'transparent';
-        shell.style.backgroundSize = '';
-        shell.style.backgroundPosition = '';
-      }
       applyColorTheme('emerald');
       storage.save(WALLPAPER_KEY, mode.id);
+      applyStoredWallpaper();
       grid.querySelectorAll('.ys-wallpaper.selected').forEach((e) => e.classList.remove('selected'));
       option.classList.add('selected');
     };
     grid.appendChild(option);
   });
 
-  container.appendChild(app._group('Theme', [grid]));
+  const rows = [grid];
+  // Light mode deliberately paints its own flat surface instead of a photo
+  // (css/main.css) — contrast over an arbitrary image cannot be guaranteed,
+  // and that is measured rather than assumed. Say so here, because picking
+  // a wallpaper and seeing nothing change otherwise reads as a broken app.
+  if (document.body.classList.contains('theme-light')) {
+    rows.push(app._infoRow('Wallpapers are dark-mode only',
+      'Light mode uses a plain surface so text stays readable. Your choice returns in dark mode.'));
+  }
+  container.appendChild(app._group('Theme', rows));
 }
 
 /* ── Motion (background animation toggle) ── */

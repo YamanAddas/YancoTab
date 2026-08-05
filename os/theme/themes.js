@@ -4,6 +4,8 @@
  * Applied via CSS custom properties on :root.
  */
 
+import { applyStoredWallpaper } from './wallpaper.js';
+
 export const THEMES = {
   emerald: {
     name: 'Emerald',
@@ -139,18 +141,14 @@ export function applyColorTheme(themeId) {
   localStorage.setItem(THEME_KEY, themeId);
 }
 
-/**
- * Apply wallpaper to the shell element.
+/*
+ * `applyWallpaper(themeId)` used to live here. It is gone rather than
+ * deprecated: painting a wallpaper from a theme id is what made the
+ * *marker* and the *pixels* two separate sources of truth, which is how
+ * a custom upload could be stored and then overpainted by whichever theme
+ * happened to be selected. theme/wallpaper.js reads the marker and paints
+ * what it says — nothing else should paint the shell background.
  */
-export function applyWallpaper(themeId) {
-  const theme = THEMES[themeId] || THEMES[DEFAULT_THEME];
-  const shell = document.getElementById('app-shell') || document.body;
-
-  shell.classList.remove('cosmic-wallpaper');
-  shell.style.background = theme.wallpaper;
-  shell.style.backgroundSize = 'cover';
-  shell.style.backgroundPosition = 'center';
-}
 
 /**
  * Get saved theme ID or default.
@@ -161,38 +159,21 @@ export function getSavedTheme() {
 
 /**
  * Initialize theme on boot — restore saved color theme + wallpaper.
+ *
+ * The wallpaper half is delegated to theme/wallpaper.js. This function
+ * used to resolve the marker itself and understood exactly one of its
+ * seven shapes: it applied the *color theme's* wallpaper and ignored the
+ * marker's own value, so a custom upload and all 34 Photos presets were
+ * never restored — the choice survived in storage and was simply not read.
+ *
+ * (The import below is part of a cycle — wallpaper.js reads THEMES from
+ * here. It is safe because neither module touches the other at evaluation
+ * time; both references live inside function bodies.)
  */
-// Envelope-aware raw read for early-boot paths where kernel.storage
-// isn't constructed yet. AppStorage wraps preference values as
-// {data, version, ts, ...}; we need to handle both shapes.
-function readWallpaperKey() {
-  try {
-    const raw = localStorage.getItem('yancotab_wallpaper');
-    if (raw == null) return '';
-    try {
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object' && typeof parsed.data === 'string') return parsed.data;
-      if (typeof parsed === 'string') return parsed;
-    } catch { /* not JSON — raw value */ }
-    return raw;
-  } catch { return ''; }
-}
-
 export function initColorTheme() {
   try {
-    const saved = getSavedTheme();
-    applyColorTheme(saved);
-
-    // Restore wallpaper (special modes handled separately)
-    const savedWp = readWallpaperKey();
-    if (savedWp === 'cosmic' || savedWp === 'starfield') {
-      // Special modes — don't change wallpaper, boot.js / starfield.js handles it
-      return;
-    }
-    if (saved !== DEFAULT_THEME && THEMES[saved]) {
-      // Apply the theme's wallpaper (overrides CSS default)
-      applyWallpaper(saved);
-    }
+    applyColorTheme(getSavedTheme());
+    applyStoredWallpaper();
   } catch {
     // Fallback — emerald defaults are in CSS already
   }

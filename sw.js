@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.7.0-pomodoro-history';
+const CACHE_NAME = 'yancotab-v1.8.0-home-config';
 
 const PRECACHE = [
     './',
@@ -57,6 +57,10 @@ const PRECACHE = [
     './os/ui/mobileShell.js',
     './os/ui/starfield.js',
     './os/ui/components/AppGrid.js',
+    './os/ui/components/grid/gridKeyboard.js',
+    './os/ui/components/grid/gridNav.js',
+    './os/ui/components/grid/gridPager.js',
+    './os/ui/components/grid/gridLaunch.js',
     './os/ui/components/FolderIcon.js',
     './os/ui/components/FolderOverlay.js',
     './os/ui/components/GameIcons.js',
@@ -76,6 +80,10 @@ const PRECACHE = [
     './assets/fonts/playfair-display-latin-400.woff2',
     './assets/fonts/playfair-display-latin-400i.woff2',
     './os/ui/components/WidgetBar.js',
+    './os/ui/components/widgets/widgetRegistry.js',
+    './os/ui/quickLinks/quickLinksModel.js',
+    './os/ui/quickLinks/quickLinksActions.js',
+    './os/utils/text.js',
     './os/ui/components/widgets/WeatherWidget.js',
     './os/ui/components/widgets/TodoWidget.js',
     './os/ui/components/Toast.js',
@@ -92,6 +100,8 @@ const PRECACHE = [
     // is all-or-nothing, so ONE miss kills offline boot entirely.
     // Guarded by tests/asset-refs.test.js (boot graph ⊆ precache).
     './os/theme/themes.js',
+    './os/theme/wallpaper.js',
+    './os/theme/wallpaperPresets.js',
     './os/utils/debugLog.js',
     './os/utils/url.js',
     './os/ui/components/AppDock.js',
@@ -109,6 +119,7 @@ const PRECACHE = [
     './os/apps/todo/engine/streaks.js',
     './os/apps/pomodoro/persistence.js',
     './os/apps/pomodoro/effects.js',
+    './os/apps/pomodoro/ticker.js',
     './os/apps/pomodoro/ambient.js',
     './os/apps/pomodoro/intents.js',
     './os/apps/pomodoro/engine/state.js',

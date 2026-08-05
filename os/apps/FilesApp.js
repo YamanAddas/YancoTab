@@ -17,6 +17,7 @@
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
 import { safeSave } from '../utils/safeSave.js';
+import { applyStoredWallpaper, isWallpaperImage } from '../theme/wallpaper.js';
 import { showConfirm, showPrompt } from '../ui/components/YancoModal.js';
 import { buildVault } from './files/vault.js';
 import {
@@ -260,7 +261,13 @@ export class FilesApp extends App {
   _sendToWallpaper(item) {
     if (item.isDir || item.category !== 'img') return;
     const content = typeof item.content === 'string' ? item.content : (this.fs?.read(item.path)?.content || '');
-    if (!content.startsWith('data:')) return;
+    // Vet before storing, not just before painting: the value ends up
+    // inside a CSS `url("…")`, and a marker pointing at something the
+    // resolver will refuse is a wallpaper that silently does not appear.
+    if (!isWallpaperImage(content)) {
+      this.kernel?.emit?.('toast', { message: 'That image can\'t be used as a wallpaper', type: 'error' });
+      return;
+    }
     // Custom-image data URL stays in raw localStorage (it can be MB-scale;
     // chrome.storage.sync's 8KB/item cap would reject it). The 'wallpaper
     // = custom' marker syncs via kernel.storage.
@@ -273,12 +280,7 @@ export class FilesApp extends App {
     }
     if (!savedDataUrl) return;
     safeSave(this.kernel, 'yancotab_wallpaper', 'custom', 'Wallpaper');
-    const shell = document.getElementById('app-shell');
-    if (shell) {
-      shell.style.backgroundImage = `url(${content})`;
-      shell.style.backgroundSize = 'cover';
-      shell.style.backgroundPosition = 'center';
-    }
+    applyStoredWallpaper();
     window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
     this.kernel?.emit?.('toast', { message: 'Wallpaper updated', type: 'success' });
   }

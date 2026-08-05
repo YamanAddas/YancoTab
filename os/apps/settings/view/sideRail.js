@@ -26,7 +26,7 @@ export const SIDEBAR_SECTIONS = [
     items: [
       { id: 'rituals',    label: 'Quick rituals',  color: 'accent' },
       { id: 'appearance', label: 'Appearance',     color: 'violet' },
-      { id: 'home',       label: 'Apps & dock',    color: 'warm' },
+      { id: 'home',       label: 'Home & widgets', color: 'warm' },
       { id: 'apps',       label: 'Apps & data',    color: 'cool' },
       { id: 'browser',    label: 'Browser & ⌘K',   color: 'cool' },
       { id: 'games',      label: 'Games',          color: 'rose' },

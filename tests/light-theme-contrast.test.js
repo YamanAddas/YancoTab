@@ -188,12 +188,14 @@ describe('dark theme — wallpaper readability scrim', () => {
   });
 
   test('a pseudo-element is used, not a background layer', () => {
-    // themes.js applyWallpaper and both WallpaperManager paths assign
-    // shell.style.background / .backgroundImage inline, which would wipe any
-    // background-layer scrim. A pseudo-element is immune.
-    const themes = read('os/theme/themes.js');
-    assert.match(themes, /shell\.style\.background\s*=/,
-      'themes.js no longer writes an inline background — re-check the scrim approach');
+    // The wallpaper is assigned as an INLINE style, which would wipe any
+    // background-layer scrim. A pseudo-element is immune. (The writer used
+    // to be themes.js applyWallpaper plus two WallpaperManager paths; they
+    // now all route through theme/wallpaper.js, but the inline write — and
+    // therefore the reason for the pseudo-element — is unchanged.)
+    const wallpaper = read('os/theme/wallpaper.js');
+    assert.match(wallpaper, /shell\.style\.background\s*=/,
+      'nothing writes an inline background any more — re-check the scrim approach');
   });
 
   test('it is disabled in light mode', () => {

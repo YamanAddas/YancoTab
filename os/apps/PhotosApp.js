@@ -13,6 +13,7 @@
 import { App } from '../core/App.js';
 import { el, cssLink } from '../utils/dom.js';
 import { safeSave } from '../utils/safeSave.js';
+import { applyStoredWallpaper, isWallpaperImage } from '../theme/wallpaper.js';
 import { showConfirm } from '../ui/components/YancoModal.js';
 import { PhotoEditor } from './photos/PhotoEditor.js';
 import { WallpaperManager } from './photos/WallpaperManager.js';
@@ -239,6 +240,13 @@ export class PhotosApp extends App {
     // marker syncs via kernel.storage. AppStorage's previous JSON.parse
     // bug for raw scalar strings is fixed (see appStorage-string-save
     // tests), so this routing now works correctly.
+    // Vet before storing: the value ends up inside a CSS `url("…")`, and a
+    // marker pointing at something the resolver will refuse is a wallpaper
+    // that silently never appears.
+    if (!isWallpaperImage(item.dataUrl)) {
+      this.kernel?.emit?.('toast', { message: 'That image can\'t be used as a wallpaper', type: 'error' });
+      return;
+    }
     let savedDataUrl = false;
     try {
       localStorage.setItem('yancotab_wallpaper_custom', item.dataUrl);
@@ -249,12 +257,7 @@ export class PhotosApp extends App {
     if (!savedDataUrl) return;
     try {
       safeSave(this.kernel, 'yancotab_wallpaper', 'custom', 'Wallpaper');
-      const shell = document.getElementById('app-shell');
-      if (shell) {
-        shell.style.backgroundImage = `url(${item.dataUrl})`;
-        shell.style.backgroundSize = 'cover';
-        shell.style.backgroundPosition = 'center';
-      }
+      applyStoredWallpaper();
       window.dispatchEvent(new CustomEvent('yancotab:wallpaper-changed', { detail: { type: 'custom' } }));
       this.kernel?.emit?.('toast', { message: 'Wallpaper updated', type: 'success' });
     } catch (e) {

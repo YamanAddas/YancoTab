@@ -140,7 +140,7 @@ export class SettingsApp extends App {
       buildSettingsBay({ id: 'appearance', title: 'Appearance', color: 'violet',
         render: renderAppearance, app: this }));
     this._addBay(grid, 'home',
-      buildSettingsBay({ id: 'home', title: 'Apps & dock', color: 'warm',
+      buildSettingsBay({ id: 'home', title: 'Home & widgets', color: 'warm',
         render: renderHome, app: this }));
     this._addBay(grid, 'apps',
       buildSettingsBay({ id: 'apps', title: 'Apps & data', color: 'cool',
