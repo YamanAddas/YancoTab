@@ -154,7 +154,15 @@ export class ClockService {
       enabled: alarm?.enabled !== false,
       days: this.normalizeDays(Array.isArray(alarm?.days) ? alarm.days : null),
       snoozeMins: Number.isFinite(Number(alarm?.snoozeMins)) ? Math.max(1, Math.min(30, Number(alarm.snoozeMins))) : 9,
-      snoozedUntil: Number.isFinite(Number(alarm?.snoozedUntil)) ? Number(alarm.snoozedUntil) : null,
+      // NOT Number(alarm?.snoozedUntil): `Number(null)` is 0, and 0 is
+      // finite — so "not snoozed" (null, which this very function writes)
+      // round-tripped into "snoozed until 1 Jan 1970", which is in the
+      // past, which tickV2 reads as a snooze that has come due. Every
+      // enabled alarm then rang within a second of load, at the wrong
+      // time, once a minute, forever. The legacy normalizer above tests
+      // the raw value and has always been correct.
+      snoozedUntil: Number.isFinite(alarm?.snoozedUntil) && alarm.snoozedUntil > 0
+        ? alarm.snoozedUntil : null,
       lastTriggerKey: typeof alarm?.lastTriggerKey === "string" ? alarm.lastTriggerKey : "",
     };
   }
@@ -597,7 +605,12 @@ export class ClockService {
     state.alarms.forEach((alarm) => {
       if (!alarm.enabled) return;
       const days = Array.isArray(alarm.days) && alarm.days.length ? alarm.days : [0, 1, 2, 3, 4, 5, 6];
-      if (Number.isFinite(alarm.snoozedUntil) && Date.now() >= alarm.snoozedUntil) {
+      // `> 0` is defence in depth, not belt and braces: the normalizer bug
+      // above has already persisted `snoozedUntil: 0` into real saved
+      // state, and without this an upgrade would ring once before the
+      // corrected value is written back.
+      const snoozed = Number.isFinite(alarm.snoozedUntil) && alarm.snoozedUntil > 0;
+      if (snoozed && Date.now() >= alarm.snoozedUntil) {
         const snoozeKey = `${minuteKey}-snooze-${alarm.id}`;
         if (alarm.lastTriggerKey !== snoozeKey) {
           alarm.lastTriggerKey = snoozeKey;
@@ -607,7 +620,7 @@ export class ClockService {
         }
         return;
       }
-      if (Number.isFinite(alarm.snoozedUntil) && Date.now() < alarm.snoozedUntil) return;
+      if (snoozed && Date.now() < alarm.snoozedUntil) return;
       if (!days.includes(day)) return;
       if (alarm.time !== `${hh}:${mm}`) return;
       const key = `${minuteKey}-${alarm.id}`;

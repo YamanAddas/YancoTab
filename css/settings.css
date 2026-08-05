@@ -460,7 +460,8 @@ body.theme-light .mc-set-frame {
   padding: 8px 12px;
 }
 .mc-set-card .ys-theme-card,
-.mc-set-card .ys-wallpaper-thumb {
+.mc-set-card .ys-wallpaper-thumb,
+.mc-set-card .ys-wallpaper {
   aspect-ratio: 1;
   border-radius: 8px;
   border: 1px solid var(--border, rgba(255,255,255,0.10));
@@ -469,9 +470,66 @@ body.theme-light .mc-set-frame {
   transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 .mc-set-card .ys-theme-card.is-active,
-.mc-set-card .ys-wallpaper-thumb.is-active {
+.mc-set-card .ys-wallpaper-thumb.is-active,
+.mc-set-card .ys-wallpaper.selected {
   border-color: var(--accent);
   box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.40);
+}
+
+/* The theme grid builds `.ys-wallpaper` / `.selected` (AppearanceSettings)
+   while the ported CSS only knew `.ys-wallpaper-thumb` / `.is-active` —
+   so the eight wallpaper tiles rendered as a cramped row of text buttons.
+   Both names are matched above rather than renaming one, because the
+   thumb/is-active pair is what GamesSettings and AppsSettings use. */
+.mc-set-card .ys-wallpaper {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0 6px;
+  overflow: hidden;
+}
+.mc-set-card .ys-wallpaper-label {
+  font-size: 10px;
+  color: var(--text-bright);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none;
+}
+
+/* ── ys-* rows ───────────────────────────────────────────────
+   The SettingsApp extraction ported the console's own `mc-set-*` rows but
+   left the six legacy modules emitting `ys-row` / `ys-info` / `ys-label` /
+   `ys-desc`, which nothing styled. Those rows rendered as bare stacked
+   divs — label, description and control on three separate lines — in
+   Appearance, Apps & data and Games. Aliased rather than renamed at ~20
+   call sites, so the two vocabularies converge without touching JS. */
+.mc-set-card .ys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.04));
+}
+.mc-set-card .ys-row:last-child { border-bottom: none; }
+.mc-set-card .ys-info { flex: 1; min-width: 0; }
+.mc-set-card .ys-label { font-size: 12px; color: var(--text-bright); }
+.mc-set-card .ys-desc {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+  line-height: 1.45;
+}
+.mc-set-card .ys-name-input {
+  flex: 0 0 auto;
+  width: 160px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.10));
+  background: rgba(0, 0, 0, 0.30);
+  color: var(--text-bright);
+  font-family: inherit;
+  font-size: 12px;
 }
 
 /* ── Privacy bay ─────────────────────────────────────────── */

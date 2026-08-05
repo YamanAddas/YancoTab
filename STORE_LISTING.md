@@ -22,7 +22,7 @@ Not another wallpaper page. Not another bookmark bar. YancoTab replaces your new
 
 ---
 
-**What You Get — 18 Built-In Apps**
+**What You Get — 22 Built-In Apps**
 
 Productivity:
 - 📝 Notes — Write, tag, pin, and search notes. Autosaves every keystroke.
@@ -33,6 +33,10 @@ Productivity:
 - 🕐 Clock — World clock, alarms, countdown timer, stopwatch.
 - 🌐 Browser — In-tab browser with a full bookmark bar.
 - 📁 Files — Virtual filesystem with folders, rename, move, and search.
+- 🖼 Photos — Gallery, editor, wallpaper picker, and OCR text extraction.
+- 📕 PDF Reader — Library, full-text search, highlights, and sticky notes.
+- ✉️ Mail — Multi-account launcher for 12 webmail providers.
+- 🗺 Maps — Quick launcher for places and directions.
 - ⚙️ Settings — Theme, wallpaper, search engine, widget toggles.
 
 Games:
@@ -62,7 +66,7 @@ Games:
 
 - Zero data collection. No analytics, no telemetry, no tracking pixels. Your data never leaves your browser.
 - One permission only: `storage`. YancoTab never requests access to your tabs, browsing history, or any website data.
-- Works fully offline. Service worker caches everything. All 18 apps work without a network connection.
+- Works fully offline. Service worker caches everything. All 22 apps work without a network connection.
 - Fast. Apps lazy-load on first launch. The new tab shell is interactive in under 200ms.
 - Open source. MIT licensed. Every line of code is public on GitHub: github.com/YamanAddas/YancoTab
 
@@ -98,7 +102,7 @@ English
 
 ## New Tab Override Justification (for CWS review form)
 
-YancoTab's entire value is delivered through the new tab page. The extension replaces Chrome's default new tab with a full local desktop — app grid, dock, search, widgets, and 18 built-in apps. Replacing the new tab is the product; there is no meaningful experience without it. The override is disclosed in the extension's description, store screenshots, and the onboarding screen shown on first install.
+YancoTab's entire value is delivered through the new tab page. The extension replaces Chrome's default new tab with a full local desktop — app grid, dock, search, widgets, and 22 built-in apps. Replacing the new tab is the product; there is no meaningful experience without it. The override is disclosed in the extension's description, store screenshots, and the onboarding screen shown on first install.
 
 ---
 
@@ -130,7 +134,7 @@ new tab, productivity, dashboard, notes, todo, pomodoro, weather, games, desktop
 ### Large Tile (920×680) — optional
 - Home screen screenshot at 80% scale
 - Logo + tagline overlay in bottom-left
-- Feature callouts: "18 Apps", "Zero Tracking", "Works Offline"
+- Feature callouts: "22 Apps", "Zero Tracking", "Works Offline"
 
 ---
 

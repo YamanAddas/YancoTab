@@ -70,6 +70,11 @@ describe('version strings stay in sync', () => {
         'os/version.js VERSION': (versionJs.match(/\bVERSION\s*=\s*'v([\d.]+)'/) || [])[1],
         'os/version.js ASSET_VERSION': (versionJs.match(/ASSET_VERSION\s*=\s*'v([\d.]+)'/) || [])[1],
         'sw.js CACHE_NAME': (sw.match(/CACHE_NAME\s*=\s*'yancotab-v([\d.]+)/) || [])[1],
+        // The README's shields.io badge. Added after it was found sitting at
+        // 1.2.5 while the release was 1.9.x — seven versions of drift on the
+        // first thing anyone sees on GitHub. It is a version location like
+        // any other, so it belongs in the same guard.
+        'README.md badge': (read('README.md').match(/badge\/version-([\d.]+)-teal/) || [])[1],
     };
 
     test('every declared version matches', () => {

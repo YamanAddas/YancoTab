@@ -60,9 +60,17 @@ const BG_MID = '#0c1628';
 const ACCENT = '#00e5c1';
 const ACCENT_RGB = '0, 229, 193';
 
+// The logo lives under assets/store/ so this page still works from a
+// fresh clone. It used to point at an untracked file in the repo root:
+// drawPromo() runs from onload, so a missing image meant a permanently
+// blank canvas and no error anywhere.
 const logo = new Image();
-logo.src = 'yancotab-clean.png';
+logo.src = 'assets/store/yancotab-logo.png';
 logo.onload = () => drawPromo();
+logo.onerror = () => {
+  document.querySelector('.info').textContent =
+    'Could not load assets/store/yancotab-logo.png — the tile below is blank.';
+};
 
 function drawPromo() {
   const c = document.getElementById('promo');
@@ -132,7 +140,8 @@ function drawPromo() {
   // Feature dots
   ctx.fillStyle = 'rgba(200, 220, 240, 0.55)';
   ctx.font = '400 11px "Segoe UI", system-ui, sans-serif';
-  ctx.fillText('• 18 apps  • No tracking  • Free', textX, 205);
+  // 22 is the count boot.js actually registers (13 apps + 9 games).
+  ctx.fillText('• 22 apps  • No tracking  • Free', textX, 205);
 }
 
 function download(canvasId, filename) {

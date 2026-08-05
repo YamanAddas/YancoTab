@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.9.0-sync-chunks';
+const CACHE_NAME = 'yancotab-v1.9.1-alarm-fix';
 
 const PRECACHE = [
     './',

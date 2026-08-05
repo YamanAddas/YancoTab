@@ -133,3 +133,80 @@ describe('ClockService v3 state seam', () => {
     assert.equal(state.alarms.length, 0);
   });
 });
+
+describe('alarm snooze normalization', () => {
+  // Found by a store screenshot: the capture froze the clock to 14:34 with a
+  // 07:00 alarm seeded, and the shot came back covered by a ringing-alarm
+  // overlay. The alarm fires regardless of its time, seconds after load.
+  //
+  // `normalizeV2Alarm` read `Number.isFinite(Number(alarm.snoozedUntil))`.
+  // `Number(null)` is 0, and 0 is finite — so "not snoozed" (null, which
+  // this same function writes) round-trips into "snoozed until 1 Jan 1970",
+  // a deadline in the past, which tickV2 reads as a snooze that has come
+  // due. It then rings once a minute, forever, at a time nobody set.
+  //
+  // Invisible until v1.6.0: before that the ringer could not read alarms at
+  // all, so the wrong value had nothing to act on.
+
+  test('null round-trips to null, not to 0', () => {
+    const svc = new ClockService();
+    const once = svc.normalizeV2Alarm({ id: 'a', time: '07:00' });
+    assert.equal(once.snoozedUntil, null);
+    const twice = svc.normalizeV2Alarm(once);
+    assert.equal(twice.snoozedUntil, null, 'Number(null) is 0 — the value must not survive a second pass');
+  });
+
+  test('an epoch-0 snooze already on disk is repaired, not honoured', () => {
+    const svc = new ClockService();
+    assert.equal(svc.normalizeV2Alarm({ id: 'a', snoozedUntil: 0 }).snoozedUntil, null);
+    assert.equal(svc.normalizeV2Alarm({ id: 'a', snoozedUntil: -5 }).snoozedUntil, null);
+  });
+
+  test('a real snooze deadline is preserved', () => {
+    const svc = new ClockService();
+    const future = Date.now() + 540000;
+    assert.equal(svc.normalizeV2Alarm({ id: 'a', snoozedUntil: future }).snoozedUntil, future);
+  });
+
+  test('junk snooze values do not become a deadline', () => {
+    const svc = new ClockService();
+    for (const bad of [undefined, null, '', 'soon', NaN, Infinity, {}, []]) {
+      assert.equal(svc.normalizeV2Alarm({ id: 'a', snoozedUntil: bad }).snoozedUntil, null, String(bad));
+    }
+  });
+
+  test('an alarm set for another hour does not ring now', () => {
+    const svc = new ClockService(makeStorageHandle());
+    const now = new Date();
+    const otherHour = String((now.getHours() + 5) % 24).padStart(2, '0');
+    svc.saveV2State({
+      use24h: true, worldClocks: [],
+      alarms: [{ id: 'a1', time: `${otherHour}:00`, label: 'Later', enabled: true, days: [0, 1, 2, 3, 4, 5, 6] }],
+    });
+
+    let fired = 0;
+    svc.fireAlarm = () => { fired++; };
+    // Several ticks: the bug needed one save-and-reload round trip before
+    // the poisoned value appeared, so a single tick would have passed.
+    for (let i = 0; i < 4; i++) svc.tickV2(new Date());
+    assert.equal(fired, 0, 'an alarm five hours away must not ring on load');
+  });
+
+  test('a snooze that has come due still rings', () => {
+    const svc = new ClockService(makeStorageHandle());
+    const now = new Date();
+    const otherHour = String((now.getHours() + 5) % 24).padStart(2, '0');
+    svc.saveV2State({
+      use24h: true, worldClocks: [],
+      alarms: [{
+        id: 'a1', time: `${otherHour}:00`, label: 'Snoozed', enabled: true,
+        days: [0, 1, 2, 3, 4, 5, 6], snoozedUntil: Date.now() - 1000,
+      }],
+    });
+
+    let fired = 0;
+    svc.fireAlarm = () => { fired++; };
+    svc.tickV2(new Date());
+    assert.equal(fired, 1, 'the guard must not break snooze itself');
+  });
+});

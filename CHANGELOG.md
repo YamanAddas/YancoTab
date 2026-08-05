@@ -6,6 +6,100 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.9.1] — 2026-08-05
+
+Store assets. Regenerating them surfaced a live bug in the thing the
+last few releases had just repaired.
+
+### Fixed — every alarm rang at the wrong time, seconds after load
+
+Found by a screenshot. The capture freezes the clock to 14:34 and seeds
+a 07:00 alarm so the Clock icon shows its amber badge; the shot came
+back with a **ringing-alarm overlay covering the whole desktop**.
+
+`normalizeV2Alarm` tested `Number.isFinite(Number(alarm.snoozedUntil))`.
+`Number(null)` is **0**, and 0 is finite — so "not snoozed" (`null`,
+the value that same function writes) round-tripped into "snoozed until
+1 Jan 1970". That is a deadline in the past, which `tickV2` reads as a
+snooze that has come due, so it fired the alarm ignoring its time
+entirely — then once a minute, forever.
+
+The legacy normalizer four lines above tests the raw value and has
+always been correct; only the v2 path wrapped it in `Number()`.
+
+Invisible until v1.6.0. Before that fix ClockService could not read
+alarms at all, so the wrong value had nothing to act on — the plumbing
+repair is what let this reach the surface. Confirmed live: an alarm set
+five hours out rang within one tick of load, and does not now, while a
+genuinely-due snooze still does.
+
+The tick also refuses a non-positive `snoozedUntil` outright. That is
+not belt and braces: the bad value is already persisted in real saved
+state, and without the guard an upgrade would ring once before the
+corrected value was written back.
+
+### Fixed — half of Settings had no styling
+
+The `.ys-*` row classes (`ys-row`, `ys-info`, `ys-label`, `ys-desc`,
+`ys-name-input`) had **no CSS at all**. The SettingsApp extraction
+ported the console's own `mc-set-*` rows and left the six legacy modules
+emitting the old names, so ~20 rows across Appearance, Apps & data and
+Games rendered as bare stacked divs — label, description and control on
+three separate lines.
+
+The theme picker was worse: it builds `.ys-wallpaper` / `.selected`
+while the ported CSS only knew `.ys-wallpaper-thumb` / `.is-active`, so
+the eight wallpapers rendered as a cramped row of text buttons instead
+of a grid of thumbnails. Both name pairs are now matched rather than
+renaming one, because the thumb/is-active pair is what the other modules
+use.
+
+Found the same way — it was in the Settings screenshot.
+
+### Changed — store assets
+
+- **Promotional tile regenerated** and no longer a manual step.
+  `scripts/make-promo-tile.mjs` drives the existing generator page with
+  puppeteer-core and writes the PNG to `assets/store/`, asserting the
+  canvas is 440×280, actually painted, and opaque and dark in all four
+  corners — the store crops rounded corners and a white border reads as
+  broken against its white background.
+- **The generator's logo now lives in the repo.** It pointed at an
+  untracked file in the root, and `drawPromo()` runs from `onload`, so
+  on a fresh clone the tile silently came out blank with nothing in the
+  console.
+- **All five screenshots regenerated** against v1.9.1, so they show the
+  Focus Mode entry point (v1.6.0), the icon badges, the de-crested
+  wallpapers, and the corrected Settings layout.
+- **`store-screenshots/` deleted.** A second, older set flagged in
+  v1.5.1 as stale — and it was being **packed into the shipped
+  extension**: `pack-extension.sh` excludes `assets/store` but never
+  excluded this directory. The zip drops **7.59 MB → 5.73 MB**, a
+  quarter of the payload, all of it duplicate screenshots no user could
+  ever see.
+
+### Fixed — documentation that had drifted
+
+- **"18 apps" is now 22** in the README, the store listing and the promo
+  tile. `boot.js` registers 22 (13 apps + 9 games); Mail, Maps, PDF
+  Reader and Photos were missing from every list.
+- **The README badge said 1.2.5** — seven versions behind, on the first
+  thing anyone sees on GitHub. It joins the version-sync test, which
+  now guards **eight** locations.
+- The README still advertised "chrome.storage.sync with chunking",
+  removed in 1.9.0, and "7 wallpapers" where there are 8.
+
+### Tests
+
+2049 (+6). Snooze normalization is covered in both directions — a
+poisoned `snoozedUntil: 0` on disk is repaired rather than honoured, and
+a real snooze deadline still fires — plus the round trip that created
+the bad value in the first place. Mutation-verified: restoring the
+`Number()` coercion fails 4 tests, and reverting the README badge fails
+the version guard.
+
+---
+
 ## [1.9.0] — 2026-08-05
 
 The last of the second audit wave's five verified findings, shipped
