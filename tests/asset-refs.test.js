@@ -31,6 +31,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 const read = (p) => readFileSync(join(ROOT, p), 'utf8');
 const exists = (p) => existsSync(join(ROOT, p));
+/** Absolute path → repo-relative, forward slashes (Windows resolve() gives \). */
+const toRepoPath = (abs) => abs.slice(ROOT.length + 1).split('\\').join('/');
 
 /** HTML boolean attributes — presence applies them, so ="false" still applies. */
 const BOOLEAN_ATTRS = [
@@ -175,6 +177,60 @@ describe('service worker cache correctness', () => {
         const missing = links.filter((p) => !precached.has(p));
         assert.deepEqual(missing, [],
             `stylesheets index.html loads but the precache omits: ${missing.join(', ')}`);
+    });
+
+    // ── Every import target must exist ──────────────────────────────
+    // The graph tests above only follow STATIC imports from the boot
+    // entries, so a dynamic import() elsewhere in the tree can point at a
+    // path that has never existed and nobody notices: the failure surfaces
+    // as a rejected promise inside a try/catch, which is exactly how PDF
+    // auto-OCR spent its whole life "silently skipped if unavailable".
+    // Found by auditing the packed zip, not by any test — hence this one.
+
+    /** Every literal import specifier in os/, with its source file. */
+    function allLiteralImports() {
+        const out = [];
+        const walk = (rel) => {
+            for (const entry of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+                const child = `${rel}/${entry.name}`;
+                if (entry.isDirectory()) { walk(child); continue; }
+                if (!entry.name.endsWith('.js')) continue;
+                const src = read(child);
+                const dir = dirname(child);
+                const specs = [
+                    ...src.matchAll(/(?:^|[\s;{(])import\s+(?:[^'"]*?from\s+)?['"](\.[^'"]+)['"]/gm),
+                    ...src.matchAll(/import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g),
+                    ...src.matchAll(/export\s+(?:\*|\{[^}]*\})\s+from\s*['"](\.[^'"]+)['"]/g),
+                ];
+                for (const m of specs) {
+                    const abs = resolve(join(ROOT, dir), m[1]);
+                    out.push({ from: child, target: toRepoPath(abs) });
+                }
+            }
+        };
+        walk('os');
+        return out;
+    }
+
+    test('every relative import in os/ resolves to a real file', () => {
+        const broken = allLiteralImports()
+            .filter(({ target }) => !exists(target))
+            .map(({ from, target }) => `${from} -> ${target}`);
+        assert.deepEqual(broken, [],
+            `imports pointing at files that do not exist: ${broken.join(' | ')}`);
+    });
+
+    test('the import scanner actually scans (anti-vacuity)', () => {
+        // A regex that matches nothing would make the test above pass on an
+        // empty list. Both forms must be reachable, because the defect this
+        // was written for was a DYNAMIC import — the form the boot-graph
+        // walker deliberately does not follow.
+        const all = allLiteralImports();
+        assert.ok(all.length > 300, `only ${all.length} import specifiers found — the scanner is broken`);
+        assert.ok(all.some((i) => i.from === 'os/apps/pdf/codexSearch.js'),
+            'the dynamic-import site this test exists for is no longer being scanned');
+        assert.ok(all.some((i) => i.target === 'os/kernel.js'),
+            'static imports are no longer being scanned');
     });
 
     test('the walker actually walks (anti-vacuity)', () => {

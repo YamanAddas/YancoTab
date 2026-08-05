@@ -43,6 +43,18 @@ EXCLUDES=(
   'kofi-logo-generator.html' 'promo-tile-generator.html' 'icon-concepts.html'
   'yancotab.png' 'yancotab-clean.png'
   'V1_COMPLETION_PLAN.md'
+  # Design notes, tooling config and the local static server. All of this
+  # was shipping to users until the v1.9.2 zip was audited — including a
+  # bug write-up, an internal audit dump, and serve.mjs, which hardcodes
+  # the author's own filesystem path.
+  'PDF_READER_V3_DESIGN.md' 'BUG-pdf-text-selection.md' 'docs'
+  'design-lab.html' '404.html'
+  'eslint.config.js' 'knip.json' 'serve.mjs'
+  'yancoxplorer-audit-*.json'
+  # Master artwork, kept in the repo but not shipped: nothing references
+  # either one — no HTML, no CSS, no JS, not the manifest — and together
+  # they were 926 KB of the payload.
+  'extension_logo.png' 'assets/icons/icon.svg'
   # CWS listing assets — uploaded separately to the developer dashboard,
   # not part of the extension payload itself
   'assets/store'
@@ -54,9 +66,18 @@ if command -v rsync &>/dev/null; then
   RSYNC_EXCLUDES+=(--exclude '*.zip')
   rsync -a "${RSYNC_EXCLUDES[@]}" ./ "$STAGE/"
 else
-  # No rsync: cp everything then prune
+  # No rsync: cp everything then prune. This is the branch that actually
+  # runs on Windows (Git Bash ships no rsync), so it has to honour the
+  # same patterns rsync would.
   cp -r . "$STAGE/" 2>/dev/null || true
-  for pat in "${EXCLUDES[@]}"; do rm -rf "${STAGE:?}/$pat"; done
+  for pat in "${EXCLUDES[@]}"; do
+    # Unquoted on purpose: a quoted "$STAGE/$pat" is never glob-expanded,
+    # so wildcard excludes silently did nothing here and a timestamped
+    # audit dump shipped to users. `${STAGE:?}` still guards against an
+    # empty STAGE turning this into `rm -rf /`.
+    # shellcheck disable=SC2086
+    rm -rf ${STAGE:?}/$pat
+  done
   rm -f "$STAGE"/*.zip
 fi
 

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.9.1-alarm-fix';
+const CACHE_NAME = 'yancotab-v1.9.2-ocr-path';
 
 const PRECACHE = [
     './',

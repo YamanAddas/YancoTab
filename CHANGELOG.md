@@ -6,6 +6,84 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.9.2] — 2026-08-05
+
+Found by auditing the packed extension zip rather than the source tree.
+
+### Fixed — PDF auto-OCR could never load
+
+`codexSearch.js` lazy-loads the OCR service with
+`import('../../../services/ocrService.js')`. The file sits in
+`os/apps/pdf/`, so three levels up is the extension **root** — a path
+that has never existed. Two levels is `os/`, which is what every other
+caller uses (`os/apps/photos/OcrTool.js`, at the same depth, has it
+right).
+
+The call is wrapped in `try { … } catch { _ocrSvc = false; }` under a
+comment reading *"silently skipped if unavailable"*. It was not skipped
+when unavailable — it was skipped **always**, so a scanned PDF was never
+put through OCR and never became searchable. The feature shipped in the
+PDF Reader v2 wave and has never run.
+
+Verified in the browser both ways: the old specifier fails to fetch, the
+new one resolves and exports `ocrService`.
+
+### Added — a guard for the whole class
+
+Every relative import in `os/` — static **and dynamic** — must resolve
+to a file that exists. 300+ specifiers, checked on every run.
+
+The existing boot-graph walker could not have caught this: it follows
+only static imports from the boot entries, because lazy app imports are
+dynamic and legitimately load later. A dynamic `import()` pointing at
+nothing therefore fails as a rejected promise inside somebody's catch,
+which is precisely how this survived. Mutation-verified by restoring the
+extra `../`, which names the file and the bad target.
+
+### Fixed — the packer was shipping dev files
+
+Extracting the zip and looking at what was actually in it turned up a
+second, larger leak than the stale screenshots. The exclude list named
+files one at a time, so everything nobody had thought to name shipped:
+
+`PDF_READER_V3_DESIGN.md`, `BUG-pdf-text-selection.md`, an internal
+audit dump, `design-lab.html`, `404.html`, `eslint.config.js`,
+`knip.json`, `docs/`, and **`serve.mjs` — which hardcodes the author's
+own filesystem path**. Plus 926 KB of master artwork
+(`extension_logo.png`, `assets/icons/icon.svg`) that nothing references:
+not the manifest, not index.html, no CSS, no JS. Both are kept in the
+repo and excluded from the payload.
+
+**The wildcard excludes never worked.** Git Bash ships no rsync, so
+Windows always took the `cp` fallback, which pruned with
+`rm -rf "$STAGE/$pat"` — quoted, therefore never glob-expanded. Every
+literal entry worked and every pattern silently did nothing, which is
+how a timestamped audit dump made it into the zip.
+
+Payload: **7.59 MB → 4.88 MB**, a 36% cut across this release and the
+last. The root of the extension now contains exactly four files:
+`index.html`, `manifest.json`, `privacy.html`, `favicon.ico`.
+
+### Packaging
+
+`yancotab-v1.9.2.zip` — 4.88 MB, 493 entries, all 13 audit checks green:
+manifest declares `storage` only with no host permissions, all four
+icons and the new-tab override resolve, every `__MSG_*__` placeholder
+has a key, index.html's 21 local references and all 421 modules in the
+import graph are present, every CSS `url()` resolves, and nothing from
+`tests/`, `scripts/`, `.claude/`, `node_modules/` or `assets/store/`
+leaked in.
+
+The extracted payload was then served and booted on its own: all 22 apps
+open, one grid tab stop, four widgets, no missing requests. Its only
+console error is `sw.js` 404-ing, which is an artifact of the test — the
+extension excludes the service worker deliberately and `boot-init.js`
+skips registration when `chrome.runtime.id` is present, so the real
+install never asks for it. The same probe against the source tree is
+silent.
+
+---
+
 ## [1.9.1] — 2026-08-05
 
 Store assets. Regenerating them surfaced a live bug in the thing the

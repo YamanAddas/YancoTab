@@ -23,7 +23,13 @@ let _ocrSvc = null;
 async function getOcrService() {
     if (_ocrSvc !== null) return _ocrSvc;
     try {
-        const mod = await import('../../../services/ocrService.js');
+        // Two levels up, not three: this file is os/apps/pdf/, so `../../`
+        // reaches os/. It was `../../../`, which resolves to the extension
+        // ROOT — a path that has never existed. The catch below turns that
+        // into `_ocrSvc = false`, so auto-OCR was not "silently skipped if
+        // unavailable", it was silently skipped always, and no scanned PDF
+        // was ever searchable.
+        const mod = await import('../../services/ocrService.js');
         _ocrSvc = mod.ocrService || null;
     } catch { _ocrSvc = false; }
     return _ocrSvc || null;
