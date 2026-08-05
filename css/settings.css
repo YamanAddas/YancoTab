@@ -574,6 +574,28 @@ body.theme-light .mc-set-frame {
 .mc-sync-status { color: var(--accent); }
 .mc-sync-row.is-err .mc-sync-status,
 .mc-sync-row.is-err .mc-sync-key { color: var(--card-red, #c5152e); }
+/* Keys held back from sync because they exceed the per-item cap.
+   Three columns, not the log's five — these rows have no timestamp and
+   no direction, because nothing was sent. */
+.mc-sync-oversize:empty { display: none; }
+.mc-sync-oversize {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border, rgba(255, 255, 255, 0.06));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+}
+.mc-sync-oversize-head {
+  font-size: 10px;
+  color: var(--warning, #ff9500);
+  padding: 0 8px 2px;
+}
+.mc-sync-oversize .mc-sync-row { grid-template-columns: 1fr auto auto; }
+.mc-sync-row.is-warn .mc-sync-status { color: var(--warning, #ff9500); }
+
 .mc-sync-summary {
   margin-top: 10px;
   padding-top: 8px;

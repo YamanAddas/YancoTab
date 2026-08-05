@@ -802,9 +802,14 @@ const REGISTRY = {
 
 const SEQ_KEY = 'yancotab_seq';
 const DEVICE_ID_KEY = 'yancotab_device_id';
-const CHUNK_SUFFIX = '__chunk_';
 const MAX_SYNC_ITEM_BYTES = 7168; // 7KB (leave margin under 8KB limit)
 const DEBOUNCE_MS = 2000;
+
+/**
+ * Retained only to FIND and delete the chunk keys older versions wrote.
+ * Nothing writes them any more — see _syncKeyToRemote.
+ */
+const CHUNK_SUFFIX = '__chunk_';
 
 // ─── AppStorage Class ────────────────────────────────────────
 
@@ -819,6 +824,11 @@ export class AppStorage {
         this._lastError = null;
         this._syncState = 'unknown'; // 'active' | 'fallback-local' | 'error' | 'standalone'
         this._hydrated = false;
+        // key → byte size, for values that exceed chrome.storage.sync's
+        // per-item cap and are therefore local-only. Surfaced through
+        // getStatus() so "why isn't this on my other machine" has an
+        // answer other than silence.
+        this._oversized = new Map();
     }
 
     // ─── Lifecycle ───────────────────────────────────────────
@@ -925,12 +935,13 @@ export class AppStorage {
 
         const oldClean = this.load(key);
         localStorage.removeItem(key);
-
-        // Clean up any chunks
-        this._deleteChunks(key);
+        this._oversized.delete(key);
 
         if (this.isExtension() && entry.syncPolicy !== 'never') {
             try { chrome.storage.sync.remove(key); } catch { /* ignore */ }
+            // Chunk items an older version wrote are separate cloud keys
+            // and would survive removing the key itself.
+            this._purgeRemoteChunks(key);
         }
 
         const newClean = this._cloneDefault(entry.default);
@@ -988,6 +999,10 @@ export class AppStorage {
             lastError: this._lastError,
             syncState: this._syncState,
             hydrated: this._hydrated,
+            // [{key, bytes}] — too large for chrome.storage.sync's 8KB
+            // per-item cap, so held locally only.
+            oversizedKeys: [...this._oversized].map(([key, bytes]) => ({ key, bytes })),
+            maxSyncItemBytes: MAX_SYNC_ITEM_BYTES,
         };
     }
 
@@ -1156,13 +1171,13 @@ export class AppStorage {
         }
         // else: raw (legacy or import) — treat as version 0
 
-        // Step 3: Handle chunked manifests
-        if (data && typeof data === 'object' && data.__chunked) {
-            data = this._reassembleChunks(key, data, source);
-            if (data === null) {
-                console.warn(`[AppStorage] ${key}: chunk reassembly failed (source: ${source}), using default`);
-                return this._cloneDefault(entry.default);
-            }
+        // Step 3: A chunk manifest left behind by an older version.
+        // Nothing writes these any more and nothing could ever read one
+        // back (see _syncKeyToRemote); it carries no data of its own, so
+        // the only honest reading is the registry default.
+        if (this._isChunkManifest(data)) {
+            console.warn(`[AppStorage] ${key}: unreadable chunk manifest (source: ${source}), using default`);
+            return this._cloneDefault(entry.default);
         }
 
         // Step 4: Run migrations
@@ -1263,6 +1278,10 @@ export class AppStorage {
 
             this._hydrated = true;
             this._lastSync = Date.now();
+
+            // After hydration, not before: cleaning up somebody else's
+            // mess must never delay the user's own data appearing.
+            this._purgeLegacyChunks();
         } catch (e) {
             console.warn('[AppStorage] Hydration failed:', e);
             this._syncState = 'fallback-local';
@@ -1271,6 +1290,39 @@ export class AppStorage {
         }
     }
 
+    /**
+     * Push one key's envelope to chrome.storage.sync.
+     *
+     * ── Why oversized values are NOT chunked ──
+     *
+     * They used to be, and no device could ever read them back. The write
+     * split the envelope across `key__chunk_0..n` with a `{__chunked}`
+     * manifest at `key`, but:
+     *
+     *   • hydration asks for REGISTRY keys only, so the chunk items were
+     *     never even fetched;
+     *   • `_handleRemoteChange` drops anything that is not an envelope,
+     *     and a manifest is not one — so it returned before touching it;
+     *   • the reassembler read chunks from localStorage, where nothing has
+     *     ever written one, and bailed outright for remote reads.
+     *
+     * So the mechanism produced cloud data that was unreadable three
+     * separate ways, while consuming the quota that makes everything else
+     * work: chrome.storage.sync allows 8KB per item but only 100KB in
+     * TOTAL. One 100KB value spread over 13 chunks eats the entire budget
+     * for all ~40 keys, and once QUOTA_BYTES is hit every other key's
+     * write starts failing too — a silent, total sync outage caused by
+     * data nobody could read.
+     *
+     * That arithmetic is also why chunking cannot simply be repaired:
+     * anything needing it is already too large for the whole quota.
+     * Oversized values now stay local, and say so in getStatus().
+     *
+     * (Chunk reassembly across devices is not just a plumbing problem
+     * either — chrome.storage.sync propagates per item, so chunk 0 of one
+     * write can land beside chunk 1 of the next and reassemble into
+     * something that parses cleanly and is wrong.)
+     */
     async _syncKeyToRemote(key) {
         if (!this.isExtension()) return;
 
@@ -1284,31 +1336,16 @@ export class AppStorage {
             const serialized = raw;
             const bytes = new Blob([serialized]).size;
 
-            // Clean up any old chunks for this key first
-            await this._deleteRemoteChunks(key);
-
-            if (bytes <= MAX_SYNC_ITEM_BYTES) {
-                // Direct write
-                await chrome.storage.sync.set({ [key]: JSON.parse(serialized) });
-            } else if (entry.syncPolicy === 'conditional') {
-                // Chunk it
-                const chunks = this._splitIntoChunks(serialized);
-                const manifest = {
-                    __chunked: true,
-                    count: chunks.length,
-                    ts: Date.now(),
-                    deviceId: this._deviceId,
-                    totalBytes: bytes,
-                };
-
-                const writeObj = { [key]: manifest };
-                chunks.forEach((chunk, i) => {
-                    writeObj[`${key}${CHUNK_SUFFIX}${i}`] = chunk;
-                });
-
-                await chrome.storage.sync.set(writeObj);
+            if (bytes > MAX_SYNC_ITEM_BYTES) {
+                this._oversized.set(key, bytes);
+                // Drop any chunk artefacts an older version left behind, so
+                // a key that can never sync stops holding quota hostage.
+                await this._purgeRemoteChunks(key);
+                return;
             }
-            // If 'always' and too large — should not happen for preferences
+            this._oversized.delete(key);
+
+            await chrome.storage.sync.set({ [key]: JSON.parse(serialized) });
 
             this._lastSync = Date.now();
             this._syncState = 'active';
@@ -1332,77 +1369,58 @@ export class AppStorage {
         }, DEBOUNCE_MS);
     }
 
-    // ─── Internal: Chunking ──────────────────────────────────
+    // ─── Internal: legacy chunk cleanup ──────────────────────
 
-    _splitIntoChunks(serialized) {
-        const chunks = [];
-        for (let i = 0; i < serialized.length; i += MAX_SYNC_ITEM_BYTES) {
-            chunks.push(serialized.slice(i, i + MAX_SYNC_ITEM_BYTES));
-        }
-        return chunks;
-    }
-
-    _reassembleChunks(key, manifest, source) {
-        if (!manifest.__chunked || typeof manifest.count !== 'number') return null;
-
-        const parts = [];
-        for (let i = 0; i < manifest.count; i++) {
-            const chunkKey = `${key}${CHUNK_SUFFIX}${i}`;
-            let chunk;
-
-            if (source === 'remote' && this.isExtension()) {
-                // Remote chunks should have been fetched already — not supported in sync read
-                // This path is handled differently in hydration
-                return null;
-            }
-
-            chunk = localStorage.getItem(chunkKey);
-            if (chunk === null) return null; // Missing chunk
-            parts.push(chunk);
-        }
-
-        const reassembled = parts.join('');
-
-        // Integrity check
-        if (manifest.totalBytes && new Blob([reassembled]).size !== manifest.totalBytes) {
-            return null;
-        }
-
+    /**
+     * Remove one key's chunk artefacts from the cloud.
+     *
+     * Deletes the `key` item itself ONLY when it holds a `{__chunked}`
+     * manifest. A manifest is unreadable by every device, so removing it
+     * is a strict improvement; a real (if stale) envelope is not, and is
+     * left alone — a device that has been unable to sync for a while is
+     * ordinary sync behaviour, not corruption.
+     */
+    async _purgeRemoteChunks(key) {
+        if (!this.isExtension()) return [];
         try {
-            return JSON.parse(reassembled);
+            const all = await chrome.storage.sync.get(null);
+            const doomed = Object.keys(all).filter((k) => k.startsWith(`${key}${CHUNK_SUFFIX}`));
+            if (this._isChunkManifest(all[key])) doomed.push(key);
+            if (doomed.length) await chrome.storage.sync.remove(doomed);
+            return doomed;
         } catch {
-            return null;
+            return []; // best effort — a failed cleanup must not fail the write
         }
     }
 
-    _deleteChunks(key) {
-        // Delete local chunks
-        for (let i = 0; i < 100; i++) {
-            const ck = `${key}${CHUNK_SUFFIX}${i}`;
-            if (localStorage.getItem(ck) === null) break;
-            localStorage.removeItem(ck);
-        }
-    }
-
-    async _deleteRemoteChunks(key) {
-        if (!this.isExtension()) return;
-
+    /**
+     * One sweep at hydration for chunk artefacts of ANY key.
+     *
+     * `_purgeRemoteChunks` only runs when a key is next written, and a key
+     * that is still too large is never written — so without this sweep its
+     * chunks would hold quota forever. Costs one read per boot and issues
+     * no write unless there is something to delete.
+     */
+    async _purgeLegacyChunks() {
+        if (!this.isExtension()) return [];
         try {
-            // Try to read the current remote value to check for chunks
-            const remote = await chrome.storage.sync.get(key);
-            const val = remote[key];
-            if (val && val.__chunked && typeof val.count === 'number') {
-                const keysToRemove = [];
-                for (let i = 0; i < val.count; i++) {
-                    keysToRemove.push(`${key}${CHUNK_SUFFIX}${i}`);
-                }
-                if (keysToRemove.length) {
-                    await chrome.storage.sync.remove(keysToRemove);
-                }
+            const all = await chrome.storage.sync.get(null);
+            const doomed = [];
+            for (const [k, v] of Object.entries(all)) {
+                if (k.includes(CHUNK_SUFFIX) || this._isChunkManifest(v)) doomed.push(k);
             }
+            if (doomed.length) {
+                await chrome.storage.sync.remove(doomed);
+                console.warn(`[AppStorage] removed ${doomed.length} unreadable chunk item(s) from sync`);
+            }
+            return doomed;
         } catch {
-            // Best effort — ignore failures
+            return [];
         }
+    }
+
+    _isChunkManifest(value) {
+        return !!(value && typeof value === 'object' && value.__chunked === true);
     }
 
     // ─── Internal: Conflict Resolution ───────────────────────

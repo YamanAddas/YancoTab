@@ -242,6 +242,11 @@ export class SettingsApp extends App {
     this._renderAll();
   }
 
+  /** AppStorage status, or null in a kernel without one. */
+  _syncStatus() {
+    try { return this.kernel?.storage?.getStatus?.() || null; } catch { return null; }
+  }
+
   // ── Sync log subscription ─────────────────────────────────────
 
   _subscribeToStorage() {
@@ -256,7 +261,7 @@ export class SettingsApp extends App {
             chunks: 1,
           });
           const syncBay = this._bays.get('sync');
-          if (syncBay) syncBay.view.update(this._syncBuffer);
+          if (syncBay) syncBay.view.update(this._syncBuffer, this._syncStatus());
         });
         if (typeof off === 'function') this._unsubs.push(off);
       } catch { /* ignore — key may not be registered */ }
@@ -276,7 +281,7 @@ export class SettingsApp extends App {
     for (const [id, { view }] of this._bays) {
       if (typeof view.update !== 'function') continue;
       try {
-        if (id === 'sync') view.update(this._syncBuffer);
+        if (id === 'sync') view.update(this._syncBuffer, this._syncStatus());
         else view.update();
       } catch { /* ignore */ }
     }

@@ -16,11 +16,17 @@ export function buildSyncBay() {
     'No recent sync events. Edit a setting to see local writes here.');
   const list = el('div', { class: 'mc-sync-list' });
   const summary = el('div', { class: 'mc-sync-summary' }, '');
-  bay.body.append(empty, list, summary);
+  // Keys held back because they exceed chrome.storage.sync's 8KB per-item
+  // cap. Until now an oversized value was split into chunks that no device
+  // could reassemble, so it looked synced and was not; it is now honestly
+  // local-only, and this is where that is said out loud.
+  const oversize = el('div', { class: 'mc-sync-oversize' });
+  bay.body.append(empty, list, summary, oversize);
 
   return {
     root: bay.root,
-    update(buffer) {
+    update(buffer, status) {
+      renderOversize(oversize, status);
       const entries = Array.isArray(buffer?.entries) ? buffer.entries : [];
       list.innerHTML = '';
       if (entries.length === 0) {
@@ -44,6 +50,22 @@ export function buildSyncBay() {
       summary.textContent = `${total} recent · ${ok}/${total} ok · last ${formatTime(entries[0].ts)}`;
     },
   };
+}
+
+function renderOversize(host, status) {
+  const list = Array.isArray(status?.oversizedKeys) ? status.oversizedKeys : [];
+  host.innerHTML = '';
+  if (list.length === 0) return;
+  const cap = Math.round((status.maxSyncItemBytes || 7168) / 1024);
+  host.appendChild(el('div', { class: 'mc-sync-oversize-head' },
+    `${list.length} key${list.length === 1 ? '' : 's'} kept on this device only (over ${cap}KB)`));
+  for (const { key, bytes } of list) {
+    host.appendChild(el('div', { class: 'mc-sync-row is-warn' }, [
+      el('span', { class: 'mc-sync-key' }, key),
+      el('span', { class: 'mc-sync-chunks' }, `${Math.round(bytes / 1024)}KB`),
+      el('span', { class: 'mc-sync-status' }, 'local'),
+    ]));
+  }
 }
 
 function formatTime(ts) {

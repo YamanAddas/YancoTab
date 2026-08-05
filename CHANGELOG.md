@@ -6,6 +6,85 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.9.0] — 2026-08-05
+
+The last of the second audit wave's five verified findings, shipped
+alone because it deletes data from `chrome.storage.sync`.
+
+### Fixed — chunked sync wrote data no device could read
+
+Any value over `chrome.storage.sync`'s 8KB per-item cap was split across
+`key__chunk_0…n` with a `{__chunked}` manifest stored at `key`. Nothing
+could ever reassemble it, for three independent reasons:
+
+- hydration asks the cloud for **registry keys only**, so the chunk
+  items were never fetched;
+- `_handleRemoteChange` drops anything that is not an envelope, and a
+  manifest has no `data`/`version`/`seq` — it returned before touching
+  it;
+- the reassembler read chunks from **localStorage**, where nothing has
+  ever written one, and bailed outright for remote reads anyway.
+
+So Notes metadata, Todo, browser history and Pomodoro history — the
+keys most likely to grow — appeared to sync and did not.
+
+### Why the mechanism could not simply be repaired
+
+`chrome.storage.sync` allows 8KB per item but only **100KB in total**,
+across all ~40 keys. A value large enough to need chunking is already
+too large for the entire quota: a single 100KB blob spread over 13
+chunks consumes the whole budget, and once `QUOTA_BYTES` is hit *every
+other key's write starts failing too*. The feature could take the entire
+sync system down in exchange for data nobody could read.
+
+Reassembly is not merely unimplemented, either. `chrome.storage.sync`
+propagates per item, so chunk 0 of one write can land beside chunk 1 of
+the next on another device and reassemble into something that parses
+cleanly and is wrong. The `totalBytes` check catches a length mismatch,
+not two same-length writes.
+
+Chunking is therefore removed rather than fixed. Oversized values stay
+local, and **Settings → Sync diagnostics** now names them with their
+size instead of leaving the user to wonder why one machine disagrees
+with another.
+
+### Cleanup
+
+Existing chunk items are deleted, in two places:
+
+- **A one-shot sweep after hydration** enumerates the cloud and removes
+  every `__chunk_` item and every `{__chunked}` manifest. Without it, a
+  key that is *still* too large is never written again, so its chunks
+  would hold quota forever. Costs one read per boot and issues no write
+  unless there is something to delete.
+- **On write**, for the key being written.
+
+A key's own cloud item is deleted only when it holds a manifest. A
+stale-but-valid envelope is left alone: being behind is ordinary sync
+behaviour, and throwing away a real older copy is worse than keeping
+one.
+
+The removals fire `chrome.storage.onChanged` on every device — callbacks
+that have never fired in production for these keys. Traced before
+shipping: chunk keys are skipped by name, and a removal delivers
+`newValue: undefined`, which `_handleRemoteChange` returns on. No-op,
+as intended.
+
+### Tests
+
+2043 (+11). `tests/appStorage-sync-chunks.test.js` runs the real class
+against a fake `chrome.storage.sync` that counts calls, so "wrote
+nothing" is asserted rather than inferred. Mutation-verified twice:
+removing the size guard fails 5 tests, and a sweep that finds nothing
+fails the cleanup suite.
+
+Also verified live in the browser against a simulated extension
+environment: a seeded legacy manifest plus its two chunks were purged,
+an oversized save performed **zero** cloud writes while keeping all 400
+local records, and the diagnostics panel listed the key at 26KB.
+
+---
+
 ## [1.8.0] — 2026-08-05
 
 Three more verified audit findings. Two of them are the same shape — a
