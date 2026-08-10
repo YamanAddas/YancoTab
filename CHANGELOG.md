@@ -6,6 +6,76 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.1] — 2026-08-10
+
+The first follow-up from the v1.10.0 window-mode review: games now
+honor the pause signal the window manager sends. Before this, a
+minimized game's process stayed alive with nothing listening — every
+second minimized counted toward best times, and a minimized Snake
+kept playing itself into a wall.
+
+### Fixed — minimized game clocks kept counting
+
+`onSignal('pause'/'resume')` is now implemented in every game that
+keeps time, each in its natural place:
+
+- **Solitaire / Spider** delegate to their own pause machinery (freeze
+  + menu). `resume` is deliberately not handled: the restored window
+  shows the paused menu and the player continues consciously — a timed
+  game must not restart its clock silently.
+- **Minesweeper** freezes the solve clock (`timerStart` shifts past the
+  minimized gap on restore) and halts the render loop — the rAF loop
+  used to keep drawing into a `display:none` canvas at full speed,
+  because window-manager minimize never sets `document.hidden`.
+- **Mahjong** gains real pause accounting in the pure engine
+  (`pause()/resume()/elapsedSecs(now)` — elapsed was previously a bare
+  `Date.now() - startTime` that nothing could freeze). The per-second
+  chrome repaint stops while minimized.
+- **Memory** gains `PAUSE`/`RESUME` reducer actions: `PAUSE` stamps
+  `pausedAt`, `RESUME` shifts `startedAt` forward by the paused
+  duration, so `bestTimeMs` — computed at win as
+  `finishedAt - startedAt` — never includes minimized time. `FLIP` is
+  rejected while paused.
+- **Snake** pauses the sim and stops the loop; restore re-arms the loop
+  but stays on the pause overlay. A minimized round previously kept
+  moving — and dying — at full rAF speed.
+
+### Fixed — two pre-existing bugs surfaced by the same work
+
+- **Snake's HUD clock never paused.** `paused` was flipped by direct
+  assignment in seven places and `_roundStartedAt` was never adjusted,
+  so the displayed elapsed time kept climbing through every pause the
+  game has ever had. All seven sites now route through one `setPaused`
+  gate that shifts the round clock, and the shell reads
+  `roundElapsedMs()` instead of raw fields.
+- **Solitaire/Spider's menu "Continue" reset the clock.** It reloaded
+  the save — whose `timeSec` is only written on moves — so continuing
+  a paused game snapped time back to the last move and lost the seconds
+  since (verified live: 00:03 became 00:01). A paused live game now
+  continues in place via `_resume()`; the save-reload path remains for
+  cold starts.
+
+The resume paths only restart a loop that pause itself stopped, so a
+window minimized during its first frames cannot race `_pollStart` into
+two concurrent render loops.
+
+### Tests
+
+2095 (+13): Memory's `PAUSE`/`RESUME` accounting (stamp, shift,
+repeated cycles, win-time exclusion, `FLIP`-while-paused, `NEW_GAME`
+reset) and a new `tests/mahjong-pause.test.js` for the engine clock —
+all driven through injectable `now` values, no wall-clock patching.
+Mutation-verified: deleting either engine's resume shift turns its
+suite red. Verified live end-to-end: Solitaire froze at 00:03 through a
+2.5s minimize and continued to 00:05; Snake's HUD held 0:00 through a
+paused wait and ran again after unpausing.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.10.1-game-pause`.
+
+---
+
 ## [1.10.0] — 2026-08-10
 
 Desktop Window Mode — the last big unbuilt item on the production plan

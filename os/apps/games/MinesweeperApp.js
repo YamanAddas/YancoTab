@@ -106,6 +106,17 @@ export class MinesweeperApp extends App {
         if (this.game) this.game.stop();
         super.destroy();
     }
+
+    /**
+     * Window-manager signal: minimize freezes the solve clock and stops
+     * the render loop; restore shifts the clock past the gap and re-arms.
+     * Without this, every second minimized counted toward bestTimes.
+     */
+    onSignal(signal) {
+        if (!this.game) return;
+        if (signal === 'pause') this.game.pauseClock();
+        else if (signal === 'resume') this.game.resumeClock();
+    }
 }
 
 
@@ -141,6 +152,7 @@ class NeonMines {
         this.timerStart = 0;
         this.timerElapsed = 0; // seconds
         this.timerRunning = false;
+        this._pausedAt = null; // clock frozen while the window is minimized
 
         /* Cell rendering */
         this.cellSize = 30;
@@ -366,6 +378,32 @@ class NeonMines {
     }
     stop() { this.running = false; }
 
+    /**
+     * Freeze the solve clock and halt the render loop (window
+     * minimized). Gameplay is input-driven, so the clock is the only
+     * thing that can advance while hidden.
+     */
+    pauseClock() {
+        if (this._pausedAt == null && this.timerRunning) {
+            this._pausedAt = performance.now();
+        }
+        // Only remember to restart a loop WE stopped — if the window is
+        // minimized before _pollStart ever started the loop, resuming
+        // must not race it into a second concurrent loop.
+        this._loopHeld = this.running;
+        this.stop();
+    }
+
+    /** Shift the clock past the minimized gap and re-arm the loop. */
+    resumeClock() {
+        if (this._pausedAt != null) {
+            this.timerStart += performance.now() - this._pausedAt;
+            this._pausedAt = null;
+        }
+        if (this._loopHeld && !this.running) this.start();
+        this._loopHeld = false;
+    }
+
     resize(w, h) {
         this.W = w; this.H = h;
         this._calcGrid();
@@ -400,6 +438,7 @@ class NeonMines {
         this.timerStart = 0;
         this.timerElapsed = 0;
         this.timerRunning = false;
+        this._pausedAt = null;
         this.particles = [];
         this.floatTexts = [];
         this._flashAlpha = 0;

@@ -83,8 +83,13 @@ export class SpiderSolitaireApp extends App {
   _showStartScreen() {
     const saved = loadSave(this.kernel);
     const hasSave = !!(saved && saved.state && !isWon(saved.state));
-    showStartScreen(this.root, { hasSave, difficulty: this.settings.difficulty }, {
-      onContinue: () => hasSave && this._resumeGame(saved),
+    showStartScreen(this.root, { hasSave: hasSave || this._paused, difficulty: this.settings.difficulty }, {
+      // Same rule as Solitaire: a PAUSED live game continues in place;
+      // reloading the save would lose the seconds since the last move.
+      onContinue: () => {
+        if (this._paused && this.store) return this._resume();
+        if (hasSave) this._resumeGame(saved);
+      },
       onNewGame:  (difficulty) => this._newGame({ difficulty }),
       onStats:    () => this._showStats(),
       onSettings: () => this._showSettings(),
@@ -281,6 +286,15 @@ export class SpiderSolitaireApp extends App {
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
     this.statTime.replaceChildren('Time ', el('strong', {}, `${mm}:${ss}`));
+  }
+
+  /**
+   * Window-manager signal — same contract as Solitaire: minimize pauses
+   * the timed clock via the game's own pause; resume is left to the
+   * player (the restored window shows the paused menu).
+   */
+  onSignal(signal) {
+    if (signal === 'pause' && this._timerId && !this._paused) this._togglePause();
   }
 
   _togglePause() {

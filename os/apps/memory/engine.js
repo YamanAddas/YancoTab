@@ -63,6 +63,7 @@ function fresh(difficulty = 'standard') {
     bestComboStreak: 0,
     startedAt: null,
     finishedAt: null,
+    pausedAt: null,
     foundLog: [],
     bestTimeMs: { easy: null, standard: null, hard: null },
     orbCounts: {},
@@ -125,6 +126,7 @@ export function memoryReducer(state, action) {
 
     case 'FLIP': {
       if (state.phase !== 'playing') return state;
+      if (state.pausedAt != null) return state;
       if (state.locked) return state;
       const idx = Number(action.idx);
       if (!Number.isInteger(idx) || idx < 0 || idx >= state.cards.length) return state;
@@ -219,6 +221,27 @@ export function memoryReducer(state, action) {
         { ...state, difficulty: action.difficulty },
         { type: 'NEW_GAME', difficulty: action.difficulty, random: action.random, now: action.now },
       );
+    }
+
+    case 'PAUSE': {
+      // Freeze the wall clock (window minimized). Elapsed is derived as
+      // `(finishedAt || pausedAt || now) - startedAt`, so stamping
+      // pausedAt is what stops time from accumulating.
+      if (state.phase !== 'playing' || state.pausedAt != null) return state;
+      return { ...state, pausedAt: action.now ?? Date.now() };
+    }
+
+    case 'RESUME': {
+      // Shift startedAt forward by the paused duration so bestTimeMs —
+      // computed at win as finishedAt - startedAt — excludes time the
+      // window spent minimized.
+      if (state.pausedAt == null) return state;
+      const now = action.now ?? Date.now();
+      return {
+        ...state,
+        startedAt: state.startedAt != null ? state.startedAt + (now - state.pausedAt) : null,
+        pausedAt: null,
+      };
     }
 
     case 'HYDRATE': {

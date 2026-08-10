@@ -153,6 +153,24 @@ export class MahjongApp extends App {
   }
   stopTimer() { if (this.timerInterval) { clearInterval(this.timerInterval); this.timerInterval = null; } }
 
+  /**
+   * Window-manager signal: minimize freezes the game clock and stops the
+   * per-second repaint; restore shifts the clock past the gap and
+   * resumes. Without this, bestTime recorded at win included every
+   * second the window spent minimized.
+   */
+  onSignal(signal) {
+    if (!this.game) return;
+    if (signal === 'pause') {
+      this.game.pause();
+      this.stopTimer();
+    } else if (signal === 'resume') {
+      this.game.resume();
+      if (!this.game.gameOver) this.startTimer();
+      this._renderChrome();
+    }
+  }
+
   /* ── Chrome render ── */
 
   /**

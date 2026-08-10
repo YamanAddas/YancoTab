@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.0-window-mode';
+const CACHE_NAME = 'yancotab-v1.10.1-game-pause';
 
 const PRECACHE = [
     './',

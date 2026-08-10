@@ -95,10 +95,25 @@ export class MemoryApp extends App {
     this._render();
   }
 
+  /**
+   * Window-manager signal: minimize freezes the clock (PAUSE stamps
+   * pausedAt), restore shifts startedAt forward by the paused duration
+   * (RESUME) so bestTimeMs never includes minimized time.
+   */
+  onSignal(signal) {
+    if (signal === 'pause') {
+      this.dispatch({ type: 'PAUSE', now: Date.now() });
+      if (this._timerInterval) { clearInterval(this._timerInterval); this._timerInterval = null; }
+    } else if (signal === 'resume') {
+      this.dispatch({ type: 'RESUME', now: Date.now() });
+      this._startTimer();
+    }
+  }
+
   _render() {
     if (!this.root) return;
     const elapsedMs = this._state.startedAt
-      ? (this._state.finishedAt || Date.now()) - this._state.startedAt
+      ? (this._state.finishedAt || this._state.pausedAt || Date.now()) - this._state.startedAt
       : 0;
     this.root.innerHTML = '';
     this.root.appendChild(buildView({

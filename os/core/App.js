@@ -38,10 +38,16 @@ export class App {
     }
 
     /**
-     * Called when the app is receiving a signal (e.g. 'pause', 'resume')
+     * Called when the app is receiving a signal. The window manager
+     * sends 'pause' when this app's window is minimized (or hidden by a
+     * show-desktop / Focus Mode / breakpoint change) and 'resume' when
+     * it is restored. Apps that keep wall-clock time or run per-frame
+     * loops should override this to freeze their clock and halt their
+     * loop — the process stays alive while minimized, so an unhandled
+     * clock keeps counting. See the game apps for the pattern.
      */
     onSignal(signal) {
-        // Handle pause/resume
+        // Base class: no-op. Override in apps that keep time or tick.
     }
 
     /**

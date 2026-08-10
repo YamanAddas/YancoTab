@@ -138,15 +138,15 @@ class NeonSerpent {
             const k = e.key;
             if (this.state === 'PLAYING') {
                 if (this.paused) {
-                    if (k === ' ' || k === 'p' || k === 'Escape') this.paused = false;
+                    if (k === ' ' || k === 'p' || k === 'Escape') this.setPaused(false);
                     else if (k === 'q' || k === 'm') this.state = 'MENU';
                 } else {
                     if (k === 'ArrowUp'    || k === 'w') this._setDir(0, -1);
                     else if (k === 'ArrowDown'  || k === 's') this._setDir(0, 1);
                     else if (k === 'ArrowLeft'  || k === 'a') this._setDir(-1, 0);
                     else if (k === 'ArrowRight' || k === 'd') this._setDir(1, 0);
-                    else if (k === ' ' || k === 'p') this.paused = true;
-                    else if (k === 'Escape') this.paused = true;
+                    else if (k === ' ' || k === 'p') this.setPaused(true);
+                    else if (k === 'Escape') this.setPaused(true);
                 }
                 e.preventDefault();
             } else if (this.state === 'MENU') {
@@ -196,10 +196,34 @@ class NeonSerpent {
                     hit();
                 } else if (this.state === 'PLAYING' && !this.paused) {
                     /* Tap on game area (not a button) = pause */
-                    this.paused = true;
+                    this.setPaused(true);
                 }
             }
         });
+    }
+
+    /**
+     * Single gate for the pause flag so the HUD round clock pauses with
+     * the sim. Before this, `paused` was flipped by direct assignment in
+     * seven places and `_roundStartedAt` was never adjusted — the
+     * displayed elapsed time kept climbing through every pause.
+     */
+    setPaused(want) {
+        const next = Boolean(want);
+        if (next === this.paused) return;
+        this.paused = next;
+        if (next) {
+            this._pausedAt = Date.now();
+        } else if (this._pausedAt) {
+            this._roundStartedAt += Date.now() - this._pausedAt;
+            this._pausedAt = 0;
+        }
+    }
+
+    /** Elapsed play time for the current round, frozen while paused. */
+    roundElapsedMs() {
+        if (this.state !== 'PLAYING' || !this._roundStartedAt) return 0;
+        return (this._pausedAt || Date.now()) - this._roundStartedAt;
     }
 
     _setDir(dx, dy) {
@@ -281,7 +305,8 @@ class NeonSerpent {
         this.gameTick = 0;
         this.state = 'PLAYING';
         this.paused = false;
-        this._roundStartedAt = Date.now();   // shell reads this for elapsed-time HUD
+        this._pausedAt = 0;                  // fresh round, no pause debt
+        this._roundStartedAt = Date.now();   // shell reads this via roundElapsedMs()
         this._spawnFood('regular');
     }
 
@@ -1112,14 +1137,14 @@ class NeonSerpent {
 
         /* Resume button */
         this._drawBtn(ctx, '\u25B6  Resume', cx, cy + 5, btnW, 44, {
-            action: () => { this.paused = false; },
+            action: () => { this.setPaused(false); },
             font: 'bold 16px system-ui, sans-serif',
         });
 
         /* Menu button */
         this._drawBtn(ctx, '\u2190  Menu', cx, cy + 60, btnW, 38, {
             primary: false,
-            action: () => { this.state = 'MENU'; this.paused = false; },
+            action: () => { this.state = 'MENU'; this.setPaused(false); },
             font: '14px system-ui, sans-serif',
         });
 

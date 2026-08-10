@@ -87,8 +87,14 @@ export class SolitaireApp extends App {
   _showStartScreen() {
     const saved = loadSave(this.kernel);
     const hasSave = !!(saved && saved.state && !isWon(saved.state));
-    showStartScreen(this.root, { hasSave }, {
-      onContinue:   () => hasSave && this._resumeGame(saved),
+    showStartScreen(this.root, { hasSave: hasSave || this._paused }, {
+      // A PAUSED live game continues in place — reloading the save here
+      // would reset the clock to the last persisted move's time and lose
+      // the seconds since. Cold start (no live game) loads the save.
+      onContinue:   () => {
+        if (this._paused && this.store) return this._resume();
+        if (hasSave) this._resumeGame(saved);
+      },
       onNewGame:    () => this._newGame(),
       onDaily:      () => this._newGame({ seed: dailySeed() }),
       onWinnable:   () => this._startWinnable(),
@@ -266,6 +272,17 @@ export class SolitaireApp extends App {
     const mm = String(Math.floor(s / 60)).padStart(2, '0');
     const ss = String(s % 60).padStart(2, '0');
     this.statTime.replaceChildren('Time ', el('strong', {}, `${mm}:${ss}`));
+  }
+
+  /**
+   * Window-manager signal. Minimizing while the timed clock is running
+   * routes through the game's own pause (freeze + menu), so time spent
+   * minimized never reaches stats. 'resume' is deliberately not handled:
+   * the restored window shows the paused menu and the player continues
+   * consciously — a timed game must not restart its clock silently.
+   */
+  onSignal(signal) {
+    if (signal === 'pause' && this._timerId && !this._paused) this._togglePause();
   }
 
   // Pause freezes the clock and opens the Main Menu — Continue/Stats/Settings/

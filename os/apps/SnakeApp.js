@@ -121,6 +121,29 @@ export class SnakeApp extends App {
     super.destroy();
   }
 
+  /**
+   * Window-manager signal. Minimize pauses the sim (a hidden window
+   * doesn't set document.hidden, so before this the snake kept moving —
+   * and dying — at full rAF speed while minimized) and stops the render
+   * loop to save CPU. Restore re-arms the loop but stays paused: the
+   * pause overlay is showing, and the player resumes deliberately.
+   */
+  onSignal(signal) {
+    const g = this.game;
+    if (!g) return;
+    if (signal === 'pause') {
+      if (g.state === 'PLAYING') g.setPaused(true);
+      // Only remember to restart a loop WE stopped — minimizing before
+      // _pollStart has started the loop must not let resume race it
+      // into a second concurrent loop.
+      this._loopHeld = g.running;
+      g.stop();
+    } else if (signal === 'resume') {
+      if (this._loopHeld && !g.running) g.start();
+      this._loopHeld = false;
+    }
+  }
+
   /* ── Side-rail rendering ── */
 
   _renderSide() {
@@ -144,9 +167,7 @@ export class SnakeApp extends App {
         remainingMs: Number.isFinite(frames) ? Math.floor(frames * 16.67) : Infinity,
       });
     }
-    const elapsedMs = g.state === 'PLAYING' && g._roundStartedAt
-      ? Date.now() - g._roundStartedAt
-      : 0;
+    const elapsedMs = g.roundElapsedMs ? g.roundElapsedMs() : 0;
     return {
       score: g.score || 0,
       length: (g.snake || []).length,

@@ -299,3 +299,70 @@ describe('DIFFICULTIES + ORBS exports', () => {
     assert.ok(ORBS.length >= 6);
   });
 });
+
+describe('PAUSE / RESUME clock accounting', () => {
+  const playing = (startedAt = 1000) => ({
+    ...initialState(),
+    phase: 'playing',
+    startedAt,
+    cards: [
+      { id: 0, orb: 'sun', faceUp: false, matched: false },
+      { id: 1, orb: 'sun', faceUp: false, matched: false },
+    ],
+    pairsTotal: 1,
+  });
+
+  test('PAUSE stamps pausedAt; only while playing; idempotent', () => {
+    const p = memoryReducer(playing(), { type: 'PAUSE', now: 5000 });
+    assert.equal(p.pausedAt, 5000);
+    // Second PAUSE is a no-op — the original stamp survives
+    assert.equal(memoryReducer(p, { type: 'PAUSE', now: 9000 }), p);
+    // Not playing → no-op
+    const idle = initialState();
+    assert.equal(memoryReducer(idle, { type: 'PAUSE', now: 5000 }), idle);
+  });
+
+  test('FLIP is rejected while paused', () => {
+    const p = memoryReducer(playing(), { type: 'PAUSE', now: 5000 });
+    assert.equal(memoryReducer(p, { type: 'FLIP', idx: 0 }), p);
+  });
+
+  test('RESUME shifts startedAt forward by the paused duration', () => {
+    let s = playing(1000);
+    s = memoryReducer(s, { type: 'PAUSE', now: 5000 });
+    s = memoryReducer(s, { type: 'RESUME', now: 8000 });
+    // 3s paused → startedAt moves 1000 → 4000, so elapsed at t=10000 is
+    // 6000ms (9000ms wall minus the 3000ms spent minimized).
+    assert.equal(s.startedAt, 4000);
+    assert.equal(s.pausedAt, null);
+    // RESUME without a pause is a no-op
+    assert.equal(memoryReducer(s, { type: 'RESUME', now: 9000 }), s);
+  });
+
+  test('repeated pause/resume cycles accumulate correctly', () => {
+    let s = playing(1000);
+    s = memoryReducer(s, { type: 'PAUSE', now: 2000 });
+    s = memoryReducer(s, { type: 'RESUME', now: 3000 }); // +1000 → 2000
+    s = memoryReducer(s, { type: 'PAUSE', now: 6000 });
+    s = memoryReducer(s, { type: 'RESUME', now: 10000 }); // +4000 → 6000
+    assert.equal(s.startedAt, 6000);
+  });
+
+  test('bestTimeMs recorded at win excludes paused time', () => {
+    let s = playing(1000);
+    s = memoryReducer(s, { type: 'PAUSE', now: 5000 });
+    s = memoryReducer(s, { type: 'RESUME', now: 8000 }); // startedAt → 4000
+    s = memoryReducer(s, { type: 'FLIP', idx: 0, now: 9000 });
+    s = memoryReducer(s, { type: 'FLIP', idx: 1, now: 10000 });
+    assert.equal(s.phase, 'won');
+    // 10000 - 4000 = 6000: the 3s minimized never reaches the record.
+    assert.equal(s.bestTimeMs.standard, 6000);
+  });
+
+  test('NEW_GAME clears any pause stamp', () => {
+    let s = memoryReducer(playing(), { type: 'PAUSE', now: 5000 });
+    s = memoryReducer(s, { type: 'NEW_GAME', now: 9000, random: fixedRng([0.5]) });
+    assert.equal(s.pausedAt, null);
+    assert.equal(s.startedAt, 9000);
+  });
+});

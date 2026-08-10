@@ -139,9 +139,29 @@ export class MahjongGame {
     this.selected = null;
     this.moves = 0;
     this.startTime = Date.now();
+    this.pausedAt = null;
     this.hintsUsed = 0;
     this.shufflesUsed = 0;
     this.gameOver = false;
+  }
+
+  /**
+   * Freeze the clock (window minimized). elapsedSecs() reads the pause
+   * stamp instead of the live wall clock while frozen.
+   */
+  pause(now = Date.now()) {
+    if (this.pausedAt == null) this.pausedAt = now;
+  }
+
+  /**
+   * Unfreeze: shift startTime forward by the paused duration so
+   * elapsedSecs — and the bestTime stat derived from it at win —
+   * excludes time the window spent minimized.
+   */
+  resume(now = Date.now()) {
+    if (this.pausedAt == null) return;
+    this.startTime += now - this.pausedAt;
+    this.pausedAt = null;
   }
 
   remaining() { return this.tiles.filter((t) => !t.removed); }
@@ -243,5 +263,7 @@ export class MahjongGame {
     this.shufflesUsed++;
   }
 
-  elapsedSecs() { return Math.floor((Date.now() - this.startTime) / 1000); }
+  elapsedSecs(now = Date.now()) {
+    return Math.floor(((this.pausedAt ?? now) - this.startTime) / 1000);
+  }
 }
