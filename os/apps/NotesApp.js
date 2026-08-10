@@ -8,8 +8,11 @@
  *   mode: 'editor'             — single-note floating window: title +
  *                                tags + body. No library chrome.
  *
- * Multiple editor windows can be open at once. Library and editors
- * sync via the kernel `notes:changed` event.
+ * Multiple editor windows can be open at once, but only ONE per note —
+ * an editor owns its path (see notes/engine/resourceKey.js), and
+ * ProcessManager focuses the open one instead of spawning a second that
+ * would autosave over it. Library and editors sync via the kernel
+ * `notes:changed` event.
  */
 
 import { App } from '../core/App.js';
@@ -24,6 +27,7 @@ import {
   loadHistoryFor, saveHistoryFor, clearHistoryFor,
 } from './notes/persistence.js';
 import { normalizeMetaEntry, inferStatus } from './notes/engine/meta.js';
+import { notesResourceKey } from './notes/engine/resourceKey.js';
 import { gridPosition } from './notes/engine/layout.js';
 import { applyFilter, emptyFilter } from './notes/engine/filters.js';
 
@@ -42,6 +46,13 @@ const DOCS_PATH = '/home/documents';
 const EXT = '.txt';
 
 export class NotesApp extends App {
+  /**
+   * An editor window owns its note path; a library window owns nothing.
+   * ProcessManager reads this to focus an open editor instead of
+   * spawning a duplicate that would overwrite it.
+   */
+  static resourceKey(config) { return notesResourceKey(config); }
+
   constructor(kernel, pid) {
     super(kernel, pid);
     this.metadata = { name: 'Notes', id: 'notes', icon: '📝' };

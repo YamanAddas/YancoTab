@@ -383,3 +383,172 @@ describe('lifecycle events', () => {
         assert.equal(events[0].pid, pid);
     });
 });
+
+// ─────────────────────────────────────────────
+// Resource-key dedupe (one window per owned resource)
+// ─────────────────────────────────────────────
+
+/** A fake app that owns `config.path` when config.mode === 'editor'. */
+function makeOwningAppClass(opts = {}) {
+    const App = makeFakeAppClass(opts);
+    App.resourceKey = (config) => (
+        config?.mode === 'editor' && typeof config.path === 'string' && config.path
+            ? `notes:editor:${config.path}`
+            : null
+    );
+    return App;
+}
+
+describe('resource-key dedupe', () => {
+    test('a second editor on the SAME path reuses the first process', async () => {
+        // Two editors on one note both flush their whole in-memory buffer
+        // on a debounce, so the later save silently reverts the other's
+        // work. One window per path is the invariant.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const reused = captureEvents(kernel, 'process:reused');
+        const pid1 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        const pid2 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+
+        assert.equal(pid2, pid1);
+        assert.equal(App.instanceCount, 1, 'no second editor instance constructed');
+        assert.deepEqual(reused, [{ pid: pid1, appId: 'notes' }]);
+    });
+
+    test('editors on DIFFERENT paths still open concurrently', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const pid1 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        const pid2 = await pm.spawn('notes', { mode: 'editor', path: '/b.txt' });
+        assert.notEqual(pid1, pid2);
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('a config the app declares unowned is never deduped', async () => {
+        // Library windows hold no buffer and sync via notes:changed.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const pid1 = await pm.spawn('notes', { path: '/a.txt' });
+        const pid2 = await pm.spawn('notes', { path: '/a.txt' });
+        assert.notEqual(pid1, pid2);
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('an editor does not satisfy a plain icon tap, and vice versa', async () => {
+        // findRunningPid only reuses empty-config processes, so an open
+        // editor must not make the library unreachable from the icon —
+        // and the resulting library must not then be reused as an editor.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const editor = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        const library = await pm.spawn('notes');
+        assert.notEqual(library, editor);
+
+        const editorAgain = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        assert.equal(editorAgain, editor, 'the editor, not the library, is reused');
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('concurrent opens of the same path share ONE process', async () => {
+        // The double-click case: both callers await the same cached
+        // import, so the second reaches the check after the first has
+        // registered its 'starting' record.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass({ initDelay: 20 });
+        pm.registerLazy('notes', async () => App);
+
+        const [pid1, pid2] = await Promise.all([
+            pm.spawn('notes', { mode: 'editor', path: '/a.txt' }),
+            pm.spawn('notes', { mode: 'editor', path: '/a.txt' }),
+        ]);
+        assert.equal(pid2, pid1);
+        assert.equal(App.instanceCount, 1);
+    });
+
+    test('a closing editor is not reused — reopening spawns fresh', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const pid1 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        pm.markClosing(pid1);
+        const pid2 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        assert.notEqual(pid2, pid1);
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('after the editor is killed, the path is free again', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeOwningAppClass();
+        pm.register('notes', App);
+
+        const pid1 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        await pm.kill(pid1);
+        const reused = captureEvents(kernel, 'process:reused');
+        const pid2 = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        assert.notEqual(pid2, pid1);
+        assert.equal(reused.length, 0);
+    });
+
+    test('keys do not leak across apps', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const Notes = makeOwningAppClass();
+        const Other = makeOwningAppClass();
+        pm.register('notes', Notes);
+        pm.register('other', Other);
+
+        const a = await pm.spawn('notes', { mode: 'editor', path: '/a.txt' });
+        const b = await pm.spawn('other', { mode: 'editor', path: '/a.txt' });
+        assert.notEqual(a, b, 'same key, different app -> different process');
+        assert.equal(Notes.instanceCount, 1);
+        assert.equal(Other.instanceCount, 1);
+    });
+
+    test('apps declaring no resourceKey are unaffected', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass(); // no static resourceKey at all
+        pm.register('plain', App);
+
+        const pid1 = await pm.spawn('plain', { path: '/a.txt' });
+        const pid2 = await pm.spawn('plain', { path: '/a.txt' });
+        assert.notEqual(pid1, pid2);
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('a throwing or non-string resourceKey degrades to "owns nothing"', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+
+        const Thrower = makeFakeAppClass();
+        Thrower.resourceKey = () => { throw new Error('boom'); };
+        pm.register('thrower', Thrower);
+        const t1 = await pm.spawn('thrower', { mode: 'editor', path: '/a.txt' });
+        const t2 = await pm.spawn('thrower', { mode: 'editor', path: '/a.txt' });
+        assert.notEqual(t1, t2, 'a throwing key must not take the spawn down');
+        assert.ok(t1 >= 1000 && t2 >= 1000);
+
+        const Junk = makeFakeAppClass();
+        Junk.resourceKey = () => ({ not: 'a string' });
+        pm.register('junk', Junk);
+        const j1 = await pm.spawn('junk', { mode: 'editor', path: '/a.txt' });
+        const j2 = await pm.spawn('junk', { mode: 'editor', path: '/a.txt' });
+        assert.notEqual(j1, j2);
+    });
+});

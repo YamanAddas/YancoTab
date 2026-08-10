@@ -144,6 +144,35 @@ export class ProcessManager {
     }
 
     /**
+     * Resolve an app's declared ownership key for a config, defensively.
+     * A throwing or non-string resourceKey degrades to "owns nothing"
+     * rather than taking the spawn down with it.
+     */
+    _resourceKeyFor(AppClass, config) {
+        if (typeof AppClass?.resourceKey !== 'function') return null;
+        try {
+            const key = AppClass.resourceKey(config);
+            return typeof key === 'string' && key !== '' ? key : null;
+        } catch (e) {
+            console.warn('[ProcessManager] resourceKey threw:', e?.message || e);
+            return null;
+        }
+    }
+
+    /**
+     * Find a live process of `appId` already owning `key`. Matches
+     * 'starting' as well as 'running' — that is what makes a rapid
+     * double-open safe (see _doSpawn) — and skips 'closing', whose
+     * window is mid-fade.
+     */
+    _findByResourceKey(appId, key) {
+        for (const [pid, p] of this.processes) {
+            if (p.name === appId && p.resourceKey === key && p.state !== 'closing') return pid;
+        }
+        return null;
+    }
+
+    /**
      * Marks a process as closing so it is no longer offered for reuse.
      * Called by the window manager when the close animation starts —
      * the actual kill lands ~220ms later, and a relaunch during the fade
@@ -209,6 +238,24 @@ export class ProcessManager {
         }
 
         if (AppClass) {
+            // One window per owned resource. The check sits HERE — after
+            // the class resolves, before this spawn claims a pid —
+            // rather than at each call site, for two reasons: the three
+            // Notes-editor spawn sites cannot drift apart, and a rapid
+            // double-open is covered for free. The first spawn's record
+            // exists from the moment its class resolved, and a second
+            // caller reaches this line only after awaiting that same
+            // cached import, so it always sees the 'starting' record.
+            const resourceKey = this._resourceKeyFor(AppClass, config);
+            if (resourceKey) {
+                const existing = this._findByResourceKey(appId, resourceKey);
+                if (existing != null) {
+                    dlog(`[ProcessManager] Reusing ${appId} pid ${existing} for ${resourceKey}`);
+                    this.kernel.emit('process:reused', { pid: existing, appId });
+                    return existing;
+                }
+            }
+
             const pid = this.nextPid++;
             dlog(`[ProcessManager] Spawning Internal ${appId} (PID: ${pid})`);
 
@@ -218,6 +265,7 @@ export class ProcessManager {
                 instance: null,
                 state: 'starting',
                 emptyConfig: isEmptyConfig(config),
+                resourceKey,
                 startTime: Date.now(),
             };
 

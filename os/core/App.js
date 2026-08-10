@@ -38,6 +38,25 @@ export class App {
     }
 
     /**
+     * Does this spawn config own an exclusive resource?
+     *
+     * Return a stable string when only ONE window may exist for the
+     * thing the config names (a Notes editor owns one note path — two
+     * of them autosave over each other), or null when several windows
+     * of this app may coexist. ProcessManager focuses the existing
+     * window instead of spawning a duplicate when the keys match.
+     *
+     * Declared per-app because ownership is app knowledge; enforced in
+     * ProcessManager so every spawn site inherits it.
+     *
+     * @param {object} _config — the spawn config
+     * @returns {string|null}
+     */
+    static resourceKey(_config) {
+        return null;
+    }
+
+    /**
      * Called when the app is receiving a signal. The window manager
      * sends 'pause' when this app's window is minimized (or hidden by a
      * show-desktop / Focus Mode / breakpoint change) and 'resume' when

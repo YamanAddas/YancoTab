@@ -6,6 +6,105 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.2] — 2026-08-10
+
+The second follow-up from the v1.10.0 window-mode review: two editor
+windows can no longer be opened on the same note.
+
+### Fixed — a second editor on one note silently reverted the first
+
+Config-bearing spawns are never deduped by design (that is what lets
+Files open two documents side by side), so all three Notes-editor
+spawn sites — `NotesApp._openEditor`, `NotesApp._createNote`, and the
+shell's file router — would happily open a *second* editor on a note
+that already had one. Multi-window then put both on screen at once.
+
+Each editor holds an in-memory buffer of the whole document and
+flushes that whole buffer on a 300ms debounce, so the two do not
+interleave edits — they overwrite each other wholesale, last save
+wins. Merely *closing* the stale window is enough to revert the other's
+work, because `destroy` calls `flushAll`.
+
+What made it silent is a guard that is otherwise exactly right:
+`editorFrame.update()` deliberately refuses to touch the body on an
+external `notes:changed` for the same path ("don't clobber the body
+the user might still be editing"), so the second editor is never told
+its copy went stale. The persisted per-path undo history was being
+fought over too.
+
+This existed before multi-window — the leaked invisible process from
+the v1.10.0 fix could hold the other editor — but it took two visible
+windows to make it reachable on purpose.
+
+### How
+
+Apps now declare what a spawn config *owns*. `App.resourceKey(config)`
+is a static returning a stable string for a config that may only ever
+have one window, or null (the base) for one that may have many.
+`NotesApp` returns `notes:editor:<path>` for editor configs and null
+for library configs — a library window holds no buffer and syncs via
+`notes:changed`, so several may coexist, and `payload.path` there is
+only an initial selection.
+
+ProcessManager enforces it: a spawn whose key matches a live process
+emits `process:reused` and returns that pid, which the window manager
+already handles by focusing and restoring the window. Ownership is app
+knowledge, so the app declares it; "don't run two processes for one
+resource" is process policy, so the process manager enforces it — and
+all three spawn sites inherit the rule instead of carrying three copies
+that drift.
+
+The check sits inside `_doSpawn`, after the class resolves and before
+the spawn claims a pid. That placement is load-bearing: it also covers
+a rapid double-open, because the first spawn's record exists from the
+moment its class resolved and a second caller reaches the check only
+after awaiting that same cached import — so it always sees the
+`starting` record. A `closing` process is skipped, so re-opening a note
+during its window's close animation spawns fresh rather than focusing a
+window committed to dying.
+
+Paths are compared verbatim — not trimmed, not case-folded.
+FileSystemService normalizes nothing, so `/a.txt` and ` /a.txt` really
+are different files to it, and merging them would focus a window
+editing a different document.
+
+### Tests
+
+2115 (+20). `tests/notes-resource-key.test.js` covers the decision
+itself against hostile configs (non-string paths, near-miss modes,
+non-object configs — a key built from a non-path would collapse every
+editor onto one window). The process-manager suite gains the
+enforcement: same path reuses, different paths stay concurrent,
+library configs are never deduped, an open editor does not satisfy an
+icon tap (nor the reverse), concurrent opens share one process, a
+closing editor is not reused, a killed one frees its path, keys do not
+leak across apps, and a throwing or non-string `resourceKey` degrades
+to "owns nothing" rather than taking the spawn down.
+
+Mutation-verified five ways: removing the check, dropping `starting`
+from the match, dropping the `closing` guard, dropping `appId` from the
+match, and treating library configs as owned each turn the suite red,
+every one caught by the test written for it. Verified live through the
+real shell → process-manager → window-manager chain: three consecutive
+opens of one note left the window count unchanged and focused the
+existing editor, reopening while minimized restored it, and a second
+note still opened its own window — with no new console errors.
+
+### Known — unrelated, found while verifying
+
+The service worker's precache is missing **69 statically-reachable
+modules** across Browser, Notes, Games, Settings, Todo and PDF (for
+example `notes/engine/meta.js`, `notes/view/sideRail.js`). Because the
+fetch handler is precache-or-network with no runtime caching and an ES
+module graph is all-or-nothing, those apps cannot open offline in the
+standalone web app. This is the v1.6.0 bug class again, but for
+*lazy-loaded* apps, which the existing boot-graph guard deliberately
+does not walk. Untouched here — it needs its own fix and its own guard
+test rather than riding along, and it does not affect the extension,
+which ships no service worker.
+
+---
+
 ## [1.10.1] — 2026-08-10
 
 The first follow-up from the v1.10.0 window-mode review: games now
