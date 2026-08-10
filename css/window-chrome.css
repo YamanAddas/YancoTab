@@ -3,24 +3,9 @@
    Floating, draggable, resizable app windows
    ============================================================ */
 
-/* ── Scrim (background overlay) ── */
-@keyframes scrimFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.window-chrome__scrim {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  z-index: calc(var(--z-window) - 1);
-  animation: scrimFadeIn 0.3s var(--ease-out) both;
-  pointer-events: auto;
-}
-
-body.theme-light .window-chrome__scrim {
-  background: rgba(0, 0, 0, 0.2);
-}
+/* Scrim: the per-window .window-chrome__scrim is gone — the window
+   manager owns one shared .wm-scrim (css/wm.css). Two per-window
+   scrims stacked 0.4 + 0.4 alpha into a near-black home screen. */
 
 /* ── Window Container ── */
 @keyframes windowOpen {
@@ -183,6 +168,10 @@ body.theme-light .window-chrome__titlebar {
   background: #ff5f57;
 }
 
+.window-chrome__btn-minimize {
+  background: #ffbd2e;
+}
+
 .window-chrome__btn-fullscreen {
   background: #27c93f;
 }
@@ -201,10 +190,8 @@ body.theme-light .window-chrome__titlebar {
 }
 
 /* Hover glow on buttons */
-.window-chrome__btn-close:hover {
-  filter: brightness(1.15);
-}
-
+.window-chrome__btn-close:hover,
+.window-chrome__btn-minimize:hover,
 .window-chrome__btn-fullscreen:hover {
   filter: brightness(1.15);
 }
@@ -335,7 +322,7 @@ body.theme-light .window-chrome__titlebar {
     display: none;
   }
 
-  .window-chrome__scrim {
+  .wm-scrim {
     display: none;
   }
 

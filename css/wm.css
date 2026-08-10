@@ -1,0 +1,233 @@
+/* ============================================================
+   YancoTab — Window Manager (Desktop Window Mode)
+   Shared scrim, snap preview, window tray, multi-window states.
+   All colors resolve to tokens from css/tokens.css; the traffic-
+   light literals live in window-chrome.css per its established
+   macOS-color exception.
+   ============================================================ */
+
+/* ── Shared scrim (one per desktop, owned by the WindowManager) ──
+   Replaces the old per-window .window-chrome__scrim: two windows
+   would stack two 0.4-alpha layers into a near-black home. */
+@keyframes wmScrimFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.wm-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1;
+  animation: wmScrimFadeIn 0.3s var(--ease-out) both;
+  pointer-events: auto;
+}
+
+body.theme-light .wm-scrim {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* ── Snap preview (glass ghost shown while a drag arms a zone) ── */
+.wm-snap-preview {
+  position: fixed;
+  background: rgba(var(--accent-rgb), 0.10);
+  border: 1px solid rgba(var(--accent-rgb), 0.35);
+  border-radius: var(--radius-lg);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
+  transition: left 0.12s var(--ease-out), top 0.12s var(--ease-out),
+              width 0.12s var(--ease-out), height 0.12s var(--ease-out);
+}
+
+/* ── Multi-window sizing fix ──
+   body.is-mobile is unconditional, so .is-mobile .window-chrome's
+   max-height calc(100% - 80px …) cap applies on desktop too and a
+   half-snapped window would stop ~96px short of the bottom edge. */
+body.wm-multi .window-chrome:not(.window-chrome--fullscreen) {
+  max-height: 100%;
+}
+
+/* ── Unfocused windows (multi mode only) ──
+   The current single-window look IS the focused look. Unfocused
+   windows drop to a lighter shadow, a dimmed titlebar, and no
+   titlebar backdrop-filter — six live blur surfaces is real GPU
+   cost that background windows don't need to pay. */
+body.wm-multi .window-chrome:not(.window-chrome--focused) {
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(var(--accent-rgb), 0.05),
+    var(--inner-glow);
+}
+
+body.wm-multi .window-chrome:not(.window-chrome--focused) .window-chrome__titlebar {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  filter: saturate(0.55) brightness(0.85);
+}
+
+/* Light theme tunes both directions down — the dark-tuned unfocused
+   shadow read HEAVIER than light mode's focused one. */
+body.theme-light.wm-multi .window-chrome:not(.window-chrome--focused) {
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.10),
+    0 0 0 1px rgba(var(--accent-rgb), 0.05),
+    var(--inner-glow);
+}
+
+body.theme-light.wm-multi .window-chrome:not(.window-chrome--focused) .window-chrome__titlebar {
+  filter: saturate(0.7) brightness(0.97);
+}
+
+/* ── Minimize animation ── */
+.window-chrome--minimizing {
+  transition: transform 0.2s var(--ease-out), opacity 0.2s var(--ease-out);
+  transform: scale(0.92) translateY(48px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.window-chrome--minimized {
+  display: none;
+}
+
+/* Minimize button is a multi-window affordance; hide it in compact
+   mode where minimize/restore has no tray-first UX. */
+body:not(.wm-multi) .window-chrome__btn-minimize {
+  display: none;
+}
+
+/* ── Window tray (taskbar chips) ──
+   A sibling of the app layer, not a child — the layer hides when
+   every window is minimized and the tray is the recovery surface. */
+.wm-tray {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(112px + var(--safe-bottom, 0px));
+  z-index: var(--z-wm-tray);
+  display: flex;
+  gap: 8px;
+  max-width: min(92vw, 720px);
+  overflow-x: auto;
+  padding: 6px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-md);
+}
+
+/* While a window is up, the tray auto-hides to a peek strip at the
+   bottom edge — full-height (snapped/maximized) windows own that space,
+   and an always-visible tray stole clicks from their bottom content.
+   Hover or keyboard focus slides it back up. */
+body.in-app .wm-tray {
+  bottom: 0;
+  transform: translate(-50%, calc(100% - 12px));
+  opacity: 0.55;
+  transition: transform 0.2s var(--ease-out), opacity 0.2s var(--ease-out);
+}
+
+body.in-app .wm-tray:hover,
+body.in-app .wm-tray:focus-within {
+  transform: translate(-50%, calc(-8px - var(--safe-bottom, 0px)));
+  opacity: 1;
+}
+
+.wm-tray[hidden] {
+  display: none;
+}
+
+.wm-chip {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+  border-radius: var(--radius-md, 12px);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-light);
+  overflow: hidden;
+}
+
+.wm-chip.is-focused {
+  border-color: var(--border-accent);
+  box-shadow: var(--glow-sm);
+}
+
+.wm-chip.is-minimized .wm-chip-label {
+  color: var(--text-dim);
+}
+
+.wm-chip-main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 6px 0 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-bright);
+}
+
+.wm-chip-main:hover {
+  background: var(--accent-bg);
+}
+
+.wm-chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex: 0 0 auto;
+}
+
+.wm-chip.is-minimized .wm-chip-dot {
+  background: none;
+  border: 1px solid var(--text-dim);
+}
+
+.wm-chip-label {
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-bright);
+}
+
+.wm-chip-close {
+  min-height: 32px;
+  padding: 0 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-dim);
+}
+
+.wm-chip-close:hover {
+  color: var(--danger);
+  background: var(--accent-subtle);
+}
+
+/* Focus Mode collapses the desktop — the tray must not float over it. */
+body.focus-active .wm-tray {
+  display: none;
+}
+
+/* Small screens: bigger touch targets, tray above the dock. */
+@media (max-width: 767px) {
+  .wm-chip-main { min-height: 44px; }
+  .wm-chip-close { min-height: 44px; padding: 0 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-scrim { animation: none; }
+  .wm-snap-preview { transition: none; }
+  .window-chrome--minimizing { transition: none; }
+  body.in-app .wm-tray { transition: none; }
+}

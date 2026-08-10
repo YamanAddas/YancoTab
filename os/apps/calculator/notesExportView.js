@@ -58,8 +58,10 @@ export function renderNotesExport(containerEl, kernel) {
       class: 'calc-export-item',
       title: 'Open in Notes',
       onclick: () => {
-        // Notes app accepts a path via spawn config; fall back to plain open.
-        kernel.emit('app:open', 'notes', { path: t.path });
+        // kernel.emit forwards one payload arg, so config rides inside the
+        // object form. Notes needs mode:'editor' or the path is ignored and
+        // the library opens instead.
+        kernel.emit('app:open', { id: 'notes', config: { mode: 'editor', path: t.path } });
       },
     }, [
       el('span', { class: 'calc-export-name' }, t.name.replace(/\.md$/, '')),

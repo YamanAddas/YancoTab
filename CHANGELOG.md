@@ -6,6 +6,165 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.0] — 2026-08-10
+
+Desktop Window Mode — the last big unbuilt item on the production plan
+(§4.6). The new tab is no longer one app at a time: on desktop-size
+screens, apps open in concurrent floating windows with focus, minimize,
+a window tray, and edge snapping.
+
+### Added — real multi-window on desktop
+
+On viewports ≥1024px with a fine pointer (`body.wm-multi`), up to six
+apps run in floating windows at once:
+
+- **Focus & z-order** — pointer down anywhere on a window raises and
+  focuses it. Unfocused windows drop to a lighter shadow and a dimmed
+  titlebar with no backdrop-filter — six live blur surfaces is real GPU
+  cost that background windows don't need to pay.
+- **Minimize** — a third traffic-light button. The process keeps
+  running; the window returns from the tray or by relaunching the app.
+- **Window tray** — a chip row (app name, focus state, close ×) that is
+  the recovery surface for minimized windows whose app isn't in the
+  dock. It mounts as a *sibling* of the app layer, deliberately: the
+  layer hides when everything is minimized, and the tray must not share
+  that fate.
+- **Edge snap** — dragging a titlebar to the left/right viewport edge
+  shows a glass preview and snaps the window to that half on release;
+  the top edge maximizes. Dragging a snapped window away restores its
+  pre-snap size, with the grab point rescaled proportionally so the
+  titlebar stays under the pointer. Halves are computed with ceil/floor
+  so an odd-width viewport tiles with no 1px seam.
+- **Cascade** — each new window offsets 28px from its app's own CSS
+  default position. Only left/top are written — width/height stay
+  CSS-driven, so the per-app `:has()` sizing (the card salon's 90%×92%,
+  Settings' centered `min()`) is untouched.
+- **Show desktop** — the home button now minimizes all windows instead
+  of killing the app. Escape still closes (the focused window only).
+  Focus Mode entry minimizes rather than closes, so a focus session no
+  longer destroys open work; it waits in the tray.
+
+Small screens and coarse pointers keep today's single-visible-window
+behavior. Crossing the gate by resizing (devtools!) minimizes the
+background windows rather than killing them — resizing is an accident,
+not an intent.
+
+The architecture follows the game-engine discipline: all ordering,
+focus, cascade and snap *decisions* live in a pure reducer-style module
+(`os/ui/wm/wmCore.js`, zero DOM) with invariant-locked tests; the DOM
+orchestrator (`WindowManager.js`) only applies them. One shared scrim
+replaces the per-window scrims — two windows would have stacked
+0.4 + 0.4 alpha into a near-black home screen.
+
+### Fixed — re-opening a running app spawned a second process
+
+`spawn()` deduped only *in-flight* empty-config spawns, so tapping the
+icon of an app that was already running created a second process while
+the first kept running invisibly behind the new window — a leak on
+every re-tap, on every device, invisible only because the shell showed
+one window at a time. The process manager now reuses the running
+process (`process:reused`) and the window manager focuses its window.
+Config-bearing spawns (Files opening two documents) still get fresh
+windows on purpose.
+
+### Fixed — `app:open` config ride-alongs never arrived
+
+`kernel.emit(event, data)` forwards exactly one payload argument, so
+the documented `emit('app:open', 'tarneeb', { preset })` pattern
+silently dropped the config — every bus-emitted "open with config" has
+been a plain open since v1.1.0. The Calculator's "open tape in Notes"
+was the one live caller: it opened the Notes *library* instead of the
+note. `app:open` now accepts `{ id, config }` as an object payload, the
+calculator uses it, and malformed payloads are ignored rather than
+spawned.
+
+### Fixed — drag state stranded on pointercancel
+
+WindowChrome's title-bar drag handled only `pointerup`, so a mid-drag
+`pointercancel` (tab switch, system gesture) stranded the `--dragging`
+class — `transition: none` and disabled pointer events on the window's
+content, permanently. Both drag and the new snap path now tear down on
+cancel, and `setPointerCapture` is guarded — an uncapturable pointer
+used to throw mid-handler, which is exactly the stranding path again.
+
+### Hardened — a 26-agent adversarial review of the diff
+
+Five parallel reviewers (lifecycle, pointer/drag, regressions, CSS/theme,
+a11y/security) produced 21 findings; each was independently verified
+against the code, 19 survived, and 15 shipped as fixes in this release:
+
+- **A plain click on a snapped or maximized titlebar un-snapped it.**
+  Un-snap/un-maximize now waits for 6px of real movement — a click
+  focuses, a drag restores. The WM's snap bookkeeping is deferred the
+  same way, so a click that moved nothing no longer clears it.
+- **Escape could close a different window than the one being typed in.**
+  Window focus followed only pointerdown; tabbing into a background
+  window's input left the WM aimed elsewhere. `focusin` now raises and
+  focuses, so keyboard and window focus cannot diverge.
+- **Minimizing the focused window dropped keyboard focus to `<body>`.**
+  Focus is handed to the newly focused window (windows carry
+  `tabindex="-1"`) — only when the previous holder actually went away,
+  so click-to-focus never steals focus from app content.
+- **The setMode rAF race.** A window closed in the same frame it opened
+  let a stale `requestAnimationFrame` re-add the layer's active class
+  after the home transition — scrim over a click-dead home screen until
+  the next full open/close cycle. Each mode switch now cancels the
+  opposing mode's pending rAF/timer.
+- **Relaunch during the 220ms close fade was swallowed.** The reuse
+  check saw the dying process as `running` and focused a window
+  committed to dying. Closing now marks the process `closing`, which
+  the reuse check skips.
+- **Reuse matched by appId alone**, so a Notes *editor* window made the
+  Notes *library* unreachable from its icon. Only plain-opened
+  processes are offered for reuse; config-bearing ones never are.
+- **Snap bookkeeping went stale** three ways: manually resizing a
+  snapped window, maximizing it via the green button, and viewport
+  resizes while minimized (where `display:none` makes every measurement
+  zero). Manual resize now clears the snap, fullscreen windows are
+  skipped on viewport resize, and restore re-clamps to the viewport.
+- **The ringing-alarm overlay painted UNDER open windows** — its
+  `--z-modal` (500) has been below the app layer's legacy
+  `z-index: 2000` all along; the new tray (2100) would have covered it
+  too. New `--z-alarm: 2200` token; an alarm's entire job is to be seen.
+- **The in-app tray stole clicks from full-height windows.** It now
+  auto-hides to a 12px peek strip at the bottom edge; hover or keyboard
+  focus slides it back up.
+- Also: the dock's running dot survives closing one of an app's several
+  windows (single-slot pid map → a set per app); tray chips announce
+  their minimized state and dropped the unearned `toolbar` role; light
+  theme gets its own unfocused-window shadow (the dark-tuned one read
+  heavier than the focused window); the cascade counter resets when the
+  last window closes so a lone window opens at its designed position.
+
+The four survivors that did not ship here are tracked as follow-ups:
+game timers keep counting while minimized (`onSignal('pause')` is
+dispatched but no game honors it yet), duplicate Notes editors on the
+same note can cross-overwrite autosaves (previously hidden by the
+process leak, not created by this change), toasts still paint under the
+app layer (pre-existing), and Escape-inside-an-input closing the window
+(pre-existing, kept for parity).
+
+### Tests
+
+2082 (+41): `tests/wm-core.test.js` covers z-order/focus/minimize
+bookkeeping, the window cap, cascade wrapping, snap hit-testing and
+geometry against hostile input, plus an invariant lock (focused is
+always a visible window; minimized ⊆ order) across an op × state
+matrix. Process-manager suite gains running-instance dedupe coverage —
+including that a `starting` process is *not* reused and that the old
+"sequential spawns get fresh pids" test now asserts the opposite, on
+purpose. Verified live in the browser: concurrent windows, focus raise,
+reuse-instead-of-duplicate, minimize/restore via tray, snap left +
+unsnap + top-maximize, compact-mode single window, Escape, show
+desktop.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.10.0-window-mode`. Precache gains
+`css/wm.css` and the three `os/ui/wm/` modules.
+
+---
+
 ## [1.9.2] — 2026-08-05
 
 Found by auditing the packed extension zip rather than the source tree.

@@ -39,7 +39,7 @@ export class AppDock {
         this.root = el('nav', { class: 'nav-bar app-dock', 'aria-label': 'Dock' });
         this._tiles = new Map(); // appId → tile element
         this._iconInstances = new Map(); // appId → SmartIcon (for destroy)
-        this._runningPids = new Map(); // appId → pid (set on process:started)
+        this._runningPids = new Map(); // appId → Set<pid> (process:started/stopped)
         this._handlers = {};
     }
 
@@ -101,20 +101,27 @@ export class AppDock {
     }
 
     _subscribeLifecycle() {
-        // process:started → flip running-dot on the tile (if any)
+        // process:started → flip running-dot on the tile (if any).
+        // One app can now own several concurrent pids (multi-window:
+        // two Notes editors + the library), so each appId tracks a SET —
+        // a single-slot map turned the dot off when the FIRST of two
+        // windows closed.
         this._handlers.started = ({ pid, appId } = {}) => {
             if (!appId || !this._tiles.has(appId)) return;
-            this._runningPids.set(appId, pid);
+            if (!this._runningPids.has(appId)) this._runningPids.set(appId, new Set());
+            this._runningPids.get(appId).add(pid);
             this._tiles.get(appId).classList.add('is-running');
         };
         kernel.on?.('process:started', this._handlers.started);
 
         this._handlers.stopped = ({ pid } = {}) => {
             // Clear whichever appId owned that pid
-            for (const [appId, runningPid] of this._runningPids.entries()) {
-                if (runningPid === pid) {
-                    this._runningPids.delete(appId);
-                    this._tiles.get(appId)?.classList.remove('is-running');
+            for (const [appId, pids] of this._runningPids.entries()) {
+                if (pids.delete(pid)) {
+                    if (pids.size === 0) {
+                        this._runningPids.delete(appId);
+                        this._tiles.get(appId)?.classList.remove('is-running');
+                    }
                     break;
                 }
             }

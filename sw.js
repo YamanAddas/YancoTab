@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.9.2-ocr-path';
+const CACHE_NAME = 'yancotab-v1.10.0-window-mode';
 
 const PRECACHE = [
     './',
@@ -33,6 +33,7 @@ const PRECACHE = [
     './css/focus.css',
     './css/badges.css',
     './css/window-chrome.css',
+    './css/wm.css',
     './css/photos.css',
     './css/pdf-reader.css',
     './css/glass.css',
@@ -106,6 +107,10 @@ const PRECACHE = [
     './os/utils/url.js',
     './os/ui/components/AppDock.js',
     './os/ui/components/WindowChrome.js',
+    './os/ui/components/WindowResizer.js',
+    './os/ui/wm/wmCore.js',
+    './os/ui/wm/WindowManager.js',
+    './os/ui/wm/WindowTray.js',
     './os/ui/components/PageTabs.js',
     './os/ui/components/PagePanes.js',
     './os/ui/components/FolderRail.js',

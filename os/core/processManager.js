@@ -58,11 +58,18 @@ export class ProcessManager {
         // Config-bearing spawns are NOT deduped — each FilesApp file open gets its own pid.
         this._inflightNoConfig = new Map(); // appId -> Promise<pid>
 
-        // Listen for launch requests from UI. Optional `config` ride-along
-        // lets `kernel.emit('app:open', 'tarneeb', { preset: 'damascus' })`
-        // pass the preset all the way through to App.init(config). Existing
-        // single-arg callers keep working — config defaults to {} via spawn.
-        this.kernel.on('app:open', (appId, config) => this.spawn(appId, config));
+        // Listen for launch requests from UI. kernel.emit forwards exactly
+        // ONE payload argument (CustomEvent detail), so the old documented
+        // `emit('app:open', 'tarneeb', { preset })` form silently dropped
+        // the preset. Config now rides along as an object payload:
+        //   kernel.emit('app:open', 'notes')                          — plain open
+        //   kernel.emit('app:open', { id: 'notes', config: {...} })   — with config
+        this.kernel.on('app:open', (payload) => {
+            if (typeof payload === 'string') return this.spawn(payload);
+            if (payload && typeof payload === 'object' && typeof payload.id === 'string') {
+                return this.spawn(payload.id, payload.config || {});
+            }
+        });
         this.kernel.on('process:kill', (pid) => this.kill(pid));
     }
 
@@ -119,12 +126,54 @@ export class ProcessManager {
         return entry.loading;
     }
 
+    /**
+     * Returns the pid of a RUNNING, plain-opened process for `appId`, or
+     * null. Three kinds of process are deliberately excluded:
+     *   - 'starting' — the in-flight dedupe covers that window, and a
+     *     half-initialized instance has no mounted window to focus;
+     *   - 'closing' — its window is mid-fade; reusing it would focus a
+     *     window already committed to dying;
+     *   - config-bearing spawns — a Notes *editor* window must not make
+     *     the Notes *library* unreachable from the icon.
+     */
+    findRunningPid(appId) {
+        for (const [pid, p] of this.processes) {
+            if (p.name === appId && p.state === 'running' && p.emptyConfig) return pid;
+        }
+        return null;
+    }
+
+    /**
+     * Marks a process as closing so it is no longer offered for reuse.
+     * Called by the window manager when the close animation starts —
+     * the actual kill lands ~220ms later, and a relaunch during the fade
+     * should spawn fresh rather than focus the dying window.
+     */
+    markClosing(pid) {
+        const p = this.processes.get(pid);
+        if (p) p.state = 'closing';
+    }
+
     async spawn(appId, config = {}) {
         // Dedup empty-config spawns (icon taps): two simultaneous taps
         // share one pid. Config-bearing spawns (FilesApp open file)
         // skip the dedup so each file gets a fresh window.
         if (isEmptyConfig(config) && this._inflightNoConfig.has(appId)) {
             return this._inflightNoConfig.get(appId);
+        }
+
+        // Completed-spawn twin of the in-flight dedupe: an icon tap on an
+        // app that is already running reuses the existing process instead
+        // of spawning a second one. Before this, the second spawn's window
+        // replaced the first's chrome while the first process kept running
+        // invisibly — a leak on every re-tap. The shell listens for
+        // process:reused to focus/restore the existing window.
+        if (isEmptyConfig(config)) {
+            const runningPid = this.findRunningPid(appId);
+            if (runningPid != null) {
+                this.kernel.emit('process:reused', { pid: runningPid, appId });
+                return runningPid;
+            }
         }
 
         const promise = this._doSpawn(appId, config);
@@ -168,6 +217,7 @@ export class ProcessManager {
                 name: appId,
                 instance: null,
                 state: 'starting',
+                emptyConfig: isEmptyConfig(config),
                 startTime: Date.now(),
             };
 

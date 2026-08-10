@@ -1404,7 +1404,9 @@ body.theme-light .onboarding-modal .ob-radio-btn.selected {
 .m-alarm-overlay {
   position: fixed;
   inset: 0;
-  z-index: var(--z-modal, 500);
+  /* Above app windows (layer z 2000) and the window tray (2100) — an
+     alarm that rings underneath an open window has failed at its job. */
+  z-index: var(--z-alarm, 2200);
   display: flex;
   align-items: center;
   justify-content: center;

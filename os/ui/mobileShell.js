@@ -31,7 +31,8 @@ import { PageTabs } from './components/PageTabs.js';
 import { PagePanes } from './components/PagePanes.js';
 import { ToastManager } from './components/Toast.js';
 import { Onboarding } from './components/Onboarding.js';
-import { WindowChrome } from './components/WindowChrome.js';
+import { WindowManager } from './wm/WindowManager.js';
+import { WindowTray } from './wm/WindowTray.js';
 import { FocusMode } from './components/FocusMode.js';
 import { bindShellShortcuts } from './shellShortcuts.js';
 import { BadgeManager } from './badges/BadgeManager.js';
@@ -70,9 +71,16 @@ export class MobileShell {
     // close whatever app is open when it engages.
     this.components.focusMode = new FocusMode(kernel, this);
 
-    this.state = { viewportHeight: window.innerHeight, activePid: null, isLandscape: window.innerWidth > window.innerHeight };
+    this.state = { viewportHeight: window.innerHeight, isLandscape: window.innerWidth > window.innerHeight };
+    // activePid used to be a shell-owned field; window ownership now lives
+    // in the WindowManager, so every existing reader (shellShortcuts,
+    // wheel guard, FocusMode fallback) sees the focused window through
+    // this getter without changing.
+    Object.defineProperty(this.state, 'activePid', {
+      get: () => this.wm?.focusedPid ?? null,
+    });
     this.alarmUi = null;
-    this._windowChrome = null;
+    this.wm = null;
     this.handleResize = this.handleResize.bind(this);
     this._orientationTransitionTimer = null;
   }
@@ -134,6 +142,21 @@ export class MobileShell {
     this._injectMobileStyles();
     this._bindSystemEvents();
     this.bindAlarmOverlay();
+
+    // Window manager — owns every app window (concurrent on desktop,
+    // single-visible on small screens). The adapter hands it the two
+    // home↔app chrome transitions the shell still owns.
+    this.wm = new WindowManager(kernel, {
+      layer: this.dom.appLayer,
+      shellAdapter: {
+        onEnterApp: () => this.setMode('app'),
+        onLeaveApp: () => this.setMode('home'),
+      },
+    });
+    this.wm.init();
+    this._windowTray = new WindowTray(kernel, this.wm);
+    this._windowTray.init();
+    this.dom.wrapper.appendChild(this._windowTray.root);
 
     // Toast notification system
     this._toast = new ToastManager();
@@ -289,12 +312,20 @@ export class MobileShell {
   // ─── Mode Switching ─────────────────────────────────────────
 
   setMode(mode) {
+    // Cancel the opposing mode's pending work. Without this, a window
+    // closed in the same frame it opened let the not-yet-run rAF re-add
+    // 'active' AFTER the home transition, leaving the layer + scrim
+    // permanently over a click-dead home screen.
+    if (this._modeShowRaf) { cancelAnimationFrame(this._modeShowRaf); this._modeShowRaf = null; }
+    if (this._modeHideTimer) { clearTimeout(this._modeHideTimer); this._modeHideTimer = null; }
+
     if (mode === 'app') {
       document.body.classList.add('in-app');
       this.dom.appLayer.hidden = false;
       this.dom.appLayer.style.display = 'block';
       // Small delay to allow display:block to apply before adding active class for transition
-      requestAnimationFrame(() => {
+      this._modeShowRaf = requestAnimationFrame(() => {
+        this._modeShowRaf = null;
         this.dom.appLayer.classList.add('active');
       });
 
@@ -318,7 +349,8 @@ export class MobileShell {
       this.dom.appLayer.classList.remove('active');
 
       // Wait for transition to finish before hiding
-      setTimeout(() => {
+      this._modeHideTimer = setTimeout(() => {
+        this._modeHideTimer = null;
         if (!this.dom.appLayer.classList.contains('active')) {
           this.dom.appLayer.hidden = true;
           this.dom.appLayer.style.display = 'none';
@@ -348,7 +380,10 @@ export class MobileShell {
   }
 
   goHome() {
-    if (this.state.activePid) kernel.processManager.kill(this.state.activePid);
+    // Desktop: "show desktop" — windows minimize into the tray and their
+    // processes keep running. Small screens: closes the visible app, as
+    // it always has.
+    this.wm?.showDesktop();
   }
 
   // ─── Event Wiring ───────────────────────────────────────────
@@ -380,68 +415,9 @@ export class MobileShell {
       // actions in the future. We just supplement scroll.
     }, { passive: true });
 
-    // App lifecycle
-    kernel.on('process:started', ({ pid, appId, app }) => {
-      // Destroy previous window chrome if any
-      if (this._windowChrome) {
-        this._windowChrome.destroy();
-        this._windowChrome = null;
-      }
-      this.dom.appLayer.innerHTML = '';
-
-      const appName = app.metadata?.name || 'App';
-      let appContent = app.root;
-
-      try {
-        // Touch app.root to verify it's mountable
-        if (!appContent || !(appContent instanceof HTMLElement)) {
-          throw new Error('App root is not a valid DOM element');
-        }
-      } catch (e) {
-        console.error('[Shell]', appName, 'crashed on mount:', e);
-        appContent = el('div', {
-          class: 'app-crash',
-          style: 'display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;padding:24px;text-align:center;color:var(--text-bright);'
-        }, [
-          el('h3', { style: 'font-size:18px;margin:0;' }, `${appName} crashed`),
-          el('p', { style: 'font-size:13px;color:var(--text-dim);margin:0;max-width:300px;' }, e.message || 'An unexpected error occurred'),
-          el('button', {
-            type: 'button',
-            style: 'margin-top:8px;padding:8px 20px;background:var(--accent);color:#000;border:none;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;',
-            onclick: () => { app.close(); kernel.emit('app:open', appId || app.metadata?.id); },
-          }, 'Restart'),
-        ]);
-      }
-
-      // Floating window chrome (iPadOS Stage Manager style).
-      // Belt-and-suspenders: if WindowChrome itself throws (very rare —
-      // would mean a fundamental DOM construction failure), surface the
-      // error rather than letting it kill the entire shell. The user gets
-      // a toast and the home grid stays usable.
-      try {
-        this._windowChrome = new WindowChrome(appName, appContent, () => app.close());
-        this.dom.appLayer.append(this._windowChrome.scrim, this._windowChrome.chrome);
-        this.state.activePid = pid;
-        this.setMode('app');
-      } catch (e) {
-        console.error('[Shell] Failed to mount WindowChrome for', appName, ':', e);
-        kernel.emit('toast', { message: `Couldn't open ${appName}`, type: 'error' });
-        try { app.close(); } catch { /* ignore */ }
-        this.dom.appLayer.innerHTML = '';
-        this._windowChrome = null;
-      }
-    });
-
-    kernel.on('process:stopped', ({ pid } = {}) => {
-      if (pid && this.state.activePid && pid !== this.state.activePid) return;
-      if (this._windowChrome) {
-        this._windowChrome.destroy();
-        this._windowChrome = null;
-      }
-      this.dom.appLayer.innerHTML = '';
-      this.state.activePid = null;
-      this.setMode('home');
-    });
+    // App lifecycle (process:started / process:stopped / process:reused)
+    // is owned by the WindowManager — see os/ui/wm/WindowManager.js. The
+    // shell only supplies the home↔app chrome transitions via setMode.
 
     // Item open (from grid tap or nav)
     window.addEventListener('item:open', (e) => {
@@ -471,9 +447,10 @@ export class MobileShell {
       const id = e.detail?.id;
       if (!id) return;
 
-      // If in-app, go home first
+      // If in-app, show the desktop first (minimize on desktop, close on
+      // small screens — same policy as the home button).
       if (this.state.activePid) {
-        kernel.processManager.closeProcess(this.state.activePid);
+        this.wm?.showDesktop();
       }
 
       switch (id) {
@@ -818,7 +795,7 @@ export class MobileShell {
       this.components.grid.handleResize?.();
     }
 
-    this._windowChrome?.onViewportResize();
+    this.wm?.handleViewportResize();
 
     this.dom.spacer.style.height = isKeyboard
       ? `${window.innerHeight - newHeight}px`

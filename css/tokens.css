@@ -107,6 +107,14 @@
   --z-toast:       800;
   --z-boot:        900;
   --z-fatal:       1000;
+  /* The window tray must clear .m-app-layer's legacy `z-index: 2000
+     !important` (main.css) — that override predates this scale and is
+     tracked tech debt; do not "fix" it as a rider. The alarm overlay in
+     turn must clear BOTH: a ringing alarm's entire job is to be seen,
+     and at its old --z-modal (500) it painted underneath any open
+     window. */
+  --z-wm-tray:     2100;
+  --z-alarm:       2200;
 
   /* ── Spacing ── */
   --space-xs:  4px;

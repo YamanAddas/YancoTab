@@ -44,6 +44,8 @@ export const KNOWN_EVENTS = Object.freeze({
     PROCESS_KILL:    'process:kill',
     PROCESS_STARTED: 'process:started',
     PROCESS_STOPPED: 'process:stopped',
+    PROCESS_REUSED:  'process:reused',
+    WM_CHANGED:      'wm:changed',
     APP_OPEN:        'app:open',
     TOAST:           'toast',
     TODO_CHANGED:    'todo:changed',

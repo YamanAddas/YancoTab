@@ -100,11 +100,17 @@ export class FocusMode {
   enter({ persist = true } = {}) {
     if (this.root) return;
 
-    // Focus Mode collapses everything — an app left open underneath would
-    // still be mounted and ticking behind the overlay.
-    const pid = this.shell?.state?.activePid;
-    if (pid) {
-      try { this.kernel.processManager.closeProcess(pid); } catch { /* ignore */ }
+    // Focus Mode collapses everything. Windows are minimized rather than
+    // closed — a focus session should not destroy open work; it survives
+    // in the window tray for after. Fallback to closing the active app
+    // for any context where the window manager isn't mounted.
+    if (this.shell?.wm) {
+      try { this.shell.wm.minimizeAll(); } catch { /* ignore */ }
+    } else {
+      const pid = this.shell?.state?.activePid;
+      if (pid) {
+        try { this.kernel.processManager.closeProcess(pid); } catch { /* ignore */ }
+      }
     }
 
     this._state.active = true;

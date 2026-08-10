@@ -112,16 +112,128 @@ describe('concurrent spawn dedup', () => {
         assert.equal(App.instanceCount, 2, 'two separate instances');
     });
 
-    test('two sequential empty-config spawns do NOT dedup (only concurrent ones do)', async () => {
+    test('sequential empty-config spawn of a RUNNING app reuses its pid', async () => {
+        // The completed-spawn twin of the in-flight dedupe. Before this,
+        // a re-tap of a running app's icon spawned a second process while
+        // the first kept running invisibly behind the new window — a leak
+        // on every re-tap.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass();
+        pm.register('foo', App);
+
+        const reused = captureEvents(kernel, 'process:reused');
+        const pid1 = await pm.spawn('foo');
+        const pid2 = await pm.spawn('foo');
+        assert.equal(pid1, pid2, 'second tap reuses the running pid');
+        assert.equal(App.instanceCount, 1, 'no second instance constructed');
+        assert.deepEqual(reused, [{ pid: pid1, appId: 'foo' }]);
+    });
+
+    test('config-bearing spawn is NOT reused — each gets a fresh pid', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass();
+        pm.register('notes', App);
+
+        const reused = captureEvents(kernel, 'process:reused');
+        const pid1 = await pm.spawn('notes', { path: 'A.md' });
+        const pid2 = await pm.spawn('notes', { path: 'B.md' });
+        assert.notEqual(pid1, pid2);
+        assert.equal(App.instanceCount, 2);
+        assert.equal(reused.length, 0);
+    });
+
+    test('empty-config spawn does NOT reuse a config-bearing sibling', async () => {
+        // A Notes *editor* window (config spawn) must not make the Notes
+        // *library* unreachable from the icon — the icon tap opens the
+        // app's default view alongside the editor.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass();
+        pm.register('notes', App);
+
+        const pid1 = await pm.spawn('notes', { path: 'A.md' });
+        const pid2 = await pm.spawn('notes');
+        assert.notEqual(pid2, pid1);
+        assert.equal(App.instanceCount, 2);
+    });
+
+    test('a process marked closing is not offered for reuse', async () => {
+        // The window's close animation defers the actual kill by ~220ms;
+        // a relaunch during the fade must spawn fresh, not focus a window
+        // already committed to dying.
         const kernel = makeFakeKernel();
         const pm = new ProcessManager(kernel);
         const App = makeFakeAppClass();
         pm.register('foo', App);
 
         const pid1 = await pm.spawn('foo');
+        pm.markClosing(pid1);
+        const reused = captureEvents(kernel, 'process:reused');
         const pid2 = await pm.spawn('foo');
-        assert.notEqual(pid1, pid2, 'sequential spawns get fresh pids');
+        assert.notEqual(pid2, pid1);
+        assert.equal(reused.length, 0);
         assert.equal(App.instanceCount, 2);
+    });
+
+    test('after kill, an empty-config spawn is fresh (no reuse of dead pids)', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass();
+        pm.register('foo', App);
+
+        const pid1 = await pm.spawn('foo');
+        await pm.kill(pid1);
+        const reused = captureEvents(kernel, 'process:reused');
+        const pid2 = await pm.spawn('foo');
+        assert.notEqual(pid1, pid2);
+        assert.equal(App.instanceCount, 2);
+        assert.equal(reused.length, 0);
+    });
+
+    test('findRunningPid ignores processes still in starting state', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass({ initDelay: 30 });
+        pm.register('slow', App);
+
+        const inflight = pm.spawn('slow');
+        // Mid-init the process exists in state 'starting' — it must not be
+        // offered for reuse (the in-flight dedupe covers this window).
+        assert.equal(pm.findRunningPid('slow'), null);
+        const pid = await inflight;
+        assert.equal(pm.findRunningPid('slow'), pid);
+    });
+
+    test('app:open accepts an object payload with config', async () => {
+        // kernel.emit forwards exactly one payload argument, so the old
+        // emit('app:open', id, config) form silently dropped the config.
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        const App = makeFakeAppClass();
+        pm.register('notes', App);
+
+        const started = captureEvents(kernel, 'process:started');
+        kernel.emit('app:open', { id: 'notes', config: { mode: 'editor', path: 'x.md' } });
+        await new Promise((r) => setTimeout(r, 10));
+        assert.equal(App.instanceCount, 1);
+        // findRunningPid deliberately ignores config-bearing processes,
+        // so resolve the pid from the lifecycle event instead.
+        const inst = pm.getInstance(started[0].pid);
+        assert.deepEqual(inst.initConfigs, [{ mode: 'editor', path: 'x.md' }]);
+    });
+
+    test('app:open ignores malformed payloads without throwing', async () => {
+        const kernel = makeFakeKernel();
+        const pm = new ProcessManager(kernel);
+        pm.register('notes', makeFakeAppClass());
+
+        for (const bad of [null, 42, {}, { config: {} }, { id: 7 }]) {
+            kernel.emit('app:open', bad);
+        }
+        await new Promise((r) => setTimeout(r, 10));
+        assert.equal(pm.findRunningPid('notes'), null);
     });
 });
 
