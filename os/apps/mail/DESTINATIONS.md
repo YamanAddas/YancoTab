@@ -81,6 +81,7 @@ be a different host.
 | proton | drafts | `https://mail.proton.me/u/{i}/drafts` | documented | — | — |
 | yahoo | inbox | `https://mail.yahoo.com/d/folders/1` | inherited | — | — |
 | yahoo | compose | `https://mail.yahoo.com/d/compose` | inherited | — | — |
+| yahoo | search | `https://mail.yahoo.com/d/search/keyword={q}` | documented | — | — |
 | zoho | inbox | `https://mail.zoho.com/zm/` | inherited | — | — |
 | zoho | compose | `https://mail.zoho.com/zm/#compose` | inherited | — | — |
 | fastmail | inbox | `https://app.fastmail.com/mail/Inbox` | inherited | — | — |
@@ -93,8 +94,33 @@ be a different host.
 | gmx | compose | `https://navigator-bs.gmx.com/mail?mailAction=compose` | inherited | — | — |
 | aol | inbox | `https://mail.aol.com/d/folders/1` | inherited | — | — |
 | aol | compose | `https://mail.aol.com/d/compose` | inherited | — | — |
+| aol | search | `https://mail.aol.com/d/search/keyword={q}` | documented | — | — |
 | tuta | inbox | `https://app.tuta.com/mail` | inherited | — | — |
 | tuta | compose | `https://app.tuta.com/mail/new` | inherited | — | — |
+
+## Adding a search route
+
+If a provider is missing `search`, it is one line in each of two files:
+
+```js
+// providerTable.js — inside that provider's dest map
+search: 'https://…/{q}',
+```
+
+```
+| <provider> | search | `https://…/{q}` | verified | <date> | yaman |
+```
+
+`tests/mail-destinations-ledger.test.js` fails if you do one and not the other.
+Nothing else changes: the search bar picks the route up automatically and
+switches that account out of copy-and-open mode.
+
+Until then, accounts without a route show no search bar. A clipboard fallback
+(copy the query, open the inbox, paste) was built and cut: the async clipboard
+write could not be made to succeed in any available test environment, and it
+silently overwrites whatever the user had on their clipboard. An unverifiable
+feature that clobbers shared system state is not a good trade for saving a
+retype.
 
 ## Deliberately absent
 
@@ -102,7 +128,9 @@ be a different host.
 |---|---|---|
 | icloud | compose | Apple exposes no compose deep link. Previously the table set `compose` to the **inbox URL**, so the Compose button reopened the inbox and claimed to have composed. Absence is now the answer. |
 | icloud | sent / drafts / starred / search | Same — `icloud.com/mail` is a single SPA entry point with no addressable sub-routes. |
-| everything except gmail | search | Not confirmed for any other provider. A search chip that landed on an inbox would be worse than no search chip, so the search bar hides itself for accounts that cannot search. |
+| **outlook, outlook365** | **search** | **Established impossible, not merely unfound.** Microsoft's own Q&A confirms OWA search is performed by an **AJAX POST**, so the query never enters the URL and `outlook.office.com/mail/?query=…` cannot work. Microsoft's answer is to use the Graph API, which needs OAuth and a server — both permanently out of scope here. Do not try again: [learn.microsoft.com/en-us/answers/questions/721762](https://learn.microsoft.com/en-us/answers/questions/721762/generating-a-link-to-an-advanced-query-search) |
+| tuta | search | Tuta is end-to-end encrypted and searches a locally-decrypted index in the client. A server-addressable content-search URL is architecturally impossible, not just undocumented. |
+| proton, zoho, fastmail, yandex, gmx | search | No route found. Web search turns up nothing, and these clients are closed-source SPAs, so there is no source to read either. These are the best candidates for the manual pass above — a search route is the easiest thing to verify: type in the provider's own search box and read the address bar. |
 | yahoo / aol | sent / drafts | The `/d/folders/N` scheme is numeric and the mapping past `1` is not established. Guessing a folder id would silently open the wrong folder — the one failure mode with no visible symptom. |
 | zoho / yandex / gmx / tuta | folders | No confirmed route. |
 

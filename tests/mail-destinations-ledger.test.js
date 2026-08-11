@@ -29,9 +29,15 @@ const SHIPPABLE = new Set(['verified', 'inherited', 'documented']);
 function parseLedger() {
     const text = readFileSync(LEDGER, 'utf8');
     const rows = [];
+    let inFence = false;
 
     for (const line of text.split('\n')) {
         const t = line.trim();
+        // Skip fenced code blocks. The "adding a search route" section shows a
+        // template row, which is shaped exactly like a real one and would
+        // otherwise be parsed as a destination that does not exist.
+        if (t.startsWith('```')) { inFence = !inFence; continue; }
+        if (inFence) continue;
         if (!t.startsWith('|')) continue;
         const cells = t.split('|').slice(1, -1).map(c => c.trim());
         if (cells.length !== 6) continue;

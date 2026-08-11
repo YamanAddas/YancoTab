@@ -181,6 +181,7 @@ export const PROVIDERS = [
         dest: {
             inbox: 'https://mail.yahoo.com/d/folders/1',
             compose: 'https://mail.yahoo.com/d/compose',
+            search: 'https://mail.yahoo.com/d/search/keyword={q}',
         },
     },
     {
@@ -243,6 +244,7 @@ export const PROVIDERS = [
         dest: {
             inbox: 'https://mail.aol.com/d/folders/1',
             compose: 'https://mail.aol.com/d/compose',
+            search: 'https://mail.aol.com/d/search/keyword={q}',
         },
     },
     {

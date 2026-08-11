@@ -96,6 +96,7 @@ export function buildSearchBar(accounts, selectedId, { onSubmit, onSelect }) {
     bar.appendChild(el('button', {
         class: 'mail-search-go',
         type: 'submit',
+        title: `Open ${provider?.name || 'mail'} search results`,
         'aria-label': 'Search',
     }, 'Search'));
 

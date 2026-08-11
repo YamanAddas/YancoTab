@@ -149,3 +149,19 @@ export function searchUrl(providerId, query, accountIndex = 0) {
     if (!supports(providerId, 'search')) return null;
     return buildUrl(providerId, 'search', { accountIndex, query });
 }
+
+/**
+ * Providers that can be searched from here.
+ *
+ * A clipboard fallback for the others was built and then cut: it could not be
+ * verified to work in any available environment (the async clipboard write was
+ * refused headless, headful, and in the preview pane), and it silently
+ * overwrites whatever the user had on their clipboard. An unverifiable feature
+ * that clobbers shared system state is not worth a small convenience.
+ *
+ * Accounts that cannot search simply do not show the bar. See DESTINATIONS.md
+ * for what it would take to add a route — it is one line in two files.
+ */
+export function searchableProviders() {
+    return PROVIDERS.filter(p => supports(p.id, 'search')).map(p => p.id);
+}

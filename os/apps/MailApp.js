@@ -228,18 +228,23 @@ export class MailApp extends App {
      */
     _search(account, query) {
         if (!account || !query) return;
+        const name = getProvider(account.providerId)?.name || 'mail';
+
         const url = searchUrl(account.providerId, query, account.accountIndex);
         if (!url) {
+            // Unreachable through the UI — the bar only renders for accounts
+            // that declare a search route — but a stale selection or a hand
+            // call must not silently open the wrong thing.
             this.kernel?.emit?.('toast', {
-                message: `${getProvider(account.providerId)?.name || 'That provider'} has no search link`,
+                message: `${name} has no search link`,
                 type: 'warning',
             });
             return;
         }
         if (!this._navigate(url)) return;
-        this.kernel?.emit?.('yancotab:activity', {
-            label: `Searched *${getProvider(account.providerId)?.name || 'mail'}*`,
-        });
+        // Provider only. The query must never reach the activity feed, which
+        // is persisted and sync-replicated. tests/mail-privacy.test.js pins it.
+        this.kernel?.emit?.('yancotab:activity', { label: `Searched *${name}*` });
     }
 
     /* ── account management ─────────────────────────────────── */

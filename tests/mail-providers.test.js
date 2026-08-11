@@ -26,6 +26,7 @@ import {
     getProvider,
     buildUrl,
     searchUrl,
+    searchableProviders,
     supports,
     destinations,
     supportsAccountIndex,
@@ -279,6 +280,42 @@ describe('searchUrl', () => {
     it('trims but preserves the query otherwise', () => {
         assert.equal(searchUrl('gmail', '  hello  ', 0),
             'https://mail.google.com/mail/u/0/#search/hello');
+    });
+});
+
+describe('searchableProviders', () => {
+    it('lists exactly the providers that declare a search route', () => {
+        const listed = searchableProviders();
+        for (const p of PROVIDERS) {
+            assert.equal(listed.includes(p.id), supports(p.id, 'search'), p.id);
+        }
+    });
+
+    it('Outlook has no search route, and that is settled rather than pending', () => {
+        // Microsoft's own Q&A: OWA search is an AJAX POST, so the query never
+        // enters the URL and outlook.office.com/mail/?query=... cannot work.
+        // See DESTINATIONS.md. If anyone "fixes" this by inventing a template,
+        // this is the test that stops it.
+        assert.equal(supports('outlook', 'search'), false);
+        assert.equal(supports('outlook365', 'search'), false);
+        assert.equal(searchUrl('outlook', 'x', 0), null);
+        assert.equal(searchUrl('outlook365', 'x', 0), null);
+    });
+
+    it('covers Gmail, Yahoo and AOL', () => {
+        // Anti-vacuity: an empty list would make the first test pass trivially.
+        const listed = searchableProviders();
+        assert.ok(listed.length >= 3, `only ${listed.length} searchable`);
+        for (const id of ['gmail', 'yahoo', 'aol']) {
+            assert.ok(listed.includes(id), `${id} should be searchable`);
+        }
+    });
+
+    it('Yahoo and AOL share one client, so their routes share one shape', () => {
+        assert.equal(searchUrl('yahoo', 'receipt', 0),
+            'https://mail.yahoo.com/d/search/keyword=receipt');
+        assert.equal(searchUrl('aol', 'receipt', 0),
+            'https://mail.aol.com/d/search/keyword=receipt');
     });
 });
 

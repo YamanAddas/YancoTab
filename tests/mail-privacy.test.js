@@ -144,13 +144,24 @@ describe('the activity feed never receives the query', () => {
     });
 
     it('the search emit names the provider, not the query', () => {
-        const searchBody = src.slice(src.indexOf('_search(account, query)'));
-        const emitAt = searchBody.indexOf('yancotab:activity');
-        assert.ok(emitAt > -1, 'search path has no activity emit');
-        const emit = searchBody.slice(emitAt, emitAt + 260);
-        assert.match(emit, /Searched/, 'label does not say what happened');
-        assert.match(emit, /getProvider/, 'label is not built from the provider');
-        assert.ok(!/query/.test(emit), 'label mentions the query');
+        const start = src.indexOf('_search(account, query)');
+        const end = src.indexOf('_armPicking()', start);
+        assert.ok(start > -1 && end > start, 'could not isolate the search path');
+        const body = src.slice(start, end);
+
+        // The label must be derived from the provider. Asserted structurally
+        // rather than by textual adjacency to the emit: `name` is computed
+        // once at the top of the method and used by both branches, so a
+        // proximity check would have been coupled to one particular layout.
+        assert.match(body, /const name = getProvider\(account\.providerId\)\?\.name/,
+            'the display name is not derived from getProvider');
+
+        const emits = body.match(/yancotab:activity'[^)]*\)/g) || [];
+        assert.ok(emits.length >= 1, `search path has no activity emit`);
+        for (const emit of emits) {
+            assert.match(emit, /Searched \*\$\{name\}\*/, `label is not the provider name: ${emit}`);
+            assert.ok(!/query/.test(emit), `label mentions the query: ${emit}`);
+        }
     });
 
     it('no storage write happens anywhere in the search path', () => {

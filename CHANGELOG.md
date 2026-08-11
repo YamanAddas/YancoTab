@@ -6,6 +6,83 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.11.1] — 2026-08-11
+
+Search reaches two more providers, and one of the remaining gaps turns out
+to be permanent rather than merely unfilled.
+
+### Added — Yahoo Mail and AOL search
+
+`https://mail.yahoo.com/d/search/keyword={q}` and the AOL equivalent. The two
+share one client, which is why they share one route shape — the same `/d/…`
+family as their already-shipped `/d/folders/1` and `/d/compose`. Both land in
+`DESTINATIONS.md` as `documented`, not `verified`: they still want a signed-in
+human, and the ledger keeps saying so.
+
+Gmail, Yahoo and AOL can now be searched. The account picker in the search bar
+lists only accounts that can actually search, so a pinned Outlook account is
+correctly absent from it.
+
+### Established — Outlook has no search link, and never will
+
+Not "not found yet". Microsoft's own Q&A records that Outlook Web search is
+performed by an **AJAX POST**, so the query never enters the URL:
+`outlook.office.com/mail/?query=…` cannot work. Microsoft's own answer is to
+use the Graph API, which needs OAuth and a server — both permanently outside
+what a `storage`-only extension can do.
+
+That is written into `DESTINATIONS.md` with the citation and pinned by a test,
+because the whole point of the ledger is that a settled question stops getting
+re-asked. Tuta is recorded alongside it for a different reason: its search runs
+over a locally-decrypted index, so a server-addressable search URL is
+architecturally impossible rather than undocumented.
+
+Proton, Zoho, Fastmail, Yandex and GMX remain simply unknown. Web search turns
+up nothing and they are closed-source SPAs, so there is no source to read
+either. `DESTINATIONS.md` now carries a short "adding a search route" section:
+one line in the provider table, one row in the ledger, and the test fails if
+you do one without the other.
+
+### Built and cut — a clipboard fallback
+
+For providers with no search route, the bar was going to stay visible and
+degrade to copy-the-query-then-open-the-inbox. It is not shipping, for two
+reasons found by trying to verify it.
+
+The async clipboard write **could not be made to succeed in any available
+environment** — refused headless, refused headful with permissions overridden,
+and refused in the preview pane for want of a focused document. A feature whose
+happy path cannot be observed working should not ship on the strength of its
+error path working.
+
+And reading the clipboard back to check made the second reason obvious: it held
+real, unrelated working notes. Overwriting that to save someone a retype is a
+bad trade, however well-labelled the button is.
+
+Writing it did surface a genuine bug worth keeping the note about:
+`navigator.clipboard.writeText()` and `window.open()` both consume transient
+user activation, so awaiting the clipboard *before* opening can let the
+activation lapse and get the tab eaten by the popup blocker. Any future version
+of this has to fire the write, open synchronously, and await afterwards.
+
+Accounts without a search route show no search bar, as before.
+
+### Tests
+
+2293 (+4). The Outlook case is asserted as a negative — `supports()` false and
+`searchUrl()` null for both Outlook entries — so inventing a `?query=` template
+turns the suite red rather than shipping a link that silently cannot work.
+
+Verified live: Gmail, Yahoo and AOL each open their own search URL for the
+right account, `a/b?c&d` encodes to `a%2Fb%3Fc%26d` so a query cannot escape
+its path segment, and a pinned Outlook 365 account is absent from the picker.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.11.1-mail-search`.
+
+---
+
 ## [1.11.0] — 2026-08-11
 
 The Mail app was a launcher with two verbs and letters for icons. It now has
