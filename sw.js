@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.8-wallpaper-beacon';
+const CACHE_NAME = 'yancotab-v1.10.9-img-csp';
 
 const PRECACHE = [
     './',

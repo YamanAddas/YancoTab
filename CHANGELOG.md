@@ -6,6 +6,73 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.9] — 2026-08-10
+
+Defence in depth behind v1.10.8: images may now only come from places
+we chose, so the beacon class is dead even if a future sink reaches an
+image URL.
+
+### Added — an `img-src` content-security policy
+
+v1.10.8 closed the two routes by which an imported settings file could
+smuggle an off-origin `url()` into the wallpaper. This closes the
+category: the browser now refuses any image the policy does not name,
+whatever code asked for it.
+
+Declared twice, because the two products have different backstops:
+
+- `manifest.json` → the extension's pages.
+- a `<meta>` tag in `index.html` → the **standalone web app**, which
+  has no manifest and until now had no policy at all.
+
+Both allow exactly `'self' data: blob: https://s2.googleusercontent.com
+https://*.gstatic.com` — local assets; Photos and custom wallpapers;
+PDF page renders and thumbnails; and bookmark favicons.
+
+### The part that would have broken everything
+
+The favicon URL the code requests (`s2.googleusercontent.com`) **302s
+to `t*.gstatic.com`**. CSP re-checks every redirect target and blocks on
+the *destination* while reporting the *original* URI — so a policy
+naming only the host we type kills every favicon in the product and
+blames a URL that was, in fact, allowed.
+
+That is not a deduction. The first candidate directive was exactly that,
+and the browser blocked all five quick-link favicons; the redirect only
+became visible by opening the URL in a policy-free tab and reading where
+it landed. Both hosts are required and the test says so, in those words,
+so nobody "tidies away" the redundant-looking one.
+
+Verified live rather than reasoned about: with the policy active, a
+`data:` image, a `blob:` image, a local asset and a real favicon all
+load, an off-origin beacon is refused, and exercising Photos, PDF
+Reader, Settings, Browser, Weather, all five page tabs and all six
+wallpaper modes produced **one** violation — the deliberate beacon.
+
+### Tests
+
+2184 (+12). `tests/csp-img-src.test.js` asserts each source
+individually with the reason it is there, pins the meta tag and the
+manifest to each other so the web app and the extension cannot drift,
+requires the meta tag to precede the first stylesheet (a policy declared
+after loading starts governs less than it looks like it does), refuses
+blanket sources (`*`, `https:`, `http:`) that would make the directive
+decorative, and checks that the four favicon call sites request a host
+the policy actually allows — so moving the favicon host again cannot
+silently break icons.
+
+Mutation-verified six ways: dropping the redirect host, removing the
+directive, widening it to `*`, drifting the meta tag from the manifest,
+deleting the meta tag, and pointing a call site at a disallowed host.
+
+### Not covered
+
+`connect-src`, `style-src` and `font-src` remain unrestricted. They
+deserve the same treatment and the same live verification; bundling
+them here would have meant shipping directives nobody had exercised.
+
+---
+
 ## [1.10.8] — 2026-08-10
 
 A security pass over every surface that accepts attacker-controlled
