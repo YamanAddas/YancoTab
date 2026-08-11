@@ -7,7 +7,7 @@
  *
  * | Shortcut       | Action                        | Context            |
  * |----------------|-------------------------------|--------------------|
- * | Escape         | close app → home / blur input | global             |
+ * | Escape         | blur field → close window     | global (2-stage)   |
  * | Ctrl+Enter     | quick-capture to Notes        | in the search box  |
  * | Ctrl+Shift+F   | toggle Focus Mode             | global             |
  * | Ctrl+K         | focus SmartSearch             | global             |
@@ -18,6 +18,41 @@
  * CAPTURE-phase handler that owns Escape / Space / arrows and stops
  * propagation, so those never reach this bubble-phase listener. The
  * Ctrl+Shift+F branch here is effectively open-only.
+ *
+ */
+
+/**
+ * What should the shell's Escape do?
+ *
+ * The shell's Escape is a FALLBACK. It closes the focused window only
+ * when nothing more specific has claimed the key:
+ *
+ *   'ignore' — an app handler already called preventDefault (Notes'
+ *              find bar, Calculator's clear, Files' clear-selection,
+ *              every popover and context menu). Before v1.10.6 the
+ *              shell closed the window on top of whatever the app did,
+ *              so dismissing the find bar also threw the note away.
+ *              MailApp had already worked around this locally by
+ *              calling stopPropagation — this generalizes its rule.
+ *   'blur'   — focus is in a text field. The key that dismisses a typo
+ *              must not also be the key that tears the window down, so
+ *              the first Escape leaves the field and a second one
+ *              closes. Focus Mode has used this two-stage rule since
+ *              v1.3.0; this makes the shell agree with it.
+ *   'close'  — nothing else wanted it and a window is focused.
+ *   'none'   — nothing to do (home screen, no field focused).
+ *
+ * @param {{defaultPrevented: boolean, isInput: boolean, hasWindow: boolean}} ctx
+ * @returns {'ignore'|'blur'|'close'|'none'}
+ */
+export function escapeAction({ defaultPrevented, isInput, hasWindow }) {
+  if (defaultPrevented) return 'ignore';
+  if (isInput) return 'blur';
+  return hasWindow ? 'close' : 'none';
+}
+
+/**
+ * Bind the global shortcut listener (see the table at the top of this file).
  *
  * @param {object} shell  MobileShell instance (needs .state and .components)
  * @param {object} kernel
@@ -33,13 +68,18 @@ export function bindShellShortcuts(shell, kernel) {
       || e.target?.isContentEditable;
     const ctrl = e.ctrlKey || e.metaKey;
 
-    // Escape — close current app and go home (always active)
+    // Escape — the shell's fallback close. See escapeAction() above for
+    // why it defers to app handlers and to focused text fields.
     if (e.key === 'Escape') {
-      if (shell.state.activePid) {
+      const action = escapeAction({
+        defaultPrevented: e.defaultPrevented,
+        isInput,
+        hasWindow: Boolean(shell.state.activePid),
+      });
+      if (action === 'blur') e.target.blur();
+      else if (action === 'close') {
         kernel.processManager.closeProcess(shell.state.activePid);
         e.preventDefault();
-      } else if (isInput) {
-        e.target.blur();
       }
       return;
     }

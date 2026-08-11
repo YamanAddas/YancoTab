@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.5-toast-alerts';
+const CACHE_NAME = 'yancotab-v1.10.6-escape-fallback';
 
 const PRECACHE = [
     './',

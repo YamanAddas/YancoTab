@@ -6,6 +6,68 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.6] — 2026-08-10
+
+The last follow-up from the v1.10.0 window-mode review. Escape was
+closing the window out from under the thing that had just handled it.
+
+### Fixed — Escape is a fallback again, not a pre-emption
+
+The shell's Escape handler closed the focused window on *any* Escape,
+ahead of both the app and the focused text field. Two consequences,
+both reproduced in the browser before the fix:
+
+- **An app that already handled Escape got its window closed anyway.**
+  Calculator's own handler clears the display on Escape and calls
+  `preventDefault()` — the shell then closed the window on top of it,
+  so the clear was never even visible. The same shape hit Notes' find
+  bar (dismissing the bar threw the note's window away), Files'
+  clear-selection, and every popover and context menu that dismisses
+  on Escape. The shell never checked `defaultPrevented`, so an app
+  saying "I handled this" meant nothing.
+- **Typing in a text field and pressing Escape closed the window.**
+  The key that dismisses a typo was also the key that tore the window
+  down.
+
+Escape now resolves in one place (`escapeAction` in
+`os/ui/shellShortcuts.js`):
+
+1. `preventDefault()` already called → the app handled it; the shell
+   does nothing.
+2. Focus is in a text field → blur it. A second Escape, with the field
+   released, closes the window.
+3. Otherwise → close the focused window, exactly as before.
+
+Neither rule is invented here. Focus Mode has used the two-stage blur
+since v1.3.0 — "the key that dismisses a typo isn't also the key that
+tears down the screen" — and **MailApp had already worked around the
+shell locally**, calling `stopPropagation()` only when it had something
+to cancel and otherwise letting Escape through. This generalizes
+MailApp's rule so every app gets it by calling the standard
+`preventDefault()`, and makes the shell agree with Focus Mode.
+
+Escape with no window focused still closes nothing, so a minimized
+window cannot be killed from the tray by a stray keypress.
+
+### Tests
+
+2146 (+10). `tests/shell-escape.test.js` covers the decision as a pure
+function across the full matrix, including the two regressions by name
+and the property that no combination closes a window when none is
+focused. The suite also pins the wiring, so the predicate cannot be
+bypassed at the call site.
+
+Mutation-verified five ways — ignoring `defaultPrevented`, removing
+the blur stage, restoring the historical close-before-blur ordering,
+closing with no focused window, and bypassing the predicate — each
+caught by the test written for it.
+
+Verified live: Escape in Calculator now clears without closing; a
+plain Escape still closes; Escape in the Browser's URL bar blurs the
+field and leaves the window open, and a second Escape closes it.
+
+---
+
 ## [1.10.5] — 2026-08-10
 
 The last item from the v1.10.3 z-order audit: the one remaining way a
