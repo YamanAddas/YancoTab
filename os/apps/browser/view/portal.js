@@ -17,7 +17,7 @@ function emojiForUrl(url, label) {
 function faviconFor(url) {
   try {
     const host = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
+    return `https://s2.googleusercontent.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=64`;
   } catch {
     return '';
   }
@@ -39,7 +39,11 @@ export function buildPortal(bookmark, { onOpen, onContextMenu }, now = Date.now(
   });
   const fav = faviconFor(bookmark.url);
   if (fav) {
-    const img = el('img', { class: 'wh-portal-favicon', src: fav, alt: '', loading: 'lazy' });
+    const img = el('img', {
+      class: 'wh-portal-favicon', src: fav, alt: '', loading: 'lazy',
+      // Match PagePanes: never tell the favicon host which page asked.
+      referrerpolicy: 'no-referrer',
+    });
     hex.appendChild(img);
   } else {
     hex.appendChild(el('span', { class: 'wh-portal-glyph' }, emojiForUrl(bookmark.url, bookmark.label)));

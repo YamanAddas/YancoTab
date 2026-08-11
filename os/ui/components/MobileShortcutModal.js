@@ -118,7 +118,7 @@ export class MobileShortcutModal {
                 const domain = urlObj.hostname;
 
                 // Fetch High-Res Icon
-                const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
+                const faviconUrl = `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=256`;
 
                 // Build Image Object to test load
                 const img = new Image();

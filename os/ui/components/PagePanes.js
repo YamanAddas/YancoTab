@@ -28,7 +28,7 @@ import { promptAddLink, confirmRemoveLink } from '../quickLinks/quickLinksAction
 function faviconUrl(href) {
     try {
         const u = new URL(href);
-        return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`;
+        return `https://s2.googleusercontent.com/s2/favicons?domain=${u.hostname}&sz=64`;
     } catch { return null; }
 }
 

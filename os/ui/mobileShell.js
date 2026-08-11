@@ -628,7 +628,7 @@ export class MobileShell {
           let iconUrl = '🌍';
           try {
             const domain = new URL(appDef.url).hostname;
-            iconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=256`;
+            iconUrl = `https://s2.googleusercontent.com/s2/favicons?domain=${domain}&sz=256`;
           } catch { /* best-effort */ }
 
           // Only add if not already in state
