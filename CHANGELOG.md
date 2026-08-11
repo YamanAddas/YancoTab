@@ -6,6 +6,99 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.7] — 2026-08-10
+
+Found by auditing the codebase for its recurring bug — code that looks
+wired and isn't. A full disk did not merely fail to save; renaming a
+file destroyed it.
+
+### Fixed — the filesystem lied about every write
+
+Every write to the virtual filesystem funnels through
+`FileSystemService._save()`. It caught `QuotaExceededError`, logged to
+the console, and dispatched `yancotab:storage-full` under a comment
+reading *"Dispatch event so the UI layer can handle gracefully"*.
+
+**Nothing listened to that event.** One dispatch, one entry in
+`KNOWN_EVENTS`, zero listeners in the entire repo — for its whole life.
+
+`_save` also returned nothing, and its caller ignored that anyway:
+
+```js
+write(path, content, meta = {}) { …; this._save(path, file); return true; }
+```
+
+So on a full disk, `write()` reported success while nothing was
+written. That covers Notes' autosave, every Files create/rename/move,
+and PDF import — the note editor showed its "saved" state, the user
+closed the window, and the text was gone. The project already had the
+right tool for this (`utils/safeSave.js` surfaces exactly this failure
+for `kernel.storage` writes); the filesystem simply bypassed it.
+
+### Fixed — renaming a file on a full disk destroyed it
+
+`rename()` is copy-then-delete:
+
+```js
+this._save(newPath, item);
+localStorage.removeItem(this._key(oldPath));
+```
+
+With the copy refused and its failure unreported, the delete ran
+anyway. The destination never existed and the source was removed — not
+a failed rename, an erased file. The recursive directory branch had the
+same shape per child, so one refused copy mid-loop destroyed that child
+too.
+
+`rename` now throws before touching the source. It throws rather than
+returning false — unlike `write()` — because its failure mode is
+destructive and its callers already wrap it in try/catch and toast
+"Rename failed", so the error surfaces for free. `write()` keeps
+returning a boolean instead: its hot caller is a 300ms autosave, where
+a throw would surface as an unhandled rejection on every keystroke.
+
+`write()` and `mkdir()` now return the real result.
+
+### Fixed — the event finally has a listener
+
+`mobileShell` bridges `yancotab:storage-full` to a toast, the same
+pattern v1.6.0 used for the seven orphaned `yancotab:notify` sites. It
+is deduped per session (a failing autosave would otherwise queue a
+toast every few keystrokes — the reasoning `safeSave` already uses) and
+emitted as `error`, so v1.10.5's alert exemption keeps Pomodoro's
+auto-mute from hiding it. A data-loss warning that a focus break can
+swallow would be the same bug in a new place.
+
+### Tests
+
+2159 (+13). `tests/fs-quota.test.js` drives the real service against a
+localStorage mock with a quota switch: `write()` returns false and does
+not persist, the event fires, a non-quota failure returns false
+*without* claiming the disk is full, `mkdir` reports honestly, and —
+the case the suite exists for — a refused rename leaves the source
+file, its content, and a refused directory child intact, while normal
+renames still move and clean up. A source check pins the shell bridge
+and its `error` severity.
+
+Mutation-verified seven ways, each caught: restoring `return true`,
+making `_save` swallow again, deleting the source after a refused copy
+(both the file and the directory-child variants), dropping the event,
+removing the shell listener, and demoting the toast to a severity the
+Pomodoro mute hides.
+
+### Verification note
+
+The unit tests are deterministic and the shell bridge was confirmed
+live (the toast renders, carries `role="alert"` and the alert class,
+and five further events produce no duplicates). A full end-to-end
+reproduction against a genuinely exhausted origin was attempted and
+abandoned: the running app competes for the same localStorage and
+prunes it, so the signal was not clean enough to claim. The quota
+branch itself is therefore proven by mock and by mutation, not by a
+live disk-full reproduction.
+
+---
+
 ## [1.10.6] — 2026-08-10
 
 The last follow-up from the v1.10.0 window-mode review. Escape was

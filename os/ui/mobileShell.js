@@ -217,6 +217,27 @@ export class MobileShell {
       }
     });
 
+    // Storage-full bridge. FileSystemService dispatches this when a
+    // localStorage write is refused, with a comment promising "the UI
+    // layer can handle gracefully" — and no listener existed for its
+    // entire life, so a full disk failed in silence while write() still
+    // reported success. Every note, file and PDF write funnels through
+    // that path.
+    //
+    // Deduped per session: Notes autosaves on a 300ms debounce, so a
+    // full disk would otherwise queue a toast every few keystrokes. Same
+    // reasoning as safeSave's per-label dedupe. `error` type so it
+    // survives Pomodoro's auto-mute (v1.10.5).
+    let storageFullToasted = false;
+    window.addEventListener('yancotab:storage-full', () => {
+      if (storageFullToasted) return;
+      storageFullToasted = true;
+      kernel.emit('toast', {
+        message: 'Storage full — changes could not be saved',
+        type: 'error',
+      });
+    });
+
     // Live icon badges. Painted onto whatever icons are in the document
     // rather than pushed through SmartIcon metadata, so grid re-renders,
     // page switches, folder overlays and the dock all get them for free.

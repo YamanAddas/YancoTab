@@ -27,6 +27,14 @@ export class FileSystemService {
 
     // --- Core Operations ---
 
+    /**
+     * Write a file. Returns true on success and FALSE when the write was
+     * refused (storage full) — it does not throw, because the hot caller
+     * is Notes' 300ms autosave and a throw there would surface as an
+     * unhandled rejection on every keystroke. The shell turns the
+     * storage-full event into a toast; callers that render their own
+     * save state should check this return.
+     */
     write(path, content, meta = {}) {
         const file = {
             type: 'file',
@@ -38,8 +46,7 @@ export class FileSystemService {
                 modified: Date.now()
             }
         };
-        this._save(path, file);
-        return true;
+        return this._save(path, file);
     }
 
     read(path) {
@@ -65,34 +72,44 @@ export class FileSystemService {
 
         const item = this._load(oldPath);
 
+        // Rename is copy-then-delete, so a refused copy must ABORT before
+        // the delete. Otherwise a full disk does not merely fail to
+        // rename — it destroys the file: the new copy never lands and the
+        // original is removed anyway. Throwing is right here (unlike
+        // write(), which returns false): the callers already wrap rename
+        // in try/catch and toast "Rename failed", and the alternative is
+        // silent deletion.
+        const FULL = 'Storage full — rename aborted to avoid losing the file';
+
         // Handle Directory Rename (Recursive)
         if (item.type === 'directory') {
             const prefix = oldPath + '/';
             const children = this._listAll().filter(p => p.startsWith(prefix));
-            children.forEach(childPath => {
+            for (const childPath of children) {
                 const child = this._load(childPath);
                 // Anchored replacement: only replace the leading oldPath portion
                 const newChildPath = newPath + childPath.slice(oldPath.length);
                 child.path = newChildPath;
-                this._save(newChildPath, child);
+                if (!this._save(newChildPath, child)) throw new Error(FULL);
                 localStorage.removeItem(this._key(childPath));
-            });
+            }
         }
 
         // Move Item
         item.path = newPath;
-        this._save(newPath, item);
+        if (!this._save(newPath, item)) throw new Error(FULL);
         localStorage.removeItem(this._key(oldPath));
     }
 
+    /** Returns true if the directory exists after the call. */
     mkdir(path) {
-        if (this.exists(path)) return;
+        if (this.exists(path)) return true;
         const dir = {
             type: 'directory',
             path,
             meta: { created: Date.now() }
         };
-        this._save(path, dir);
+        return this._save(path, dir);
     }
 
     list(dirPath) {
@@ -140,17 +157,35 @@ export class FileSystemService {
 
     _key(path) { return this.prefix + path; }
 
+    /**
+     * Persist one node. Returns true on success, false when the write
+     * was refused (quota) or otherwise failed.
+     *
+     * Every FS write funnels through here, so this return value is the
+     * only thing standing between a full disk and silent data loss.
+     * Before v1.10.7 it swallowed QuotaExceededError and returned
+     * undefined while write() reported success regardless — a note
+     * autosave, a file rename or a PDF import could fail with the user
+     * told it worked.
+     *
+     * The `yancotab:storage-full` event is dispatched for the UI to
+     * surface; mobileShell bridges it to a toast. It had no listener at
+     * all for its entire life, which is the other half of the same bug.
+     */
     _save(path, data) {
         try {
             localStorage.setItem(this._key(path), JSON.stringify(data));
+            return true;
         } catch (e) {
             if (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014) {
                 console.error('[FS] Storage quota exceeded:', e);
-                // Dispatch event so the UI layer can handle gracefully
-                window.dispatchEvent(new CustomEvent('yancotab:storage-full', { detail: { path } }));
+                try {
+                    window.dispatchEvent(new CustomEvent('yancotab:storage-full', { detail: { path } }));
+                } catch { /* no window (tests, workers) */ }
             } else {
                 console.error('[FS] Write Error:', e);
             }
+            return false;
         }
     }
 

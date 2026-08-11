@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.6-escape-fallback';
+const CACHE_NAME = 'yancotab-v1.10.7-fs-quota';
 
 const PRECACHE = [
     './',
