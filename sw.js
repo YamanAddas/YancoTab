@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.2-notes-dedupe';
+const CACHE_NAME = 'yancotab-v1.10.3-z-order';
 
 const PRECACHE = [
     './',

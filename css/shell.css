@@ -622,17 +622,7 @@ body.in-app .main-content {
   cursor: pointer;
 }
 
-/* ── App Windows ── */
-#app-windows {
-  position: fixed;
-  inset: 0;
-  z-index: var(--z-window);
-  pointer-events: none;
-}
-
-#app-windows > * {
-  pointer-events: auto;
-}
+/* #app-windows removed in v1.10.3 — see the note in css/main.css. */
 
 /* ── Standalone app-window fallback (not inside window chrome) ── */
 .app-window:not(.window-chrome__content .app-window) {

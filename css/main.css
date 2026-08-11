@@ -116,18 +116,12 @@ body.theme-light {
   overflow: hidden;
 }
 
-/* ── Window container ── */
-/* Window container - persists across shell rerenders */
-#app-windows {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1000;
-}
-
-#app-windows .placeholder-window {
-  pointer-events: auto;
-}
+/* #app-windows is gone (v1.10.3). It was an empty, never-populated
+   body-level container from the pre-v1.0 architecture — and at
+   `position: fixed; z-index: 1000` it was the ONLY root-level element
+   ranked above the toast container (--z-toast: 800), so anything ever
+   mounted into it would have buried every toast. App windows live in
+   .m-app-layer inside the shell; see the stacking note in tokens.css. */
 
 /* Shell container - sits above starfield canvas */
 #app-shell {

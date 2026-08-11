@@ -6,6 +6,97 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.3] — 2026-08-10
+
+The third follow-up from the v1.10.0 window-mode review — except the
+finding it set out to fix turned out not to be real. Measuring it
+produced a different bug, a dead element, and the documentation that
+stops the same false diagnosis being made a fourth time.
+
+### Not a bug — toasts were never buried by app windows
+
+The report (mine, in the v1.10.0 notes) was that `--z-toast: 800` sits
+below the app layer's legacy `z-index: 2000 !important`, so any open
+window hides every toast, including security blocks and quota errors.
+
+Those two numbers are not comparable. `#app` has `z-index: auto` and so
+forms **no stacking context**, which means the shell competes at the
+root as `#app-shell` — `z-index: 1`. Everything inside it, the 2000
+layer included, is sealed under that 1 and can never outrank a
+root-level sibling however large the number gets. `.toast-container` is
+appended to `document.body` by `Toast.js`, deliberately not into the
+shell, so the comparison that actually decides paint order is 800 vs 1.
+
+Measured rather than argued, with a window positioned over the toast
+strip: `elementsFromPoint` at the toast's centre returns
+`toast-pill → toast-container → calc-display-result → calc-display`.
+The toast paints above the app's own content, inside the 2000 layer.
+
+Nothing was raised. Lifting `--z-toast` toward the tier-2 numbers would
+have changed no pixel and would have written the wrong mental model
+into the tokens permanently.
+
+### Removed — a dead container that outranked every toast
+
+Measuring the root stacking context to check the above turned up
+`#app-windows`: an empty `position: fixed; inset: 0; z-index: 1000`
+div in `index.html`, styled in two stylesheets, referenced by no
+JavaScript, holding zero children — left over from the pre-v1.0
+architecture along with the `.placeholder-window` class it targeted.
+
+At z-index 1000 it was the **only** root-level element ranked above
+`.toast-container` (800), and it is named exactly like the thing a
+future reader would mount windows into. Harmless the day it was
+measured, load-bearing the day someone used it. App windows live in
+`.m-app-layer` inside the shell; the div and its two CSS blocks are
+gone.
+
+### Changed — the z-index scale documents its two tiers
+
+The scale had grown a comment (added in v1.10.0) telling readers that
+the window tray "must clear `.m-app-layer`'s legacy 2000" — true within
+the shell, and precisely what invites the cross-tier comparison that
+produced this false report. `css/tokens.css` now leads with the split:
+
+- **Tier 1**, root stacking context: `#starfield 0 < #app-shell 1 <
+  .toast-container 800 < .boot-screen 9999`.
+- **Tier 2**, inside `#app-shell`: everything from `--z-grid` to
+  `--z-alarm`, plus the legacy 2000. Comparable only with each other.
+
+`--z-toast` now records that its placement on `document.body`, not its
+value, is what puts toasts above windows.
+
+### Tests
+
+2123 (+8). `tests/z-order.test.js` locks the invariant that no number
+in the scale can express: the toast container is appended to
+`document.body`; `#app-shell` stays below `--z-toast` in every
+stylesheet; `--z-focus` stays below `--z-toast` (the v1.3.0 rule); no
+id in `index.html` is given a z-index at or above `--z-toast` except
+the boot and fatal screens; and `#app-windows` stays gone. The two-tier
+comment itself is asserted, because losing it is how the next false
+diagnosis starts.
+
+Mutation-verified five ways, each caught by the test written for it:
+restoring `#app-windows` exactly as it was, mounting the toast
+container inside the shell, raising `#app-shell` above `--z-toast`,
+raising `--z-focus` above `--z-toast`, and deleting the two-tier note.
+The first of those is the important one — this guard would have caught
+the dead container on the day it was added.
+
+### Known — the one way a toast really can be silenced
+
+`body.pomodoro-mute` resolves to
+`.toast-container { display: none !important }` (`css/pomodoro.css`),
+so while Pomodoro auto-mute is engaged every toast in the product is
+hidden — security blocks and quota errors included. That is deliberate
+and already bounded to the Pomodoro window's lifetime (v1.7.0
+deliberately declined to make it ambient for exactly this reason).
+Untouched here: it is a product decision about a shipped feature, not
+a z-order defect, and it deserves its own call rather than a rider.
+
+---
+
 ## [1.10.2] — 2026-08-10
 
 The second follow-up from the v1.10.0 window-mode review: two editor

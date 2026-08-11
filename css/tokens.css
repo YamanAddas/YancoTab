@@ -89,7 +89,27 @@
   --font-xl:    24px;
   --font-xxl:   28px;
 
-  /* ── Z-Index Scale ── */
+  /* ── Z-Index Scale ──
+     READ THIS BEFORE COMPARING TWO NUMBERS HERE. The scale is TWO TIERS,
+     and values from different tiers are NOT comparable — a bigger number
+     in tier 2 does not paint above a smaller number in tier 1.
+
+     Tier 1 — root stacking context (direct children of <body>):
+       #starfield 0  <  #app-shell 1  <  .toast-container 800  <
+       .boot-screen 9999
+     `#app` has `z-index: auto`, so it forms NO stacking context and its
+     child #app-shell (z-index: 1, css/main.css) is what competes at the
+     root. THE ENTIRE SHELL THEREFORE LIVES AT ROOT-LEVEL z-index 1.
+
+     Tier 2 — inside #app-shell. Everything below (grid…alarm, plus
+     .m-app-layer's legacy `z-index: 2000 !important` in main.css) is
+     sealed inside that context and can never outrank a root-level
+     sibling, however large the number. This is why .toast-container —
+     appended to document.body by os/ui/components/Toast.js, deliberately
+     NOT into the shell — paints above app windows even though 800 < 2000.
+     Measured, not assumed: with a window overlapping the toast strip,
+     elementsFromPoint returns the toast pill above the app's own content.
+     Locked by tests/z-order.test.js. */
   --z-wallpaper:   0;
   --z-particles:   1;
   --z-grid:        10;
@@ -104,15 +124,21 @@
      search) but must stay BELOW toasts — the "focus complete · break"
      notification is the one message a focus session exists to deliver. */
   --z-focus:       750;
+  /* TIER 1 (root). Applied to .toast-container, which Toast.js appends to
+     document.body so it sits beside #app-shell (1) rather than inside it.
+     That placement — not this number — is what puts toasts above app
+     windows; raising it toward the tier-2 values would change nothing and
+     would enshrine the wrong mental model. */
   --z-toast:       800;
   --z-boot:        900;
   --z-fatal:       1000;
-  /* The window tray must clear .m-app-layer's legacy `z-index: 2000
-     !important` (main.css) — that override predates this scale and is
-     tracked tech debt; do not "fix" it as a rider. The alarm overlay in
-     turn must clear BOTH: a ringing alarm's entire job is to be seen,
-     and at its old --z-modal (500) it painted underneath any open
-     window. */
+  /* TIER 2 (inside #app-shell) — compare these only with each other and
+     with .m-app-layer's legacy `z-index: 2000 !important` (main.css),
+     which predates this scale and is tracked tech debt; do not "fix" it
+     as a rider. The tray must clear that 2000, and the alarm overlay must
+     clear both: a ringing alarm's entire job is to be seen, and at its
+     old --z-modal (500) it painted underneath any open window. Neither
+     outranks a toast, and neither is meant to. */
   --z-wm-tray:     2100;
   --z-alarm:       2200;
 
