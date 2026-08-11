@@ -976,12 +976,27 @@ button.sol-toggle.is-disabled { cursor: not-allowed; }
 
 /* ── Ambient body classes ────────────────────────────────── */
 
-/* autoMute: hide all toasts globally during break. Both class names
-   are covered — .toast is the legacy single-toast variant, .toast-pill +
-   .toast-container is the live one. */
-body.pomodoro-mute .toast,
-body.pomodoro-mute .toast-pill,
-body.pomodoro-mute .toast-container { display: none !important; }
+/* autoMute: silence ROUTINE toasts globally during a break — "Settings
+   saved", "Task done" — which is the chatter the setting exists for.
+   autoMute defaults to ON (pomodoro/persistence.js), so this rule runs
+   for most users on most breaks.
+
+   Alerts are deliberately exempt. `.toast-pill--alert` marks error and
+   warning toasts (os/ui/components/toastSeverity.js) — "Save failed",
+   "Storage full", "Blocked unsafe URL", "Window limit reached". Those
+   report that something did NOT happen, and hiding them does not create
+   calm: it makes a failed save look successful and a refused action look
+   like a broken app.
+
+   Two things here are load-bearing:
+   • `.toast-container` must NOT be hidden. It is the parent of every
+     pill, so hiding it would hide the exempt ones too — and it carries
+     role="status" aria-live="polite", so hiding it would also stop
+     screen readers announcing the alerts that survive.
+   • The legacy `.toast` selector is gone; nothing has created that
+     class since the pill rewrite.
+   Pinned by tests/toast-mute.test.js. */
+body.pomodoro-mute .toast-pill:not(.toast-pill--alert) { display: none !important; }
 
 /* nightShell: subtle dim on the dock + greeting + status bar so the
    shell signals "break time" without yanking the theme. */

@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.4-offline-graph';
+const CACHE_NAME = 'yancotab-v1.10.5-toast-alerts';
 
 const PRECACHE = [
     './',
@@ -88,6 +88,7 @@ const PRECACHE = [
     './os/ui/components/widgets/WeatherWidget.js',
     './os/ui/components/widgets/TodoWidget.js',
     './os/ui/components/Toast.js',
+    './os/ui/components/toastSeverity.js',
     './os/ui/components/YancoModal.js',
     './os/ui/components/Onboarding.js',
     './os/ui/components/FocusMode.js',

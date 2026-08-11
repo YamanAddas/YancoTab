@@ -6,6 +6,79 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.5] — 2026-08-10
+
+The last item from the v1.10.3 z-order audit: the one remaining way a
+toast could be silenced was a `display: none` on every toast in the
+product, and it was on by default.
+
+### Fixed — a Pomodoro break could swallow "Save failed"
+
+Pomodoro's `autoMute` setting hides toasts during a break so the user
+is not interrupted. It did so with a blanket rule
+(`body.pomodoro-mute .toast-pill, .toast-container { display: none }`),
+and `autoMute` **defaults to on** — so for most users, on most breaks,
+every toast in the product was hidden. Not just Pomodoro's.
+
+Of the 193 toast emit sites, 85 are `type: 'error'`, and they are
+overwhelmingly reports that something did **not** happen: "Save
+failed", "Storage full — could not save wallpaper", "Import failed",
+"Rename failed", "Could not save mail accounts", plus every
+`safeSave` quota failure and the "Blocked unsafe URL" security refusal.
+Hiding those does not create calm. It makes a failed save look like a
+successful one — the toast is the only evidence the user ever gets.
+
+Toasts now split by severity (`os/ui/components/toastSeverity.js`):
+
+- **Alert** — `error` and `warning`. Something failed or was refused.
+  Marked `.toast-pill--alert` and exempt from the mute.
+- **Routine** — `success` and `info`. Confirmations of things that
+  worked. Still muted; this is what the setting is *for*, and it is
+  still the large majority of traffic (106 of the 193 sites).
+
+`warning` is on the alert side because both of its uses ("Window limit
+reached", "Account list is full") explain why an action the user just
+took did nothing; swallowing that reads as a broken app. An unknown or
+malformed type falls to routine, so a typo cannot quietly pierce the
+mute.
+
+The mute rule also **stopped hiding `.toast-container`**. That line was
+load-bearing in the wrong direction: the container is the parent of
+every pill, so hiding it would have hidden the exempt alerts too — and
+it carries `role="status" aria-live="polite"`, so hiding it would also
+have stopped screen readers announcing the alerts that survive. The
+dead `.toast` selector went with it; nothing has created that class
+since the pill rewrite.
+
+Deliberately unchanged: `role="alert"` is still applied to errors only.
+Which toasts interrupt speech is an accessibility question, separate
+from which ones render at all.
+
+### Tests
+
+2136 (+9). `tests/toast-mute.test.js` pins both halves — an exemption
+that leaked to every type would quietly delete the feature, so the
+suite asserts routine toasts are still hidden as firmly as it asserts
+alerts are not. Covers the severity split against malformed types, that
+Toast.js drives the class from the predicate rather than a hardcoded
+type, that the CSS exempts the alert class, and that no mute rule hides
+the container.
+
+Mutation-verified five ways: restoring the blanket rule, hiding the
+container alongside the exemption, demoting `warning`, widening the
+exemption to every type, and dropping the marker in Toast.js. Each
+turns the suite red.
+
+Verified live end-to-end with real toasts through the real
+ToastManager under an engaged mute: the window-cap warning
+("Window limit reached") rendered with `.toast-pill--alert`, a routine
+`info` toast beside it did not, and the container stayed rendered.
+
+The new module was also the first real exercise of v1.10.4's
+closure guard — the suite failed until it was precached.
+
+---
+
 ## [1.10.4] — 2026-08-10
 
 Eight apps could not open at all offline in the standalone web app.

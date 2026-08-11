@@ -7,6 +7,7 @@
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
+import { isAlertToast, ALERT_CLASS } from './toastSeverity.js';
 
 const MAX_VISIBLE = 3;
 const AUTO_DISMISS_MS = 3000;
@@ -68,9 +69,14 @@ export class ToastManager {
         // Errors are announced immediately; everything else waits for a
         // pause in speech. The container's own role="status" covers the
         // polite case, so only the error pill needs to override.
+        //
+        // The alert class marks toasts that report a failure or a
+        // refusal. Pomodoro's auto-mute hides routine confirmations
+        // during a break but must not hide these — see toastSeverity.js.
+        const cls = 'toast-pill' + (isAlertToast(type) ? ` ${ALERT_CLASS}` : '');
         const toast = el('div', type === 'error'
-            ? { class: 'toast-pill', role: 'alert' }
-            : { class: 'toast-pill' });
+            ? { class: cls, role: 'alert' }
+            : { class: cls });
         toast.style.setProperty('--toast-color', color);
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(20px)';
