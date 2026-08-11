@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Image sources, locked down. Backstop for the v1.10.9 wallpaper
+  <!-- Image sources, locked down. Backstop for the v1.10.10 wallpaper
        beacon: an off-origin url() smuggled into a storage marker cannot
        fetch even if a future sink lets one through. The extension gets
        the same directive from manifest.json's extension_pages CSP; this
@@ -18,9 +18,15 @@
        t*.gstatic.com. CSP re-checks every redirect target and blocks on
        the destination while reporting the ORIGINAL URI — so allowing
        only the host we type silently kills every favicon and blames the
-       wrong URL. Verified live; see tests/csp-img-src.test.js. -->
+       wrong URL. Verified live; see tests/csp.test.js.
+
+       connect-src is the other half: it bounds where the app may TALK,
+       so a smuggled URL cannot exfiltrate even if it reaches a fetch.
+       Open-Meteo is three separate subdomains (api, geocoding-api,
+       air-quality-api) — all three are required. -->
   <meta http-equiv="Content-Security-Policy"
-    content="img-src 'self' data: blob: https://s2.googleusercontent.com https://*.gstatic.com" />
+    content="img-src 'self' data: blob: https://s2.googleusercontent.com https://*.gstatic.com;
+             connect-src 'self' data: blob: https://api.open-meteo.com https://geocoding-api.open-meteo.com https://air-quality-api.open-meteo.com https://api.weather.gov https://nominatim.openstreetmap.org" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="description" content="YancoTab — Your personal desktop in every new tab. Apps, games, notes, weather — all running locally." />
@@ -32,27 +38,27 @@
   <title>YancoTab</title>
 
   <!-- Design System -->
-  <link rel="stylesheet" href="./css/tokens.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/reset.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/shell.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/window-chrome.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/wm.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/home.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/main.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./os/ui/bubbly.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/memory.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/photos.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/pdf-reader.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/settings.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/modal.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/todo.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/maps.css?v=v1.10.9" />
+  <link rel="stylesheet" href="./css/tokens.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/reset.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/shell.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/window-chrome.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/wm.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/home.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/main.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./os/ui/bubbly.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/memory.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/photos.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/pdf-reader.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/settings.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/modal.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/todo.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/maps.css?v=v1.10.10" />
   <!-- Liquid Glass polish — must load LAST to win specificity over per-component CSS -->
-  <link rel="stylesheet" href="./css/glass.css?v=v1.10.9" />
-  <link rel="stylesheet" href="./css/badges.css?v=v1.10.9" />
+  <link rel="stylesheet" href="./css/glass.css?v=v1.10.10" />
+  <link rel="stylesheet" href="./css/badges.css?v=v1.10.10" />
   <!-- Focus Mode is a full-shell takeover, so it loads after glass.css to
        win the opacity rules that hide the desktop behind it. -->
-  <link rel="stylesheet" href="./css/focus.css?v=v1.10.9" />
+  <link rel="stylesheet" href="./css/focus.css?v=v1.10.10" />
 </head>
 
 <body>
@@ -62,7 +68,7 @@
     <div class="boot-glow">
       <img class="boot-logo" src="./assets/icons/icon-128.png" alt="YancoTab" style="width:80px;height:80px;" />
       <div class="boot-text">YancoTab</div>
-      <div class="boot-subtext">v1.10.9</div>
+      <div class="boot-subtext">v1.10.10</div>
     </div>
   </div>
 

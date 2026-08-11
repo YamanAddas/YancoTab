@@ -6,6 +6,74 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.10] — 2026-08-10
+
+The other half of v1.10.9. `img-src` bounded what the app can fetch for
+display; `connect-src` bounds where it can **talk** — which is the
+difference between a smuggled URL pinging a server and one posting your
+data to it.
+
+### Added — a `connect-src` policy
+
+`fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource` and
+`sendBeacon` are now limited to the five endpoints the product actually
+uses, plus `'self'`, `data:` and `blob:`:
+
+| Source | What dies without it |
+|---|---|
+| `api.open-meteo.com` | the forecast |
+| `geocoding-api.open-meteo.com` | city search **and** the Clock timezone picker |
+| `air-quality-api.open-meteo.com` | air quality |
+| `api.weather.gov` | US severe-weather alerts |
+| `nominatim.openstreetmap.org` | reverse geocode |
+| `'self'` | OCR wasm + traineddata, pdf.js worker |
+| `data:` / `blob:` | the PDF Reader, which fetches its documents as URLs |
+
+**Open-Meteo is three separate subdomains**, not one. They are listed
+individually rather than as `*.open-meteo.com` so that adding a fourth
+is a deliberate act rather than something a wildcard absorbs silently.
+
+Declared in both places, as with `img-src`: `manifest.json` for the
+extension, and the `index.html` meta tag for the standalone web app.
+
+### Verified live, including the control
+
+Every endpoint was exercised through the real app with the policy
+active — Weather's city search returned London results, and Clock, PDF
+Reader, Photos and Browser were opened — producing **zero** violations.
+
+The negative case needed a second attempt worth recording: the first
+control fetched `evil.example`, which failed with "Failed to fetch" —
+but that host does not resolve, so the failure proved nothing about the
+policy. Re-run against `example.com`, which does resolve, the request
+was refused with an explicit `connect-src` violation. A control that
+fails for the wrong reason is not a control.
+
+### Tests
+
+2196 (+12). `tests/csp-img-src.test.js` is now `tests/csp.test.js`,
+since it covers two directives and will cover more. Each source is
+asserted with the feature that dies without it; blanket sources (`*`,
+`https:`, `http:`, `ws:`, `wss:`) are refused; the meta tag and the
+manifest are pinned to each other; and a scanner reads the real
+`fetch()` call sites in weatherService, clockService and ClockApp and
+requires every host it finds to be allowed — so adding an endpoint
+without widening the policy fails the suite instead of failing at
+runtime in front of a user.
+
+Mutation-verified six ways: dropping either Open-Meteo subdomain,
+removing the directive, widening it to `https:`, drifting the meta tag
+from the manifest, and pointing the code at an endpoint the policy does
+not allow.
+
+### Still unrestricted
+
+`style-src` and `font-src`. Both want the same enumerate-then-verify
+treatment; neither is a data-exfiltration path, so they rank below the
+two shipped here.
+
+---
+
 ## [1.10.9] — 2026-08-10
 
 Defence in depth behind v1.10.8: images may now only come from places
