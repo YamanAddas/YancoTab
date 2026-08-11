@@ -85,15 +85,8 @@ export class MailApp extends App {
         this._grid = null;
 
         const frame = el('div', { class: 'mail-frame' });
-
-        const search = buildSearchBar(this._state.accounts, this._searchAccountId, {
-            onSubmit: (account, q) => this._search(account, q),
-            onSelect: (id) => { this._searchAccountId = id; this._render(); },
-        });
-        if (search) {
-            frame.appendChild(search.node);
-            this._searchInput = search.input;
-        }
+        this.root.appendChild(frame);
+        this._mountSearch();
 
         if (this._picking) {
             frame.appendChild(buildDirectory({
@@ -112,7 +105,6 @@ export class MailApp extends App {
         }
 
         frame.appendChild(buildFootnote());
-        this.root.appendChild(frame);
     }
 
     _handlers() {
@@ -138,6 +130,59 @@ export class MailApp extends App {
 
     _card(id) {
         return this._grid?.querySelector(`.mail-card[data-account-id="${CSS.escape(id)}"]`) || null;
+    }
+
+    /**
+     * Re-sync the bits of chrome that a surgical card removal leaves stale.
+     *
+     * Removing one node does not update the "ACCOUNTS 6" counter, the
+     * drag/shortcut hint, or the search bar's account picker — which would
+     * happily keep offering an account that no longer exists. Cheaper and less
+     * destructive than a full re-render, which would tear down the drag rail
+     * and drop focus.
+     */
+    _syncChrome() {
+        if (!this.root) return;
+        const count = this._state.accounts.length;
+
+        const countEl = this.root.querySelector('.mail-board-count');
+        if (countEl) countEl.textContent = count ? String(count) : '';
+        const hintEl = this.root.querySelector('.mail-board-hint');
+        if (hintEl) hintEl.textContent = count > 1 ? 'drag to reorder · 1–9 to open' : '';
+
+        this._mountSearch();
+    }
+
+    /**
+     * Build (or rebuild, or remove) the search bar in place.
+     *
+     * Removing the last account whose provider can search must take the bar
+     * away entirely, not leave an input that resolves to nothing.
+     */
+    _mountSearch() {
+        const frame = this.root?.querySelector('.mail-frame');
+        if (!frame) return;
+        const existing = frame.querySelector('.mail-search');
+
+        const built = buildSearchBar(this._state.accounts, this._searchAccountId, {
+            onSubmit: (account, q) => this._search(account, q),
+            onSelect: (id) => { this._searchAccountId = id; this._mountSearch(); },
+        });
+
+        if (!built) {
+            existing?.remove();
+            this._searchInput = null;
+            return;
+        }
+        // Carry a half-typed query across a rebuild — losing it because an
+        // unrelated account was removed would be its own small bug.
+        if (existing) {
+            built.input.value = this._searchInput?.value || '';
+            existing.replaceWith(built.node);
+        } else {
+            frame.prepend(built.node);
+        }
+        this._searchInput = built.input;
     }
 
     /* ── opening ────────────────────────────────────────────── */
@@ -303,6 +348,7 @@ export class MailApp extends App {
             node.classList.add('is-leaving');
             const done = () => {
                 node.remove();
+                this._syncChrome();
                 // Removing the default promotes another card, which has to
                 // restyle; and an emptied board must fall back to the
                 // directory or the window is left blank.
