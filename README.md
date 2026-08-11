@@ -26,7 +26,7 @@ YancoTab replaces your browser's new tab page with a full desktop — app grid, 
 | Todo — multiple lists, due dates | Spider Solitaire |
 | Pomodoro — focus timer with sessions | Minesweeper |
 | Calculator | Mahjong |
-| Weather — 10-day forecast, air quality | Snake |
+| Weather — 7-day forecast, air quality | Snake |
 | Clock — alarms, timer, stopwatch | Memory |
 | Browser — in-tab with bookmarks | Tic-Tac-Toe |
 | Files — virtual file manager | Tarneeb (Arabic card game with AI) |

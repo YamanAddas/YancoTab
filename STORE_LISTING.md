@@ -29,7 +29,7 @@ Productivity:
 - ✅ Todo — Multiple lists, due dates, inline checkboxes.
 - 🍅 Pomodoro — Focus timer with session history and streaks.
 - 🔢 Calculator — Full calculator with keyboard support.
-- 🌤 Weather — 10-day forecast, air quality index, cached for offline use.
+- 🌤 Weather — 7-day forecast, hourly outlook, air quality index, cached for offline use.
 - 🕐 Clock — World clock, alarms, countdown timer, stopwatch.
 - 🌐 Browser — In-tab browser with a full bookmark bar.
 - 📁 Files — Virtual filesystem with folders, rename, move, and search.
@@ -117,8 +117,8 @@ new tab, productivity, dashboard, notes, todo, pomodoro, weather, games, desktop
 1. **Home Screen** — Greeting, widgets, app grid, starfield background, dock. Caption: "Your desktop, in every new tab."
 2. **Notes App** — Note list + editor open, tags visible. Caption: "Take notes without leaving your tab."
 3. **Solitaire** — Mid-game with cards in play. Caption: "Games built in. No installs needed."
-4. **Weather App** — Current conditions + 10-day forecast. Caption: "Weather at a glance. Always cached."
-5. **Settings** — Wallpaper picker + theme toggle. Caption: "Make it yours. Seven themes included."
+4. **Weather App** — Current conditions + hourly outlook + 7-day forecast. Caption: "Weather at a glance. Always cached."
+5. **Settings** — Wallpaper picker + theme toggle. Caption: "Make it yours. Eight themes included."
 
 ---
 
