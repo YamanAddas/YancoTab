@@ -115,7 +115,7 @@ new tab, productivity, dashboard, notes, todo, pomodoro, weather, games, desktop
 ## Screenshots Needed (5 at 1280×800 — see PRODUCTION_PLAN.md § Asset Production Guide)
 
 1. **Home Screen** — Greeting, widgets, app grid, starfield background, dock. Caption: "Your desktop, in every new tab."
-2. **Notes App** — Note list + editor open, tags visible. Caption: "Take notes without leaving your tab."
+2. **Notes App** — Library and editor open side by side as two real windows, tag rail visible. Doubles as the Desktop Window Mode shot. Caption: "Take notes without leaving your tab."
 3. **Solitaire** — Mid-game with cards in play. Caption: "Games built in. No installs needed."
 4. **Weather App** — Current conditions + hourly outlook + 7-day forecast. Caption: "Weather at a glance. Always cached."
 5. **Settings** — Wallpaper picker + theme toggle. Caption: "Make it yours. Eight themes included."

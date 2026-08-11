@@ -229,31 +229,91 @@ async function main() {
     await expect(page, '.smart-badge', 'live badges rendered');
     await shoot(page, 'screenshot-1-home');
 
-    console.log('2/5 notes');
+    console.log('2/5 notes (library + editor, two windows)');
+    // Until v1.10.0 this shot could only be the library: opening a note
+    // REPLACED it inside the same window, so a list and an editor could
+    // not share a frame and the caption ("note list + editor open") was
+    // aspirational. Desktop Window Mode made the editor its own window,
+    // so the shot can finally show what the listing claims — and it puts
+    // the flagship feature of the 1.10 line in front of reviewers.
     await openApp(page, 'notes');
-    await maximize(page);
-    await sleep(900);
-    // Notes is the "constellation" library — a star map of notes plus a
-    // filter rail. Opening a note does NOT float a window over it: the
-    // editor replaces the library inside the same window (the root gains
-    // `is-ed`), so the two cannot share a frame. The library is captured
-    // because it is the distinctive view; the editor is a text pane that
-    // would look like any other editor.
     await expect(page, '.nc-frame', 'notes library rendered');
-    // Cosmos (the star map) rather than the plain List view — it is the
-    // distinctive thing about this app and shows the tag rail populated.
+
+    // Multi-window is gated on (min-width: 1024px) AND (pointer: fine).
+    // If the gate is shut, the second spawn would replace the first and
+    // this silently becomes the old single-window shot — so fail loudly.
+    const multi = await page.evaluate(() => document.body.classList.contains('wm-multi'));
+    if (!multi) throw new Error('body.wm-multi absent — multi-window gate is shut, shot would be single-window');
+
+    // List view: rows of titles + tags read as "my notes" instantly,
+    // where the Cosmos star map is striking but abstract. Paired with a
+    // real editor beside it, this is the browse-and-write workflow.
     await page.evaluate(() => [...document.querySelectorAll('.nc-tab')]
-      .find((t) => /cosmos/i.test(t.textContent || ''))?.click());
-    await sleep(1500);
-    const noteCount = await page.evaluate(() =>
-      document.querySelectorAll('.nc-star').length);
-    if (noteCount < 4) throw new Error(`only ${noteCount} notes rendered — seeding did not take`);
-    const tagCount = await page.evaluate(() =>
-      [...document.querySelectorAll('.nc-side-item-label')].filter((e) => !/^[★⏱✓⚡🗑]/.test(e.textContent)).length);
-    if (tagCount < 4) throw new Error(`only ${tagCount} tags — hashtags did not parse from note bodies`);
-    console.log(`  ok  ${noteCount} notes, ${tagCount} tags`);
+      .find((t) => /list/i.test(t.textContent || ''))?.click());
+    await sleep(900);
+
+    // Second window: the editor for one seeded note.
+    await page.evaluate((p) => import('/os/kernel.js').then((m) =>
+      m.kernel.processManager.spawn('notes', { mode: 'editor', path: p })),
+    '/home/documents/Project Meeting Notes.txt');
+    await sleep(2200);
+
+    // Lay them out as a clean pair. Inline left/top/width/height is
+    // exactly what the window manager's snap path writes, so this is a
+    // real window state, not a screenshot-only fiction. Gaps are left
+    // on purpose: two flush halves can read as one split pane, whereas
+    // floating windows with wallpaper between them read as two windows.
+    await page.evaluate(() => {
+      const wins = [...document.querySelectorAll('.window-chrome')];
+      const rects = [
+        { left: 36, top: 96, width: 588, height: 636 },
+        { left: 656, top: 96, width: 588, height: 636 },
+      ];
+      wins.forEach((w, i) => {
+        if (!rects[i]) return;
+        w.classList.remove('window-chrome--fullscreen');
+        Object.assign(w.style, {
+          left: `${rects[i].left}px`, top: `${rects[i].top}px`,
+          width: `${rects[i].width}px`, height: `${rects[i].height}px`,
+        });
+      });
+      // The editor focuses the body on open, which parks the caret at the
+      // end and scrolls the note halfway down — the capture then starts
+      // mid-sentence. Show the note from its first line.
+      const body = document.querySelector('.window-chrome .app-notes-constellation.is-editor textarea');
+      if (body) { body.blur(); body.scrollTop = 0; }
+    });
+    await sleep(1400);
+
+    const notesShot = await page.evaluate(() => {
+      const wins = [...document.querySelectorAll('.window-chrome')]
+        .filter((w) => !w.classList.contains('window-chrome--minimized'));
+      const editor = wins.find((w) => w.querySelector('.app-notes-constellation.is-editor'));
+      const library = wins.find((w) => w.querySelector('.app-notes-constellation.is-library'));
+      return {
+        windows: wins.length,
+        hasLibrary: !!library,
+        hasEditor: !!editor,
+        rows: library ? library.querySelectorAll('.nc-list-row, [data-path]').length : 0,
+        tags: library
+          ? [...library.querySelectorAll('.nc-side-item-label')]
+            .filter((e) => !/^[★⏱✓⚡🗑]/.test(e.textContent)).length : 0,
+        editorTitle: editor?.querySelector('input')?.value || '',
+        editorBody: (editor?.querySelector('textarea')?.value || '').trim().length,
+      };
+    });
+    if (notesShot.windows !== 2) throw new Error(`expected 2 windows, saw ${notesShot.windows}`);
+    if (!notesShot.hasLibrary || !notesShot.hasEditor) {
+      throw new Error(`need one library + one editor (library=${notesShot.hasLibrary} editor=${notesShot.hasEditor})`);
+    }
+    if (notesShot.tags < 4) throw new Error(`only ${notesShot.tags} tags — hashtags did not parse from note bodies`);
+    if (!notesShot.editorTitle) throw new Error('editor opened with no note title — wrong path?');
+    if (notesShot.editorBody < 40) throw new Error(`editor body only ${notesShot.editorBody} chars — note did not load`);
+    console.log(`  ok  2 windows · library ${notesShot.rows} rows / ${notesShot.tags} tags · editor "${notesShot.editorTitle}" (${notesShot.editorBody} chars)`);
     await shoot(page, 'screenshot-2-notes');
-    await closeApp(page);
+    // Two windows now — close both.
+    await page.evaluate(() => [...document.querySelectorAll('.window-chrome__btn-close')].forEach((b) => b.click()));
+    await sleep(1200);
 
     console.log('3/5 solitaire');
     await openApp(page, 'solitaire');

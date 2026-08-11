@@ -203,6 +203,15 @@ export class NotesApp extends App {
       'data-allow-context': 'true',
     });
     const note = this._loadOneNote(this._editorPath);
+    // Name the PROCESS after the note, before the window exists.
+    // WindowChrome takes its title from metadata.name at construction and
+    // the window tray labels its chip from the same field, so this is the
+    // one place that fixes both. _updateWindowTitle below cannot: it runs
+    // during init(), and the chrome is not built until after init()
+    // resolves, so its `closest('.window-chrome')` is always null here —
+    // which is why every editor window read "Notes". It still earns its
+    // keep for renames, when the chrome does exist.
+    if (note) this.metadata = { ...this.metadata, name: note.title || 'Untitled' };
     if (!note) {
       this.root.appendChild(el('div', { class: 'nc-editor-missing' }, [
         el('h3', {}, 'Note not found'),

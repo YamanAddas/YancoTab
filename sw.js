@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.10-connect-csp';
+const CACHE_NAME = 'yancotab-v1.10.11-editor-title';
 
 const PRECACHE = [
     './',

@@ -6,6 +6,53 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.11] — 2026-08-10
+
+Found by looking at a screenshot: every Notes editor window was called
+"Notes".
+
+### Fixed — editor windows are named after their note
+
+`_updateWindowTitle` patched the titlebar by walking
+`this.root.closest('.window-chrome')`. That runs inside `init()`, and
+the chrome is not built until *after* `init()` resolves — so the lookup
+was always null and the patch silently did nothing. The comment above
+it had the ordering backwards ("the window chrome was rendered before
+we knew the note title"); it is the other way round.
+
+Invisible while one window showed at a time. With multi-window it is
+not: two editors and a library all read "Notes", in the titlebar and in
+the window tray, which is precisely when the title is load-bearing.
+
+The name is now set on `metadata.name` during `_initEditor`, before the
+window exists. `WindowChrome` takes its title from that field at
+construction and `WindowManager` labels its tray chip from the same
+one, so a single line fixes both surfaces and removes the DOM poking.
+`_updateWindowTitle` stays for renames, when the chrome does exist.
+
+Verified live: opening a note gives a window titled "Screenshot Check"
+and a tray chip reading the same.
+
+### Changed — the Notes store screenshot shows two windows
+
+Screenshot 2 now shows the library and an editor side by side, which is
+what its listing description always claimed. It could not before:
+until v1.10.0 opening a note *replaced* the library in the same window,
+so the two could not share a frame — the v1.5.1 notes recorded that as
+the reason the shot captured the star map instead. Desktop Window Mode
+removed the constraint, so the shot now matches its own caption and
+puts the flagship feature of the 1.10 line in front of reviewers.
+
+The capture asserts what it claims: two windows, one library and one
+editor, four rows, eight tags, and a non-empty note body — so the shot
+cannot silently degrade to a single window if the multi-window gate
+ever shuts. It also fails outright if `body.wm-multi` is absent.
+
+No test beyond that: the naming is one assignment, and the assertion
+lives in the same place that would otherwise ship a wrong asset.
+
+---
+
 ## [1.10.10] — 2026-08-10
 
 The other half of v1.10.9. `img-src` bounded what the app can fetch for
