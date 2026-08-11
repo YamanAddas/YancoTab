@@ -179,6 +179,89 @@ describe('service worker cache correctness', () => {
             `stylesheets index.html loads but the precache omits: ${missing.join(', ')}`);
     });
 
+    // ── The same closure rule, for LAZY apps ────────────────────────
+    // The boot-graph test above deliberately stops at the boot entries,
+    // because lazy apps load later by design. But "later" still means
+    // "from the cache or not at all": the fetch handler has no runtime
+    // cache.put, so a module the precache omits is simply unavailable
+    // offline. Since a module graph is all-or-nothing, one omission
+    // takes its whole app down — which is how 69 modules across six
+    // apps (Browser, Notes, Games, Settings, Todo, PDF) came to be
+    // uncacheable, plus four app entries (Maps, PDF Reader, Photos,
+    // Pomodoro) that were never listed at all. Nothing caught it
+    // because nothing walked past the boot entries.
+    //
+    // Dynamic edges are followed here, unlike in the boot walker: an
+    // `import()` that misses the cache offline fails just as hard as a
+    // static one, it just fails later and inside somebody's catch.
+
+    /** Full import closure (static AND dynamic) from a set of entries. */
+    function importClosure(entries) {
+        const seen = new Set();
+        const queue = [...entries];
+        while (queue.length) {
+            const file = queue.pop();
+            if (seen.has(file) || !exists(file)) continue;
+            seen.add(file);
+            const src = read(file);
+            const dir = dirname(file);
+            const specs = [
+                // NB: `export … from` re-exports are graph edges too, but
+                // the codebase has none — asserted below so this stays true.
+                ...[...src.matchAll(/^\s*import\s+(?:[^'"]*?from\s+)?['"](\.[^'"]+)['"]/gm)].map((m) => m[1]),
+                ...[...src.matchAll(/import\s*\(\s*['"](\.[^'"]+)['"]\s*\)/g)].map((m) => m[1]),
+            ];
+            for (const spec of specs) {
+                const abs = resolve(join(ROOT, dir), spec);
+                queue.push(abs.slice(ROOT.length + 1).replace(/\\/g, '/'));
+            }
+        }
+        return seen;
+    }
+
+    test('the precache is closed under import — every app can open offline', () => {
+        const entries = [...precached].filter((p) => p.endsWith('.js'));
+        const closure = importClosure(entries);
+        const missing = [...closure].filter((p) => !precached.has(p) && exists(p)).sort();
+        assert.deepEqual(missing, [],
+            'modules reachable from precached entries but absent from the precache — '
+            + `their apps cannot open offline: ${missing.join(', ')}`);
+    });
+
+    test('the closure walker actually walks (anti-vacuity)', () => {
+        const closure = importClosure([...precached].filter((p) => p.endsWith('.js')));
+        assert.ok(closure.size > 400,
+            `closure only reached ${closure.size} modules — the walker is broken`);
+        // Reached only via a dynamic import() from boot.js; if this drops
+        // out, the walker has stopped following dynamic edges and the
+        // test above would pass vacuously for every lazy app.
+        assert.ok(closure.has('os/apps/MapsApp.js'),
+            'dynamic import() edges are no longer being followed');
+    });
+
+    test('no `export … from` re-exports exist (the walker does not follow them)', () => {
+        // If this ever fails, teach importClosure the re-export form
+        // rather than deleting this test — an unfollowed edge silently
+        // shrinks the closure and hides missing modules.
+        const offenders = [];
+        const walk = (rel) => {
+            for (const entry of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+                const child = `${rel}/${entry.name}`;
+                if (entry.isDirectory()) { walk(child); continue; }
+                if (!entry.name.endsWith('.js')) continue;
+                if (/^\s*export\s+(?:\*|\{[^}]*\})\s*from\s*['"]\./m.test(read(child))) offenders.push(child);
+            }
+        };
+        walk('os');
+        assert.deepEqual(offenders, [], `re-export edges the closure walker would miss: ${offenders.join(', ')}`);
+    });
+
+    test('the precache has no duplicate entries', () => {
+        const all = [...sw.matchAll(/'\.\/([^']+)'/g)].map((m) => m[1]);
+        const dupes = [...new Set(all.filter((p, i) => all.indexOf(p) !== i))];
+        assert.deepEqual(dupes, [], `duplicated precache entries: ${dupes.join(', ')}`);
+    });
+
     // ── Every import target must exist ──────────────────────────────
     // The graph tests above only follow STATIC imports from the boot
     // entries, so a dynamic import() elsewhere in the tree can point at a

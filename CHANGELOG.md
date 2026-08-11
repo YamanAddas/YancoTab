@@ -6,6 +6,86 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.10.4] — 2026-08-10
+
+Eight apps could not open at all offline in the standalone web app.
+Found while verifying v1.10.2, fixed here with the guard that should
+have caught it.
+
+### Fixed — 84 modules the precache never listed
+
+The service worker's fetch handler is precache-or-network with no
+runtime `cache.put`, so a module absent from `PRECACHE` is simply
+unavailable offline. An ES module graph is all-or-nothing, so one
+absence takes its entire app down.
+
+`PRECACHE` was hand-maintained and had drifted badly:
+
+- **69 statically-imported modules** were missing across Browser (15),
+  Notes (15), Solitaire (13), Settings (11), Todo (9) and PDF (4),
+  plus `utils/safeSave.js` and `utils/notes-utils.js`. Every one of
+  those apps is itself precached — and none of them could open.
+- **Four whole apps** — Maps, PDF Reader, Photos and Pomodoro — were
+  never listed at all. They reach the runtime only through `boot.js`'s
+  lazy `import()`, and that import had nothing to load from offline.
+
+The list is now the full import closure of every precached entry:
+481 unique entries, verified to exist on disk before shipping, because
+one bad path makes `cache.addAll()` reject and silently disables
+offline support wholesale. A pre-existing duplicate entry
+(`games/shared/store.js`, listed twice) is also gone.
+
+Dynamic `import()` edges are followed as well as static ones. The
+distinction that matters offline is not how a module is imported but
+whether it is in the cache: a dynamic import that misses fails just as
+hard, only later and inside somebody's catch.
+
+### Why nothing caught it
+
+v1.6.0 added a guard for exactly this failure — but it walks the
+static import graph from the **boot entries** only, and stops there on
+purpose, because lazy apps legitimately load after boot. Everything
+past that boundary was unguarded, which is the entire surface where
+this drifted.
+
+`tests/asset-refs.test.js` now also asserts the precache is **closed
+under import**: the full static+dynamic closure of every precached
+entry must itself be precached. Plus two anti-vacuity tests (the
+closure must reach 400+ modules, and must still follow the dynamic
+edge to `MapsApp.js`), a check that the codebase still contains no
+`export … from` re-exports — an edge form the walker does not follow,
+which would silently shrink the closure — and a no-duplicates check.
+
+Mutation-verified five ways: removing one module, removing a lazy app
+entry, reverting all 84 additions to the exact historical state,
+re-introducing the duplicate, and adding a re-export edge. Each turns
+the suite red.
+
+### Verified offline, not inferred
+
+The dev server was **stopped** and the network confirmed dead
+(`fetch` rejecting) before reloading. The shell booted from cache and
+all eight formerly-broken apps opened: Notes, Browser, Todo, Settings,
+Maps, Pomodoro, Photos, Solitaire — no errors, no "Boot Module
+Missing".
+
+The failure mechanism was then demonstrated rather than assumed: with
+`notes/engine/meta.js` evicted from the live cache, Notes stopped
+opening offline while Todo, whose graph was intact, still opened. No
+error reached the console in that state — the rejected import is
+swallowed by the process manager's error path, which is why this was
+invisible for so many releases.
+
+Only the standalone web app is affected; the extension ships no
+service worker (`pack-extension.sh` excludes it).
+
+### Tests
+
+2127 (+4). Cache bumped to `yancotab-v1.10.4-offline-graph` so
+existing installs re-precache.
+
+---
+
 ## [1.10.3] — 2026-08-10
 
 The third follow-up from the v1.10.0 window-mode review — except the
