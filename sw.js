@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.10.11-editor-title';
+const CACHE_NAME = 'yancotab-v1.11.0-mail-v2';
 
 const PRECACHE = [
     './',
@@ -175,8 +175,16 @@ const PRECACHE = [
     './os/apps/browser/view/readerTab.js',
     './os/apps/MailApp.js',
     './os/apps/mail/providers.js',
+    './os/apps/mail/providerTable.js',
     './os/apps/mail/persistence.js',
-    './os/apps/mail/mailView.js',
+    './os/apps/mail/marks.js',
+    './os/apps/mail/keys.js',
+    './os/apps/mail/reorder.js',
+    './os/apps/mail/dragRail.js',
+    './os/apps/mail/view/mark.js',
+    './os/apps/mail/view/board.js',
+    './os/apps/mail/view/directory.js',
+    './os/apps/mail/view/searchBar.js',
     './os/apps/CalculatorApp.js',
     './os/apps/calculator/engine.js',
     './os/apps/calculator/view.js',

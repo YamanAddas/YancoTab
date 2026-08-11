@@ -157,6 +157,38 @@ export function removeAccount(state, id) {
     });
 }
 
+/**
+ * Reorder accounts to match `orderedIds`.
+ *
+ * Needs no new storage field — `accounts` is already an array and
+ * normalizeState preserves its order.
+ *
+ * Written to survive a partial or hostile list: ids that do not resolve are
+ * ignored, and any account missing from `orderedIds` is appended in its
+ * existing relative order rather than dropped. A reorder must never be able to
+ * delete an account, however malformed the input.
+ */
+export function reorderAccounts(state, orderedIds) {
+    const base = normalizeState(state);
+    if (!Array.isArray(orderedIds)) return base;
+
+    const byId = new Map(base.accounts.map(a => [a.id, a]));
+    const next = [];
+    const taken = new Set();
+
+    for (const id of orderedIds) {
+        const account = typeof id === 'string' ? byId.get(id) : null;
+        if (!account || taken.has(id)) continue;
+        taken.add(id);
+        next.push(account);
+    }
+    for (const account of base.accounts) {
+        if (!taken.has(account.id)) next.push(account);
+    }
+
+    return normalizeState({ ...base, accounts: next });
+}
+
 export function setDefault(state, id) {
     const base = normalizeState(state);
     if (!base.accounts.some(a => a.id === id)) return base;

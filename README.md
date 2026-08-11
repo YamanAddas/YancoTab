@@ -6,7 +6,7 @@ A full desktop experience running in your browser — apps, games, notes, weathe
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Chrome MV3](https://img.shields.io/badge/Chrome-MV3-green.svg)](manifest.json)
-[![Version](https://img.shields.io/badge/version-1.10.11-teal.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.11.0-teal.svg)](CHANGELOG.md)
 
 ---
 
@@ -32,7 +32,7 @@ YancoTab replaces your browser's new tab page with a full desktop — app grid, 
 | Files — virtual file manager | Tarneeb (Arabic card game with AI) |
 | Photos — gallery, editor, OCR | Trix (Arabic card game with AI) |
 | PDF Reader — library, search, annotations | |
-| Mail — multi-account webmail launcher | |
+| Mail — 12 providers, per-account deep links, search | |
 | Maps | |
 | Settings | |
 

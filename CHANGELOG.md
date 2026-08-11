@@ -6,6 +6,225 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.11.0] — 2026-08-11
+
+The Mail app was a launcher with two verbs and letters for icons. It now has
+real brand marks, per-destination chips gated on what each provider can
+actually do, and a search bar that lands you *inside* your provider's search
+rather than at its front door.
+
+### Fixed — iCloud's Compose button reopened the inbox and called it composing
+
+Capability was inferred by string comparison: `mailView.js` decided a provider
+could compose by testing `composeUrl !== inboxUrl`. For that test to do
+anything, `icloud.compose` had to be set to **a copy of the inbox URL** — so
+the one provider genuinely without a compose deep link got a Compose button
+that reopened its inbox.
+
+Providers now carry a `dest` map, and **presence of a key is the capability**.
+iCloud declares `inbox` and nothing else, so `supports('icloud','compose')` is
+false by construction and the chip is never drawn. Verified live: the iCloud
+card renders exactly one chip.
+
+### Fixed — Outlook's compose link carried the account index twice
+
+`https://outlook.live.com/mail/{i}/0/deeplink/compose` substituted to
+`/mail/0/0/deeplink/compose`. The second segment was the literal index from
+whatever form the template had been copied out of.
+
+Found by writing a test that asserts **every** `{i}` is substituted across
+every provider × kind — the fix for that class is `split().join()` rather than
+`replace()`, which only ever replaces the first occurrence.
+
+### Changed — `buildUrl` signature, and an unknown kind no longer opens the inbox
+
+`buildUrl(id, accountIndex, kind)` → `buildUrl(id, kind, {accountIndex, query})`.
+Kind is now the primary selector; the index is optional and usually 0.
+
+More important than the reshuffle: **an unknown kind returns `null`, not the
+inbox.** The old fallback meant a typo'd or unsupported kind silently opened
+the wrong destination — the same lie iCloud's compose button was telling. The
+previous suite *asserted* that fallback; that test is inverted here, on purpose.
+
+It also makes a missed call site fail loudly rather than quietly: a stale
+positional call passes a number where the kind goes, which is not a known kind,
+so nothing opens.
+
+`buildUrl` gained **origin invariance** — after substitution the result must
+still start with its own template's literal prefix. That is strictly stronger
+than checking for `https://`: it proves no interpolation can move the scheme,
+host or path root, independent of how good the encoder is. Swept across every
+provider × kind × 14 hostile indexes.
+
+### Added — real brand marks, inline
+
+Gmail, Outlook, Outlook 365, iCloud, Proton and Yahoo get authored single-path
+SVG marks; the other six render their letter on the brand plate, which is what
+those wordmark brands look like in a browser tab anyway.
+
+**Not favicons.** `s2.googleusercontent.com` would render today and vanish
+offline: `sw.js` is precache-or-network with no runtime `cache.put`, so a
+remote favicon cannot be cached — and it would cost twelve requests per open
+and tell a third party which providers the user cares about.
+
+Two rules, both test-enforced. **No `id`, no `<defs>`, no gradients**: SmartIcon
+carries `_scopeSvgIds()` precisely because duplicate gradient ids make `url(#…)`
+bind to the first match in document order, which after a page switch can be
+inside a `display:none` pane — and Mail renders the same mark at up to three
+sizes at once. Forbidding ids makes that bug class unreachable rather than
+mitigated. And **a mark never touches the app surface**: each sits on an opaque
+plate (`plate: 'light'` → white plate, brand glyph; `plate: 'brand'` → brand
+plate, white glyph), so the contrast pair is theme-independent by construction
+and computable offline. All twelve clear 3:1 (WCAG 1.4.11).
+
+The marks are original geometric renditions rather than copied vendor files, so
+no icon package is vendored and the no-runtime-dependency rule is untouched.
+See `os/apps/mail/MARKS_PROVENANCE.md` for the trademark position; the app now
+carries the non-affiliation line in its own footnote.
+
+### Added — destination chips, and a ledger for the URLs behind them
+
+Each account card shows the destinations its provider declares: Inbox, Compose,
+Starred, Sent, Drafts. Gmail gets five, Outlook 365 four, iCloud one.
+
+**These URLs cannot be verified by probing, and that was measured rather than
+assumed.** Every provider 302s unknown paths to its login page — Gmail
+faithfully echoes a nonsense path back in `continue=` — and the highest-value
+destinations are hash fragments, which never reach a server at all. Only a
+signed-in human watching what renders can confirm one.
+
+So `os/apps/mail/DESTINATIONS.md` records all 36 shipped URLs with an explicit
+evidence status: `verified` (a human looked), `inherited` (shipped since v1.2.0,
+never re-checked), or `documented` (the provider's own address-bar route —
+confident, not personally seen). `tests/mail-destinations-ledger.test.js`
+requires every shipped destination to have a row, requires the row to match the
+table byte for byte, and reports how many are still short of `verified` so the
+number can only fall deliberately. **Nothing is `verified` yet** — that needs
+Yaman, signed in, roughly ten minutes per provider.
+
+Worst case for a wrong row is bounded: the provider's own inbox or its own 404.
+Origin invariance means it can never be a different host.
+
+### Added — search that lands in a result
+
+Type a query, press Enter, arrive at `#search/…` in the right account. Gmail
+only, because no other provider's search route is confirmed; accounts that
+cannot search simply do not show the bar.
+
+**The query is never stored, and that is structural.** `searchBar.js` imports
+no storage module and keeps no history, and `tests/mail-privacy.test.js`
+source-scans it to keep it that way. The realistic leak was never the URL — it
+is the activity feed: `yancotab:activity` events persist to
+`yancotab_activity_v1`, which is `user-data` with conditional sync, so an emit
+that interpolated the query would write it to disk **and push it to Google**.
+Mail emits the provider name only, and the test pins that specific line.
+
+Writing that test found a trap of its own: the first version failed five ways,
+every hit being its own docblock explaining the rule it was checking for. It
+strips comments now, string-aware, so a URL inside a literal is not mistaken
+for one.
+
+### Added — keyboard, and an Escape that agrees with the shell
+
+`1`–`9` open pinned accounts, `/` focuses search, `C` composes, `Enter` opens
+the default. Every decision lives in a pure `keys.js`, which is what makes one
+specific ordering bug impossible: the old handler bailed on `INPUT`/`TEXTAREA`
+*before* looking at Escape, so the moment a search field existed, "Escape clears
+the search" would have been dead code. `editable` is an input to the decision
+now, not an early return.
+
+Escape follows v1.10.6's ladder by **declining to handle** rather than
+reimplementing it. A typed query is cleared and `preventDefault()`ed, so the
+shell sees stage 1 and does nothing; an *empty* focused field returns `bubble`,
+so the shell blurs it and a second Escape closes the window. The old
+`stopPropagation()` is gone — under the current contract `preventDefault()`
+alone means "mine", and one app carrying two mechanisms is how the next
+divergence starts.
+
+The suite caught two of my own bugs here: **Ctrl+Escape cleared the search**
+(the modifier guard sat below the Escape branch), and an `accountCount` of
+`Infinity` passed the bounds check, because `0 < Infinity`.
+
+### Changed — one surface, and the dead third is gone
+
+The provider grid was a *directory* — a setup-time list — permanently holding
+the primary area for a decision made about twice a year, while the accounts in
+daily use were squeezed into a 268px rail, with the same providers appearing in
+both places.
+
+Now there is one board of account cards that grows to fill, and the directory
+opens on demand and hands the surface straight back. **Zero-setup survives** —
+with nothing pinned, the app opens directly on the directory, so "just get me
+to Gmail" is still one click with no configuration.
+
+`hint` moved from a `title=` tooltip to a rendered line, because it is the only
+thing separating Outlook from Outlook 365. Icons cannot do that job: both are
+Microsoft Outlook and every asset set ships one glyph for them.
+
+### Changed — surgical updates and drag-to-reorder
+
+`_render()` now runs on init and on a remote storage change only. Starring
+rebuilds the two affected cards; removing animates one node out — **after**
+committing the write, so a window closed mid-fade cannot lose it. Accounts
+reorder by dragging, on Pointer Events, with the established 6px/150ms gate so
+a click stays a click, `pointercancel` teardown, a guarded
+`setPointerCapture`, and **one write on drop** rather than per-move (a per-move
+write starves AppStorage's shared 2s sync debounce — v1.7.0's lesson).
+
+Reordering needs no new storage field and no migration: `accounts` is already an
+array. `reorderAccounts` appends anything an incoming order omitted instead of
+dropping it, so no malformed list can delete an account.
+
+### Fixed — Mail was a black slab in light mode
+
+`.app-window` in `main.css` hardcodes `background: #000` — a dark-mode
+assumption every app inherits. Mail now sets `var(--bg)`, which fixes light
+theme and, in dark, moves it from pure black to the actual brand background.
+Several labels were also on `--text-dim`, which light mode resolves to
+`#aeaeb2` — the same ~2:1 failure v1.3.0 fixed in Focus Mode. Both found by
+measuring computed styles in both themes rather than by eye.
+
+The `.app-window` rule itself is untouched and remains a shared defect worth its
+own pass.
+
+### Deliberately not shipped
+
+Quick-compose targets ("pin Sarah, get a pre-addressed compose"). They put other
+people's email addresses into storage, and `syncPolicy: 'never'` would keep them
+off sync servers but **not** out of `exportAll`, which includes every
+`user-data` key regardless of sync policy. So a malicious import could plant a
+recipient and the defence would have to be UI discipline rather than storage
+policy. It is fully separable and can ship on its own merits later.
+
+### Tests
+
+2289 (+143) across five new suites — `mail-marks`, `mail-keys`, `mail-reorder`,
+`mail-privacy`, `mail-destinations-ledger` — plus a rewritten `mail-providers`.
+
+Mutation-verified eleven ways, each caught by the test written for it: restoring
+the iCloud compose lie, restoring the unknown-kind inbox fallback, reverting
+`split/join` to `replace` against a double-`{i}` template, deleting a ledger
+row, changing one character so ledger and table disagree, adding an `id` to a
+mark, interpolating the query into the activity emit, giving the search bar a
+recents array, dropping the Ctrl guard above the Escape branch, making reorder
+drop omitted accounts, and removing a new module from the precache.
+
+Verified live end to end with six seeded accounts: chips open the right
+per-account URLs (`/u/1/#sent` really does honour the index), iCloud shows one
+chip, `/` focuses search, "quarterly invoice" lands on
+`#search/quarterly%20invoice`, `2` opens the second account while `9` is inert,
+typing `2c` in the field opens nothing, starring persists, and dragging the
+third card to the front reorders and persists with no stranded drag class and no
+accidental tab. Escape was probed for `defaultPrevented` in both states and
+matches the ladder exactly. Zero console errors.
+
+### Service worker
+
+Cache bumped to `yancotab-v1.11.0-mail-v2`. Precache gains the nine new Mail
+modules; `mailView.js` is gone.
+
+---
+
 ## [1.10.11] — 2026-08-10
 
 Found by looking at a screenshot: every Notes editor window was called

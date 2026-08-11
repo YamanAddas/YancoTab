@@ -2,17 +2,30 @@
    Mail hub — os/apps/MailApp.js
 
    Every colour resolves to a token from css/tokens.css. The one exception is
-   the per-provider brand tint, which is set inline from the literal `brand`
-   field in providers.js — a brand mark has to be the brand's colour to be
-   recognisable, and it is decoration only (never the sole carrier of meaning;
-   each mark also shows a letter and every tile has a text label).
+   the per-provider brand colour, set inline from the literal `brand` field in
+   providerTable.js — a brand mark that is not the brand's colour is not the
+   brand's mark. It is never the sole carrier of meaning: every plate is
+   accompanied by a text label, so nothing is lost without it.
 
-   Layout target: fits the default window chrome (75% x 84% of viewport) with
-   no scrolling at 1280x800 and up. Below that the two columns stack and the
-   frame scrolls as one.
+   PLATES. A brand mark is never composited against the app surface. Most are
+   defined dark-on-white and would be invisible on #060b14, so every mark sits
+   on an opaque plate whose colour pair is fixed in BOTH themes:
+     .mail-mark--light   white plate, glyph in the brand colour
+     .mail-mark--brand   brand plate, glyph in white
+   Contrast is therefore theme-independent by construction, and is asserted for
+   all twelve providers by tests/mail-marks.test.js.
+
+   Layout target: one primary surface that fills the default window chrome
+   (75% x 84% of viewport) at 1280x800 with no dead space and no scrolling.
+   The board grid grows its cards to fill; below 860px it becomes one column.
    ============================================================ */
 
 .app-mail {
+  --mail-plate-sm: 26px;
+  --mail-plate-md: 34px;
+  --mail-plate-lg: 54px;
+  --mail-chip-h: 30px;
+
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -21,436 +34,498 @@
   outline: none;
   color: var(--text-bright);
   font-family: var(--font-sans);
+  /* .app-window in main.css hardcodes `background: #000`, which is a dark-mode
+     assumption every app inherits — in light theme it leaves a black slab
+     under light glass. Overriding to the token fixes Mail in light mode and,
+     in dark, moves it from pure black to the actual brand background. */
+  background: var(--bg);
 }
 
 .mail-frame {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 268px;
-  gap: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
   padding: var(--space-xl);
   height: 100%;
   min-height: 0;
   box-sizing: border-box;
+  overflow-y: auto;
 }
 
-.mail-col-main,
-.mail-col-side {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  min-height: 0;
-  min-width: 0;
-}
-
-/* ── Hero ─────────────────────────────────────────────────── */
-
-.mail-hero {
-  position: relative;
-  padding: var(--space-xl);
-  border-radius: var(--radius-lg);
-  background-color: var(--lg-tint-card);
-  background-image: var(--lg-sheen), var(--lg-spotlight);
-  -webkit-backdrop-filter: var(--lg-blur-card);
-  backdrop-filter: var(--lg-blur-card);
-  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-3);
-  flex-shrink: 0;
-}
-
-.mail-hero-eyebrow,
-.mail-section-hint,
-.mail-rail-count {
-  font-family: var(--font-mono);
-  font-size: var(--font-xs);
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-
-.mail-hero-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-lg);
-  margin: var(--space-md) 0 var(--space-lg);
-}
-
-.mail-hero-id { min-width: 0; }
-
-.mail-hero-title {
-  margin: 0;
-  font-size: var(--font-xl);
-  font-weight: 600;
-  line-height: 1.15;
-  color: var(--text-bright);
-  overflow-wrap: anywhere;
-}
-
-.mail-hero-sub {
-  margin: 2px 0 0;
-  font-size: var(--font-sm);
-  color: var(--text);
-}
-
-.mail-hero-host {
-  margin-top: 2px;
-  font-family: var(--font-mono);
-  font-size: var(--font-xs);
-  color: var(--text-dim);
-}
-
-.mail-hero-actions {
-  display: flex;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-
-.mail-hero-empty .mail-hero-title { margin-top: var(--space-xs); }
-.mail-hero-empty .mail-hero-sub   { max-width: 46ch; margin-bottom: var(--space-lg); }
-
-/* ── Buttons ──────────────────────────────────────────────── */
-
-.mail-btn {
-  padding: 9px 18px;
-  border: 1px solid var(--border-light);
-  border-radius: var(--radius-pill);
-  background: var(--bg-glass);
-  color: var(--text-bright);
-  font-family: inherit;
-  font-size: var(--font-sm);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--transition-fast),
-              border-color var(--transition-fast),
-              transform var(--transition-fast);
-}
-
-.mail-btn:hover {
-  background: var(--accent-bg);
-  border-color: var(--border-accent);
-}
-
-.mail-btn:active { transform: scale(0.97); }
-
-.mail-btn-primary {
-  background: var(--accent);
-  border-color: transparent;
-  color: var(--accent-contrast);
-  box-shadow: var(--glow-sm);
-}
-
-.mail-btn-primary:hover {
-  background: var(--accent-bright);
-  border-color: transparent;
-}
-
-/* ── Provider marks ───────────────────────────────────────── */
+/* ── Provider plate ───────────────────────────────────────── */
 
 .mail-mark {
   display: grid;
   place-items: center;
   flex-shrink: 0;
-  border-radius: 30%;
-  color: #fff;
+  border-radius: var(--radius-md);
   font-weight: 700;
-  /* The brand tints are mid-to-dark saturated colours and the mark sits on a
-     dark card; a hairline lift keeps the lighter ones from floating. */
-  box-shadow: var(--inner-glow), 0 2px 8px rgba(0, 0, 0, 0.35);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  user-select: none;
+  line-height: 1;
+  overflow: hidden;
 }
 
-.mail-mark-sm { width: 26px; height: 26px; font-size: 12px; }
-.mail-mark-md { width: 34px; height: 34px; font-size: 15px; }
-.mail-mark-lg { width: 54px; height: 54px; font-size: 24px; border-radius: 26%; }
+.mail-mark svg {
+  width: 68%;
+  height: 68%;
+  display: block;
+}
 
-/* ── Provider grid ────────────────────────────────────────── */
+/* A white plate has no edge against a light surface; give it one. In dark
+   theme the plate is its own edge, so this is light-only. */
+.mail-mark--light {
+  background: #fff;
+}
 
-.mail-providers {
+body.theme-light .mail-mark--light {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.mail-mark-sm { width: var(--mail-plate-sm); height: var(--mail-plate-sm); font-size: 12px; }
+.mail-mark-md { width: var(--mail-plate-md); height: var(--mail-plate-md); font-size: 15px; }
+.mail-mark-lg { width: var(--mail-plate-lg); height: var(--mail-plate-lg); font-size: 24px; }
+
+/* ── Search bar ───────────────────────────────────────────── */
+
+.mail-search {
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-lg);
+  background-color: var(--lg-tint-card);
+  background-image: var(--lg-sheen);
+  -webkit-backdrop-filter: var(--lg-blur-card);
+  backdrop-filter: var(--lg-blur-card);
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-2);
+  transition: box-shadow 150ms var(--ease-out);
 }
 
-.mail-section-head,
-.mail-rail-head {
+.mail-search:focus-within {
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-3), var(--glow-sm);
+}
+
+.mail-search-icon {
+  font-size: 18px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.mail-search-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  font-size: var(--font-md);
+  padding: var(--space-xs) 0;
+}
+
+.mail-search-input::placeholder {
+  color: var(--text);
+  opacity: 0.9;
+}
+
+.mail-search-input::-webkit-search-cancel-button { display: none; }
+
+.mail-search-pick,
+.mail-search-go {
+  flex-shrink: 0;
+  height: var(--mail-chip-h);
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-light);
+  background: var(--bg-glass);
+  color: var(--text-bright);
+  font-family: var(--font-sans);
+  font-size: var(--font-sm);
+  padding: 0 var(--space-md);
+  cursor: pointer;
+}
+
+.mail-search-go {
+  border-color: var(--border-accent);
+  color: var(--accent-text);
+}
+
+.mail-search-go:hover,
+.mail-search-pick:hover { background: var(--accent-bg); }
+
+/* ── Section heads (board + directory share one) ──────────── */
+
+.mail-board-head {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
+  gap: var(--space-sm);
+  flex-shrink: 0;
 }
 
-.mail-section-title,
-.mail-rail-title {
+.mail-board-title {
   margin: 0;
-  font-size: var(--font-xs);
+  font-size: var(--font-sm);
   font-weight: 600;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  color: var(--text-bright);
+}
+
+.mail-board-count,
+.mail-board-hint,
+.mail-card-meta,
+.mail-dir-hint,
+.mail-card-hint {
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
+  letter-spacing: 0.1em;
+  /* NOT --text-dim: it resolves to #aeaeb2 in light mode, which measures
+     ~2:1 on a light card. Same failure v1.3.0 fixed in Focus Mode. */
   color: var(--text);
 }
 
-.mail-provider-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: var(--space-sm);
-  overflow-y: auto;
-  min-height: 0;
-  padding-right: 2px;
-}
+.mail-board-hint { margin-left: auto; text-transform: uppercase; }
 
-.mail-provider {
-  position: relative;
-  display: flex;
-  border-radius: var(--radius-md);
+.mail-dir-cancel {
+  margin-left: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
   background: var(--bg-glass);
-  box-shadow: inset 0 0 0 1px var(--border);
-  transition: box-shadow var(--transition-fast), transform var(--transition-fast);
-}
-
-.mail-provider:hover {
-  box-shadow: inset 0 0 0 1px var(--border-accent), var(--glow-sm);
-  transform: translateY(-1px);
-}
-
-.mail-provider-open {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-  flex: 1;
-  min-width: 0;
-  padding: 10px var(--space-md);
-  border: none;
-  background: none;
-  color: var(--text-bright);
-  font-family: inherit;
+  color: var(--text);
+  font-family: var(--font-sans);
   font-size: var(--font-sm);
-  text-align: left;
+  padding: var(--space-xs) var(--space-md);
   cursor: pointer;
-  border-radius: var(--radius-md);
 }
 
-.mail-provider-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.mail-dir-cancel:hover { color: var(--text-bright); background: var(--accent-bg); }
 
-.mail-provider-pin {
-  flex-shrink: 0;
-  width: 30px;
-  border: none;
-  border-left: 1px solid var(--border);
-  background: none;
-  color: var(--text-dim);
-  font-size: 15px;
-  cursor: pointer;
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
+/* ── Accounts board ───────────────────────────────────────── */
 
-.mail-provider-pin:hover {
-  color: var(--accent);
-  background: var(--accent-bg);
-}
-
-/* Pick mode — the whole tile becomes "add this one". The pin loses its
-   separate meaning, so it stops advertising one. */
-.mail-provider-grid.is-picking .mail-provider {
-  box-shadow: inset 0 0 0 1px var(--border-accent);
-}
-
-.mail-provider-grid.is-picking .mail-provider:hover {
-  box-shadow: inset 0 0 0 1.5px var(--accent), var(--glow-sm);
-}
-
-.mail-provider-grid.is-picking .mail-provider-pin {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* ── Accounts rail ────────────────────────────────────────── */
-
-.mail-rail {
+.mail-board {
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
-  padding: var(--space-lg);
+  min-height: 0;
+  /* Take the space between the search bar and the footnote, so the grid has
+     something to distribute. Without this the section is only as tall as its
+     cards and everything below is dead. */
+  flex: 1 1 auto;
+}
+
+.mail-board-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+  /* Packed at the top, not distributed. `space-evenly` was tried and is worse:
+     it floats the rows apart and detaches the first one from its own heading,
+     which reads as a layout bug rather than as breathing room. */
+  grid-auto-rows: minmax(140px, auto);
+  align-content: start;
+  gap: var(--space-md);
+  min-height: 0;
+}
+
+.mail-board-grid.is-reordering { cursor: grabbing; }
+
+.mail-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-sm);
+  padding: var(--space-md);
   border-radius: var(--radius-lg);
   background-color: var(--lg-tint-card);
+  background-image: var(--lg-sheen), var(--lg-spotlight);
   -webkit-backdrop-filter: var(--lg-blur-card);
   backdrop-filter: var(--lg-blur-card);
   box-shadow: var(--lg-edge-soft), var(--depth-2);
-  min-height: 0;
+  transition: box-shadow 200ms var(--ease-out), transform 200ms var(--ease-out),
+              opacity 180ms var(--ease-out);
 }
 
-.mail-rail-head { margin-bottom: 0; }
+.mail-card:hover { box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-3); }
 
-.mail-account-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  min-height: 0;
-  flex: 1;
+.mail-card.is-default {
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-3), var(--glow-sm);
 }
 
-.mail-account {
-  display: flex;
-  align-items: stretch;
-  border-radius: var(--radius-md);
-  background: var(--bg-glass);
-  box-shadow: inset 0 0 0 1px var(--border);
-  transition: box-shadow var(--transition-fast);
+.mail-card.is-dragging {
+  z-index: 2;
+  cursor: grabbing;
+  transition: none;
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent), var(--depth-5);
 }
 
-.mail-account:hover {
-  box-shadow: inset 0 0 0 1px var(--border-accent);
+.mail-card.is-leaving {
+  opacity: 0;
+  transform: scale(0.94);
+  pointer-events: none;
 }
 
-.mail-account.is-default {
-  box-shadow: inset 0 0 0 1px var(--border-accent), var(--lg-ring-glow);
-}
-
-.mail-account-main {
+.mail-card-head {
   display: flex;
   align-items: center;
   gap: var(--space-md);
-  flex: 1;
   min-width: 0;
-  padding: 8px 10px;
-  border: none;
+  border: 0;
+  padding: 0;
   background: none;
-  color: var(--text-bright);
-  font-family: inherit;
   text-align: left;
   cursor: pointer;
-  border-radius: var(--radius-md);
+  font: inherit;
+  color: inherit;
 }
 
-.mail-account-text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+.mail-card-id { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 
-.mail-account-label {
-  font-size: var(--font-sm);
-  font-weight: 500;
+.mail-card-label {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: var(--text-bright);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.mail-account-meta {
-  font-size: var(--font-xs);
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+.mail-card-meta,
+.mail-card-hint,
+.mail-dir-hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.mail-account-tools {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding-right: 6px;
-}
+.mail-card-hint,
+.mail-dir-hint { color: var(--text); opacity: 0.9; text-transform: none; letter-spacing: 0; }
 
-.mail-icon-btn,
-.mail-pin {
+.mail-card-tools { display: flex; align-items: flex-start; gap: var(--space-xs); }
+
+.mail-star,
+.mail-remove {
+  width: 26px;
+  height: 26px;
   display: grid;
   place-items: center;
-  width: 24px;
-  height: 24px;
-  border: none;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: none;
-  color: var(--text-dim);
-  font-size: 14px;
+  background: transparent;
+  color: var(--text);
+  font-size: 15px;
   line-height: 1;
   cursor: pointer;
-  transition: color var(--transition-fast), background var(--transition-fast);
+  transition: color 150ms var(--ease-out), background 150ms var(--ease-out),
+              transform 150ms var(--ease-out);
 }
 
-.mail-pin { color: var(--gold); cursor: default; }
-
-.mail-icon-btn:hover {
-  color: var(--accent);
-  background: var(--accent-bg);
+/* 44px hit area without changing the visual size. `inset` resolves against
+   the padding box, so these offsets account for the zero border here. */
+.mail-star::before,
+.mail-remove::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
 }
 
-.mail-icon-danger:hover {
-  color: var(--danger);
-  background: rgba(255, 71, 87, 0.12);
+.mail-star { position: relative; }
+.mail-remove { position: relative; }
+
+.mail-star:hover { color: var(--warning); background: var(--bg-glass); }
+.mail-star.is-on { color: var(--warning); transform: scale(1.1); }
+.mail-remove:hover { color: var(--danger); background: var(--bg-glass); }
+
+/* ── Destination chips ────────────────────────────────────── */
+
+.mail-chip-row {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
 }
 
-.mail-add {
-  flex-shrink: 0;
-  padding: 9px;
-  border: 1px dashed var(--border-light);
-  border-radius: var(--radius-md);
-  background: none;
+.mail-chip {
+  position: relative;
+  height: var(--mail-chip-h);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
   color: var(--text);
-  font-family: inherit;
+  font-family: var(--font-sans);
   font-size: var(--font-sm);
   cursor: pointer;
-  transition: color var(--transition-fast),
-              border-color var(--transition-fast),
-              background var(--transition-fast);
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out),
+              background 150ms var(--ease-out);
 }
 
-.mail-add:hover {
-  color: var(--accent);
+.mail-chip::before { content: ''; position: absolute; inset: -7px; }
+
+.mail-chip:hover {
+  color: var(--accent-text);
   border-color: var(--border-accent);
   background: var(--accent-bg);
 }
 
-/* ── Misc ─────────────────────────────────────────────────── */
+.mail-chip--inbox { color: var(--text-bright); border-color: var(--border-accent); }
 
-.mail-empty,
-.mail-note {
-  margin: 0;
-  font-size: var(--font-xs);
-  line-height: 1.55;
-  color: var(--text-dim);
+/* ── Add tile ─────────────────────────────────────────────── */
+
+.mail-add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  min-height: 108px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: var(--font-sm);
+  cursor: pointer;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out),
+              background 150ms var(--ease-out);
 }
 
-.mail-empty { padding: var(--space-sm) 2px; }
+.mail-add-tile:hover {
+  color: var(--accent-text);
+  border-color: var(--border-accent);
+  background: var(--accent-bg);
+}
 
-.mail-note {
+.mail-add-plus { font-size: 22px; line-height: 1; }
+
+/* ── Provider directory ───────────────────────────────────── */
+
+.mail-directory { display: flex; flex-direction: column; gap: var(--space-md); min-height: 0; }
+
+.mail-dir-grid {
+  display: grid;
+  /* Wide enough for the hint line to render in full. That line is the only
+     thing distinguishing Outlook from Outlook 365, so truncating it defeats
+     the reason it exists. */
+  grid-template-columns: repeat(auto-fill, minmax(252px, 1fr));
+  gap: var(--space-sm);
+  align-content: start;
+}
+
+.mail-dir-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-md);
+  background-color: var(--lg-tint-pill);
+  box-shadow: var(--lg-edge-soft);
+  transition: box-shadow 150ms var(--ease-out), background 150ms var(--ease-out);
+}
+
+.mail-dir-tile:hover {
+  background-color: var(--lg-tint-card);
+  box-shadow: var(--lg-edge-soft), var(--lg-ring-accent);
+}
+
+.mail-dir-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mail-dir-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+
+.mail-dir-name {
+  font-size: var(--font-base);
+  font-weight: 600;
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Number of destinations this provider actually supports — says what you get
+   before you commit to pinning it. */
+.mail-dir-caps {
   flex-shrink: 0;
-  padding-top: var(--space-sm);
-  border-top: 1px solid var(--border);
-  max-width: 78ch;
+  min-width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-family: var(--font-mono);
+  font-size: var(--font-xs);
 }
 
-/* ── Narrow / mobile ──────────────────────────────────────── */
+.mail-dir-pin {
+  flex-shrink: 0;
+  width: 34px;
+  align-self: stretch;
+  border: 0;
+  border-left: 1px solid var(--border-light);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 17px;
+  cursor: pointer;
+  transition: color 150ms var(--ease-out), background 150ms var(--ease-out);
+}
+
+.mail-dir-pin:hover { color: var(--accent-text); background: var(--accent-bg); }
+
+/* ── Footnote ─────────────────────────────────────────────── */
+
+.mail-note {
+  margin: auto 0 0;
+  padding-top: var(--space-md);
+  flex-shrink: 0;
+  font-size: var(--font-xs);
+  line-height: 1.6;
+  color: var(--text);
+  max-width: 76ch;
+}
+
+.mail-note-dim { opacity: 0.72; }
+
+/* ── Focus ────────────────────────────────────────────────── */
+
+.mail-card-head:focus-visible,
+.mail-chip:focus-visible,
+.mail-star:focus-visible,
+.mail-remove:focus-visible,
+.mail-add-tile:focus-visible,
+.mail-dir-open:focus-visible,
+.mail-dir-pin:focus-visible,
+.mail-dir-cancel:focus-visible,
+.mail-search-go:focus-visible,
+.mail-search-pick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
 
 @media (max-width: 860px) {
-  .mail-frame {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-lg);
-    padding: var(--space-lg);
-    overflow-y: auto;
-  }
-
-  /* Accounts first on narrow screens: the pinned list is the reason to open
-     the app, and the 12-tile provider grid would otherwise bury it. */
-  .mail-col-side { order: -1; }
-
-  .mail-provider-grid,
-  .mail-account-list { overflow: visible; }
-
-  .mail-hero { padding: var(--space-lg); }
-  .mail-hero-title { font-size: var(--font-lg); }
+  .mail-frame { padding: var(--space-lg); gap: var(--space-md); }
+  .mail-board-grid,
+  .mail-dir-grid { grid-template-columns: 1fr; }
+  .mail-board-hint { display: none; }
 }
 
-/* ── Light theme ──────────────────────────────────────────── */
+/* ── Reduced motion ───────────────────────────────────────── */
 
-body.theme-light .mail-mark {
-  box-shadow: var(--inner-glow), 0 1px 4px rgba(0, 0, 0, 0.18);
-}
-
-body.theme-light .mail-icon-danger:hover {
-  background: rgba(255, 59, 48, 0.1);
+@media (prefers-reduced-motion: reduce) {
+  .mail-card,
+  .mail-chip,
+  .mail-star,
+  .mail-remove,
+  .mail-add-tile,
+  .mail-dir-tile,
+  .mail-dir-pin,
+  .mail-search { transition: none; }
+  .mail-star.is-on { transform: none; }
 }

@@ -35,7 +35,7 @@ Productivity:
 - 📁 Files — Virtual filesystem with folders, rename, move, and search.
 - 🖼 Photos — Gallery, editor, wallpaper picker, and OCR text extraction.
 - 📕 PDF Reader — Library, full-text search, highlights, and sticky notes.
-- ✉️ Mail — Multi-account launcher for 12 webmail providers.
+- ✉️ Mail — Multi-account launcher for 12 webmail providers. Jump straight to an inbox, compose window, or search result.
 - 🗺 Maps — Quick launcher for places and directions.
 - ⚙️ Settings — Theme, wallpaper, search engine, widget toggles.
 
