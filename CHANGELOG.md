@@ -198,7 +198,7 @@ policy. It is fully separable and can ship on its own merits later.
 
 ### Tests
 
-2289 (+143) across five new suites — `mail-marks`, `mail-keys`, `mail-reorder`,
+2289 (+93) across five new suites — `mail-marks`, `mail-keys`, `mail-reorder`,
 `mail-privacy`, `mail-destinations-ledger` — plus a rewritten `mail-providers`.
 
 Mutation-verified eleven ways, each caught by the test written for it: restoring
