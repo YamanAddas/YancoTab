@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>YancoTab Ko-fi Assets Generator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0a0f1a;
+    color: #e0ecf5;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 48px;
+  }
+  h1 { font-size: 28px; font-weight: 300; letter-spacing: 0.04em; }
+  h2 { font-size: 18px; font-weight: 400; color: #00e5c1; margin-bottom: 12px; }
+  .section { text-align: center; }
+  canvas {
+    border: 1px solid rgba(0, 229, 193, 0.2);
+    border-radius: 8px;
+    max-width: 100%;
+    height: auto;
+  }
+  .download-btn {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: #00e5c1;
+    color: #060b14;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .download-btn:hover { background: #00ffd4; }
+  .info { font-size: 13px; color: rgba(200,220,240,0.5); margin-top: 8px; }
+  .preview-circle {
+    margin-top: 16px;
+    border-radius: 50%;
+    overflow: hidden;
+    width: 160px;
+    height: 160px;
+    border: 2px solid rgba(0,229,193,0.3);
+    display: inline-block;
+  }
+  .preview-circle img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .circle-label { font-size: 12px; color: rgba(200,220,240,0.4); margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<h1>YancoTab &mdash; Ko-fi Assets</h1>
+
+<!-- Profile Picture -->
+<div class="section">
+  <h2>Profile Picture (500 &times; 500)</h2>
+  <canvas id="profile" width="500" height="500"></canvas>
+  <br>
+  <button class="download-btn" onclick="download('profile', 'yancotab-kofi-profile.png')">Download Profile Picture</button>
+  <div class="info">Uploaded as Ko-fi profile photo &mdash; displayed as a circle</div>
+  <div style="margin-top: 16px;">
+    <div class="circle-label">Circle preview (how Ko-fi shows it):</div>
+    <div class="preview-circle"><img id="circle-preview"></div>
+  </div>
+</div>
+
+<!-- Banner -->
+<div class="section">
+  <h2>Cover Banner (1920 &times; 480)</h2>
+  <canvas id="banner" width="1920" height="480"></canvas>
+  <br>
+  <button class="download-btn" onclick="download('banner', 'yancotab-kofi-banner.png')">Download Banner</button>
+  <div class="info">Uploaded as Ko-fi cover photo (top of your page)</div>
+</div>
+
+<script>
+const BG = '#060b14';
+const ACCENT = '#00e5c1';
+
+const logo = new Image();
+logo.src = 'yancotab-clean.png';
+logo.onload = () => {
+  drawProfile();
+  drawBanner();
+};
+
+function drawProfile() {
+  const c = document.getElementById('profile');
+  const ctx = c.getContext('2d');
+  const W = 500, H = 500;
+
+  // Background
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle radial glow behind logo
+  const grad = ctx.createRadialGradient(W/2, W/2 - 20, 40, W/2, W/2 - 20, 260);
+  grad.addColorStop(0, 'rgba(0, 229, 193, 0.08)');
+  grad.addColorStop(0.5, 'rgba(0, 229, 193, 0.03)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Draw logo centered, sized to fit with padding
+  const logoSize = 380;
+  const lx = (W - logoSize) / 2;
+  const ly = (H - logoSize) / 2 - 10;
+  ctx.drawImage(logo, lx, ly, logoSize, logoSize);
+
+  // Circle preview
+  const dataUrl = c.toDataURL('image/png');
+  document.getElementById('circle-preview').src = dataUrl;
+}
+
+function drawBanner() {
+  const c = document.getElementById('banner');
+  const ctx = c.getContext('2d');
+  const W = 1920, H = 480;
+
+  // Background
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, W, H);
+
+  // Starfield dots
+  const rng = mulberry32(42);
+  for (let i = 0; i < 200; i++) {
+    const x = rng() * W;
+    const y = rng() * H;
+    const r = rng() * 1.2 + 0.3;
+    const a = rng() * 0.4 + 0.1;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(200, 220, 240, ${a})`;
+    ctx.fill();
+  }
+
+  // Accent glow — left side behind logo
+  const grad1 = ctx.createRadialGradient(340, H/2, 40, 340, H/2, 320);
+  grad1.addColorStop(0, 'rgba(0, 229, 193, 0.1)');
+  grad1.addColorStop(0.6, 'rgba(0, 229, 193, 0.03)');
+  grad1.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad1;
+  ctx.fillRect(0, 0, W, H);
+
+  // Subtle horizontal line
+  ctx.strokeStyle = 'rgba(0, 229, 193, 0.08)';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(560, H/2 + 20);
+  ctx.lineTo(W - 120, H/2 + 20);
+  ctx.stroke();
+
+  // Logo on left
+  const logoH = 360;
+  const logoW = 360;
+  const lx = 160;
+  const ly = (H - logoH) / 2;
+  ctx.drawImage(logo, lx, ly, logoW, logoH);
+
+  // "YancoTab" text
+  ctx.fillStyle = '#e0ecf5';
+  ctx.font = '700 72px "Segoe UI", system-ui, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('YancoTab', 580, H/2 - 30);
+
+  // Tagline
+  ctx.fillStyle = 'rgba(200, 220, 240, 0.45)';
+  ctx.font = '300 26px "Segoe UI", system-ui, sans-serif';
+  ctx.letterSpacing = '0.06em';
+  ctx.fillText('Your new tab, reimagined', 585, H/2 + 30);
+
+  // Accent underline below tagline
+  const grad2 = ctx.createLinearGradient(585, 0, 920, 0);
+  grad2.addColorStop(0, 'rgba(0, 229, 193, 0.5)');
+  grad2.addColorStop(1, 'rgba(0, 229, 193, 0)');
+  ctx.strokeStyle = grad2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(585, H/2 + 52);
+  ctx.lineTo(920, H/2 + 52);
+  ctx.stroke();
+}
+
+function download(canvasId, filename) {
+  const c = document.getElementById(canvasId);
+  const a = document.createElement('a');
+  a.href = c.toDataURL('image/png');
+  a.download = filename;
+  a.click();
+}
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+</script>
+
+</body>
+</html>

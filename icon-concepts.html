@@ -1,0 +1,965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YancoTab Icon Concepts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #00e5c1;
+    --accent-rgb: 0, 229, 193;
+    --hex-clip: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    --hex-size: 72px;
+  }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #060b14;
+    color: #c8d6e5;
+    min-height: 100vh;
+    padding: 40px 20px;
+    overflow-x: hidden;
+  }
+
+  /* ── Background stars ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(1px 1px at 10% 20%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 30% 60%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 50% 10%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 70% 40%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 90% 80%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 15% 85%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 45% 45%, rgba(255,255,255,0.4), transparent),
+      radial-gradient(1px 1px at 80% 15%, rgba(255,255,255,0.3), transparent),
+      radial-gradient(1px 1px at 65% 70%, rgba(255,255,255,0.5), transparent),
+      radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.2), transparent);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  h1 {
+    text-align: center;
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #33ffdd);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .subtitle {
+    text-align: center;
+    color: #5a6f85;
+    font-size: 14px;
+    margin-bottom: 48px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .concepts {
+    display: flex;
+    gap: 40px;
+    justify-content: center;
+    flex-wrap: wrap;
+    position: relative;
+    z-index: 1;
+  }
+
+  .concept {
+    background: rgba(8, 18, 32, 0.7);
+    border: 1px solid rgba(var(--accent-rgb), 0.12);
+    border-radius: 20px;
+    padding: 32px 28px 28px;
+    width: 340px;
+    backdrop-filter: blur(20px);
+    position: relative;
+  }
+
+  .concept::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15), transparent 60%) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .concept-number {
+    position: absolute;
+    top: -14px;
+    left: 24px;
+    background: linear-gradient(135deg, var(--accent), #33ffdd);
+    color: #060b14;
+    font-weight: 700;
+    font-size: 12px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .concept h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: #e0eaf4;
+  }
+
+  .concept .tagline {
+    font-size: 12px;
+    color: #4a6078;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .icon-row {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+
+  .icon-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    width: 80px;
+  }
+
+  .icon-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(200, 220, 240, 0.5);
+    text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+    letter-spacing: 0.3px;
+    text-align: center;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .features {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(var(--accent-rgb), 0.08);
+  }
+
+  .features li {
+    list-style: none;
+    font-size: 11px;
+    color: #6a7f95;
+    padding: 3px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .features li::before {
+    content: '◆';
+    color: var(--accent);
+    font-size: 6px;
+  }
+
+  /* ═══════════════════════════════════════
+     CONCEPT 1: CRYSTALLINE
+     Faceted gem with prismatic light bands
+     ═══════════════════════════════════════ */
+
+  .c1-hex {
+    width: var(--hex-size);
+    height: var(--hex-size);
+    position: relative;
+    cursor: pointer;
+    filter:
+      drop-shadow(0 0 12px rgba(var(--accent-rgb), 0.2))
+      drop-shadow(0 4px 8px rgba(0,0,0,0.5));
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .c1-hex:hover {
+    transform: translateY(-4px) scale(1.06);
+    filter:
+      drop-shadow(0 0 24px rgba(var(--accent-rgb), 0.4))
+      drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+  }
+
+  /* Outer glow ring */
+  .c1-hex::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--accent-rgb), 0.6),
+      rgba(var(--accent-rgb), 0.1) 40%,
+      rgba(var(--accent-rgb), 0.4) 60%,
+      rgba(var(--accent-rgb), 0.15)
+    );
+    opacity: 0.5;
+    transition: opacity 0.3s;
+  }
+
+  .c1-hex:hover::before {
+    opacity: 0.85;
+  }
+
+  .c1-body {
+    width: 100%;
+    height: 100%;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(160deg, rgba(10, 28, 52, 0.95), rgba(4, 12, 24, 0.98));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Faceted light bands - the "crystal" effect */
+  .c1-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(
+        110deg,
+        transparent 0%,
+        transparent 30%,
+        rgba(var(--accent-rgb), 0.06) 31%,
+        rgba(var(--accent-rgb), 0.03) 35%,
+        transparent 36%,
+        transparent 55%,
+        rgba(var(--accent-rgb), 0.04) 56%,
+        rgba(var(--accent-rgb), 0.02) 62%,
+        transparent 63%
+      );
+    pointer-events: none;
+  }
+
+  /* Top specular highlight */
+  .c1-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.1) 0%,
+      rgba(255, 255, 255, 0.03) 25%,
+      transparent 45%
+    );
+    pointer-events: none;
+  }
+
+  .c1-icon {
+    position: relative;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    color: rgba(var(--accent-rgb), 0.85);
+    filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.3));
+  }
+
+  /* Per-icon accent tints */
+  .c1-settings .c1-body { background: linear-gradient(160deg, rgba(15, 30, 55, 0.95), rgba(6, 14, 28, 0.98)); }
+  .c1-weather .c1-body { background: linear-gradient(160deg, rgba(10, 35, 65, 0.95), rgba(5, 18, 40, 0.98)); }
+  .c1-notes .c1-body { background: linear-gradient(160deg, rgba(40, 30, 18, 0.95), rgba(20, 15, 8, 0.98)); }
+  .c1-games .c1-body { background: linear-gradient(160deg, rgba(20, 15, 40, 0.95), rgba(10, 8, 25, 0.98)); }
+
+
+  /* ═══════════════════════════════════════
+     CONCEPT 2: PLASMA CORE
+     Glowing energy core, dark armored frame
+     ═══════════════════════════════════════ */
+
+  .c2-hex {
+    width: var(--hex-size);
+    height: var(--hex-size);
+    position: relative;
+    cursor: pointer;
+    filter:
+      drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.15))
+      drop-shadow(0 4px 10px rgba(0,0,0,0.6));
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .c2-hex:hover {
+    transform: translateY(-4px) scale(1.06);
+    filter:
+      drop-shadow(0 0 28px rgba(var(--accent-rgb), 0.45))
+      drop-shadow(0 8px 20px rgba(0,0,0,0.5));
+  }
+
+  /* Double-line border frame */
+  .c2-hex::before {
+    content: '';
+    position: absolute;
+    inset: -3.5px;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(
+      180deg,
+      rgba(var(--accent-rgb), 0.7) 0%,
+      rgba(var(--accent-rgb), 0.2) 40%,
+      rgba(var(--accent-rgb), 0.5) 100%
+    );
+    opacity: 0.6;
+    transition: opacity 0.3s;
+  }
+
+  .c2-hex:hover::before {
+    opacity: 1;
+    animation: c2pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes c2pulse {
+    0%, 100% { opacity: 0.8; }
+    50% { opacity: 1; }
+  }
+
+  .c2-body {
+    width: 100%;
+    height: 100%;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(180deg, rgba(6, 14, 28, 0.98), rgba(3, 8, 16, 0.99));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Radial energy core glow */
+  .c2-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(
+        circle at 50% 55%,
+        rgba(var(--accent-rgb), 0.12) 0%,
+        rgba(var(--accent-rgb), 0.04) 35%,
+        transparent 65%
+      );
+    pointer-events: none;
+  }
+
+  /* Tech line accents */
+  .c2-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      /* top edge line */
+      linear-gradient(to bottom, rgba(var(--accent-rgb), 0.12), transparent 3px),
+      /* bottom edge line */
+      linear-gradient(to top, rgba(var(--accent-rgb), 0.08), transparent 3px),
+      /* center horizontal line */
+      linear-gradient(to bottom,
+        transparent 48%,
+        rgba(var(--accent-rgb), 0.03) 49%,
+        rgba(var(--accent-rgb), 0.03) 51%,
+        transparent 52%
+      );
+    pointer-events: none;
+  }
+
+  /* Corner notch marks */
+  .c2-notch {
+    position: absolute;
+    width: 6px;
+    height: 1.5px;
+    background: rgba(var(--accent-rgb), 0.5);
+    z-index: 2;
+    border-radius: 1px;
+  }
+  .c2-notch.top { top: 14%; left: 50%; transform: translateX(-50%); }
+  .c2-notch.bottom { bottom: 14%; left: 50%; transform: translateX(-50%); }
+
+  .c2-icon {
+    position: relative;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    color: rgba(var(--accent-rgb), 0.9);
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.4));
+  }
+
+  /* Per-icon core tints */
+  .c2-weather .c2-body::before {
+    background: radial-gradient(circle at 50% 55%, rgba(77, 159, 255, 0.15), transparent 60%);
+  }
+  .c2-notes .c2-body::before {
+    background: radial-gradient(circle at 50% 55%, rgba(255, 200, 110, 0.12), transparent 60%);
+  }
+  .c2-games .c2-body::before {
+    background: radial-gradient(circle at 50% 55%, rgba(180, 80, 255, 0.12), transparent 60%);
+  }
+
+
+  /* ═══════════════════════════════════════
+     CONCEPT 3: YANCOVERSE NATIVE
+     Thick luminous borders, floating platform
+     Closest match to YancoVerse room hexes
+     ═══════════════════════════════════════ */
+
+  .c3-hex {
+    width: var(--hex-size);
+    height: var(--hex-size);
+    position: relative;
+    cursor: pointer;
+    transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .c3-hex:hover {
+    transform: translateY(-6px) scale(1.08);
+  }
+
+  /* Outer bloom glow */
+  .c3-hex::before {
+    content: '';
+    position: absolute;
+    inset: -5px;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(
+      135deg,
+      rgba(var(--accent-rgb), 0.8),
+      rgba(var(--accent-rgb), 0.3) 30%,
+      rgba(var(--accent-rgb), 0.5) 70%,
+      rgba(var(--accent-rgb), 0.7)
+    );
+    opacity: 0.5;
+    filter: blur(1px);
+    transition: all 0.35s;
+  }
+
+  .c3-hex:hover::before {
+    opacity: 0.9;
+    filter: blur(0.5px);
+    inset: -6px;
+  }
+
+  /* Inner border ring */
+  .c3-ring {
+    position: absolute;
+    inset: -3px;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(
+      160deg,
+      rgba(var(--accent-rgb), 0.9),
+      rgba(var(--accent-rgb), 0.35) 50%,
+      rgba(var(--accent-rgb), 0.7)
+    );
+    z-index: 1;
+    transition: all 0.35s;
+  }
+
+  .c3-hex:hover .c3-ring {
+    background: linear-gradient(
+      160deg,
+      rgba(var(--accent-rgb), 1),
+      rgba(var(--accent-rgb), 0.5) 50%,
+      rgba(var(--accent-rgb), 0.9)
+    );
+  }
+
+  .c3-body {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(160deg, rgba(8, 22, 42, 0.97), rgba(4, 10, 20, 0.99));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  /* Inner ambient glow from edges */
+  .c3-body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(var(--accent-rgb), 0.15), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(var(--accent-rgb), 0.1), transparent 50%),
+      radial-gradient(ellipse at 0% 50%, rgba(var(--accent-rgb), 0.06), transparent 40%),
+      radial-gradient(ellipse at 100% 50%, rgba(var(--accent-rgb), 0.06), transparent 40%);
+    pointer-events: none;
+  }
+
+  /* Glass reflection */
+  .c3-body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.08) 0%,
+      rgba(255, 255, 255, 0.02) 30%,
+      transparent 50%
+    );
+    pointer-events: none;
+  }
+
+  /* Floating platform shadow */
+  .c3-platform {
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 50px;
+    height: 8px;
+    background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.2), transparent 70%);
+    filter: blur(4px);
+    transition: all 0.35s;
+    z-index: 0;
+  }
+
+  .c3-hex:hover .c3-platform {
+    width: 60px;
+    height: 10px;
+    background: radial-gradient(ellipse, rgba(var(--accent-rgb), 0.35), transparent 70%);
+    bottom: -16px;
+  }
+
+  .c3-icon {
+    position: relative;
+    z-index: 3;
+    width: 30px;
+    height: 30px;
+    color: rgba(var(--accent-rgb), 0.9);
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.35));
+  }
+
+  .c3-hex:hover .c3-icon {
+    filter: drop-shadow(0 0 14px rgba(var(--accent-rgb), 0.55));
+  }
+
+  /* Per-icon tints */
+  .c3-weather .c3-body { background: linear-gradient(160deg, rgba(10, 30, 60, 0.97), rgba(5, 15, 35, 0.99)); }
+  .c3-weather .c3-body::before {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(77, 159, 255, 0.15), transparent 50%),
+      radial-gradient(ellipse at 50% 100%, rgba(77, 159, 255, 0.1), transparent 50%);
+  }
+  .c3-notes .c3-body { background: linear-gradient(160deg, rgba(35, 25, 15, 0.97), rgba(18, 12, 6, 0.99)); }
+  .c3-games .c3-body { background: linear-gradient(160deg, rgba(18, 12, 35, 0.97), rgba(10, 6, 22, 0.99)); }
+
+
+  /* ═══════════════════════════════════════
+     CURRENT DESIGN (for comparison)
+     ═══════════════════════════════════════ */
+
+  .current-section {
+    margin-top: 48px;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .current-section h3 {
+    font-size: 14px;
+    color: #3d4f63;
+    font-weight: 500;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+  }
+
+  .c0-hex {
+    width: var(--hex-size);
+    height: var(--hex-size);
+    clip-path: var(--hex-clip);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, rgba(10, 28, 52, 0.9), rgba(4, 12, 24, 0.95));
+    position: relative;
+    filter: drop-shadow(0 0 8px rgba(var(--accent-rgb), 0.1)) drop-shadow(0 2px 6px rgba(0, 0, 0, 0.4));
+    cursor: pointer;
+    transition: all 0.3s;
+    overflow: hidden;
+  }
+
+  .c0-hex::before {
+    content: '';
+    position: absolute;
+    inset: -2.5px;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.5), rgba(var(--accent-rgb), 0.1) 50%, rgba(var(--accent-rgb), 0.3));
+    z-index: -1;
+    opacity: 0.35;
+  }
+
+  .c0-hex::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    clip-path: var(--hex-clip);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.06), transparent 40%);
+    pointer-events: none;
+  }
+
+  .c0-icon {
+    width: 28px;
+    height: 28px;
+    color: rgba(var(--accent-rgb), 0.7);
+  }
+
+  /* ── SVG icon library ── */
+
+  .svg-settings {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .svg-weather {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+
+  .svg-notes {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
+
+  .svg-games {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .vs-badge {
+    display: inline-block;
+    background: rgba(var(--accent-rgb), 0.1);
+    border: 1px solid rgba(var(--accent-rgb), 0.2);
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+
+<h1>YancoTab Icon Concepts</h1>
+<p class="subtitle">Three directions for hex icons with a YancoVerse vibe &mdash; hover to see interactions</p>
+
+<div class="concepts">
+
+  <!-- ═══ CONCEPT 1: CRYSTALLINE ═══ -->
+  <div class="concept">
+    <div class="concept-number">Concept 1</div>
+    <h2>Crystalline</h2>
+    <p class="tagline">Faceted gem aesthetic with prismatic light bands. Subtle, premium, refined &mdash; like a polished dark crystal.</p>
+
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="c1-hex c1-settings">
+          <div class="c1-body">
+            <svg class="c1-icon svg-settings" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Settings</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c1-hex c1-weather">
+          <div class="c1-body">
+            <svg class="c1-icon svg-weather" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" fill="rgba(var(--accent-rgb), 0.15)"/>
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Weather</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c1-hex c1-notes">
+          <div class="c1-body">
+            <svg class="c1-icon svg-notes" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="13" y2="17"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Notes</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c1-hex c1-games">
+          <div class="c1-body">
+            <svg class="c1-icon svg-games" viewBox="0 0 24 24">
+              <rect x="2" y="6" width="20" height="12" rx="6" fill="rgba(var(--accent-rgb), 0.1)"/>
+              <rect x="2" y="6" width="20" height="12" rx="6"/>
+              <line x1="6" y1="10" x2="6" y2="14"/><line x1="4" y1="12" x2="8" y2="12"/>
+              <circle cx="16" cy="10" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Games</span>
+      </div>
+    </div>
+
+    <ul class="features">
+      <li>Diagonal light-band refractions across face</li>
+      <li>Gradient accent border, subtle at rest</li>
+      <li>Premium specular highlight on top edge</li>
+      <li>Minimal &mdash; lets the icon art breathe</li>
+    </ul>
+  </div>
+
+
+  <!-- ═══ CONCEPT 2: PLASMA CORE ═══ -->
+  <div class="concept">
+    <div class="concept-number">Concept 2</div>
+    <h2>Plasma Core</h2>
+    <p class="tagline">Energy field radiating from center. Armored dark frame with tech-line accents &mdash; sci-fi HUD feel.</p>
+
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="c2-hex">
+          <div class="c2-body">
+            <div class="c2-notch top"></div>
+            <div class="c2-notch bottom"></div>
+            <svg class="c2-icon svg-settings" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Settings</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c2-hex c2-weather">
+          <div class="c2-body">
+            <div class="c2-notch top"></div>
+            <div class="c2-notch bottom"></div>
+            <svg class="c2-icon svg-weather" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" fill="rgba(77, 159, 255, 0.15)"/>
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Weather</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c2-hex c2-notes">
+          <div class="c2-body">
+            <div class="c2-notch top"></div>
+            <div class="c2-notch bottom"></div>
+            <svg class="c2-icon svg-notes" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="13" y2="17"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Notes</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c2-hex c2-games">
+          <div class="c2-body">
+            <div class="c2-notch top"></div>
+            <div class="c2-notch bottom"></div>
+            <svg class="c2-icon svg-games" viewBox="0 0 24 24">
+              <rect x="2" y="6" width="20" height="12" rx="6" fill="rgba(180, 80, 255, 0.1)"/>
+              <rect x="2" y="6" width="20" height="12" rx="6"/>
+              <line x1="6" y1="10" x2="6" y2="14"/><line x1="4" y1="12" x2="8" y2="12"/>
+              <circle cx="16" cy="10" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+        <span class="icon-label">Games</span>
+      </div>
+    </div>
+
+    <ul class="features">
+      <li>Radial energy core glow behind icon</li>
+      <li>Pulsing border on hover (energy field)</li>
+      <li>Tech-line accents + notch markers</li>
+      <li>Strong sci-fi HUD / armored frame vibe</li>
+    </ul>
+  </div>
+
+
+  <!-- ═══ CONCEPT 3: YANCOVERSE NATIVE ═══ -->
+  <div class="concept">
+    <div class="concept-number">Concept 3</div>
+    <h2>YancoVerse Native</h2>
+    <p class="tagline">Direct match to the YancoVerse room hexes. Thick luminous borders, inner edge glow, floating platform shadow.</p>
+
+    <div class="icon-row">
+      <div class="icon-cell">
+        <div class="c3-hex">
+          <div class="c3-ring"></div>
+          <div class="c3-body">
+            <svg class="c3-icon svg-settings" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+          </div>
+          <div class="c3-platform"></div>
+        </div>
+        <span class="icon-label">Settings</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c3-hex c3-weather">
+          <div class="c3-ring"></div>
+          <div class="c3-body">
+            <svg class="c3-icon svg-weather" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="4" fill="rgba(77, 159, 255, 0.15)"/>
+              <circle cx="12" cy="12" r="4"/>
+              <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </div>
+          <div class="c3-platform"></div>
+        </div>
+        <span class="icon-label">Weather</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c3-hex c3-notes">
+          <div class="c3-ring"></div>
+          <div class="c3-body">
+            <svg class="c3-icon svg-notes" viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="8" y1="13" x2="16" y2="13"/>
+              <line x1="8" y1="17" x2="13" y2="17"/>
+            </svg>
+          </div>
+          <div class="c3-platform"></div>
+        </div>
+        <span class="icon-label">Notes</span>
+      </div>
+
+      <div class="icon-cell">
+        <div class="c3-hex c3-games">
+          <div class="c3-ring"></div>
+          <div class="c3-body">
+            <svg class="c3-icon svg-games" viewBox="0 0 24 24">
+              <rect x="2" y="6" width="20" height="12" rx="6" fill="rgba(180, 80, 255, 0.1)"/>
+              <rect x="2" y="6" width="20" height="12" rx="6"/>
+              <line x1="6" y1="10" x2="6" y2="14"/><line x1="4" y1="12" x2="8" y2="12"/>
+              <circle cx="16" cy="10" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <div class="c3-platform"></div>
+        </div>
+        <span class="icon-label">Games</span>
+      </div>
+    </div>
+
+    <ul class="features">
+      <li>Thick luminous accent border (YancoVerse signature)</li>
+      <li>Inner edge glow from all hex edges</li>
+      <li>Floating platform shadow underneath</li>
+      <li>Strongest glow &mdash; most "alive" feel on hover</li>
+    </ul>
+  </div>
+
+</div>
+
+<!-- Current design for comparison -->
+<div class="current-section">
+  <h3>Current Design (for reference)</h3>
+  <div class="icon-row" style="justify-content: center;">
+    <div class="icon-cell">
+      <div class="c0-hex">
+        <svg class="c0-icon svg-settings" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </div>
+      <span class="icon-label">Settings</span>
+    </div>
+    <div class="icon-cell">
+      <div class="c0-hex">
+        <svg class="c0-icon svg-weather" viewBox="0 0 24 24">
+          <circle cx="12" cy="12" r="4"/>
+          <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+      </div>
+      <span class="icon-label">Weather</span>
+    </div>
+    <div class="icon-cell">
+      <div class="c0-hex">
+        <svg class="c0-icon svg-notes" viewBox="0 0 24 24">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="8" y1="13" x2="16" y2="13"/>
+          <line x1="8" y1="17" x2="13" y2="17"/>
+        </svg>
+      </div>
+      <span class="icon-label">Notes</span>
+    </div>
+    <div class="icon-cell">
+      <div class="c0-hex">
+        <svg class="c0-icon svg-games" viewBox="0 0 24 24">
+          <rect x="2" y="6" width="20" height="12" rx="6"/>
+          <line x1="6" y1="10" x2="6" y2="14"/><line x1="4" y1="12" x2="8" y2="12"/>
+          <circle cx="16" cy="10" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/>
+        </svg>
+      </div>
+      <span class="icon-label">Games</span>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
