@@ -84,11 +84,22 @@ fi
 # ── Zip ──
 if command -v zip &>/dev/null; then
   (cd "$STAGE" && zip -r "$OUT" . > /dev/null)
+elif command -v python3 &>/dev/null || command -v python &>/dev/null; then
+  # Windows without zip: PowerShell Compress-Archive writes backslash entry
+  # names, which the Web Store can mis-read. Python zipfile writes slashes.
+  PY=$(command -v python3 || command -v python)
+  "$PY" -c "
+import os, sys, zipfile
+root, out = sys.argv[1], sys.argv[2]
+with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as z:
+    for d, _, fs in os.walk(root):
+        for f in sorted(fs):
+            full = os.path.join(d, f)
+            z.write(full, os.path.relpath(full, root).replace(os.sep, '/'))
+" "$(native_path "$STAGE")" "$(native_path "$OUT")"
 else
-  # Windows: PowerShell Compress-Archive
-  WINSTAGE=$(native_path "$STAGE")
-  WINOUT=$(native_path "$OUT")
-  powershell -NoProfile -Command "Compress-Archive -Path '$WINSTAGE\*' -DestinationPath '$WINOUT' -Force"
+  echo "Error: need zip or python to build the archive" >&2
+  exit 1
 fi
 
 # ── Report ──
