@@ -2,7 +2,8 @@
  * BrowserApp — Wormholes redesign.
  *
  * 2-column layout: star map (left, 1fr) + side rail (right, 320px).
- * Toolbar above hosts nav buttons + URL input + engine pills + add.
+ * Toolbar above hosts nav buttons + URL input + add. Plain-text input is
+ * a web search sent to the user's Chrome default engine (webSearch.js).
  * Title bar tabs (Star map / Reader / History / Tabs) — Star map is
  * fully wired in PR-2; the others land later.
  *
@@ -23,11 +24,11 @@ import { buildReaderTab } from './browser/view/readerTab.js';
 import { buildHistoryTab } from './browser/view/historyTab.js';
 import { buildTabsTab } from './browser/view/tabsTab.js';
 import { hostFromUrl } from './browser/engine/state.js';
+import { runWebSearch } from '../services/webSearch.js';
 
 const TABS = ['Star map', 'Reader', 'History', 'Tabs'];
 
 const DEFAULT_PREFS = {
-  searchEngine: 'google',
   forceWebParam: true,
   historyLimit: 50,
   startTheme: 'aurora',
@@ -121,7 +122,6 @@ export class BrowserApp extends App {
     this._views.toolbar = buildToolbar({
       onNavigate: (input) => this._navigate(input),
       onAddPortal: (seed) => this._addPortalPrompt(seed),
-      onPickEngine: (id) => this._setEngine(id),
       onClearHistory: () => this._clearHistoryPrompt(),
     });
 
@@ -200,7 +200,12 @@ export class BrowserApp extends App {
 
   _navigate(input) {
     const url = this._resolveUrl(input);
-    if (!url) return;
+    if (!url) {
+      // Plain text → web search on the user's own Chrome search engine.
+      // Not recorded in history: Chrome, not YancoTab, picks the result URL.
+      if (this._isSearchText(input)) runWebSearch(String(input).trim());
+      return;
+    }
     this._commit(intent.navigated(this._state, url));
     this._openExternal(url);
   }
@@ -235,13 +240,6 @@ export class BrowserApp extends App {
     this._commit(intent.clearHistory(this._state));
   }
 
-  _setEngine(engineId) {
-    if (!['google', 'duck', 'bing'].includes(engineId)) return;
-    this._prefs = { ...this._prefs, searchEngine: engineId };
-    this._savePrefs();
-    this._renderAll();
-  }
-
   _setTab(name) {
     if (this._activeTab === name) return;
     this._activeTab = name;
@@ -252,7 +250,7 @@ export class BrowserApp extends App {
 
   _renderAll() {
     if (!this.root || !this._state) return;
-    this._views.toolbar.update(this._state, this._prefs);
+    this._views.toolbar.update(this._state);
     this._views.starMap.update(this._state);
     this._views.sideRail.update(this._state);
     this._views.readerTab.update(this._state);
@@ -292,14 +290,13 @@ export class BrowserApp extends App {
 
   _savePrefs() {
     try { this.kernel?.storage?.save?.(PREFS_KEY, this._prefs); } catch { /* ignore */ }
-    try { this.kernel?.storage?.save?.('yancotabSearchEngine', this._prefs.searchEngine); } catch { /* ignore */ }
   }
 
   /**
    * Resolve a user-typed string into a safe URL.
    * Same rules as the original BrowserApp: shortcut → expanded;
    * scheme-prefixed → as-is (if safe); domain-like → https://...;
-   * else → search engine query URL.
+   * else → '' (plain text is a web search; see _isSearchText).
    */
   _resolveUrl(input) {
     const text = String(input || '').trim();
@@ -321,10 +318,17 @@ export class BrowserApp extends App {
       } catch { return ''; }
     }
 
-    const q = encodeURIComponent(text);
-    if (this._prefs.searchEngine === 'duck') return `https://duckduckgo.com/?q=${q}`;
-    if (this._prefs.searchEngine === 'bing') return `https://www.bing.com/search?q=${q}`;
-    return `https://www.google.com/search?q=${q}`;
+    return '';
+  }
+
+  /** True when `input` is plain text (not a shortcut, URL or domain). */
+  _isSearchText(input) {
+    const text = String(input || '').trim();
+    if (!text) return false;
+    if (SHORTCUTS[text.toLowerCase()]) return false;
+    if (/^[a-z]+:/i.test(text)) return false;
+    if (text.includes('.') && !text.includes(' ')) return false;
+    return true;
   }
 
   _openExternal(url) {

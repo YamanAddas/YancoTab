@@ -19,6 +19,7 @@ import { el } from '../../utils/dom.js';
 import { buildContextMenu } from './view/contextMenu.js';
 import { applyHighlights } from './view/applyHighlights.js';
 import { normalizeNote } from './engine/notes.js';
+import { runWebSearch } from '../../services/webSearch.js';
 
 export function createAnnotationsController({
     stage, pdfStore,
@@ -200,8 +201,8 @@ export function createAnnotationsController({
 
     function searchWeb(text) {
         if (!text) return;
-        const url = `https://www.google.com/search?q=${encodeURIComponent(text)}`;
-        try { window.open(url, '_blank', 'noopener,noreferrer'); } catch { /* ignore */ }
+        // User's Chrome default search engine (Chrome Search API).
+        runWebSearch(text);
     }
 
     function openLink(payload) {

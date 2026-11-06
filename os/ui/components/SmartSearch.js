@@ -1,10 +1,12 @@
 /**
  * SmartSearch Component — v2.2
- * Universal search bar with fuzzy app matching, dropdown results,
- * search engine preference, and URL safety.
+ * Universal search bar with fuzzy app matching, dropdown results and URL
+ * safety. Web search goes to the user's Chrome default search engine via
+ * os/services/webSearch.js (Chrome Search API) — never an engine we pick.
  */
 import { el } from '../../utils/dom.js';
 import { kernel } from '../../kernel.js';
+import { runWebSearch, webSearchLabel } from '../../services/webSearch.js';
 
 const SAFE_SCHEMES = ['https:', 'http:', 'tel:', 'mailto:', 'sms:'];
 const MAX_RESULTS = 7;
@@ -28,17 +30,6 @@ function isUrlSafe(urlStr) {
     } catch {
         return false;
     }
-}
-
-function getSearchUrl(query) {
-    const engine = kernel.storage?.load('yancotabSearchEngine') || 'google';
-    const q = encodeURIComponent(query);
-    const urls = {
-        google: `https://www.google.com/search?q=${q}`,
-        duck:   `https://duckduckgo.com/?q=${q}`,
-        bing:   `https://www.bing.com/search?q=${q}`,
-    };
-    return urls[engine] || urls.google;
 }
 
 export class SmartSearch {
@@ -278,9 +269,7 @@ export class SmartSearch {
                 row.append(name);
             } else {
                 const icon = el('span', { style: 'font-size:20px;flex-shrink:0;width:24px;text-align:center;' }, '');
-                const engineName = kernel.storage?.load('yancotabSearchEngine') || 'google';
-                const label = { google: 'Google', duck: 'DuckDuckGo', bing: 'Bing' }[engineName] || 'Google';
-                const name = el('span', {}, `Search "${result.query}" on ${label}`);
+                const name = el('span', {}, webSearchLabel(result.query));
                 const badge = el('span', {
                     style: 'margin-left:auto;font-size:11px;color:var(--text-dim);padding:2px 6px;background:var(--accent-bg);border-radius:4px;'
                 }, 'Web');
@@ -335,8 +324,7 @@ export class SmartSearch {
         } else if (result.type === 'capture') {
             this._quickCapture(result.text);
         } else {
-            const url = getSearchUrl(result.query);
-            window.open(url, '_blank', 'noopener,noreferrer');
+            runWebSearch(result.query);
         }
         this.clear();
     }
@@ -443,9 +431,8 @@ export class SmartSearch {
             }
         }
 
-        // Web fallback
-        const url = getSearchUrl(query);
-        window.open(url, '_blank', 'noopener,noreferrer');
+        // Web fallback — the user's Chrome default search engine
+        runWebSearch(query);
         this.clear();
     }
 

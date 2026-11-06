@@ -37,7 +37,7 @@ Productivity:
 - 📕 PDF Reader — Library, full-text search, highlights, and sticky notes.
 - ✉️ Mail — Multi-account launcher for 12 webmail providers. Jump straight to an inbox, compose window, or search result.
 - 🗺 Maps — Quick launcher for places and directions.
-- ⚙️ Settings — Theme, wallpaper, search engine, widget toggles.
+- ⚙️ Settings — Theme, wallpaper, widget toggles.
 
 Games:
 - 🃏 Klondike Solitaire — Draw 1/3, Vegas scoring, daily deal, unlimited undo, win celebration.
@@ -55,7 +55,7 @@ Games:
 **Core Features**
 
 - Desktop UI — Drag-and-drop app grid, folders, multi-page support, and a pinnable dock.
-- Smart Search — Fuzzy-match any app by name or initials. Type a URL to navigate. Prefix > for commands, ! for quick capture to Notes. Falls back to Google, DuckDuckGo, or Bing.
+- Smart Search — Fuzzy-match any app by name or initials. Type a URL to navigate. Prefix > for commands, ! for quick capture to Notes. Anything else becomes a web search on your browser's default search engine — YancoTab never changes or overrides your search settings.
 - Widget Bar — Glanceable widgets above the grid: live clock, weather summary, top to-dos with inline checkboxes, active Pomodoro countdown.
 - Greeting — Personalized time-of-day greeting with your name and date.
 - Keyboard Shortcuts — Ctrl+K to focus search, Escape to go home, Ctrl+, for Settings.
@@ -78,7 +78,6 @@ Games:
 - Light and dark mode — toggle manually or follow your OS preference automatically.
 - Widget bar — show or hide each widget independently.
 - Card backs and suit styles for both Solitaire games — 4 cosmic-themed backs, 2-color or 4-color suits.
-- Search engine — Google, DuckDuckGo, or Bing.
 
 ---
 
@@ -103,6 +102,12 @@ English
 ## New Tab Override Justification (for CWS review form)
 
 YancoTab's entire value is delivered through the new tab page. The extension replaces Chrome's default new tab with a full local desktop — app grid, dock, search, widgets, and 22 built-in apps. Replacing the new tab is the product; there is no meaningful experience without it. The override is disclosed in the extension's description, store screenshots, and the onboarding screen shown on first install.
+
+---
+
+## Search Permission Justification (for CWS review form)
+
+`search` — used only to send web searches typed into YancoTab's search bar (and the "Search the web" item in the PDF reader) to the user's own default search engine through the Chrome Search API (`chrome.search.query`). YancoTab does not set, change or override the default search provider, does not offer its own engine choice, and does not read search results.
 
 ---
 

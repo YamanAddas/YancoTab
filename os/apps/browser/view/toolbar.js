@@ -1,16 +1,10 @@
 /**
- * browser/view/toolbar.js — nav buttons + URL input + layer pills + add portal.
+ * browser/view/toolbar.js — nav buttons + URL input + add portal.
  */
 
 import { el } from '../../../utils/dom.js';
 
-const ENGINES = [
-  { id: 'google', label: 'Google' },
-  { id: 'duck',   label: 'DDG' },
-  { id: 'bing',   label: 'Bing' },
-];
-
-export function buildToolbar({ onNavigate, onAddPortal, onPickEngine, onClearHistory }) {
+export function buildToolbar({ onNavigate, onAddPortal, onClearHistory }) {
   const root = el('div', { class: 'wh-toolbar' });
 
   // Nav cluster — back/forward/reload are stubs since we don't host
@@ -37,20 +31,6 @@ export function buildToolbar({ onNavigate, onAddPortal, onPickEngine, onClearHis
     }
   });
 
-  // Search engine pills
-  const engineGroup = el('div', { class: 'wh-toolbar-engines' });
-  const engineButtons = new Map();
-  for (const e of ENGINES) {
-    const btn = el('button', {
-      type: 'button',
-      class: 'wh-toolbar-engine',
-      'data-engine-id': e.id,
-    }, e.label);
-    btn.addEventListener('click', () => onPickEngine(e.id));
-    engineButtons.set(e.id, btn);
-    engineGroup.appendChild(btn);
-  }
-
   // Add portal button
   const addBtn = el('button', { type: 'button', class: 'wh-toolbar-add' }, '+ Portal');
   addBtn.addEventListener('click', () => onAddPortal(urlInput.value));
@@ -59,18 +39,16 @@ export function buildToolbar({ onNavigate, onAddPortal, onPickEngine, onClearHis
   const clearBtn = el('button', { type: 'button', class: 'wh-toolbar-clear', title: 'Clear history' }, '⌫');
   clearBtn.addEventListener('click', () => onClearHistory());
 
-  root.append(navGroup, urlInput, engineGroup, addBtn, clearBtn);
+  root.append(navGroup, urlInput, addBtn, clearBtn);
 
   return {
     root,
-    /** Sync URL input + active engine pill with state. */
-    update(state, prefs) {
+    /** Sync URL input with state. Web search uses the user's Chrome
+     *  default engine (os/services/webSearch.js), so there is no engine
+     *  picker here. */
+    update(state) {
       if (state.currentUrl && document.activeElement !== urlInput) {
         urlInput.value = state.currentUrl;
-      }
-      const engineId = prefs?.searchEngine || 'google';
-      for (const [id, btn] of engineButtons) {
-        btn.classList.toggle('is-active', id === engineId);
       }
     },
     focusUrl() { urlInput.focus(); urlInput.select(); },

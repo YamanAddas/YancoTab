@@ -5,7 +5,7 @@
  */
 
 // Version synced with os/version.js — update both together.
-const CACHE_NAME = 'yancotab-v1.11.1-mail-search';
+const CACHE_NAME = 'yancotab-v1.12.0-chrome-search';
 
 const PRECACHE = [
     './',
@@ -54,6 +54,7 @@ const PRECACHE = [
     './os/services/clockService.js',
     './os/services/weatherService.js',
     './os/services/fileSystemService.js',
+    './os/services/webSearch.js',
     // UI
     './os/ui/mobileShell.js',
     './os/ui/starfield.js',

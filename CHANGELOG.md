@@ -6,6 +6,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.12.0] — 2026-11-06
+
+Web search now always goes to the search engine you chose in Chrome.
+
+### Changed — search respects your Chrome search engine
+
+The Chrome Web Store flagged YancoTab on 2026-11-03 under the Single Purpose
+policy (reference "Red Argon"): a new tab page that offers web search must
+respect the user's search settings by using the Chrome Search API. YancoTab
+never changed Chrome's default search engine, but its own search bar sent
+queries to Google, DuckDuckGo or Bing based on a YancoTab setting.
+
+- Every web search (smart search bar, Browser app, PDF reader "Search the
+  web") now goes through one helper, `os/services/webSearch.js`, which calls
+  `chrome.search.query()` and opens the results in a new tab on your Chrome
+  default engine.
+- The engine picker is gone from onboarding, Settings → Browser and the
+  Browser app toolbar. Settings shows where to change the engine in Chrome.
+- The search row reads `Search the web for "…"` instead of naming an engine.
+- App, file, URL, `>` command and `!` quick-note search are unchanged.
+
+### Added
+
+- `search` permission in `manifest.json` (no install warning). Rationale in
+  `docs/adr/0001-chrome-search-permission.md`.
+- `tests/webSearch.test.js`: checks the Chrome Search API call, that a failed
+  call never falls back to a hardcoded engine, and that no code in `os/`
+  builds an engine search URL again.
+
+---
+
 ## [1.11.1] — 2026-08-11
 
 Search reaches two more providers, and one of the remaining gaps turns out
