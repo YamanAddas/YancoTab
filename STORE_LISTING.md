@@ -65,7 +65,7 @@ Games:
 **Privacy & Performance**
 
 - Zero data collection. No analytics, no telemetry, no tracking pixels. Your data never leaves your browser.
-- One permission only: `storage`. YancoTab never requests access to your tabs, browsing history, or any website data.
+- Two permissions only: `storage` (save your settings locally) and `search` (send web searches to the search engine YOU chose in Chrome). YancoTab never requests access to your tabs, browsing history, or any website data.
 - Works fully offline. Service worker caches everything. All 22 apps work without a network connection.
 - Fast. Apps lazy-load on first launch. The new tab shell is interactive in under 200ms.
 - Open source. MIT licensed. Every line of code is public on GitHub: github.com/YamanAddas/YancoTab
@@ -96,6 +96,16 @@ Productivity
 ## Language
 
 English
+
+---
+
+## Single Purpose (for CWS Privacy tab)
+
+YancoTab does one thing: it replaces the new tab page with a local desktop of apps, notes and games. Web search from the new tab is sent to the user's own Chrome default search engine through the Chrome Search API; YancoTab does not choose or change the search engine.
+
+## `search` Permission Justification (for CWS Privacy tab)
+
+Used only to run a web search in the user's own default search engine via chrome.search.query(), so the new tab page respects the user's selected search settings. YancoTab never chooses a search engine, never changes the default search provider, and never stores or transmits search queries.
 
 ---
 
