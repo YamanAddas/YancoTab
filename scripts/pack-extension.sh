@@ -42,7 +42,7 @@ EXCLUDES=(
   # Dev artifacts at repo root that aren't part of the extension
   'kofi-logo-generator.html' 'promo-tile-generator.html' 'icon-concepts.html'
   'yancotab.png' 'yancotab-clean.png'
-  'V1_COMPLETION_PLAN.md'
+  'V1_COMPLETION_PLAN.md' 'AGENTS.md' 'yancotab-v*'
   # Design notes, tooling config and the local static server. All of this
   # was shipping to users until the v1.9.2 zip was audited — including a
   # bug write-up, an internal audit dump, and serve.mjs, which hardcodes

@@ -14,6 +14,7 @@
 
 import { buildPdfContextMenu } from './chrome/pdfContextMenu.js';
 import { addBookmark } from '../persistence.js';
+import { runWebSearch } from '../../../services/webSearch.js';
 
 export function createContextMenuController({
   stage, kernel, onToast,
@@ -83,9 +84,8 @@ export function createContextMenuController({
     },
     onSearchWeb: (text) => {
       if (!text) return;
-      const q = encodeURIComponent(text);
-      try { window.open(`https://www.google.com/search?q=${q}`, '_blank', 'noopener'); }
-      catch { /* best-effort */ }
+      // User's Chrome default search engine (Chrome Search API).
+      runWebSearch(text);
     },
     onAddNoteAtPoint: (p) => {
       tools.placeNewNote({

@@ -224,12 +224,18 @@
 
     <h2>4. Permissions we request</h2>
     <p>
-        YancoTab declares exactly one permission in its manifest:
+        YancoTab declares exactly two permissions in its manifest:
     </p>
     <ul>
         <li>
             <code>storage</code> — required to read and write your settings and app
             data via the two storage mechanisms above.
+        </li>
+        <li>
+            <code>search</code> — required to send a web search to the default
+            search engine <em>you</em> chose in Chrome, using Chrome's own Search
+            API. YancoTab never picks a search engine for you and never sees or
+            stores your search queries.
         </li>
     </ul>
     <p>

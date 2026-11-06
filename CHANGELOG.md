@@ -6,6 +6,55 @@ The format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
+## [1.12.0] — 2026-11-06
+
+Chrome Web Store policy fix. On 2026-11-03 the store warned that YancoTab
+"makes changes to both the browser new tab page and the user's search
+experience" (Quality Guidelines → Single Purpose, ref "Red Argon"), with a
+30-day window before removal.
+
+### Changed — web search now uses the user's own Chrome search engine
+
+YancoTab no longer picks a search engine. Every web search goes through one
+module, `os/services/webSearch.js`, which calls `chrome.search.query()` and so
+lands on whatever default engine the user chose in Chrome. The engine pickers
+(Settings, onboarding, the Browser app's Google/DDG/Bing pills) are gone, and
+the search bar's web row says "Search the web for …" instead of naming an
+engine. Covered call sites: SmartSearch (both paths), the Browser address bar,
+and both PDF "Search web" menus.
+
+If `chrome.search.query` fails inside the extension, nothing happens and a
+warning is logged. It deliberately does **not** fall back to a hardcoded
+engine, since that is exactly the behaviour the policy forbids. Only the
+standalone web build (no Chrome Search API) uses a plain URL fallback.
+
+### Added — `search` permission (decision record)
+
+`manifest.json` now declares `["storage", "search"]`. Required by
+`chrome.search`; it is what the policy email prescribes. It grants the ability
+to run a search in the user's default engine only, no history or tab access.
+`privacy.html` and `STORE_LISTING.md` updated to match. Whether Chrome shows
+an install/update warning for it is not verified here.
+
+### Fixed
+
+- `sw.js` precache lists `webSearch.js` (the search bar imports it at boot, so
+  the standalone app would not start offline without it).
+- `pack-extension.sh` no longer ships `AGENTS.md` or `yancotab-v*` folders.
+
+### Tests
+
+`tests/web-search.test.js` (+10): behaviour of the module, plus guards that no
+file outside it hardcodes an engine URL, no picker UI returns, and the
+manifest/privacy page declare the permission. Mutation-checked: adding a Bing
+URL to SmartSearch turns the suite red.
+
+### Not verified
+
+Not exercised in a real Chrome with the unpacked extension.
+
+---
+
 ## [1.11.1] — 2026-08-11
 
 Search reaches two more providers, and one of the remaining gaps turns out

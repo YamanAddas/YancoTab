@@ -12,7 +12,6 @@ export class Onboarding {
         this._step = 1;
         this._name = '';
         this._theme = 'dark';
-        this._engine = 'google';
     }
 
     shouldShow() {
@@ -67,12 +66,6 @@ export class Onboarding {
                 { value: 'light', label: 'Light' },
                 { value: 'auto', label: 'Auto' },
             ], this._theme, (v) => { this._theme = v; }),
-            el('div', { style: 'font-size:16px;color:var(--text-bright);margin:20px 0 12px;text-align:left;' }, 'Search engine'),
-            this._radioGroup('engine', [
-                { value: 'google', label: 'Google' },
-                { value: 'duck', label: 'DuckDuckGo' },
-                { value: 'bing', label: 'Bing' },
-            ], this._engine, (v) => { this._engine = v; }),
             el('div', { style: 'margin-top:24px;' }),
             this._primaryBtn('Continue', () => { this._applySettings(); this._step = 3; this._render(); }),
             this._skipLink(),
@@ -103,7 +96,6 @@ export class Onboarding {
         // applyThemeMode handles 'auto' natively now (persists 'auto', resolves
         // to OS preference, and subscribes to system theme changes via initTheme).
         applyThemeMode(this._theme);
-        kernel.storage?.save('yancotabSearchEngine', this._engine);
     }
 
     _finish() {

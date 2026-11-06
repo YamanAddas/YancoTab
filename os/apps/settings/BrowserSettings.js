@@ -1,8 +1,9 @@
 /**
  * BrowserSettings.js — Browser tab for the Settings app
  *
- * Search engine, start page theme, force-web-param toggle,
- * and privacy actions (clear history, clear bookmarks).
+ * Start page theme, force-web-param toggle, and privacy actions
+ * (clear history, clear bookmarks). Web search has no engine setting here:
+ * it always uses the user's Chrome default search engine (webSearch.js).
  */
 
 import { showConfirm } from '../../ui/components/YancoModal.js';
@@ -22,17 +23,13 @@ function readJson(key, fallback, storage) {
 }
 
 function getBrowserPrefs(storage) {
-  const searchEngine = storage
-    ? (storage.load('yancotabSearchEngine') || 'google')
-    : (localStorage.getItem('yancotabSearchEngine') || 'google');
-  const defaults = { searchEngine, forceWebParam: true, historyLimit: 20, startTheme: 'aurora' };
+  const defaults = { forceWebParam: true, historyLimit: 20, startTheme: 'aurora' };
   const stored = readJson(BROWSER_PREFS_KEY, {}, storage);
   const historyLimit = Number(stored.historyLimit);
   const clampedHistory = Number.isFinite(historyLimit)
     ? Math.max(10, Math.min(100, Math.round(historyLimit)))
     : defaults.historyLimit;
   return {
-    searchEngine: ['google', 'duck', 'bing'].includes(stored.searchEngine) ? stored.searchEngine : defaults.searchEngine,
     forceWebParam: typeof stored.forceWebParam === 'boolean' ? stored.forceWebParam : defaults.forceWebParam,
     historyLimit: clampedHistory,
     startTheme: ['aurora', 'graphite', 'midnight'].includes(stored.startTheme) ? stored.startTheme : defaults.startTheme,
@@ -41,7 +38,6 @@ function getBrowserPrefs(storage) {
 
 function setBrowserPrefs(nextPrefs, storage) {
   const sanitized = {
-    searchEngine: ['google', 'duck', 'bing'].includes(nextPrefs?.searchEngine) ? nextPrefs.searchEngine : 'google',
     forceWebParam: nextPrefs?.forceWebParam !== false,
     historyLimit: Number.isFinite(Number(nextPrefs?.historyLimit))
       ? Math.max(10, Math.min(100, Math.round(Number(nextPrefs.historyLimit))))
@@ -50,10 +46,8 @@ function setBrowserPrefs(nextPrefs, storage) {
   };
   if (storage) {
     storage.save(BROWSER_PREFS_KEY, sanitized);
-    storage.save('yancotabSearchEngine', sanitized.searchEngine);
   } else {
     localStorage.setItem(BROWSER_PREFS_KEY, JSON.stringify(sanitized));
-    localStorage.setItem('yancotabSearchEngine', sanitized.searchEngine);
   }
   window.dispatchEvent(new CustomEvent('yancotab:browser-settings-changed', { detail: sanitized }));
 }
@@ -72,10 +66,8 @@ export function renderBrowser(container, app) {
     app._renderContent();
   };
 
-  container.appendChild(app._group('Search Engine', [
-    app._choiceRow('Google', prefs.searchEngine === 'google', () => updatePrefs({ searchEngine: 'google' })),
-    app._choiceRow('DuckDuckGo', prefs.searchEngine === 'duck', () => updatePrefs({ searchEngine: 'duck' })),
-    app._choiceRow('Bing', prefs.searchEngine === 'bing', () => updatePrefs({ searchEngine: 'bing' })),
+  container.appendChild(app._group('Web Search', [
+    app._infoRow('Search engine', "Uses your browser's default search engine. Change it in Chrome settings → Search engine."),
   ]));
 
   container.appendChild(app._group('Start Page', [

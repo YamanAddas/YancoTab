@@ -128,27 +128,6 @@ body.theme-light .wh-frame {
   background: rgba(0, 0, 0, 0.40);
 }
 
-.wh-toolbar-engines { display: flex; gap: 4px; flex-shrink: 0; }
-.wh-toolbar-engine {
-  padding: 5px 10px;
-  border-radius: 7px;
-  border: 1px solid var(--border, rgba(255,255,255,0.10));
-  background: rgba(0, 0, 0, 0.18);
-  color: var(--text);
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: all 200ms cubic-bezier(0.16, 0.84, 0.32, 1);
-}
-.wh-toolbar-engine:hover { color: var(--text-bright); }
-.wh-toolbar-engine.is-active {
-  color: var(--accent);
-  background: rgba(var(--accent-rgb), 0.06);
-  border-color: rgba(var(--accent-rgb), 0.4);
-}
-
 .wh-toolbar-add {
   padding: 6px 12px;
   border-radius: 7px;
